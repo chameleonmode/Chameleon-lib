@@ -1,0 +1,46 @@
+﻿using Chameleon.lib.Core.Automation.Interfaces;
+using Chameleon.lib.Core.Automation.Models;
+
+namespace Chameleon.lib.Core.Automation.Services;
+public class AutomationScriptRepository(IAutomationScriptApi apiClient)
+: IAutomationScriptRepository {
+		private readonly IAutomationScriptApi _client = apiClient;
+
+		public void UpdateParameter(IAutomationScriptParameter param) => _client.UpdateParameter(param);
+
+		public void SetParametersValue(IList<IAutomationParameterValue> values) => _client.SetParametersValue(values);
+
+		public IList<IAutomationScriptDescription> GetAllScriptDescription() {
+				var scriptDtos = _client.GetAllScriptDescription();
+				var scripts = new List<IAutomationScriptDescription>();
+
+				foreach (var script in scriptDtos) {
+						var scriptDtoMapped = new AutomationScriptDescription {
+								Title = script.Title,
+								Description = script.Description,
+								Parameters = []
+						};
+
+						foreach (var parameter in script.Parameters) {
+								var parameterDtoMapped = new AutomationParameterValue {
+										Id = parameter.Id,
+										Name = parameter.Name,
+										Value = parameter.Value,
+										ParameterId = parameter.Id,
+								};
+								scriptDtoMapped.Parameters.Add(parameterDtoMapped);
+						}
+						scripts.Add(scriptDtoMapped);
+				}
+
+				return scripts;
+		}
+
+		public IAutomationScript Get(int id) => _client.Get<AutomationScript>(id);
+
+		public string GetScriptBody(int id) {
+				var scriptBodyDto = _client.GetScriptBody(id);
+
+				return scriptBodyDto;
+		}
+}

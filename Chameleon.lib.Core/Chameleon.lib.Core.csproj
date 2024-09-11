@@ -9,7 +9,7 @@
 		<Company></Company>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<PackageId>Chameleon.lib.Core(PackageSuffix)</PackageId>
+		<PackageId>Chameleon.lib.Core$(PackageSuffix)</PackageId>
 		<Configurations>Debug;Release;ReleaseAvalonia;ReleaseWPF;ReleaseAvaloniaRemoteDebugSupport</Configurations>
 	</PropertyGroup>
 
