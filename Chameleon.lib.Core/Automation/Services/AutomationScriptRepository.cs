@@ -43,4 +43,6 @@ public class AutomationScriptRepository(IAutomationScriptApi apiClient)
 
 				return scriptBodyDto;
 		}
+
+		public IList<IAutomationScript> BundledScripts { get; } = [];
 }

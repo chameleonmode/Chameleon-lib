@@ -15,20 +15,19 @@ global using Chameleon.lib.Common.Extensions;
 global using Chameleon.lib.Common.Types;
 global using Chameleon.lib.Common.Managers;
 global using Chameleon.lib.Common.Interfaces;
+using Microsoft.Extensions.Logging.Console;
 
 namespace Chameleon.lib.Common;
 public class IoC {
 		private bool isInitialized = false;
 		private IoC() {
-				Services = Configure();
 				Config = CreateConfigurationManager();
-				isInitialized = true;
 		}
 
 		/// <summary>
 		/// Gets the <see cref="IServiceProvider"/> instance to resolve application services.
 		/// </summary>
-		public IServiceProvider Services { get; }
+		public IServiceProvider? Services { get; private set; }
 
 		/// <summary>
 		/// Gets the <see cref="IChaonfigurationManager"/> instance to resolve application CONFIGURATIONS.
@@ -43,13 +42,26 @@ public class IoC {
 		/// <summary>
 		/// Configures the services for the application.
 		/// </summary>
-		private static ServiceProvider Configure() {
+		public void Configure(Action<ServiceCollection> action) {
 				var services = new ServiceCollection();
+				action(services);
 
-				_ = services
-						.AddLogging(configure => configure.AddConsole());
-
-				return services.BuildServiceProvider();
+				Services = services
+								.AddLogging(builder => {
+										_ = builder
+										.AddConsole(opt => {
+												opt.FormatterName = ConsoleFormatterNames.Simple;
+										})
+										.AddFilter(level => true)
+										.SetMinimumLevel(LogLevel.Trace);
+								})
+								.Configure<LoggerFilterOptions>(options => {
+										options.MinLevel = LogLevel.Trace;
+										options.CaptureScopes = true;
+								})
+								.Configure<SimpleConsoleFormatterOptions>(options => {
+										options.IncludeScopes = true;
+								}).BuildServiceProvider();
 		}
 
 		public static IChaonfigurationManager CreateConfigurationManager() {
@@ -78,7 +90,7 @@ public class IoC {
 		//
 		// Returns:
 		//     A service object of type T or null if there is no such service.
-		public static T? GetService<T>() => (T?)Instance.Services.GetService(typeof(T));
+		public static T? GetService<T>() => (T?)Instance.Services?.GetService(typeof(T));
 
 		public static T? GetValue<T>(string key) => Instance.Config.GetValue<T>(key);
 
