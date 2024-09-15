@@ -3,5 +3,6 @@ public enum SystemBrowserType {
 		Unknown,
 		Chrome,
 		Firefox,
-		Brave
+		Brave,
+		Chromium
 }
