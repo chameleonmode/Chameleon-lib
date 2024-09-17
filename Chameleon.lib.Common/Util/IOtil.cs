@@ -4,11 +4,11 @@ using System.IO.Compression;
 namespace Chameleon.lib.Common.Util;
 public static class IOtil {
 		public static async Task CopyFromStream(Stream stream, string destination) {
-						using var assetStream = stream;
-						// Create a new file stream for the destination file
-						using var fileStream = new FileStream(destination, FileMode.Create, FileAccess.Write);
-						// Copy the asset stream to the file stream
-						await assetStream.CopyToAsync(fileStream).ConfigureAwait(false);
+				using var assetStream = stream;
+				// Create a new file stream for the destination file
+				using var fileStream = new FileStream(destination, FileMode.Create, FileAccess.Write);
+				// Copy the asset stream to the file stream
+				await assetStream.CopyToAsync(fileStream).ConfigureAwait(false);
 		}
 
 		public static async Task DC(string directoryPath) {

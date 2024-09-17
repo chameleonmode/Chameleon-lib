@@ -14,7 +14,7 @@
 		<Product>Chameleon.lib</Product>
 		<Copyright>Copyright © Chameleonmode 2024</Copyright>
 		<PackageProjectUrl>https://github.com/chameleonmode/Chameleon.lib</PackageProjectUrl>
-		<PackageOutputPath>C:\repos\nuget</PackageOutputPath>
-		<!--<PackageOutputPath>$(MSBuildProjectDirectory)\..\nuget</PackageOutputPath>-->
+		<!--<PackageOutputPath>C:\repos\nuget</PackageOutputPath>-->
+		<PackageOutputPath>$(MSBuildProjectDirectory)\..\nuget</PackageOutputPath>
 	</PropertyGroup>
 </Project>
