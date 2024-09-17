@@ -11,6 +11,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PackageId>Chameleon.lib.Core$(PackageSuffix)</PackageId>
 		<Configurations>Debug;Release</Configurations>
+		<OutputPath>$(MSBuildProjectDirectory)\bin\</OutputPath>
 	</PropertyGroup>
 
 	<ItemGroup>
