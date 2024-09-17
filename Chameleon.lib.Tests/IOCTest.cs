@@ -17,7 +17,7 @@ public class IOCTest {
 						_tcs.SetResult(true);
 				}
 				// Setup IoC
-				IoC.Instance.Init(() => {
+				IoC.Instance.Init((on) => {
 						setup();
 				});
 
