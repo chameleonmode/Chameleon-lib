@@ -1,9 +1,12 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Chameleon.Interfaces;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Chameleon.lib.CommunityToolkit.MvvM;
 
-public abstract partial class ObservableObjectBase : ObservableObject {
+public abstract partial class ObservableObjectBase : ObservableObject,
+		IPageViewModel {
 
 	[ObservableProperty]
 	private string? _title;

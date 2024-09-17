@@ -19,81 +19,71 @@ using Microsoft.Extensions.Logging.Console;
 
 namespace Chameleon.lib.Common;
 public class IoC {
-		private bool isInitialized = false;
-		private IoC() {
-				Config = CreateConfigurationManager();
-		}
+	private bool isInitialized = false;
 
-		/// <summary>
-		/// Gets the <see cref="IServiceProvider"/> instance to resolve application services.
-		/// </summary>
-		public IServiceProvider? Services { get; private set; }
+	/// <summary>
+	/// Gets the <see cref="IServiceProvider"/> instance to resolve application services.
+	/// </summary>
+	public IServiceProvider? Services { get; private set; }
 
-		/// <summary>
-		/// Gets the <see cref="IChaonfigurationManager"/> instance to resolve application CONFIGURATIONS.
-		/// </summary>
-		public IChaonfigurationManager Config { get; }
+	/// <summary>
+	/// Gets the <see cref="IChaonfigurationManager"/> instance to resolve application CONFIGURATIONS.
+	/// </summary>
+	public IChaonfigurationManager? Config { get; private set; }
 
-		public void Init(Action<bool> action) {
-				isInitialized = true;
-				action(isInitialized);
-		}
+	public void Init(Action<bool> action)
+	{
+		isInitialized = true;
+		action(isInitialized);
+	}
 
-		/// <summary>
-		/// Configures the services for the application.
-		/// </summary>
-		public void Configure(Action<ServiceCollection> action) {
-				var services = new ServiceCollection();
-				action(services);
+	/// <summary>
+	/// Configures the services for the application.
+	/// </summary>
+	public void Configure(Func<WritableConfiguration> config, Action<ServiceCollection> action)
+	{
+		Config = new ChaonfigurationManager(config());
 
-				Services = services
-								.AddLogging(builder => {
-										_ = builder
-										.AddConsole(opt => {
-												opt.FormatterName = ConsoleFormatterNames.Simple;
-										})
-										.AddFilter(level => true)
-										.SetMinimumLevel(LogLevel.Trace);
+		var services = new ServiceCollection();
+		action(services);
+
+		Services = services
+						.AddLogging(builder => {
+							_ = builder
+									.AddConsole(opt => {
+									opt.FormatterName = ConsoleFormatterNames.Simple;
 								})
-								.Configure<LoggerFilterOptions>(options => {
-										options.MinLevel = LogLevel.Trace;
-										options.CaptureScopes = true;
-								})
-								.Configure<SimpleConsoleFormatterOptions>(options => {
-										options.IncludeScopes = true;
-								}).BuildServiceProvider();
-		}
+									.AddFilter(level => true)
+									.SetMinimumLevel(LogLevel.Trace);
+						})
+						.Configure<LoggerFilterOptions>(options => {
+							options.MinLevel = LogLevel.Trace;
+							options.CaptureScopes = true;
+						})
+						.Configure<SimpleConsoleFormatterOptions>(options => {
+							options.IncludeScopes = true;
+						}).BuildServiceProvider();
+	}
 
-		public static IChaonfigurationManager CreateConfigurationManager() {
-				// Setup
-				var baseConfig = new ConfigurationBuilder()
-								.SetBasePath(Directory.GetCurrentDirectory())
-								.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-								.AddEnvironmentVariables()
-								.Build();
+	//
+	// Summary:
+	//     Get service of type T from the System.IServiceProvider.
+	//
+	// Parameters:
+	//   provider:
+	//     The System.IServiceProvider to retrieve the service object from.
+	//
+	// Type parameters:
+	//   T:
+	//     The type of service object to get.
+	//
+	// Returns:
+	//     A service object of type T or null if there is no such service.
+	public static T? GetService<T>() => (T?)Instance.Services?.GetService(typeof(T));
+	public static T? GetService<T>(Type t) => (T?)Instance.Services?.GetService(t);
 
-				var writableConfig = new WritableConfiguration(baseConfig);
-				return new ChaonfigurationManager(writableConfig);
-		}
-
-		//
-		// Summary:
-		//     Get service of type T from the System.IServiceProvider.
-		//
-		// Parameters:
-		//   provider:
-		//     The System.IServiceProvider to retrieve the service object from.
-		//
-		// Type parameters:
-		//   T:
-		//     The type of service object to get.
-		//
-		// Returns:
-		//     A service object of type T or null if there is no such service.
-		public static T? GetService<T>() => (T?)Instance.Services?.GetService(typeof(T));
-
-		public static T? GetValue<T>(string key) => Instance.Config.GetValue<T>(key);
-
-		//Singleton pattern
-		public static IoC Instance { get; } = new IoC();
+	public static T? GetValue<T>(string key) => Instance.Config == null ? throw new ArgumentException("Configuration manager is not initialized", nameof(key)) : Instance.Config.GetValue<T>(key);
+	public static void SetValue<T>(string key, T value) => Instance.Config?.SetValue(key, value);
+	//Singleton pattern
+	public static IoC Instance { get; } = new IoC();
 }

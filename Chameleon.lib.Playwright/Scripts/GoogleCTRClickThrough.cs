@@ -9,6 +9,9 @@ using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Scripts;
 public class GoogleCTRClickThrough : IBundledScript {
+	public string Title => "Google Click Through Rate";
+	public string Description => "Clicks through Google search results to a target URL";
+	public IList<string> parameters => ["keyword", "targetUrl", "pagescount", "timeout"];
 	public async Task Run(IBrowserContext context, IList<IAutomationParameterValue>? pargs = null) {
 		var args = pargs.ParseArguments();
 

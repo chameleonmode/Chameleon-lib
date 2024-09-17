@@ -8,6 +8,8 @@ using Chameleon.lib.Core.Automation.Interfaces;
 using Chameleon.lib.Core.Automation.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Chameleon.lib.Playwright.Services;
+using Microsoft.Extensions.Configuration;
+using Chameleon.lib.Common.Types;
 
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
@@ -26,7 +28,13 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 			await LaunchBrowser();
 			_tcs.SetResult(true);
 		}
-		IoC.Instance.Configure((services) => {
+		IoC.Instance.Configure(() => {
+			return new WritableConfiguration(new ConfigurationBuilder()
+				.SetBasePath(Directory.GetCurrentDirectory())
+				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+				.AddEnvironmentVariables()
+				.Build(), Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
+		}, (services) => {
 			_ = services
 			//lib.Core
 			.AddSingleton<IAutomationScriptApi, AutomationScriptApi>()

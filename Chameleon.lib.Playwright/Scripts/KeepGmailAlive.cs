@@ -7,6 +7,9 @@ using Chameleon.lib.Playwright.Interfaces;
 
 namespace Chameleon.lib.Playwright.Scripts;
 public class KeepGmailAlive : IBundledScript {
+	public string Title => "Keep Gmail Alive";
+	public string Description => "Reads a random email in Gmail.";
+	public IList<string> parameters => [];
 	public async Task Run(IBrowserContext context, IList<IAutomationParameterValue>? pargs) {
 		var page = await context.NewPageAsync();
 		try {

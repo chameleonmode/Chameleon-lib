@@ -1,4 +1,5 @@
-﻿using Chameleon.lib.Core.Automation.Interfaces;
+﻿using Chameleon.lib.Common.Util;
+using Chameleon.lib.Core.Automation.Interfaces;
 using Chameleon.lib.Core.Automation.Models;
 
 namespace Chameleon.lib.Core.Automation.Services;
@@ -26,7 +27,6 @@ public class AutomationScriptRepository(IAutomationScriptApi apiClient)
 										Id = parameter.Id,
 										Name = parameter.Name,
 										Value = parameter.Value,
-										ParameterId = parameter.Id,
 								};
 								scriptDtoMapped.Parameters.Add(parameterDtoMapped);
 						}
@@ -36,7 +36,22 @@ public class AutomationScriptRepository(IAutomationScriptApi apiClient)
 				return scripts;
 		}
 
-		public IAutomationScript Get(int id) => _client.Get<AutomationScript>(id);
+	public Task<List<IAutomationScriptDescription>> GetAll(string filepath) => Task.Run(() => {
+		var returned = new List<IAutomationScriptDescription>();
+		foreach (var item in IOtil.ReadDirectory(filepath)) {
+			var inf = new FileInfo(item);
+			if (inf.Extension != ".cs")
+				continue;
+			returned.Add(new AutomationScriptDescription() {
+				Title = inf.Name,
+				Description = inf.Directory?.Name,
+				FilePath = inf.FullName,
+			});
+		}
+		return returned;
+	});
+
+	public IAutomationScript Get(int id) => _client.Get<AutomationScript>(id);
 
 		public string GetScriptBody(int id) {
 				var scriptBodyDto = _client.GetScriptBody(id);
