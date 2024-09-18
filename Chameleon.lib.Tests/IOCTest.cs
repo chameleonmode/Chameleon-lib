@@ -1,14 +1,7 @@
-using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common;
-using System.Text;
 using System.Diagnostics;
 using Chameleon.lib.Common.Types;
-using Chameleon.lib.Core.Automation.Interfaces;
-using Chameleon.lib.Core.Automation.Services;
-using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Playwright.Services;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Chameleon.lib.Tests;
 

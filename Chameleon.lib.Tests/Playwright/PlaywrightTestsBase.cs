@@ -7,16 +7,9 @@ namespace Chameleon.lib.Tests.Playwright;
 public abstract class PlaywrightTestsBase {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 
-	public string? CachePath;
+	public string CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 	public Process? BrowserProcess;
 	public int Port = 9669;
-	public PlaywrightTestsBase()
-	{
-		// Setup code
-		Port = Netil.NextFreePort(Port);
-		CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-		BrowserProcess = GrowserProcess(CachePath, [$"--remote-debugging-port={Port}"]);
-	}
 
 	public static Process GrowserProcess(string cachepath, List<string> args) => new() {
 		StartInfo = new ProcessStartInfo {
@@ -43,6 +36,9 @@ public abstract class PlaywrightTestsBase {
 
 	public async Task LaunchBrowser()
 	{
+		Port = Netil.NextFreePort(Port);
+		CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+		BrowserProcess = GrowserProcess(CachePath, [$"--remote-debugging-port={Port}"]);
 		_ = BrowserProcess!.Start();
 		await Task.Delay(2000);
 	}
@@ -51,6 +47,7 @@ public abstract class PlaywrightTestsBase {
 		if (BrowserProcess != null) {
 			BrowserProcess.Kill();
 			BrowserProcess.Dispose();
+			BrowserProcess = null;
 		}
 		await Task.Delay(2000);
 		if (Directory.Exists(CachePath)) Directory.Delete(CachePath, true);

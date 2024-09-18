@@ -2,58 +2,71 @@
 using System.Threading.Tasks;
 
 using Chameleon.lib.Playwright.Interfaces;
+using Chameleon.lib.Playwright.Models;
 
+using Microsoft.Extensions.Options;
 using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Services;
-public class ChromeiumPlaywrightBrowserInstance(IPlaywrightBrowserLaunchOptions options)
+public class ChromeiumPlaywrightBrowserInstance(IBrowser browser)
 		: IPlaywrightBrowserInstance {
-	private IBrowser? _browser;
-
-	public IBrowserContext? BrowserContext => _browser!.Contexts.Count > 0 ? _browser.Contexts[0] : null;
+  public IBrowserContext BrowserContext => browser.Contexts[0];
 
 	public async Task Close()
 	{
 		if (BrowserContext != null) await BrowserContext.CloseAsync();
 
-		if (_browser != null) {
-			await _browser.CloseAsync();
-			_browser = null;
+		if (browser != null) {
+			await browser.CloseAsync();
+			await browser.DisposeAsync();
 		}
-	}
-
-	public Task Open()
-			=> TryOpenByCDP(0);
-
-	private async Task TryOpenByCDP(int v)
-	{
-		ArgumentNullException.ThrowIfNull(options.Playwright);
-		ArgumentNullException.ThrowIfNull(options.ScriptOptions);
-		try {
-			_browser = await options.Playwright.Chromium.ConnectOverCDPAsync($"http://localhost:{options.ScriptOptions.Port}");
-		} catch {
-			if (v < 6) {
-				await Task.Delay(1000);
-				await TryOpenByCDP(v + 1);
-			} else {
-				throw;
-			}
-		}
-	}
-
-	public async Task Record()
-	{
-		var page = await BrowserContext!.NewPageAsync();
-		await page!.PauseAsync();
 	}
 }
 
 public class ChromeiumPlaywrightBrowser
 		: IChromeiumPlaywrightBrowser {
-	public virtual async Task<IPlaywrightBrowserInstance> Open(IPlaywrightBrowserLaunchOptions o)
+	public IPlaywright? Playwright { get; set; }
+	public IList<IPlaywrightBrowserInstance> RunningAutomationBrowsers { get; } = [];
+
+	public async Task Close()
 	{
-		var browser = new ChromeiumPlaywrightBrowserInstance(o);
-		await browser.Open();
+		foreach (var browser in RunningAutomationBrowsers) {
+			await browser.Close();
+		}
+		RunningAutomationBrowsers.Clear();
+		Playwright?.Dispose();
+	}
+	public void Dispose()
+	{
+		Playwright!.Dispose();
+		Playwright = null;
+	}
+
+	public virtual async Task<IPlaywrightBrowserInstance> Open(PlaywriteRunScriptOptions o)
+	{
+		Playwright ??= await Microsoft.Playwright.Playwright.CreateAsync();
+
+		var iBrowser = await TryOpenByCDP(0, o.Port);	
+		var browser = new ChromeiumPlaywrightBrowserInstance(iBrowser);
+
+		RunningAutomationBrowsers.Add(browser);
+
 		return browser;
+	}
+	private async Task<IBrowser> TryOpenByCDP(int trys, int port)
+	{
+		ArgumentNullException.ThrowIfNull(Playwright);
+
+		try {
+			var browser = await Playwright.Chromium.ConnectOverCDPAsync($"http://localhost:{port}");
+			return browser;
+		} catch {
+			if (trys < 6) {
+				await Task.Delay(1000);
+				return await TryOpenByCDP(trys + 1, port);
+			} else {
+				throw;
+			}
+		}
 	}
 }

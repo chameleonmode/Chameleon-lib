@@ -1,21 +1,23 @@
-﻿using System.Collections.Generic;
-
-using Chameleon.lib.Common.Util;
-using Chameleon.lib.Core.Automation.Interfaces;
-using Chameleon.lib.Core.Automation.Models;
+﻿using Chameleon.lib.Common.Util;
 using Chameleon.lib.Playwright.Interfaces;
+using Chameleon.lib.Playwright.Models;
+using Chameleon.lib.Playwright.Scripts;
 
 namespace Chameleon.lib.Playwright.Services;
 public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
-	public IList<IBundledScript> BundledScripts { get; } = [];
+	public IDictionary<string, IBundledScript> BundledScripts { get; } = new Dictionary<string, IBundledScript> {
+		{ nameof(GoogleCTRClickThrough), new GoogleCTRClickThrough() },
+		{ nameof(KeepGmailAlive), new KeepGmailAlive() },
+		{ nameof(URLsexplorer), new URLsexplorer() }
+	};
 
-	public Task<List<IAutomationScriptDescription>> GetAll(string filepath) => Task.Run(() => {
-		var returned = new List<IAutomationScriptDescription>();
+	public Task<IList<PlaywrightScriptDescription>> GetAll(string filepath) => Task.Run<IList<PlaywrightScriptDescription>>(() => {
+		var returned = new List<PlaywrightScriptDescription>();
 		foreach (var item in IOtil.ReadDirectory(filepath)) {
 			var inf = new FileInfo(item);
 			if (inf.Extension != ".cs")
 				continue;
-			returned.Add(new AutomationScriptDescription() {
+			returned.Add(new PlaywrightScriptDescription() {
 				Title = inf.Name,
 				Description = inf.Directory?.Name,
 				FilePath = inf.FullName,

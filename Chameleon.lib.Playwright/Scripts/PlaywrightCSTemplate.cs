@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-
-using Chameleon.lib.Playwright.Interfaces;
+﻿using Chameleon.lib.Playwright.Interfaces;
 
 using Microsoft.Playwright;
 
@@ -16,13 +13,14 @@ public class ExternalScript : IExternalScript {
 		// __________paste the recorded content under here____________________
 		// For Example: 
 		// Go to Google
-		_ = await page.GotoAsync("https://www.google.com");
-		await Task.Delay(1000);
+		// _ = await page.GotoAsync("https://www.google.com");
+		// wait for 1 second
+		// await Task.Delay(1000);
 		// End of example
 		// __________paste the recorded content above here____________________
 
 		// use this anywhere in the script to pause the script 
-		// await page.PauseAsync();
+		await page.PauseAsync();
 		// use this anywhere in the script to add delay
 		// await Task.Delay(1000); 
 	}

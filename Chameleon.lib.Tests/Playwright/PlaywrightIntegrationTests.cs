@@ -3,9 +3,6 @@ using Chameleon.lib.Playwright.Scripts;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common;
 using Chameleon.lib.Playwright.Models;
-using Chameleon.lib.Core.Automation.Models;
-using Chameleon.lib.Core.Automation.Interfaces;
-using Chameleon.lib.Core.Automation.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Chameleon.lib.Playwright.Services;
 using Microsoft.Extensions.Configuration;
@@ -17,10 +14,6 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	{
 		async void setup(bool init)
 		{
-			var repo = IoC.GetService<IPlaywrightScriptRepository>();
-			repo!.BundledScripts.Add(new GoogleCTRClickThrough());
-			repo!.BundledScripts.Add(new KeepGmailAlive());
-			repo!.BundledScripts.Add(new URLsexplorer());
 			// Setup code
 			Port = Netil.NextFreePort(Port);
 			CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -36,13 +29,9 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 				.Build(), Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
 		}, (services) => {
 			_ = services
-			//lib.Core
-			.AddSingleton<IAutomationScriptApi, AutomationScriptApi>()
-			.AddSingleton<IAutomationScriptRepository, AutomationScriptRepository>()
-			.AddSingleton<IAutomationService, AutomationService>()
 			//app.Playwright
 			.AddSingleton<ICompileScriptService, CompileScriptService>()
-			.AddSingleton<IPlaywriteBrowserService, PlaywriteBrowserService>()
+			.AddSingleton<IPlaywriteService, PlaywriteService>()
 			.AddSingleton<IPlaywrightScriptRepository, PlaywrightScriptRepository>()
 			.AddSingleton<IChromeiumPlaywrightBrowser, ChromeiumPlaywrightBrowser>();
 		});
@@ -56,30 +45,36 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		_ = await _tcs.Task;
 
 		var repo = IoC.GetService<IPlaywrightScriptRepository>();
-		var playBrowserService = IoC.GetService<IPlaywriteBrowserService>();
+		var playBrowserService = IoC.GetService<IPlaywriteService>();
 
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
-			BundledScript = repo!.BundledScripts[0],
-			Script = new AutomationScriptDescription {
-				Parameters = [
-						new AutomationParameterValue {
-								Name = "keyword", Value = "you"
-							},
-							new AutomationParameterValue {
-								Name = "targetUrl", Value = "youtube.com"
-							},
-							new AutomationParameterValue {
-								Name = "pagescount", Value = "3"
-							},
-							new AutomationParameterValue {
-								Name = "timeout", Value = "10"
-							}
-				]
+			BundledScript = repo!.BundledScripts[nameof(GoogleCTRClickThrough)],
+			Parameters = new Dictionary<string, string>() {
+				{ "keyword", "you" },
+				{ "targetUrl", "abcd.com" },
+				{ "pagescount", "3" },
+				{ "timeout", "2" }
 			}
 		}, CancellationToken.None);
 
-		playBrowserService.Playwright?.Dispose();
+		playBrowserService.Dispose();
+
+		await DisposeBrowser();
+		await LaunchBrowser();
+
+		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
+			Port = Port,
+			BundledScript = repo!.BundledScripts[nameof(URLsexplorer)],
+			Parameters = new Dictionary<string, string>() {
+				{ "urls", "youtube.com,google.com,x.com" },
+				{ "timeout", "2" }
+			}
+		}, CancellationToken.None);
+
+
+		playBrowserService.Dispose();
+		await DisposeBrowser();
 	}
 
 	[Fact]
@@ -87,20 +82,32 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	{
 		_ = await _tcs.Task;
 
-		var playBrowserService = IoC.GetService<IPlaywriteBrowserService>();
+		var playBrowserService = IoC.GetService<IPlaywriteService>();
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
-			Script = new AutomationScriptDescription {
-				FilePath = @"C:\repos\chameleon-lib\Chameleon.lib.Playwright\Scripts\PlaywrightCSTemplate.cs"
-			}
+			FilePath = @"C:\repos\chameleon-lib\Chameleon.lib.Playwright\Scripts\PlaywrightCSTemplate.cs",
 		}, CancellationToken.None);
 
-		playBrowserService.Playwright?.Dispose();
+		playBrowserService.Dispose();
+	}
+
+	[Fact]
+	public async Task TestRecord()
+	{
+		_ = await _tcs.Task;
+
+		var playBrowserService = IoC.GetService<IPlaywriteService>();
+		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
+			Port = Port,
+			Record = true,
+		}, CancellationToken.None);
+
+		playBrowserService.Dispose();
 	}
 
 	public async void Dispose()
 	{
-		if (BrowserProcess != null)
+		if (BrowserProcess != null && !BrowserProcess.HasExited)
 			await BrowserProcess.WaitForExitAsync();
 		await DisposeBrowser();
 		GC.SuppressFinalize(this);

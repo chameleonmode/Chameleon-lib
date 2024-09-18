@@ -20,7 +20,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
 		<ProjectReference Include="..\Chameleon.lib.CommunityToolkit\Chameleon.lib.CommunityToolkit.csproj" />
-		<ProjectReference Include="..\Chameleon.lib.Core\Chameleon.lib.Core.csproj" />
 		<ProjectReference Include="..\Chameleon.lib.Playwright\Chameleon.lib.Playwright.csproj" />
 	</ItemGroup>
 

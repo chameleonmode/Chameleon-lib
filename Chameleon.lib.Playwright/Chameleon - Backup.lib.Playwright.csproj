@@ -2,17 +2,24 @@
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
-		<RootNamespace>Chameleon.lib.Core</RootNamespace>
-		<AssemblyTitle>Chameleon.lib.Core</AssemblyTitle>
-		<Description>Chameleon.lib.Core for chameleonmode</Description>
+		<RootNamespace>Chameleon.lib.Playwright</RootNamespace>
+		<AssemblyTitle>Chameleon.lib.Playwright</AssemblyTitle>
+		<Description>Chameleon.lib.Playwright for chameleonmode</Description>
 		<Configuration></Configuration>
 		<Company></Company>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<PackageId>Chameleon.lib.Core$(PackageSuffix)</PackageId>
+		<PackageId>Chameleon.lib.Playwright$(PackageSuffix)</PackageId>
 		<Configurations>Debug;Release</Configurations>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>$(MSBuildProjectDirectory)\bin\</OutputPath>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Playwright" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Common" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />

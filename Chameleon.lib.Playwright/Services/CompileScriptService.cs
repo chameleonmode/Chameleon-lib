@@ -12,13 +12,10 @@ using Microsoft.CodeAnalysis.Emit;
 namespace Chameleon.lib.Playwright.Services;
 public class CompileScriptService
 		: ICompileScriptService {
-	public Task<IExternalScript?> CompileScript(string script)
-			=> Task.Run(() => {
+	public async Task<IExternalScript> CompileScript(string script)
+			=> await Task.Run(() => {
 				var assembly = CompileCode(script);
-
-				if (assembly == null) {
-					return null;
-				}
+				ArgumentNullException.ThrowIfNull(assembly);
 
 				var type = assembly.GetTypes().FirstOrDefault();
 				if (!typeof(IExternalScript).IsAssignableFrom(type)) {
@@ -26,6 +23,7 @@ public class CompileScriptService
 				}
 
 				var instance = Activator.CreateInstance(type) as IExternalScript;
+				ArgumentNullException.ThrowIfNull(instance);
 				return instance;
 			});
 

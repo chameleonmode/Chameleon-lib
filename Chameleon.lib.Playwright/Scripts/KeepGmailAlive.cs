@@ -1,8 +1,4 @@
 ﻿using Microsoft.Playwright;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Chameleon.lib.Core.Automation.Interfaces;
 using Chameleon.lib.Playwright.Interfaces;
 
 namespace Chameleon.lib.Playwright.Scripts;
@@ -10,7 +6,9 @@ public class KeepGmailAlive : IBundledScript {
 	public string Title => "Keep Gmail Alive";
 	public string Description => "Reads a random email in Gmail.";
 	public IList<string> parameters => [];
-	public async Task Run(IBrowserContext context, IList<IAutomationParameterValue>? pargs) {
+	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
+	{
+		ArgumentNullException.ThrowIfNull(args, nameof(args));
 		var page = await context.NewPageAsync();
 		try {
 			// Navigate to Gmail
@@ -42,8 +40,7 @@ public class KeepGmailAlive : IBundledScript {
 			await Task.Delay(5000);
 		} catch (Exception ex) {
 			// Event handler for dialogs
-			page.Dialog += async (_, dialog) =>
-			{
+			page.Dialog += async (_, dialog) => {
 				Console.WriteLine($"Dialog message: {dialog.Message}");
 				await dialog.DismissAsync();
 			};

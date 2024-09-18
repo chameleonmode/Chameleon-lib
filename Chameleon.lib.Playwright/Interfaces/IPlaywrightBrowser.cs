@@ -1,28 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Chameleon.lib.Common.Interfaces;
+﻿using Chameleon.lib.Common.Interfaces;
+using Chameleon.lib.Playwright.Models;
 
 using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Interfaces;
-public interface IPlaywrightBrowserLaunchOptions {
-	IPlaywriteRunScriptOptions? ScriptOptions { get; set; }
-	IPlaywright? Playwright { get; }
-}
 
 public interface IPlaywrightBrowserInstance {
-	IBrowserContext? BrowserContext { get; }
-	Task Open();
+	IBrowserContext BrowserContext { get; }
 	Task Close();
-	Task Record();
 }
 
 public interface IPlaywrightBrowser : ISingletonDependency {
-	Task<IPlaywrightBrowserInstance> Open(IPlaywrightBrowserLaunchOptions options);
+	IList<IPlaywrightBrowserInstance> RunningAutomationBrowsers { get; }
+	Task<IPlaywrightBrowserInstance> Open(PlaywriteRunScriptOptions options);
+	void Dispose();
+	Task Close();
 }
 
 public interface IChromeiumPlaywrightBrowser
