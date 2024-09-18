@@ -5,7 +5,7 @@ using Chameleon.lib.Playwright.Scripts;
 
 namespace Chameleon.lib.Playwright.Services;
 public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
-	public IDictionary<string, IBundledScript> BundledScripts { get; } = new Dictionary<string, IBundledScript> {
+	public IDictionary<string, IBundledCSScript> BundledCSScripts { get; } = new Dictionary<string, IBundledCSScript> {
 		{ nameof(GoogleCTRClickThrough), new GoogleCTRClickThrough() },
 		{ nameof(KeepGmailAlive), new KeepGmailAlive() },
 		{ nameof(URLsexplorer), new URLsexplorer() }

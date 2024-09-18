@@ -3,10 +3,10 @@
 using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Scripts;
-public class GoogleCTRClickThrough : IBundledScript {
+public class GoogleCTRClickThrough : IBundledCSScript {
 	public string Title => "Google Click Through Rate";
 	public string Description => "Clicks through Google search results to a target URL";
-	public IList<string> parameters => ["keyword", "targetUrl", "pagescount", "timeout"];
+	public IList<string> Parameters => ["keyword", "targetUrl", "pagescount", "timeout"];
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
 	{
 		ArgumentNullException.ThrowIfNull(args, nameof(args));

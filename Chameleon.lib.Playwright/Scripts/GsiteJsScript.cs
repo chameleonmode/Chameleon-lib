@@ -11,7 +11,7 @@ public class GsiteJsScript : IBundledJSScript {
 	public string Title => "Google Site Creator";
 	public string Description => "Chreate a google site";
 	public string Name => "gsites";
-	public IList<string> parameters { get; } = ["url", "email", "password", "textContent", "textSearch", "location", "postTitle", "publishTitle", "gsiteTitle"];
+	public IList<string> Parameters { get; } = ["url", "email", "password", "textContent", "textSearch", "location", "postTitle", "publishTitle", "gsiteTitle"];
 
 	public async Task Run(int port, IDictionary<string, string>? args = null)
 	{

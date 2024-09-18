@@ -51,7 +51,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
-			BundledScript = repo!.BundledScripts[nameof(GoogleCTRClickThrough)],
+			BundledScript = repo!.BundledCSScripts[nameof(GoogleCTRClickThrough)],
 			Description = new PlaywrightScriptDescription {
 				Parameters = [
 					new PlaywrightDescriptionParam {
@@ -85,7 +85,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
-			BundledScript = repo!.BundledScripts[nameof(URLsexplorer)],
+			BundledScript = repo!.BundledCSScripts[nameof(URLsexplorer)],
 			Description = new PlaywrightScriptDescription {
 				Parameters = [
 					new PlaywrightDescriptionParam {

@@ -2,10 +2,10 @@
 using Chameleon.lib.Playwright.Interfaces;
 
 namespace Chameleon.lib.Playwright.Scripts;
-public class KeepGmailAlive : IBundledScript {
+public class KeepGmailAlive : IBundledCSScript {
 	public string Title => "Keep Gmail Alive";
 	public string Description => "Reads a random email in Gmail.";
-	public IList<string> parameters => [];
+	public IList<string> Parameters => [];
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
 	{
 		ArgumentNullException.ThrowIfNull(args, nameof(args));

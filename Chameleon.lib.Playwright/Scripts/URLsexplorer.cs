@@ -8,13 +8,13 @@ using Chameleon.lib.Playwright.Interfaces;
 using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Scripts;
-public class URLsexplorer : IBundledScript {
+public class URLsexplorer : IBundledCSScript {
 
 	public const string ProtocolDelimiter = "://";
 
 	public string Title => "URLs Explorer";
 	public string Description => "Opens a list of URLs in the browser.";
-	public IList<string> parameters => ["urls", "timeout"];
+	public IList<string> Parameters => ["urls", "timeout"];
 
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
 	{
