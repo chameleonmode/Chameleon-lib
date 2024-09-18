@@ -51,12 +51,28 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 			Port = Port,
 			BundledScript = repo!.BundledScripts[nameof(GoogleCTRClickThrough)],
 			Description = new PlaywrightScriptDescription {
-				Parameters = new Dictionary<string, string>() {
-					{ "keyword", "you" },
-					{ "targetUrl", "abcd.com" },
-					{ "pagescount", "3" },
-					{ "timeout", "2" }
-				}
+				Parameters = [
+					new PlaywrightDescriptionParam {
+						Id = 1,
+						Key = "keyword",
+						Value = "you"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 2,
+						Key = "targetUrl",
+						Value = "abcd.com"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 3,
+						Key = "pagescount",
+						Value = "you"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 4,
+						Key = "timeout",
+						Value = "2"
+					}
+				]
 			}
 		}, CancellationToken.None);
 
@@ -69,10 +85,18 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 			Port = Port,
 			BundledScript = repo!.BundledScripts[nameof(URLsexplorer)],
 			Description = new PlaywrightScriptDescription {
-				Parameters = new Dictionary<string, string>() {
-					{ "urls", "youtube.com,google.com,x.com" },
-					{ "timeout", "2" }
-				}
+				Parameters = [
+					new PlaywrightDescriptionParam {
+						Id = 1,
+						Key = "urls",
+						Value = "google.com,x.com"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 2,
+						Key = "timeout",
+						Value = "2"
+					},
+				]
 			},
 
 		}, CancellationToken.None);

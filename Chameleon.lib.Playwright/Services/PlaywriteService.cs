@@ -25,6 +25,8 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 		_ => throw new NotImplementedException(),
 	};
 
+	// ... other code ...
+
 	public async Task RunScript(PlaywriteRunScriptOptions options, CancellationToken token)
 	{
 		IPlaywrightBrowser? browser = null;
@@ -35,15 +37,19 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 			if (options.Record) {
 				await new ExternalScript().Run(browserInstance.BrowserContext).WaitAsync(token);
 			} else {
+				var parameters = options.Description!.Parameters
+						.Where(p => p.Key != null && p.Value != null)
+						.ToDictionary(p => p.Key!, p => p.Value!);
+
 				if (options.BundledScript != null) {
-					await options.BundledScript.Run(browserInstance.BrowserContext, options.Description!.Parameters).WaitAsync(token);
+					await options.BundledScript.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
 				} else if (options.BundledScript == null && options.Description!.FilePath != null) {
 					var scripBody = await File.ReadAllTextAsync(options.Description!.FilePath, token);
 					var instance = await compileScriptService.CompileScript(scripBody);
-					await instance.Run(browserInstance.BrowserContext, options.Description!.Parameters).WaitAsync(token);
+					await instance.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
 				}
 				//TODO : else
-				//	var scripBody =  automationService.GetScriptBody(options.Script.Id);
+				//  var scripBody =  automationService.GetScriptBody(options.Script.Id);
 			}
 		} finally {
 			await browser!.Close();
@@ -53,10 +59,6 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 	public void Dispose()
 	{
 		Get(SystemBrowserType.Chromium).Dispose();
-	}
-	public void Close()
-	{
-		Get(SystemBrowserType.Chromium).Close();
 	}
 }
 

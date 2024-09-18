@@ -6,5 +6,4 @@ public interface IPlaywriteService
 				: ISingletonDependency {
 	Task RunScript(PlaywriteRunScriptOptions options, CancellationToken token);
 	void Dispose();
-	void Close();
 }
