@@ -6,7 +6,6 @@ public class PlaywriteRunScriptOptions {
 	public int Port { get; set; }
 	public bool Record { get; set; } = false;
 	public SystemBrowserType BrowserType { get; set; } = SystemBrowserType.Chromium;
-	public IDictionary<string, string>? Parameters { get; set; }
 	public IBundledScript? BundledScript { get; set; }
 	public PlaywrightScriptDescription? Description { get; set; }
 }

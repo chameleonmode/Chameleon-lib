@@ -50,11 +50,13 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
 			BundledScript = repo!.BundledScripts[nameof(GoogleCTRClickThrough)],
-			Parameters = new Dictionary<string, string>() {
-				{ "keyword", "you" },
-				{ "targetUrl", "abcd.com" },
-				{ "pagescount", "3" },
-				{ "timeout", "2" }
+			Description = new PlaywrightScriptDescription {
+				Parameters = new Dictionary<string, string>() {
+					{ "keyword", "you" },
+					{ "targetUrl", "abcd.com" },
+					{ "pagescount", "3" },
+					{ "timeout", "2" }
+				}
 			}
 		}, CancellationToken.None);
 
@@ -66,10 +68,13 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
 			BundledScript = repo!.BundledScripts[nameof(URLsexplorer)],
-			Parameters = new Dictionary<string, string>() {
-				{ "urls", "youtube.com,google.com,x.com" },
-				{ "timeout", "2" }
-			}
+			Description = new PlaywrightScriptDescription {
+				Parameters = new Dictionary<string, string>() {
+					{ "urls", "youtube.com,google.com,x.com" },
+					{ "timeout", "2" }
+				}
+			},
+
 		}, CancellationToken.None);
 
 
@@ -85,7 +90,9 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		var playBrowserService = IoC.GetService<IPlaywriteService>();
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
-			FilePath = @"C:\repos\chameleon-lib\Chameleon.lib.Playwright\Scripts\PlaywrightCSTemplate.cs",
+			Description = new PlaywrightScriptDescription {
+				FilePath = @"C:\repos\chameleon-lib\Chameleon.lib.Playwright\Scripts\PlaywrightCSTemplate.cs",
+			},
 		}, CancellationToken.None);
 
 		playBrowserService.Dispose();

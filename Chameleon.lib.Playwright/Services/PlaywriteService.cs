@@ -36,11 +36,11 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 				await new ExternalScript().Run(browserInstance.BrowserContext).WaitAsync(token);
 			} else {
 				if (options.BundledScript != null) {
-					await options.BundledScript.Run(browserInstance.BrowserContext, options.Parameters).WaitAsync(token);
+					await options.BundledScript.Run(browserInstance.BrowserContext, options.Description!.Parameters).WaitAsync(token);
 				} else if (options.BundledScript == null && options.Description!.FilePath != null) {
 					var scripBody = await File.ReadAllTextAsync(options.Description!.FilePath, token);
 					var instance = await compileScriptService.CompileScript(scripBody);
-					await instance.Run(browserInstance.BrowserContext, options.Parameters).WaitAsync(token);
+					await instance.Run(browserInstance.BrowserContext, options.Description!.Parameters).WaitAsync(token);
 				}
 				//TODO : else
 				//	var scripBody =  automationService.GetScriptBody(options.Script.Id);
