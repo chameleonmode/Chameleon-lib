@@ -1,4 +1,6 @@
-﻿using Chameleon.lib.Common.Interfaces;
+﻿using System.Threading.Tasks;
+
+using Chameleon.lib.Common.Interfaces;
 
 namespace Chameleon.lib.Playwright.Interfaces;
 public interface ICompileScriptService

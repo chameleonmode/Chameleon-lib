@@ -2,6 +2,8 @@ using Chameleon.lib.Common;
 using System.Diagnostics;
 using Chameleon.lib.Common.Types;
 using Microsoft.Extensions.Configuration;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Chameleon.lib.Tests;
 

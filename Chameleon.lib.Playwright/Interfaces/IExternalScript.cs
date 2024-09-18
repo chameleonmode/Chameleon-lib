@@ -1,4 +1,7 @@
-﻿using Microsoft.Playwright;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+
+using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Interfaces;
 public interface IExternalScript {

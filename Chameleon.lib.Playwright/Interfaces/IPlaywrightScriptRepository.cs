@@ -1,4 +1,7 @@
-﻿using Chameleon.lib.Playwright.Models;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+
+using Chameleon.lib.Playwright.Models;
 
 namespace Chameleon.lib.Playwright.Interfaces;
 public interface IPlaywrightScriptRepository {

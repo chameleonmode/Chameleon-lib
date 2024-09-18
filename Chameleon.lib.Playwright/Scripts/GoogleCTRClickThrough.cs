@@ -1,4 +1,8 @@
-﻿using Chameleon.lib.Playwright.Interfaces;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+using Chameleon.lib.Playwright.Interfaces;
 
 using Microsoft.Playwright;
 

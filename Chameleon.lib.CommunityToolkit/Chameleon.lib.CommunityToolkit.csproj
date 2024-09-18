@@ -11,7 +11,6 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PackageId>Chameleon.lib.CommunityToolkit$(PackageSuffix)</PackageId>
 		<Configurations>Debug;Release</Configurations>
-		<OutputPath>$(MSBuildProjectDirectory)\bin\</OutputPath>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -21,7 +20,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\Chameleon\src\Chameleon.Interfaces\Chameleon.Interfaces.csproj" />
-		<ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
 	</ItemGroup>
 
 </Project>

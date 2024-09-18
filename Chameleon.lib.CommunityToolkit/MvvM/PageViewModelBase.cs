@@ -1,4 +1,6 @@
-﻿namespace Chameleon.lib.CommunityToolkit.MvvM;
+﻿using System;
+
+namespace Chameleon.lib.CommunityToolkit.MvvM;
 public class PageViewModelBase : ObservableObjectBase {
 	public PageViewModelBase()
 	{

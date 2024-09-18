@@ -1,4 +1,6 @@
-﻿namespace Chameleon.lib.Playwright.Models;
+﻿using System.Collections.Generic;
+
+namespace Chameleon.lib.Playwright.Models;
 public class PlaywrightScriptDescription {
 	public int Id { get; set; } = -1;
 	public string? Title { get; set; }

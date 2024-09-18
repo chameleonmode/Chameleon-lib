@@ -11,6 +11,11 @@ using Chameleon.lib.Common.Enums;
 using Chameleon.lib.Common.Interfaces;
 
 using Microsoft.Playwright;
+using System.Linq;
+using System.IO;
+using Chameleon.lib.Playwright.node;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Xml.Linq;
 
 namespace Chameleon.lib.Playwright.Services;
 public class PlaywriteService(ICompileScriptService compileScriptService)
@@ -31,19 +36,29 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 	{
 		IPlaywrightBrowser? browser = null;
 		try {
-			var parameters = options.Description!.Parameters
-					.Where(p => p.Key != null && p.Value != null)
-					.ToDictionary(p => p.Key!, p => p.Value!);
-
-			if (!options.Record && options.BundledJSScript != null) {
-				await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
+			if (options.Record) {
+				using var runner = new PlaywrightTestRunner();
+				try {
+					TaskCompletionSource<bool> tcs = new();
+					runner.TestOutputReceived += (sender, output) => {
+						if (output == $"Test record completed finally block") tcs.SetResult(true);
+					};
+					await runner.RunTestAsync("record", "{}", options.Port);
+					_ = await tcs.Task;
+				} finally {
+					await Task.Delay(1000, token);
+				}
 			} else {
-				browser = Get(options.BrowserType);
-				var browserInstance = await browser.Open(options);
+				var parameters = options.Description!.Parameters
+						.Where(p => p.Key != null && p.Value != null)
+						.ToDictionary(p => p.Key!, p => p.Value!);
 
-				if (options.Record) {
-					await new ExternalScript().Run(browserInstance.BrowserContext).WaitAsync(token);
+				if (options.BundledJSScript != null) {
+					await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
 				} else {
+					browser = Get(options.BrowserType);
+					var browserInstance = await browser.Open(options);
+
 					if (options.BundledCSScript != null) {
 						await options.BundledCSScript.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
 					} else if (options.BundledJSScript != null) {
@@ -56,8 +71,8 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 				}
 			}
 		} finally {
-			if (browser != null)
-				await browser.Close();
+			//if (browser != null)
+			//	await browser.Close();
 		}
 	}
 

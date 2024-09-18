@@ -1,5 +1,8 @@
 ﻿using Microsoft.Playwright;
 using Chameleon.lib.Playwright.Interfaces;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System;
 
 namespace Chameleon.lib.Playwright.Scripts;
 public class KeepGmailAlive : IBundledCSScript {

@@ -1,4 +1,6 @@
-﻿namespace Chameleon.lib.Common.Util;
+﻿using System.IO;
+
+namespace Chameleon.lib.Common.Util;
 
 public static class ExUtil {
 	public static void TryOrCatch(Action action, Action? caught = null)

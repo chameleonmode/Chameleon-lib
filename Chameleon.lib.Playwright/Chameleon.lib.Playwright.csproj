@@ -12,7 +12,6 @@
 		<PackageId>Chameleon.lib.Playwright$(PackageSuffix)</PackageId>
 		<Configurations>Debug;Release</Configurations>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<OutputPath>$(MSBuildProjectDirectory)\bin\</OutputPath>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -22,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
+	  <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
 	</ItemGroup>
 
 </Project>

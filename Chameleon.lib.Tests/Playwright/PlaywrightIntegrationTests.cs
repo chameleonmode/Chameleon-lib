@@ -3,13 +3,14 @@ using Chameleon.lib.Playwright.Scripts;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common;
 using Chameleon.lib.Playwright.Models;
-using Microsoft.Extensions.DependencyInjection;
 using Chameleon.lib.Playwright.Services;
-using Microsoft.Extensions.Configuration;
 using Chameleon.lib.Common.Types;
-using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using System.IO;
 using System;
-
+using System.Threading.Tasks;
+using System.Threading;
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	public PlaywrightIntegrationTests() : base()
@@ -196,6 +197,30 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
 			Record = true,
+			Description = new PlaywrightScriptDescription {
+				Parameters = [
+					new PlaywrightDescriptionParam {
+						Id = 1,
+						Key = "keyword",
+						Value = "you"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 2,
+						Key = "targetUrl",
+						Value = "abcd.com"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 3,
+						Key = "pagescount",
+						Value = "you"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 4,
+						Key = "timeout",
+						Value = "2"
+					}
+				]
+			}
 		}, CancellationToken.None);
 
 		playBrowserService.Dispose();
