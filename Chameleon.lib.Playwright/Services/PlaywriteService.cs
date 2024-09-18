@@ -35,7 +35,7 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 					.Where(p => p.Key != null && p.Value != null)
 					.ToDictionary(p => p.Key!, p => p.Value!);
 
-			if (options.BundledJSScript != null) {
+			if (!options.Record && options.BundledJSScript != null) {
 				await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
 			} else {
 				browser = Get(options.BrowserType);
@@ -44,11 +44,11 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 				if (options.Record) {
 					await new ExternalScript().Run(browserInstance.BrowserContext).WaitAsync(token);
 				} else {
-					if (options.BundledScript != null) {
-						await options.BundledScript.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
+					if (options.BundledCSScript != null) {
+						await options.BundledCSScript.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
 					} else if (options.BundledJSScript != null) {
 						await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
-					} else if (options.BundledScript == null && options.Description!.FilePath != null) {
+					} else if (options.BundledCSScript == null && options.Description!.FilePath != null) {
 						var scripBody = await File.ReadAllTextAsync(options.Description!.FilePath, token);
 						var instance = await compileScriptService.CompileScript(scripBody);
 						await instance.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);

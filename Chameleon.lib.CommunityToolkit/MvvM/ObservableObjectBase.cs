@@ -7,7 +7,6 @@ namespace Chameleon.lib.CommunityToolkit.MvvM;
 
 public abstract partial class ObservableObjectBase : ObservableObject,
 		IPageViewModel {
-
 	[ObservableProperty]
 	private string? _title;
 

@@ -34,11 +34,10 @@ public class ChromeiumPlaywrightBrowser
 			await browser.Close();
 		}
 		RunningAutomationBrowsers.Clear();
-		Playwright?.Dispose();
 	}
 	public void Dispose()
 	{
-		Playwright!.Dispose();
+		Playwright?.Dispose();
 		Playwright = null;
 	}
 
