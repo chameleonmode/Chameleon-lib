@@ -7,5 +7,6 @@ public class PlaywriteRunScriptOptions {
 	public bool Record { get; set; } = false;
 	public SystemBrowserType BrowserType { get; set; } = SystemBrowserType.Chromium;
 	public IBundledScript? BundledScript { get; set; }
+	public IBundledJSScript? BundledJSScript { get; set; }
 	public PlaywrightScriptDescription? Description { get; set; }
 }

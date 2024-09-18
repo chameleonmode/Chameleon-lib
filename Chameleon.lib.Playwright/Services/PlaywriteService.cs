@@ -31,28 +31,33 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 	{
 		IPlaywrightBrowser? browser = null;
 		try {
-			browser = Get(options.BrowserType);
-			var browserInstance = await browser.Open(options);
+			var parameters = options.Description!.Parameters
+					.Where(p => p.Key != null && p.Value != null)
+					.ToDictionary(p => p.Key!, p => p.Value!);
 
-			if (options.Record) {
-				await new ExternalScript().Run(browserInstance.BrowserContext).WaitAsync(token);
+			if (options.BundledJSScript != null) {
+				await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
 			} else {
-				var parameters = options.Description!.Parameters
-						.Where(p => p.Key != null && p.Value != null)
-						.ToDictionary(p => p.Key!, p => p.Value!);
+				browser = Get(options.BrowserType);
+				var browserInstance = await browser.Open(options);
 
-				if (options.BundledScript != null) {
-					await options.BundledScript.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
-				} else if (options.BundledScript == null && options.Description!.FilePath != null) {
-					var scripBody = await File.ReadAllTextAsync(options.Description!.FilePath, token);
-					var instance = await compileScriptService.CompileScript(scripBody);
-					await instance.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
+				if (options.Record) {
+					await new ExternalScript().Run(browserInstance.BrowserContext).WaitAsync(token);
+				} else {
+					if (options.BundledScript != null) {
+						await options.BundledScript.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
+					} else if (options.BundledJSScript != null) {
+						await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
+					} else if (options.BundledScript == null && options.Description!.FilePath != null) {
+						var scripBody = await File.ReadAllTextAsync(options.Description!.FilePath, token);
+						var instance = await compileScriptService.CompileScript(scripBody);
+						await instance.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
+					}
 				}
-				//TODO : else
-				//  var scripBody =  automationService.GetScriptBody(options.Script.Id);
 			}
 		} finally {
-			await browser!.Close();
+			if (browser != null)
+				await browser.Close();
 		}
 	}
 

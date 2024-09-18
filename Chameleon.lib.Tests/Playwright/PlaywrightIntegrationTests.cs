@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Chameleon.lib.Playwright.Services;
 using Microsoft.Extensions.Configuration;
 using Chameleon.lib.Common.Types;
+using Microsoft.CodeAnalysis;
+using System;
 
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
@@ -104,6 +106,69 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 
 		playBrowserService.Dispose();
 		await DisposeBrowser();
+	}
+
+	[Fact]
+	public async Task TestBundledJSScript()
+	{
+		_ = await _tcs.Task;
+
+		var repo = IoC.GetService<IPlaywrightScriptRepository>();
+		var playBrowserService = IoC.GetService<IPlaywriteService>();
+
+		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
+			Port = Port,
+			BundledJSScript = repo!.BundledJSScripts[nameof(GsiteJsScript)],
+			Description = new PlaywrightScriptDescription {
+				Parameters = [
+				new PlaywrightDescriptionParam {
+						Id = 1,
+						Key = "url",
+						Value = "https://sites.google.com/"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 2,
+						Key = "email",
+						Value = "testjosh11011900@gmail.com"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 3,
+						Key = "password",
+						Value = "testjosh11011900@123"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 4,
+						Key = "textContent",
+						Value = "blaa blaa laddy dAAAA doo"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 5,
+						Key = "textSearch",
+						Value = "What is da title"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 6,
+						Key = "location",
+						Value = "new york"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 7,
+						Key = "publishTitle",
+						Value = "datitleexplained"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 8,
+						Key = "gsiteTitle",
+						Value = "Da Title"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 9,
+						Key = "postTitle",
+						Value = "zIpErry doo daa"
+					}
+				]
+			}
+		}, CancellationToken.None);
 	}
 
 	[Fact]

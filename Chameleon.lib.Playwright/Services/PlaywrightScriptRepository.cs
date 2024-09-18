@@ -11,6 +11,10 @@ public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
 		{ nameof(URLsexplorer), new URLsexplorer() }
 	};
 
+	public IDictionary<string, IBundledJSScript> BundledJSScripts { get; } = new Dictionary<string, IBundledJSScript> {
+		{ nameof(GsiteJsScript), new GsiteJsScript() }
+	};
+
 	public Task<IList<PlaywrightScriptDescription>> GetAll(string filepath) => Task.Run<IList<PlaywrightScriptDescription>>(() => {
 		var returned = new List<PlaywrightScriptDescription>();
 		foreach (var item in IOtil.ReadDirectory(filepath)) {
