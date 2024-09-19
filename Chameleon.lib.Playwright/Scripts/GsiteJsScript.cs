@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,16 +34,7 @@ public class GsiteJsScript : IBundledJSScript {
 			gsiteTitle = args["gsiteTitle"]
 		};
 
-		using var runner = new PlaywrightTestRunner();
-		try {
-			TaskCompletionSource<bool> tcs = new();
-			runner.TestOutputReceived += (sender, output) => {
-				if (output == $"Test {Name} completed finally block") tcs.SetResult(true);
-			};
-			await runner.RunTestAsync(Name, data, port);
-			_ = await tcs.Task;
-		} finally {
-			await Task.Delay(1000);
-		}
+		using var runner = PlaywrightTestRunner.Create(Name);
+		await runner.RunTestAsync(data, port);
 	}
 }

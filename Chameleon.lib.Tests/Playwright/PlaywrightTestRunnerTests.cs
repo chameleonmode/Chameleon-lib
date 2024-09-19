@@ -60,7 +60,7 @@ public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 				runner.TestOutputReceived += (sender, output) => {
 					if (output == $"Test {test.testName} completed finally block") tcs.SetResult(true);
 				};
-				await runner.RunTestAsync(test.testName, test.testData, test.port);
+				await runner.RunTestAsync(test.testData, test.port);
 				_ = await tcs.Task;
 			} finally {
 				await Task.Delay(1000);
@@ -76,7 +76,7 @@ public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 	{
 		await LaunchBrowser();
 
-		runner = new PlaywrightTestRunner();
+		runner = PlaywrightTestRunner.Create("gsites");
 		try {
 			runner.TestOutputReceived += (sender, output) => Debug.WriteLine($"Test output: {output}");
 			runner.TestErrorReceived += (sender, error) => Debug.WriteLine($"Test error: {error}");
@@ -89,7 +89,8 @@ public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 				textSearch = "What is anti detect browser",
 				location = "washington",
 				publishTitle = "antidetectbrowsersexplanied5",
-				gsiteTitle = "GsiteTitle"
+				gsiteTitle = "GsiteTitle",
+				postTitle = "PostTitle",
 			};
 			await RunTestsInParallelAsync(new List<(string testName, int port, object testData)>() { new("gsites", Port, data) });
 			//DisposeBrowser();

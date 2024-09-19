@@ -1,33 +1,51 @@
-﻿using Chameleon.lib.Common;
-using Chameleon.lib.Common.Interfaces;
-
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Chameleon.lib.Playwright.node;
 public class PlaywrightTestRunner : IDisposable {
+	private readonly TaskCompletionSource<bool> _tcs = new();
+
 	private readonly Process _nodeProcess;
 	private readonly StreamWriter _processInput;
+	private readonly string _scriptName;
 
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-	public PlaywrightTestRunner()
+
+	public static PlaywrightTestRunner Create(string scriptName)
 	{
-		var basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OperatingSystem.IsMacOS()
+		var isDebug = false;
+#if DEBUG
+		isDebug = true;
+#endif
+		return new PlaywrightTestRunner(scriptName, isDebug ? "C:\\repos\\Chameleon\\Chameleon.Avalonia\\src\\Chameleon.Avalonia.Desktop\\obj\\outwin" : null);
+	}
+	private PlaywrightTestRunner(string scriptName, string? basePath = null)
+	{
+		_scriptName = scriptName;
+
+		basePath ??= AppDomain.CurrentDomain.BaseDirectory;
+		basePath = Path.Combine(basePath, OperatingSystem.IsMacOS()
 				? "../Resources/.playwright"
 				: ".playwright");
 
-		var startInfo = new ProcessStartInfo {
-			FileName = Path.Combine(basePath, OperatingSystem.IsMacOS()
+		var nodePath = @$"""{Path.Combine(basePath, OperatingSystem.IsMacOS()
 				? "node/darwin-x64/node"
-				: "node\\win32_x64\\node.exe"),
-			Arguments = Path.Combine(basePath, OperatingSystem.IsMacOS()
-				? "script/dist/index.js" 
-				: "scripts\\dist\\index.js"),
+				: "node\\win32_x64\\node.exe")}""";
+
+		var args = @$"""{Path.Combine(basePath, OperatingSystem.IsMacOS()
+				? "script/dist/index.js"
+				: "scripts\\dist\\index.js")}""";
+
+		var startInfo = new ProcessStartInfo {
+			FileName = nodePath,
+			Arguments = args,
 			RedirectStandardInput = true,
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
@@ -37,8 +55,20 @@ public class PlaywrightTestRunner : IDisposable {
 		};
 
 		_nodeProcess = new Process { StartInfo = startInfo };
-		_nodeProcess.OutputDataReceived += (sender, e) => TestOutputReceived?.Invoke(this, e.Data ?? string.Empty);
-		_nodeProcess.ErrorDataReceived += (sender, e) => TestErrorReceived?.Invoke(this, e.Data ?? string.Empty);
+		_nodeProcess.OutputDataReceived += (sender, e) => {
+			var output = e.Data ?? string.Empty;
+			Debug.WriteLine(output);
+			TestOutputReceived?.Invoke(this, output);
+			if (output == $"Test {scriptName} completed finally block")
+				_ = _tcs.TrySetResult(true);
+		};
+		_nodeProcess.ErrorDataReceived += (sender, e) => {
+			var output = e.Data ?? string.Empty;
+			Debug.WriteLine(output);
+			TestErrorReceived?.Invoke(this, e.Data ?? string.Empty);
+			if (output.Contains("Error: Cannot find module"))
+				_ = _tcs.TrySetResult(false);
+		};
 
 		_ = _nodeProcess.Start();
 		_nodeProcess.BeginOutputReadLine();
@@ -47,11 +77,16 @@ public class PlaywrightTestRunner : IDisposable {
 		_processInput = _nodeProcess.StandardInput;
 	}
 
-	public async Task RunTestAsync(string name, object data, int port)
+	public async Task RunTestAsync(object data, int port)
 	{
-		var command = new { action = "run", name, port, data };
-		var jsonCommand = JsonSerializer.Serialize(command);
-		await _processInput.WriteLineAsync(jsonCommand);
+		try {
+			var command = new { action = "run", name = _scriptName, port, data };
+			var jsonCommand = JsonSerializer.Serialize(command);
+			await _processInput.WriteLineAsync(jsonCommand);
+			_ = await _tcs.Task;
+		} finally {
+			await Task.Delay(1000);
+		}
 	}
 
 	public async Task SetConfigurationAsync(string key, object value)

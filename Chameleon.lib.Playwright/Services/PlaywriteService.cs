@@ -37,17 +37,7 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 		IPlaywrightBrowser? browser = null;
 		try {
 			if (options.Record) {
-				using var runner = new PlaywrightTestRunner();
-				try {
-					TaskCompletionSource<bool> tcs = new();
-					runner.TestOutputReceived += (sender, output) => {
-						if (output == $"Test record completed finally block") tcs.SetResult(true);
-					};
-					await runner.RunTestAsync("record", "{}", options.Port);
-					_ = await tcs.Task;
-				} finally {
-					await Task.Delay(1000, token);
-				}
+				await new RecordScript().Run(options.Port).WaitAsync(token);
 			} else {
 				var parameters = options.Description!.Parameters
 						.Where(p => p.Key != null && p.Value != null)
@@ -71,8 +61,8 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 				}
 			}
 		} finally {
-			//if (browser != null)
-			//	await browser.Close();
+			if (browser != null)
+				await browser.Close();
 		}
 	}
 

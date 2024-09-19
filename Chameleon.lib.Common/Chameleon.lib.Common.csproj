@@ -4,10 +4,7 @@
 		<RootNamespace>Chameleon.lib.Common</RootNamespace>
 		<AssemblyTitle>Chameleon.lib.Common</AssemblyTitle>
 		<Description>Chameleon.lib.Common for chameleonmode</Description>
-		<Configuration></Configuration>
-		<Company></Company>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<PackageId>Chameleon.lib.Common$(PackageSuffix)</PackageId>
 		<Configurations>Debug;Release</Configurations>
 	</PropertyGroup>

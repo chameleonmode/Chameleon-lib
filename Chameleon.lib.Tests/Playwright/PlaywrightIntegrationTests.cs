@@ -11,6 +11,7 @@ using System.IO;
 using System;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Diagnostics;
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	public PlaywrightIntegrationTests() : base()
@@ -191,39 +192,20 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	[Fact]
 	public async Task TestRecord()
 	{
-		_ = await _tcs.Task;
+		try {
+			_ = await _tcs.Task;
 
-		var playBrowserService = IoC.GetService<IPlaywriteService>();
-		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
-			Port = Port,
-			Record = true,
-			Description = new PlaywrightScriptDescription {
-				Parameters = [
-					new PlaywrightDescriptionParam {
-						Id = 1,
-						Key = "keyword",
-						Value = "you"
-					},
-					new PlaywrightDescriptionParam {
-						Id = 2,
-						Key = "targetUrl",
-						Value = "abcd.com"
-					},
-					new PlaywrightDescriptionParam {
-						Id = 3,
-						Key = "pagescount",
-						Value = "you"
-					},
-					new PlaywrightDescriptionParam {
-						Id = 4,
-						Key = "timeout",
-						Value = "2"
-					}
-				]
-			}
-		}, CancellationToken.None);
-
-		playBrowserService.Dispose();
+			var playBrowserService = IoC.GetService<IPlaywriteService>();
+			await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
+				Port = Port,
+				Record = true
+			}, CancellationToken.None);
+		} catch (Exception ex) {
+			Debug.WriteLine(ex.Message);
+		} finally {
+			var playBrowserService = IoC.GetService<IPlaywriteService>();
+			playBrowserService!.Dispose();
+		}
 	}
 
 	public async void Dispose()

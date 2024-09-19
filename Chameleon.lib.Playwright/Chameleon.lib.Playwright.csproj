@@ -5,10 +5,7 @@
 		<RootNamespace>Chameleon.lib.Playwright</RootNamespace>
 		<AssemblyTitle>Chameleon.lib.Playwright</AssemblyTitle>
 		<Description>Chameleon.lib.Playwright for chameleonmode</Description>
-		<Configuration></Configuration>
-		<Company></Company>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<PackageId>Chameleon.lib.Playwright$(PackageSuffix)</PackageId>
 		<Configurations>Debug;Release</Configurations>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

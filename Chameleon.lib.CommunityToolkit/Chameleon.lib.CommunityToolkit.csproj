@@ -5,10 +5,7 @@
 		<RootNamespace>Chameleon.lib.CommunityToolkit</RootNamespace>
 		<AssemblyTitle>Chameleon.lib.CommunityToolkit</AssemblyTitle>
 		<Description>Chameleon.lib.CommunityToolkit for chameleonmode</Description>
-		<Configuration></Configuration>
-		<Company></Company>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<PackageId>Chameleon.lib.CommunityToolkit$(PackageSuffix)</PackageId>
 		<Configurations>Debug;Release</Configurations>
 	</PropertyGroup>
