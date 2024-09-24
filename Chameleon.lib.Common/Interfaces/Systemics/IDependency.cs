@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Chameleon.lib.Common.Interfaces.Systemics;
-public interface INotDependency {
+public interface INotaDependency {
 }
 public interface IDependency {
 }
