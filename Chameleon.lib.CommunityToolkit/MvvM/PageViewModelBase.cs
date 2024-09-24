@@ -15,5 +15,4 @@ public class PageViewModelBase : ObservableObjectBase {
 	{
 		init();
 	}
-
 }

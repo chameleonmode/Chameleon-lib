@@ -1,4 +1,5 @@
-﻿namespace Chameleon.lib.Common.Managers;
+﻿
+namespace Chameleon.lib.Common.Managers;
 public class ChaonfigurationManager(IConfiguration configuration) : IChaonfigurationManager {
 	private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 	private readonly ConcurrentDictionary<string, object> _overrides = new();

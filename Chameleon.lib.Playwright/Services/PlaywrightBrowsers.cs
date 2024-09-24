@@ -47,7 +47,6 @@ public class ChromeiumPlaywrightBrowser
 
 		var iBrowser = await TryOpenByCDP(0, o.Port);	
 		var browser = new ChromeiumPlaywrightBrowserInstance(iBrowser);
-
 		RunningAutomationBrowsers.Add(browser);
 
 		return browser;
@@ -58,6 +57,7 @@ public class ChromeiumPlaywrightBrowser
 
 		try {
 			var browser = await Playwright.Chromium.ConnectOverCDPAsync($"http://localhost:{port}");
+
 			return browser;
 		} catch {
 			if (trys < 6) {

@@ -83,7 +83,10 @@ public class IoC {
 	public static T? GetService<T>(Type t) => (T?)Instance.Services?.GetService(t);
 
 	public static T? GetValue<T>(string key) => Instance.Config == null ? throw new ArgumentException("Configuration manager is not initialized", nameof(key)) : Instance.Config.GetValue<T>(key.Replace(' ', '_'));
-	public static void SetValue<T>(string key, T value) => Instance.Config?.SetValue(key.Replace(' ', '_'), value);
+	public static string? GetValue(params string[] keys) => GetValue<string>(string.Join('_', keys));
+
+	public static void SetValue<T>(T value, params string[] keys) => Instance.Config?.SetValue(string.Join('_', keys), value);
+	public static Task SetValueAsync<T>(T value, params string[] keys) => Task.Run(() => SetValue(value, keys));
 	//Singleton pattern
 	public static IoC Instance { get; } = new IoC();
 }

@@ -17,7 +17,6 @@ public class PlaywrightTestRunner : IDisposable {
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-
 	public static PlaywrightTestRunner Create(string scriptName)
 	{
 		var isDebug = false;

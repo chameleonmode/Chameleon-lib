@@ -2,6 +2,7 @@
 	<PropertyGroup>
 		<TargetDotnetVersion>net8.0</TargetDotnetVersion>
 		<Nullable>enable</Nullable>
+		<ImplicitUsings>true</ImplicitUsings>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
