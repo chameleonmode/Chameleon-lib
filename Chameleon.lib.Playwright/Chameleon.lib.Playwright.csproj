@@ -21,10 +21,4 @@
 	  <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Reference Include="Chameleon.Interfaces">
-	    <HintPath>..\..\Chameleon\src\Chameleon.Interfaces\obj\Debug\net8.0\ref\Chameleon.Interfaces.dll</HintPath>
-	  </Reference>
-	</ItemGroup>
-
 </Project>

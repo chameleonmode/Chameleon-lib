@@ -1,9 +1,8 @@
-﻿using Chameleon.Interfaces;
+﻿using Chameleon.lib.Common.Interfaces.Systemics;
 using Chameleon.lib.Common.Records;
 
 namespace Chameleon.lib.Common.Interfaces.ThirdParty;
-public interface IPVApiModel
-		: IPageViewModel {
+public interface IPVApiModel : IAmaViewModel { 
 	string? ApiKey { get; set; }
 
 	string? GetNumberData { get; set; }

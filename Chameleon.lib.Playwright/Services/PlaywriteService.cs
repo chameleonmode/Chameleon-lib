@@ -1,21 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Chameleon.lib.Playwright.Interfaces;
+﻿using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts;
 using Chameleon.lib.Common;
 using Chameleon.lib.Common.Enums;
-using Chameleon.lib.Common.Interfaces;
-
-using Microsoft.Playwright;
-using System.Linq;
-using System.IO;
-using Chameleon.lib.Playwright.node;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Xml.Linq;
 
 namespace Chameleon.lib.Playwright.Services;
 public class PlaywriteService(ICompileScriptService compileScriptService)
@@ -29,8 +16,6 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 		SystemBrowserType.Firefox => throw new NotImplementedException(),
 		_ => throw new NotImplementedException(),
 	};
-
-	// ... other code ...
 
 	public async Task RunScript(PlaywriteRunScriptOptions options, CancellationToken token)
 	{

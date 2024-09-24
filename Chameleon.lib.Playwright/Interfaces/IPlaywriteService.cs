@@ -1,4 +1,4 @@
-﻿using Chameleon.Interfaces.Ioc;
+﻿using Chameleon.lib.Common.Interfaces.Systemics;
 using Chameleon.lib.Playwright.Models;
 
 namespace Chameleon.lib.Playwright.Interfaces;

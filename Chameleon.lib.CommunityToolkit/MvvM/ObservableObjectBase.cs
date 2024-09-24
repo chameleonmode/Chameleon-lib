@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Chameleon.Interfaces;
+﻿using Chameleon.lib.Common.Interfaces.Systemics;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,7 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace Chameleon.lib.CommunityToolkit.MvvM;
 
 public abstract partial class ObservableObjectBase : ObservableObject,
-		IPageViewModel {
+		IAmaViewModel {
 	[ObservableProperty]
 	private string? _title;
 

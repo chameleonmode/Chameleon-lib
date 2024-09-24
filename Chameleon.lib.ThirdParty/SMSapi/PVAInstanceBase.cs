@@ -4,7 +4,7 @@ using System.Text.Json;
 using Chameleon.lib.Common.Interfaces.ThirdParty;
 using Chameleon.lib.Common.Records;
 
-namespace Chameleon.ThirdParty.SMSapi;
+namespace Chameleon.lib.ThirdParty.SMSapi;
 public abstract class PVAInstanceBase(string name, IEnumerable<RCountry> countries, IEnumerable<RService> services) : IPVAInstance {
 	public readonly JsonSerializerOptions JSOptions = new() {
 		PropertyNameCaseInsensitive = true,

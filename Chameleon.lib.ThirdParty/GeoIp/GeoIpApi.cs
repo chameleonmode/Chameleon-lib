@@ -12,12 +12,12 @@ public class GeoIpApi {
 	// Make singleton
 	public static GeoIpApi Instance { get; } = new GeoIpApi();
 
-	public async Task<Ipapi?> GetIpapi(string proxyUrl, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null) =>
+	public static async Task<Ipapi?> GetIpapi(string proxyUrl, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null) =>
 		JsonSerializer.Deserialize<Ipapi>(await GetIPApi(proxyUrl, onretry, proxyUsername, proxyPassword));
-	public Task<string> GetIPApi(string proxyUrl, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null)
+	public static Task<string> GetIPApi(string proxyUrl, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null)
 					=> GetHttpResponseContent(proxyUrl, "http://ip-api.com/json", onretry, proxyUsername, proxyPassword);
 
-	private async Task<string> GetHttpResponseContent(string proxyUrl, string requestUri, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null)
+	private static async Task<string> GetHttpResponseContent(string proxyUrl, string requestUri, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null)
 	{
 		var handler = await InitializeHttpClientHandlerWithRetry(proxyUrl, proxyUsername, proxyPassword, onretry);
 		HttpClient client = new(handler) {
@@ -47,7 +47,7 @@ public class GeoIpApi {
 		}
 	}
 
-	private async Task<HttpClientHandler> InitializeHttpClientHandlerWithRetry(string proxyUrl, string? proxyUsername, string? proxyPassword, Action<string> onretry) =>
+	private static async Task<HttpClientHandler> InitializeHttpClientHandlerWithRetry(string proxyUrl, string? proxyUsername, string? proxyPassword, Action<string> onretry) =>
 		await Policy.Handle<WebException>()
 				.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt), (exception, timespan, retryAttempt, context) => {
 					onretry($"Proxy initialization failed. Retry {retryAttempt}: due to {exception.Message}");

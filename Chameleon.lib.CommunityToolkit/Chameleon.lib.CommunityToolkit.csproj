@@ -16,7 +16,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\Chameleon\src\Chameleon.Interfaces\Chameleon.Interfaces.csproj" />
+	  <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
 	</ItemGroup>
 
 </Project>

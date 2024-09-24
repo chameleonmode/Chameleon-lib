@@ -105,7 +105,6 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 
 		}, CancellationToken.None);
 
-
 		playBrowserService.Dispose();
 		await DisposeBrowser();
 	}

@@ -3,7 +3,6 @@ using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Records;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.ThirdParty.SMSapi.SMSPVA.Models;
-using Chameleon.ThirdParty.SMSapi;
 
 using System.Text.Json;
 

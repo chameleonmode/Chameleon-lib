@@ -5,7 +5,6 @@ using Chameleon.lib.Common;
 using Chameleon.lib.Common.Records;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.ThirdParty.SMSapi.SMSPool.Models;
-using Chameleon.ThirdParty.SMSapi;
 
 namespace Chameleon.lib.ThirdParty.SMSapi.SMSPool;
 public class SMSPoolAPI : PVAInstanceBase {
