@@ -4,15 +4,14 @@ using Chameleon.lib.Common.Types;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Threading.Tasks;
+using Chameleon.lib.WebBrowser.Models;
 
 namespace Chameleon.lib.Tests;
 
 public class IOCTest {
+	private readonly TaskCompletionSource<bool> _tcs = new();
 
-	TaskCompletionSource<bool> _tcs = new TaskCompletionSource<bool>();
-
-	[Fact]
-	public async Task TestCommonIOCInit()
+	public IOCTest()
 	{
 		// Setup
 		async void setup()
@@ -33,15 +32,39 @@ public class IOCTest {
 		IoC.Instance.Init((on) => {
 			setup();
 		});
+	}
 
+	[Fact]
+	public async Task Test_Appsettings()
+	{
 		_ = await _tcs.Task;
 
-		// Act
 		// Now you can use configManager throughout your application
 		var browserPath = IoC.GetValue<string>("BrowserPath");
 		Debug.WriteLine($"Browser Path: {browserPath}");
 
 		// Set a new value
-		IoC.Instance.Config?.SetValue("CustomSetting", "NewValue");
+		IoC.SetValue("NewValue", "CustomSetting");
+		var customSetting = IoC.GetValue<string>("CustomSetting");
+		Assert.True(customSetting == "NewValue");
+
+		// Set a new Type value
+		IoC.SetValue(new EmulationOptions {
+			DisableWebRTC = true,
+			SpoofClientRects = true,
+			SpoofFontFingerprint = true,
+			SpoofCanvasFingerprint = true,
+			SpoofWebGLFingerprint = true,
+			SpoofGeoLocation = true,
+			AutoTimezone = true,
+			DissableHyperlinkAuditing = true,
+		}, nameof(EmulationOptions));
+		var emulations = IoC.GetValue<EmulationOptions>(nameof(EmulationOptions));
+		Assert.NotNull(emulations);
+
+		// Set a new arrat Type value
+		IoC.SetValue<string[]>(["duckduckgo.com", "1", "2" ], "arrr");
+		var arr = IoC.GetValue<string[]>("arrr");
+		Assert.NotNull(arr);
 	}
 }

@@ -20,7 +20,7 @@ public abstract partial class ObservableObjectBase : ObservableObject,
 	public virtual Dictionary<string, Func<Task>> AsyncCommandMap { get; } = [];
 
 	public IAsyncRelayCommand InitializeAsyncCommand { get; }
-	public TaskCompletionSource LoadedTCS { get; } = new();
+	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 
 	public ObservableObjectBase()
 	{
@@ -36,7 +36,7 @@ public abstract partial class ObservableObjectBase : ObservableObject,
 						OnPropertyChanged(nameof(IsBusy));
 					}
 					Loaded = true;
-					_ = LoadedTCS.TrySetResult();
+					_ = LoadedTCS.TrySetResult(false);
 				},
 				AsyncRelayCommandOptions.FlowExceptionsToTaskScheduler);
 	}
@@ -50,4 +50,5 @@ public abstract partial class ObservableObjectBase : ObservableObject,
 
 	[RelayCommand]
 	public async Task AsyncCfromV(string what) => await AsyncCommandMap[what]();
+	public Task InitializeAsync(object? param) => InvokeInitializeAsyncCommand(param);
 }

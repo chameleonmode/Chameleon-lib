@@ -1,0 +1,35 @@
+﻿using Chameleon.lib.WebBrowser.Models;
+
+namespace Chameleon.lib.Tests.WebBrowser;
+public class BrowserLauncherTests : WebBroswserTestsBase {
+	
+	[Fact]
+	public async Task Test_LaunchBrowserInstance_Chrome()
+	{
+		_ = _tcs.Task;
+		Assert.NotNull(SysBrowserServiceBase);
+
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Chrome, new Common.Models.UserProfile() { Id = 123, Proxy = new Common.Models.ProxySettings()}));
+		Assert.NotNull(bi);
+	}
+
+	[Fact]
+	public async Task Test_LaunchBrowserInstance_Brave()
+	{
+		_ = _tcs.Task;
+		Assert.NotNull(SysBrowserServiceBase);
+
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Brave, new Common.Models.UserProfile() { Id = 123, Proxy = new Common.Models.ProxySettings() }));
+		Assert.NotNull(bi);
+	}
+
+	[Fact]
+	public async Task Test_LaunchBrowserInstance_FF()
+	{
+		_ = _tcs.Task;
+		Assert.NotNull(SysBrowserServiceBase);
+
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Firefox, new Common.Models.UserProfile() { Id = 123, Proxy = new Common.Models.ProxySettings() }));
+		Assert.NotNull(bi);
+	}
+}

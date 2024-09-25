@@ -43,7 +43,7 @@ public class IoC {
 	/// </summary>
 	public void Configure(Func<WritableConfiguration> config, Action<ServiceCollection> action)
 	{
-		Config = new ChaonfigurationManager(config());
+		Config = new Chonfigurationer(config());
 
 		var services = new ServiceCollection();
 		action(services);
