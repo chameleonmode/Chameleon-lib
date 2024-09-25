@@ -1,5 +1,5 @@
 {
-  "version": "2024.1.7",
+  "version": "2024.1.7.0",
   "manifest_version": 3,
   "offline_enabled": true,
   "name": "Chromeleon Defender",
@@ -61,9 +61,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "modules/*.js",
-        "data/scripts/isolated.js",
-        "spoof-script.js"
+        "modules/*.js"
       ],
       "matches": ["<all_urls>"]
     }

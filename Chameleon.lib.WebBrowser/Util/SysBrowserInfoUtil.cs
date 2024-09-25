@@ -14,10 +14,10 @@ public static class SysBrowserInfoUtil {
 	private static (bool IsInstalled, string FilePath) CheckApplication(string executableName)
 	{
 		// Check common installation paths
-		string[] commonPaths = {
+		string[] commonPaths = [
 						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), executableName),
 						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), executableName)
-				};
+				];
 
 		foreach (var path in commonPaths) {
 			if (File.Exists(path)) {
@@ -26,10 +26,10 @@ public static class SysBrowserInfoUtil {
 		}
 
 		// Check registry
-		string[] registryKeys = {
+		string[] registryKeys = [
 						@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
 						@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths"
-				};
+		];
 
 		foreach (var registryKey in registryKeys) {
 			using var key = Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executableName));
@@ -44,15 +44,15 @@ public static class SysBrowserInfoUtil {
 		// Check for user-specific installation
 		var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 		var userSpecificPaths = Directory.GetFiles(appDataPath, executableName, SearchOption.AllDirectories);
-		if (userSpecificPaths.Any()) {
+		if (userSpecificPaths.Length != 0) {
 			return (true, userSpecificPaths.First());
 		}
 
 		// Check uninstall registry keys
-		string[] uninstallKeys = {
+		string[] uninstallKeys = [
 						@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
 						@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-				};
+				];
 
 		foreach (var uninstallKey in uninstallKeys) {
 			using var key = Registry.LocalMachine.OpenSubKey(uninstallKey);
@@ -92,10 +92,12 @@ public static class SysBrowserInfoUtil {
 			};
 		} else {
 #pragma warning disable CA1416 // Validate platform compatibility
+
 			var (isinstalled, filepath) = CheckApplication(browserName);
 			if (isinstalled && filepath.Is()) {
 				inf = new SysBrowserRecord(browserName, filepath);
 			}
+
 #pragma warning restore CA1416 // Validate platform compatibility
 		}
 
@@ -103,7 +105,7 @@ public static class SysBrowserInfoUtil {
 				$"{char.ToUpper(browserName[0]) + browserName[1..]} browser is not installed.");
 	}
 
-	public static SysBrowserRecord? FindByType(SystemBrowserType BrowserType) => BrowserType switch {
+	public static SysBrowserRecord FindByType(SystemBrowserType BrowserType) => BrowserType switch {
 		SystemBrowserType.Chrome => FindByName("chrome.exe"),
 		SystemBrowserType.Brave => FindByName("brave.exe"),
 		SystemBrowserType.Firefox => FindByName("firefox.exe"),

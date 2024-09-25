@@ -11,7 +11,7 @@ public class ExtensionLoaderService : IExtensionLoaderService {
 	private readonly EmbeddedResourceAssetLoader _assetLoader = new(typeof(Constas).Assembly);
 	private const string AddonsBasePath = Constas.AddonsDir;
 
-	public async Task LoadExtension(ExtensionType extensionType, string destinationPath, string settings)
+	public async Task LoadExtension(ExtensionType extensionType, string destinationPath, string? settings = null)
 	{
 		try {
 			var extensionName = extensionType.ToString();

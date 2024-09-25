@@ -20,7 +20,7 @@ public abstract class SysBrowserInstance
 	public event EventHandler<SysBrowserLaunchOptions>? OnProcessOpenError;
 	public event EventHandler<SysBrowserLaunchOptions>? OnBecameForeground;
 
-	private readonly IExtensionLoaderService? _extensionLoaderService = IoC.GetService<IExtensionLoaderService>();
+	public readonly IExtensionLoaderService? _extensionLoaderService = IoC.GetService<IExtensionLoaderService>();
 
 	public abstract SystemBrowserType BrowserType { get; set; }
 	public required SysBrowserLaunchOptions Options { get; init; }
@@ -28,16 +28,13 @@ public abstract class SysBrowserInstance
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 
 	public Process? Brocess { get; set; }
-	public Dictionary<ExtensionType, string> ExtentionsDirs { get; } = [];
+	public Dictionary<ExtensionType, string?> ExtentionsDirs { get; } = [];
 
 	public IntPtr Handle { get; private set; } = IntPtr.Zero;
 	public bool IsRunning => Brocess?.HasExited == false;
 
 	public async Task InitializeAsync(object? param = null)
 	{
-		//
-		
-		// 
 		if (Brocess is null || Handle == IntPtr.Zero) {
 			await InitializeExtensionPath();
 			if (LoadedTCS.Task.IsCompleted)
@@ -45,29 +42,6 @@ public abstract class SysBrowserInstance
 			await StartProcess();
 		}
 	}
-
-	public void MakeForeground()
-	{
-		if (Brocess != null) {
-			if (!OperatingSystem.IsMacOS()) {
-				if (Handle == IntPtr.Zero)
-					return;
-#pragma warning disable CA1416 // Validate platform compatibility
-				if (U32.IsWindow(Handle)) {
-					if (U32til.BringWindowToForeground(Handle)) {
-						OnBecameForeground?.Invoke(this, Options);
-					}
-#pragma warning restore CA1416 // Validate platform compatibility
-				}
-			} else {
-				if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
-					Brocess.Refresh();
-					OnBecameForeground?.Invoke(this, Options);
-				}
-			}
-		}
-	}
-
 	protected virtual async Task InitializeExtensionPath()
 	{
 		var settingsBuilder = new StringBuilder();
@@ -139,14 +113,87 @@ $@"
             ");
 
 		foreach (var (ext, setting) in ExtentionsDirs) {
-			await _extensionLoaderService!.LoadExtension(ext, Options.DestExtentionsDir!, setting);
+			await _extensionLoaderService!.LoadExtension(ext, Options.DestExtentionsDir, setting);
+		}
+	}
+	protected virtual string GetCommandLineArguments()
+	{   // "--in-process-gpu","--disable-software-rasterizer",
+		List<string> args =
+		[
+			"--disable-session-crashed-bubble",
+			"--hide-crash-restore-bubble",
+			"--restore-last-session",
+			"--profile-directory=Default",
+			"--ash-no-nudges",
+			"--disable-domain-reliability",
+			"--no-default-browser-check",
+			"--no-first-run",
+			"--disable-field-trial-config",
+			"--silent-debugger-extension-api",
+			$"--remote-debugging-port={Options.Port}",
+      //$"--window-name=\"{UserProfile.Title}\"",
+     ];
+
+		if (Options.Profile.Proxy.CanUse) {
+			args.Add($"--proxy-server={Options.Profile.Proxy.ServerForRequest}");
+		} else {
+			args.Add("--no-proxy-server");
+		}
+
+		if (Options.Emulation.DissableHyperlinkAuditing) {
+			// not disable tracking totally, but disable for hyperlink
+			args.Add("--disable-hyperlink-auditing");
+		}
+
+		args.Add($"--user-data-dir=\"{Options.SysBrowserProfileCachePath}\"");
+
+		List<string> exts = [];
+		if (Directory.Exists(Options.DestExtentionsDir)) {
+			foreach (var item in Directory.GetDirectories(Options.DestExtentionsDir)) {
+				exts.Add(item);
+			}
+		}
+		//foreach (var dir in ExtensionDirectories) {
+		//	if (Directory.Exists(dir.Value.AddonDir))
+		//		exts.Add(dir.Value.AddonDir);
+		//}
+
+		if (Directory.Exists(Consts.Addons.DefaultExtensionsFolderPath))
+			exts.AddRange(Directory.GetDirectories(Consts.Addons.DefaultExtensionsFolderPath));
+
+		if (exts.Count > 0)
+			args.Add($"--load-extension=\"{exts.ToCommaSeparatedString()}\"");
+
+		args.Add($"about:blank");
+
+		return string.Join(" ", args);
+	}
+
+	public void MakeForeground()
+	{
+		if (Brocess != null) {
+			if (!OperatingSystem.IsMacOS()) {
+				if (Handle == IntPtr.Zero)
+					return;
+#pragma warning disable CA1416 // Validate platform compatibility
+				if (U32.IsWindow(Handle)) {
+					if (U32til.BringWindowToForeground(Handle)) {
+						OnBecameForeground?.Invoke(this, Options);
+					}
+#pragma warning restore CA1416 // Validate platform compatibility
+				}
+			} else {
+				if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
+					Brocess.Refresh();
+					OnBecameForeground?.Invoke(this, Options);
+				}
+			}
 		}
 	}
 
-	protected virtual async Task StartProcess()
+	protected async Task StartProcess()
 	{
-		if (SysBrowserInfoUtil.FindByType(BrowserType)?.Path is string path) {
-			Brocess = ProUtil.Createa(path, GetCommandLineArguments());
+			Brocess = ProUtil.Createa(BrowserType == SystemBrowserType.Firefox ? Consts.Browser.LocalFirefoxExePath : Options.ExePath, GetCommandLineArguments());
 			_ = Brocess.Start();
 
 			if (OperatingSystem.IsMacOS()) {
@@ -214,7 +261,7 @@ $@"
 				}
 #pragma warning restore CA1416 // Validate platform compatibility
 			}
-		}
+		
 
 		if (Brocess?.HasExited == false)
 			_ = LoadedTCS.TrySetResult(true);
@@ -242,78 +289,6 @@ $@"
 		OnProcessClosed?.Invoke(this, Options);
 
 		GC.SuppressFinalize(this);
-	}
-
-	protected virtual List<string> GetClearCommandLineArgumentsList()
-	{
-		// "--in-process-gpu","--disable-software-rasterizer",
-		List<string> args =
-				[
-						"--disable-session-crashed-bubble",
-								"--hide-crash-restore-bubble",
-								"--restore-last-session",
-								"--profile-directory=Default",
-								"--ash-no-nudges",
-								"--disable-domain-reliability",
-								"--no-default-browser-check",
-								"--no-first-run",
-								"--disable-field-trial-config",
-								$"--remote-debugging-port={Options.Port}",
-                //$"--window-name=\"{UserProfile.Title}\"",
-            ];
-
-		if (Options.Profile.Proxy.CanUse) {
-			args.Add($"--proxy-server={Options.Profile.Proxy.ServerForRequest}");
-		} else {
-			args.Add("--no-proxy-server");
-		}
-
-		if (Options.Emulation.DissableHyperlinkAuditing) {
-			// not disable tracking totally, but disable for hyperlink
-			args.Add("--disable-hyperlink-auditing");
-		}
-
-		return args;
-	}
-
-	protected virtual List<string> GetCommandLineArgumentsList()
-	{
-		var args = GetClearCommandLineArgumentsList();
-
-		args.Add($"--user-data-dir=\"{Options.SysBrowserProfileCachePath}\"");
-
-		return args;
-	}
-
-	protected virtual string GetCommandLineArguments()
-	{
-		var args = GetCommandLineArgumentsList();
-
-		if (GetLoadExtensionsArgument().Get() is string exts)
-			args.Add($"--load-extension=\"{exts}\"");
-
-		args.Add($"about:blank");
-
-		return string.Join(" ", args);
-	}
-
-	public virtual string GetLoadExtensionsArgument()
-	{
-		List<string> exts = [];
-		if (Directory.Exists(Options.DestExtentionsDir)) {
-			foreach (var item in Directory.GetDirectories(Options.DestExtentionsDir)) {
-				exts.Add(item);
-			}
-		}
-		//foreach (var dir in ExtensionDirectories) {
-		//	if (Directory.Exists(dir.Value.AddonDir))
-		//		exts.Add(dir.Value.AddonDir);
-		//}
-
-		if (Directory.Exists(Consts.Addons.DefaultExtensionsFolderPath))
-			exts.AddRange(Directory.GetDirectories(Consts.Addons.DefaultExtensionsFolderPath));
-
-		return exts.ToCommaSeparatedString();
 	}
 
 	private async Task<string?> GetWebSocketDebuggerUrlAsync()

@@ -6,20 +6,13 @@ using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Models;
-using Chameleon.lib.WebBrowser.Services.Brave;
-using Chameleon.lib.WebBrowser.Services.Chrome;
-using Chameleon.lib.WebBrowser.Services.Firefox;
+using Chameleon.lib.WebBrowser.System.Brave;
+using Chameleon.lib.WebBrowser.System.Chrome;
+using Chameleon.lib.WebBrowser.System.Firefox;
 
 namespace Chameleon.lib.WebBrowser.Services;
-public class SysBrowserServiceBase
-	: ISysBrowserServiceBase {
-	public static ISysBrowserServiceBase? Get(SystemBrowserType browserType) => browserType switch {
-		SystemBrowserType.Brave => IoC.GetService<IBraveSystemBrowserService>(),
-		SystemBrowserType.Chrome => IoC.GetService<IChromeSystemBrowserService>(),
-		SystemBrowserType.Firefox => IoC.GetService<IFirefoxSystemBrowserService>(),
-		_ => throw new NotImplementedException(),
-	};
-
+public class SysBrowserService
+	: ISysBrowserService {
 	public static ISysBrowserInstance Create(SystemBrowserType browserType, SysBrowserLaunchOptions launchOptions) => browserType switch {
 		SystemBrowserType.Brave => new BraveSysBrowserInstance() { Options = launchOptions },
 		SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Options = launchOptions },
@@ -34,7 +27,7 @@ public class SysBrowserServiceBase
 	private long _isBusy;
 	public bool IsBusy => Interlocked.Read(ref _isBusy) > 0;
 
-	public SysBrowserServiceBase()
+	public SysBrowserService()
 	{
 		if (OperatingSystem.IsWindows()) {
 			windowEventHandler = new WindowEventHandler();
@@ -85,7 +78,10 @@ public class SysBrowserServiceBase
 					DissableHyperlinkAuditing = true,
 				};
 				var urls = IoC.GetValue<string[]>("DefaultHomePageSettings") ?? ["duckduckgo.com"];
-				var launchOptions = new SysBrowserLaunchOptions(options, emulations, urls[new Random().Next(urls.Length)], Netil.NextFreePort(9613));
+				var starturl = urls[new Random().Next(urls.Length)];
+					starturl = starturl.Contains(Consts.Http.UrlSchemeEnd) ?
+					starturl : $"{Consts.Http.HttpsScheme}{starturl}";
+				var launchOptions = new SysBrowserLaunchOptions(options, emulations, starturl, Netil.NextFreePort(9613));
 				browser = Create(options.BrowserType, launchOptions);
 				browser.OnProcessClosed += Browser_OnProcessClosed;
 				browser.OnBecameForeground += Browser_OnBecameForeground;

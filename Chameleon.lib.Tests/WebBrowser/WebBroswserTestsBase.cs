@@ -10,13 +10,13 @@ namespace Chameleon.lib.Tests.WebBrowser;
 public class WebBroswserTestsBase {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 	public IExtensionLoaderService? ExtensionLoaderService;
-	public ISysBrowserServiceBase? SysBrowserServiceBase;
+	public ISysBrowserService? SysBrowserServiceBase;
 	public WebBroswserTestsBase()
 	{
 		void setup(bool init)
 		{
 			ExtensionLoaderService = IoC.GetService<IExtensionLoaderService>();
-			SysBrowserServiceBase = IoC.GetService<ISysBrowserServiceBase>();
+			SysBrowserServiceBase = IoC.GetService<ISysBrowserService>();
 			_tcs.SetResult(true);
 		}
 		IoC.Instance.Configure(() => {
@@ -29,7 +29,7 @@ public class WebBroswserTestsBase {
 			_ = services
 			//app.Playwright
 			.AddSingleton<IExtensionLoaderService, ExtensionLoaderService>()
-			.AddSingleton<ISysBrowserServiceBase, SysBrowserServiceBase>();
+			.AddSingleton<ISysBrowserService, SysBrowserService>();
 		});
 		// Setup IoC
 		IoC.Instance.Init(action: setup);

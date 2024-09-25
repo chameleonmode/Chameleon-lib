@@ -1,6 +1,7 @@
 ﻿using Chameleon.lib.Common.Enums;
 using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.WebBrowser.Util;
 
 namespace Chameleon.lib.WebBrowser.Models;
 public record SysBrowserOpenOptions(SystemBrowserType BrowserType, UserProfile Profile);
@@ -20,10 +21,12 @@ public record SysBrowserLaunchOptions(SysBrowserOpenOptions OpenOptions, Emulati
 		get {
 			if (_destextPath == null) {
 				_destextPath = Path.Combine(Consts.Addons.AddonExtentionDir, BrowserType.ToString(), Profile.Id.ToString());
-				IOtil.DC(_destextPath).Wait();
-				_destextPath = IOtil.EnsureDirectoryExists(Path.Combine(_destextPath, new Guid().ToString()));
+				IOtil.DeleteDExists(_destextPath);
+				_destextPath = IOtil.EnsureDirectoryExists(Path.Combine(_destextPath, Guid.NewGuid().ToString()));
 			}
 			return _destextPath;
 		}
 	}
+
+	public string ExePath => SysBrowserInfoUtil.FindByType(BrowserType).Path;
 }

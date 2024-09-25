@@ -1,9 +1,10 @@
 ﻿using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 using Chameleon.lib.Common.Util;
 
 namespace Chameleon.lib.Common.Enums;
-public static class Consts {
+public static partial class Consts {
 	public const string AppName = "Chameleon";
 
 	public static string AppTempDir {
@@ -12,10 +13,16 @@ public static class Consts {
 				Path.Combine(Path.GetTempPath(), AppName));
 		}
 	}
-	public static string AppDataDir {
+	public static string AppDataRoamingDir {
 		get {
 			return IOtil.EnsureDirectoryExists(
 				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName));
+		}
+	}
+	public static string AppDataDir {
+		get {
+			return IOtil.EnsureDirectoryExists(
+				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName));
 		}
 	}
 
@@ -28,15 +35,26 @@ public static class Consts {
 		public const string DomainLevelDelimiter = ".";
 	}
 
-	public static class Addons {
-		public const string HttpScheme = "http://";
-		public const string HttpsScheme = "https://";
-		public const string UrlSchemeEnd = "://";
-		public const string DomainLevelDelimiter = ".";
+	public static partial class Regexers {
+		[GeneratedRegex(@"user_pref\(""(.*?)"", (\""(.*?)\""|.*?)\);")]
+		public static partial Regex UserPrefRegex();
+	}
 
+	public static class Addons {
 		public static string AddonExtentionDir => Path.Combine(AppTempDir, "Addons");
 		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../Resources/BrowserExtensions")
 			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BrowserExtensions");
+	}
+
+	public static class Browser {
+		public const string FoxameleonDirectory = "Foxameleon";
+
+		public static string LocalFirefoxDirPath => OperatingSystem.IsMacOS()
+			? Path.Combine(AppDataDir, FoxameleonDirectory, "firefox.app")
+			: Path.Combine(AppDataDir, FoxameleonDirectory);
+		public static string LocalFirefoxExePath => OperatingSystem.IsMacOS()
+			? Path.Combine(LocalFirefoxDirPath, "Contents", "MacOS", "firefox")
+			: Path.Combine(LocalFirefoxDirPath, "firefox.exe");
 	}
 }
