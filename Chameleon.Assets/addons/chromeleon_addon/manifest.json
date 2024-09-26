@@ -56,6 +56,10 @@
       "run_at": "document_start",
       "match_origin_as_fallback": true,
       "js": ["data/scripts/main.js"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["data/scripts/content-script.js"]
     }
   ],
   "web_accessible_resources": [
