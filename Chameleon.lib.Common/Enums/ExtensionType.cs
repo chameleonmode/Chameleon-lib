@@ -9,5 +9,9 @@ public enum ExtensionType {
 	[Description("chameleon_legacy")]
 	chameleon_legacy,
 	[Description("chromeleon_auto_proxy")]
-	chromeleon_auto_proxy
+	chromeleon_auto_proxy,
+	[Description("chromeleon_auto_ff_proxy")]
+	chromeleon_auto_ff_proxy,
+	[Description("foxameleon")]
+	foxameleon
 }

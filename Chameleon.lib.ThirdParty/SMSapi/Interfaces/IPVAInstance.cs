@@ -1,6 +1,6 @@
 ﻿using Chameleon.lib.Common.Records;
 
-namespace Chameleon.lib.Common.Interfaces.ThirdParty;
+namespace Chameleon.lib.ThirdParty.SMSapi.Interfaces;
 public interface IPVAInstance {
 	string Name { get; }
 	string? ApiKey { get; set; }

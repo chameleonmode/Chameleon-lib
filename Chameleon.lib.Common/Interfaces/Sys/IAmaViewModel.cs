@@ -2,6 +2,6 @@
 
 namespace Chameleon.lib.Common.Interfaces.Systemics;
 public interface IAmaViewModel : IAmInitializer {
-	string Title { get; set; }
+	string? Title { get; set; }
 	Task OnNavigatedToAsync(object? param);
 }

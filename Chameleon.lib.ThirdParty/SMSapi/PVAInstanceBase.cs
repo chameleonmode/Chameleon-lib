@@ -1,8 +1,7 @@
-﻿
-using System.Text.Json;
+﻿using System.Text.Json;
 
-using Chameleon.lib.Common.Interfaces.ThirdParty;
 using Chameleon.lib.Common.Records;
+using Chameleon.lib.ThirdParty.SMSapi.Interfaces;
 
 namespace Chameleon.lib.ThirdParty.SMSapi;
 public abstract class PVAInstanceBase(string name, IEnumerable<RCountry> countries, IEnumerable<RService> services) : IPVAInstance {

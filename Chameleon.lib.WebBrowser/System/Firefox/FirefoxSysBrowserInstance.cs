@@ -1,12 +1,9 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
 
 using Chameleon.lib.Common.Enums;
 using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Models;
-using Chameleon.lib.WebBrowser.System;
-using Chameleon.lib.WebBrowser.Util;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
@@ -35,23 +32,28 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await CreateChameleonFirefoxCopy();
 		_ = await InitializePrefsJs();
 
-		if (Options.Emulation.SpoofGeoLocation) {
-			ExtentionsDirs.Add(ExtensionType.geo_addon, null);
-		}
+		//if (Options.Emulation.SpoofGeoLocation) {
+		//	ExtentionsDirs.Add(ExtensionType.geo_addon, null);
+		//}
+		var sb = new StringBuilder();
+		BuildExtSettings(sb);
+		ExtentionsDirs.Add(ExtensionType.foxameleon, null);
 
-		var enabled = Options.Profile.Proxy.CanUse ? "true" : "false";
-		ExtentionsDirs.Add(ExtensionType.chromeleon_auto_proxy, @$"
+		if (Options.Profile.Proxy.CanUse) {
+			ExtentionsDirs.Add(ExtensionType.chromeleon_auto_ff_proxy, @$"
                 let settings = {{
-                    enabled: {enabled},
+                    enabled: true,
                     type: 'http',
                     host: '{Options.Profile.Proxy.Host}',
                     port: {Options.Profile.Proxy.Port},
+										server: '{Options.Profile.Proxy.Server}',
                     username: '{Options.Profile.Proxy.UserName}',
                     password: '{Options.Profile.Proxy.Password}',
                     url: '{Options.StartUrl}',
                     debug: false,
                 }};
             ");
+		}
 
 		foreach (var (ext, setting) in ExtentionsDirs) {
 			await _extensionLoaderService!.LoadExtension(ext, Options.DestExtentionsDir, setting).ConfigureAwait(true);
@@ -60,6 +62,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 				await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid().ToString() + ".zip"), extDir);
 			}
 		}
+
 	}
 
 	// TODO:
@@ -138,7 +141,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["network.dns.disablePrefetchFromHTTPS"] = true,
 			["network.predictor.enabled"] = false,
 			["network.predictor.enable-prefetch"] = false,
-			//["network.http.speculative-parallel-limit"] = 0,
 			["browser.places.speculativeConnect.enabled"] = false,
 			["browser.send_pings"] = false,
 			//[SECTION 0700]: DNS / DoH / PROXY / SOCKS 
@@ -151,15 +153,11 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["network.dns.disableIPv6"] = true,
 			["network.ftp.enabled"] = false,
 			["browser.fixup.alternate.enabled"] = false,
-			["browser.casting.enabled"] = false,
-			//["network.trr.mode"] = 3,
-			//["network.trr.uri"] = $"{UserProfile.Proxy.Host}:{UserProfile.Proxy.Port}",
-			//["network.trr.custom_uri"] = $"https://{UserProfile.Proxy.Host}:{UserProfile.Proxy.Port}",     
-			//["network.trr.credentials"] = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes($"{UserProfile.Proxy.UserName}:{UserProfile.Proxy.Password}"))}",     
+			["browser.casting.enabled"] = false,   
 			//[SECTION 2000]: PLUGINS / MEDIA / WEBRTC    
-			["media.peerconnection.ice.proxy_only_if_behind_proxy"] = true,
-			["media.peerconnection.ice.default_address_only"] = true,
-			["media.peerconnection.ice.no_host"] = true,
+			["media.peerconnection.ice.proxy_only_if_behind_proxy"] = false,
+			["media.peerconnection.ice.default_address_only"] = false,
+			["media.peerconnection.ice.no_host"] = false,
 			["media.gmp-provider.enabled"] = false,
 			//[SECTION 2600]: MISCELLANEOUS 
 			["permissions.manager.defaultsUrl"] = "",
@@ -443,8 +441,8 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			// Disable spell check
 			//pref("layout.spellcheckDefault", 0);
 			["webgl.disabled"] = false,
-			["media.navigator.enabled"] = true,
-			["media.peerconnection.enabled"] = true,
+			["media.navigator.enabled"] = false,
+			["media.peerconnection.enabled"] = false,
 			["plugin.state.flash"] = 0,
 			["plugins.flashBlock.enabled"] = true,
 			["privacy.donottrackheader.enabled"] = Options.Emulation.DNT,
@@ -459,7 +457,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["signon.autologin.proxy"] = true,
 			["network.auth.use-sspi"] = false,
 			["background.service_worker"] = true,
-
 			["network.proxy.type"] = 1,
 		};
 
@@ -515,7 +512,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			"-new-instance",
 			"-wait-for-browser",
 			$"-profile \"{Options.SysBrowserProfileCachePath}\"",
-			$"-url {Options.StartUrl}"
+			$"-url about:blank"
 			//$"-new-window", //"-no-remote"
 		});
 	}

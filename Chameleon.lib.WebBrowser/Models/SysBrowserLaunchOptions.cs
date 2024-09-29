@@ -4,10 +4,10 @@ using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Util;
 
 namespace Chameleon.lib.WebBrowser.Models;
-public record SysBrowserOpenOptions(SystemBrowserType BrowserType, UserProfile Profile);
+public record SysBrowserOpenOptions(SystemBrowserType BrowserType, UserProfileModel Profile);
 public record SysBrowserLaunchOptions(SysBrowserOpenOptions OpenOptions, EmulationOptions Emulation, string StartUrl, int Port) {
 	public SystemBrowserType BrowserType => OpenOptions.BrowserType;
-	public UserProfile Profile => OpenOptions.Profile;
+	public UserProfileModel Profile => OpenOptions.Profile;
 
 	public string SysBrowserProfileCachePath {
 		get {

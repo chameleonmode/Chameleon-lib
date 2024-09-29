@@ -2,14 +2,14 @@
 
 namespace Chameleon.lib.Tests.WebBrowser;
 public class BrowserLauncherTests : WebBroswserTestsBase {
-	
+
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome()
 	{
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Chrome, new Common.Models.UserProfile() { Id = 123, Proxy = new Common.Models.ProxySettings()}));
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Chrome, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettings() }));
 		Assert.NotNull(bi);
 	}
 
@@ -19,7 +19,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Brave, new Common.Models.UserProfile() { Id = 123, Proxy = new Common.Models.ProxySettings() }));
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Brave, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettings() }));
 		Assert.NotNull(bi);
 	}
 
@@ -29,7 +29,19 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Firefox, new Common.Models.UserProfile() { Id = 123, Proxy = new Common.Models.ProxySettings() }));
+		var bi = await SysBrowserServiceBase.Open(
+			new SysBrowserOpenOptions(
+				Common.Enums.SystemBrowserType.Firefox, 
+				new Common.Models.UserProfileModel() { 
+					Id = 123, 
+					Proxy = new Common.Models.ProxySettings() {
+						Host = "proxy.chameleonmode.com",
+						Port = 31112,
+						UserName = "elimdadia_gmail_com",
+						Password = "gb0Q1sXdTDZTlR2J_session-mk3wMyyY"
+					}
+				})
+			);
 		Assert.NotNull(bi);
 	}
 }

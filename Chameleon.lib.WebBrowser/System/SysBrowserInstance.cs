@@ -54,7 +54,7 @@ public abstract class SysBrowserInstance
 				if (ipapi != null) {
 					_ = settingsBuilder.AppendLine(
 $@"
-	chrome.storage.local.set({{
+	chrome.storage.sync.set({{
 	  timezone: '{ipapi.timezone}',
 	  random: false,
 	  update: false
@@ -76,30 +76,11 @@ $@"
 		_ = settingsBuilder.AppendLine("chrome.runtime.onInstalled.addListener(initIt);");
 		_ = settingsBuilder.AppendLine("chrome.runtime.onStartup.addListener(initIt);");
 
-		HashSet<KeyValuePair<string, string>> options =
-		[
-			new ("webglSpoofing", Options.Emulation.SpoofWebGLFingerprint.Tlwr()),
-			new ("canvasProtection", Options.Emulation.SpoofCanvasFingerprint.Tlwr()),
-			new ("clientRectsSpoofing",Options.Emulation.SpoofClientRects.Tlwr()),
-			new ("fontsSpoofing", Options.Emulation.SpoofFontFingerprint.Tlwr()),
-			new ("dAPI", Options.Emulation.DisableWebRTC.Tlwr()),
-			new ("geoSpoofing", Options.Emulation.SpoofGeoLocation.Tlwr()),
-			new ("timezoneSpoofing", Options.Emulation.AutoTimezone.Tlwr())
-		];
-		_ = settingsBuilder.AppendLine("let settings = {");
-		_ = settingsBuilder.AppendLine($"enabled: {options.Any(o => o.Value == "true").Tlwr()},");
-		foreach (var o in options) {
-			_ = settingsBuilder.AppendLine($"{o.Key}: {o.Value},");
-		}
-		_ = settingsBuilder.AppendLine("eMode: 'disable_non_proxied_udp',"); //isFirefox ? 'proxy_only'
-		_ = settingsBuilder.AppendLine("dMode: 'default_public_interface_only',");
-		_ = settingsBuilder.AppendLine("noiseLevel: 'medium',");
-		_ = settingsBuilder.AppendLine("debug: 3");
-		_ = settingsBuilder.AppendLine("};");
+		BuildExtSettings(settingsBuilder);
 		ExtentionsDirs.Add(ExtensionType.chromeleon_addon, settingsBuilder.ToString());
 
 		var enabled = Options.Profile.Proxy.CanUse ? "true" : "false";
-		ExtentionsDirs.Add(ExtensionType.chromeleon_auto_proxy, @$"
+		ExtentionsDirs.Add(ExtensionType.chromeleon_auto_ff_proxy, @$"
                 let settings = {{
                     enabled: {enabled},
                     type: 'http',
@@ -116,6 +97,32 @@ $@"
 			await _extensionLoaderService!.LoadExtension(ext, Options.DestExtentionsDir, setting);
 		}
 	}
+
+	public void BuildExtSettings(StringBuilder settingsBuilder)
+	{
+		HashSet<KeyValuePair<string, string>> options =
+		[
+			new ("webglSpoofing", Options.Emulation.SpoofWebGLFingerprint.Tlwr()),
+			new ("canvasProtection", Options.Emulation.SpoofCanvasFingerprint.Tlwr()),
+			new ("clientRectsSpoofing",Options.Emulation.SpoofClientRects.Tlwr()),
+			new ("fontsSpoofing", Options.Emulation.SpoofFontFingerprint.Tlwr()),
+			new ("dAPI", Options.Emulation.DisableWebRTC.Tlwr()),
+			new ("geoSpoofing", Options.Emulation.SpoofGeoLocation.Tlwr()),
+			new ("timezoneSpoofing", Options.Emulation.AutoTimezone.Tlwr())
+		];
+		_ = settingsBuilder.AppendLine("let settings = {");
+		_ = settingsBuilder.AppendLine($"enabled: {options.Any(o => o.Value == "true").Tlwr()},");
+		foreach (var o in options) {
+			_ = settingsBuilder.AppendLine($"{o.Key}: {o.Value},");
+		}
+		_ = settingsBuilder.AppendLine("eMode: ");
+		_ = BrowserType == SystemBrowserType.Firefox ? settingsBuilder.Append("'proxy_only',") : settingsBuilder.Append("'disable_non_proxied_udp',");
+		_ = settingsBuilder.AppendLine("dMode: 'default_public_interface_only',");
+		_ = settingsBuilder.AppendLine("noiseLevel: 'medium',");
+		_ = settingsBuilder.AppendLine("debug: 3");
+		_ = settingsBuilder.AppendLine("};");
+	}
+
 	protected virtual string GetCommandLineArguments()
 	{   // "--in-process-gpu","--disable-software-rasterizer",
 		List<string> args =

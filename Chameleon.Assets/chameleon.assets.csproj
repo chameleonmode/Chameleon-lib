@@ -10,4 +10,13 @@
 		<EmbeddedResource Include="addons\**" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Remove="addons\chromeleon_auto_ff_proxy\background.js" />
+	  <None Remove="addons\chromeleon_auto_ff_proxy\manifest.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="addons\foxameleon\web-ext-artifacts\" />
+	</ItemGroup>
+
 </Project>

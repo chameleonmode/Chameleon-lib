@@ -1,6 +1,6 @@
 ﻿namespace Chameleon.lib.Common.Models;
 
-public class UserProfile {
+public class UserProfileModel {
 	private int _id;
 	public int Id {
 		get => _id;

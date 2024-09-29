@@ -16,12 +16,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "ChromeleonAuto@chameleonmode.com.com"
-    }
-  },
-  "firefox_overrides": {
-    "background": {
-      "scripts": [ "background.js" ]
+      "id": "ChromeleonAuto@chameleonmode.com"
     }
   }
  }
