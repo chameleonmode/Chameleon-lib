@@ -2,8 +2,8 @@
   "version": "2024.1.7.0",
   "manifest_version": 3,
   "offline_enabled": true,
-  "name": "Chromeleon Defender",
-  "description": "Defender against fingerprinting.",
+  "name": "Chromeleon",
+  "description": "A Chrome addon for Chameleon - Enhance your browser privacy and security",
   "permissions": [
     "activeTab",
     "contextMenus",
@@ -18,7 +18,7 @@
     "webNavigation",
     "webRequest"
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [ "<all_urls>" ],
   "commands": {
     "_execute_action": {}
   },
@@ -42,24 +42,24 @@
     {
       "world": "ISOLATED",
       "all_frames": true,
-      "matches": ["<all_urls>"],
+      "matches": [ "<all_urls>" ],
       "match_about_blank": true,
       "run_at": "document_start",
       "match_origin_as_fallback": true,
-      "js": ["data/scripts/isolated.js"]
+      "js": [ "data/scripts/isolated.js" ]
     },
     {
       "world": "MAIN",
       "all_frames": true,
-      "matches": ["<all_urls>"],
+      "matches": [ "<all_urls>" ],
       "match_about_blank": true,
       "run_at": "document_start",
       "match_origin_as_fallback": true,
-      "js": ["data/scripts/main.js"]
+      "js": [ "data/scripts/main.js" ]
     },
     {
-      "matches": ["<all_urls>"],
-      "js": ["data/scripts/content-script.js"]
+      "matches": [ "<all_urls>" ],
+      "js": [ "data/scripts/content-script.js" ]
     }
   ],
   "web_accessible_resources": [
@@ -67,7 +67,7 @@
       "resources": [
         "modules/*.js"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [ "<all_urls>" ]
     }
   ]
 }

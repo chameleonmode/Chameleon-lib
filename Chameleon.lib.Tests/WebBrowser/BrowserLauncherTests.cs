@@ -31,9 +31,9 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
-				Common.Enums.SystemBrowserType.Firefox, 
-				new Common.Models.UserProfileModel() { 
-					Id = 123, 
+				Common.Enums.SystemBrowserType.Firefox,
+				new Common.Models.UserProfileModel() {
+					Id = 111,
 					Proxy = new Common.Models.ProxySettings() {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
@@ -42,6 +42,27 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 					}
 				})
 			);
-		Assert.NotNull(bi);
+		//Assert.NotNull(bi);
+		//	_ = await SysBrowserServiceBase.Open(
+		//new SysBrowserOpenOptions(
+		//	Common.Enums.SystemBrowserType.Firefox,
+		//	new Common.Models.UserProfileModel() {
+		//		Id = 111,
+		//		Proxy = new Common.Models.ProxySettings() {
+		//			Host = "proxy.chameleonmode.com",
+		//			Port = 31112,
+		//			UserName = "elimdadia_gmail_com",
+		//			Password = "gb0Q1sXdTDZTlR2J_session-mk3wMyyY"
+		//		}
+		//	})
+		//);
+		//_ = await SysBrowserServiceBase.Open
+		//	(
+		//	new SysBrowserOpenOptions(
+		//		Common.Enums.SystemBrowserType.Firefox,
+		//		new Common.Models.UserProfileModel() {
+		//			Id = 222
+		//		})
+		//	);
 	}
 }

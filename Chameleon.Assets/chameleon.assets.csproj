@@ -11,12 +11,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="addons\chromeleon_auto_ff_proxy\background.js" />
-	  <None Remove="addons\chromeleon_auto_ff_proxy\manifest.json" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="addons\foxameleon\web-ext-artifacts\" />
+	  <None Remove="addons\foxameleon_proxy\background.js" />
+	  <None Remove="addons\foxameleon_proxy\manifest.json" />
 	</ItemGroup>
 
 </Project>

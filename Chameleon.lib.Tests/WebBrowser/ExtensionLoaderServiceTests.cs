@@ -21,7 +21,7 @@ public class ExtensionLoaderServiceTests : WebBroswserTestsBase {
 		Assert.NotNull(ExtensionLoaderService);
 
 		// Arrange
-		var extensionType = ExtensionType.chromeleon_addon;
+		var extensionType = ExtensionType.chromeleon;
 		var destinationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 		var settings = "{}";
 

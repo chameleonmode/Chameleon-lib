@@ -48,11 +48,11 @@ public static partial class Consts {
 	}
 
 	public static class Browser {
-		public const string FoxameleonDirectory = "Foxameleon";
+		public const string Foxameleon = "Foxameleon";
 
 		public static string LocalFirefoxDirPath => OperatingSystem.IsMacOS()
-			? Path.Combine(AppDataDir, FoxameleonDirectory, "firefox.app")
-			: Path.Combine(AppDataDir, FoxameleonDirectory);
+			? Path.Combine(AppDataDir, Foxameleon, "firefox.app")
+			: Path.Combine(AppDataDir, Foxameleon);
 		public static string LocalFirefoxExePath => OperatingSystem.IsMacOS()
 			? Path.Combine(LocalFirefoxDirPath, "Contents", "MacOS", "firefox")
 			: Path.Combine(LocalFirefoxDirPath, "firefox.exe");

@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "Foxameleon Auto Proxy",
-  "description": "A Chameleon addon to set proxy | username | password.",
-  "version": "1.0.0",
+  "name": "Proxameleon",
+  "description": "A Chameleon firefox addon to set proxy | username | password.",
+  "version": "2024.0.0.1",
   "permissions": [
     "proxy",
     "storage",
@@ -16,8 +16,8 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "autoproxy@chameleonmode.com",
-      "strict_min_version": "42.0"
+      "id": "proxameleon@chameleonmode.com",
+      "strict_min_version": "109.0"
     }
   }
 }

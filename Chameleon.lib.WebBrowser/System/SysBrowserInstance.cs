@@ -12,6 +12,7 @@ using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.WebBrowser.Models;
 using Newtonsoft.Json.Linq;
 using Chameleon.lib.WebBrowser.Util;
+using System;
 
 namespace Chameleon.lib.WebBrowser.System;
 public abstract class SysBrowserInstance
@@ -44,43 +45,10 @@ public abstract class SysBrowserInstance
 	}
 	protected virtual async Task InitializeExtensionPath()
 	{
-		var settingsBuilder = new StringBuilder();
-
-		_ = settingsBuilder.AppendLine("const initIt = () => {");
-		if (Options.Emulation.AutoTimezone && Options.Profile.Proxy.CanUse) {
-			try {
-				var ipapi = await GeoIpApi.GetIpapi(Options.Profile.Proxy.ServerForRequest, e => Toaster.ShowErr(e),
-						Options.Profile.Proxy.UserName, Options.Profile.Proxy.Password).ConfigureAwait(false);
-				if (ipapi != null) {
-					_ = settingsBuilder.AppendLine(
-$@"
-	chrome.storage.sync.set({{
-	  timezone: '{ipapi.timezone}',
-	  random: false,
-	  update: false
-	}}, () => {{
-		OnLoad();
-	}});
-");
-				}
-			} catch (Exception ex) {
-				Toaster.ShowErr($"Request for timezone failed, {Options.Profile.Proxy.Server} - {ex.Message}");
-				OnProcessOpenError?.Invoke(this, Options);
-				Dispose();
-				return;
-			}
-		} else {
-			_ = settingsBuilder.AppendLine("OnLoad();");
-		}
-		_ = settingsBuilder.AppendLine("};");
-		_ = settingsBuilder.AppendLine("chrome.runtime.onInstalled.addListener(initIt);");
-		_ = settingsBuilder.AppendLine("chrome.runtime.onStartup.addListener(initIt);");
-
-		BuildExtSettings(settingsBuilder);
-		ExtentionsDirs.Add(ExtensionType.chromeleon_addon, settingsBuilder.ToString());
+		ExtentionsDirs.Add(ExtensionType.chromeleon, await BuildExtSettings());
 
 		var enabled = Options.Profile.Proxy.CanUse ? "true" : "false";
-		ExtentionsDirs.Add(ExtensionType.chromeleon_auto_ff_proxy, @$"
+		ExtentionsDirs.Add(ExtensionType.chromeleon_auto_proxy, @$"
                 let settings = {{
                     enabled: {enabled},
                     type: 'http',
@@ -98,8 +66,24 @@ $@"
 		}
 	}
 
-	public void BuildExtSettings(StringBuilder settingsBuilder)
+	public async Task<string?> BuildExtSettings()
 	{
+		var timezone = "America/Los_Angeles";
+		if (Options.Emulation.AutoTimezone && Options.Profile.Proxy.CanUse) {
+			try {
+				var ipapi = await GeoIpApi.GetIpapi(Options.Profile.Proxy.ServerForRequest, e => Toaster.ShowErr(e),
+						Options.Profile.Proxy.UserName, Options.Profile.Proxy.Password).ConfigureAwait(false);
+				if (ipapi != null) {
+					timezone = ipapi.timezone;
+				}
+			} catch (Exception ex) {
+				Toaster.ShowErr($"Request for timezone failed, {Options.Profile.Proxy.Server} - {ex.Message}");
+				OnProcessOpenError?.Invoke(this, Options);
+				Dispose();
+				throw;
+			}
+		}
+
 		HashSet<KeyValuePair<string, string>> options =
 		[
 			new ("webglSpoofing", Options.Emulation.SpoofWebGLFingerprint.Tlwr()),
@@ -107,20 +91,36 @@ $@"
 			new ("clientRectsSpoofing",Options.Emulation.SpoofClientRects.Tlwr()),
 			new ("fontsSpoofing", Options.Emulation.SpoofFontFingerprint.Tlwr()),
 			new ("dAPI", Options.Emulation.DisableWebRTC.Tlwr()),
+			new ("webRtcEnabled", Options.Emulation.DisableWebRTC.Tlwr()),
 			new ("geoSpoofing", Options.Emulation.SpoofGeoLocation.Tlwr()),
-			new ("timezoneSpoofing", Options.Emulation.AutoTimezone.Tlwr())
+			new ("timezoneSpoofing", Options.Emulation.AutoTimezone.Tlwr()),
+			new ("myIP", (!Options.Emulation.AutoTimezone).Tlwr()),
 		];
-		_ = settingsBuilder.AppendLine("let settings = {");
+		var settingsBuilder = new StringBuilder();
+		_ = settingsBuilder.AppendLine("let BuildExtSettings = {");
 		_ = settingsBuilder.AppendLine($"enabled: {options.Any(o => o.Value == "true").Tlwr()},");
 		foreach (var o in options) {
 			_ = settingsBuilder.AppendLine($"{o.Key}: {o.Value},");
 		}
-		_ = settingsBuilder.AppendLine("eMode: ");
-		_ = BrowserType == SystemBrowserType.Firefox ? settingsBuilder.Append("'proxy_only',") : settingsBuilder.Append("'disable_non_proxied_udp',");
-		_ = settingsBuilder.AppendLine("dMode: 'default_public_interface_only',");
-		_ = settingsBuilder.AppendLine("noiseLevel: 'medium',");
-		_ = settingsBuilder.AppendLine("debug: 3");
+		_ = settingsBuilder.AppendLine($"timezone: '{timezone}',");
+		_ = settingsBuilder.AppendLine(
+"""
+	randomizeTZ: false,
+	randomizeGeo: false,
+	noiseLevel: "medium",
+	eMode: "disable_non_proxied_udp",
+	dMode: "default_public_interface_only",
+	locale: "en-US",
+	debug: 4,
+	latitude: 48.856892,
+	longitude: 2.350850,
+	accuracy: 69.96,
+	bypass: [],
+	history: [],
+""");
 		_ = settingsBuilder.AppendLine("};");
+
+		return settingsBuilder.ToString();
 	}
 
 	protected virtual string GetCommandLineArguments()

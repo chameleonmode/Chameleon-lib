@@ -40,8 +40,9 @@ export let settings = {
   noiseLevel: "medium",
   eMode: "proxy_only",
   dMode: "default_public_interface_only",
-  timezone: "America/Los_Angeles",
   locale: "en-US",
+  timezone: "America/Los_Angeles",
+  tzOffset: -420,
   debug: 4,
   latitude: 48.856892,
   longitude: 2.350850,
@@ -66,9 +67,13 @@ export const promptDictionary = {
   }
 };
 
-export async function updateSettings() {
-  if(settings === undefined) {
-    settings = await browser.storage.sync.get(SETTINGS_ARRAY);
+export async function updateSettings(built) {
+    if (settings === undefined) {
+        if (built) {
+            settings = built;
+        } else {
+            settings = await browser.storage.sync.get(SETTINGS_ARRAY);
+        }
   }
   await browser.storage.sync.set(settings);
   settings = await browser.storage.sync.get(SETTINGS_ARRAY);

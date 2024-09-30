@@ -6,6 +6,7 @@ import { createTimezoneContextMenus, handleTimezoneMenuClick } from "./modules/t
 import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
 
 async function OnLoad() {
+  settings = BuildExtSettings;
   await chrome.storage.sync.set(settings);
     
   setLogLevel(settings.debug);
