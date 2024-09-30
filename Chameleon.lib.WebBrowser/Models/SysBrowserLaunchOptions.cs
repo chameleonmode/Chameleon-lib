@@ -15,6 +15,16 @@ public record SysBrowserLaunchOptions(SysBrowserOpenOptions OpenOptions, Emulati
 				Path.Combine(Consts.AppDataDir, BrowserType.ToString(), Profile.Id.ToString()));
 		}
 	}
+	public string SysBrowseUserExtDir {
+		get {
+			return BrowserType switch { 
+				SystemBrowserType.Chrome => Consts.Addons.DefaultExtensionsFolderPath_Chrome,
+				SystemBrowserType.Brave => Consts.Addons.DefaultExtensionsFolderPath_Brave, 
+				SystemBrowserType.Firefox => Consts.Addons.DefaultExtensionsFolderPath_FF,
+				_ => throw new IndexOutOfRangeException(nameof(BrowserType))
+			};
+		}
+	}
 
 	private string? _destextPath;
 	public string DestExtentionsDir {

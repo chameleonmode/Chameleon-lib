@@ -1,8 +1,9 @@
 import { log } from "../../modules/logger.js";
-import { SETTINGS_ARRAY } from "../../modules/settings.js";
-let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+import { settings, updateSettings } from "../../modules/settings.js";
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
+    await updateSettings();
+    log.info(JSON.stringify(settings));
   const toggleExtension = document.getElementById("toggle-extension");
   const webglSpoofing = document.getElementById("webgl-spoofing");
   const canvasProtection = document.getElementById("canvas-protection");
@@ -16,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Load saved settings
     toggleExtension.checked = settings.enabled !== false;
-    webglSpoofing.checked = settings.webglSpoofing !== false;
+    webglSpoofing.checked = settings.webglSpoofing;
     canvasProtection.checked = settings.canvasProtection !== false;
     clientRectsSpoofing.checked = settings.clientRectsSpoofing !== false;
     fontsSpoofing.checked = settings.fontsSpoofing !== false;

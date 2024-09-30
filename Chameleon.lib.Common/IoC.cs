@@ -17,6 +17,7 @@ global using Chameleon.lib.Common.Managers;
 global using Chameleon.lib.Common.Interfaces;
 using Microsoft.Extensions.Logging.Console;
 using System.Reflection;
+using Chameleon.lib.Common.ServiceManagers;
 
 namespace Chameleon.lib.Common;
 public class IoC {
@@ -85,7 +86,11 @@ public class IoC {
 
 	public static T? GetValue<T>(string key) => Instance.Config == null ? throw new ArgumentException("Configuration manager is not initialized", nameof(key)) : Instance.Config.GetValue<T>(key.Replace(' ', '_'));
 	public static string? GetValue(params string[] keys) => GetValue<string>(string.Join('_', keys));
-	public static void SetValue<T>(T value, params string[] keys) => Instance.Config?.SetValue(string.Join('_', keys), value);
+	public static void SetValue<T>(T value, params string[] keys)
+	{
+		Instance.Config?.SetValue(string.Join('_', keys), value);
+		Toaster.ShowSuccess("Settings saved");
+	}
 	public static Task SetValueAsync<T>(T value, params string[] keys) => Task.Run(() => SetValue(value, keys));
 	//Singleton pattern
 	public static IoC Instance { get; } = new IoC();

@@ -66,7 +66,13 @@ export const promptDictionary = {
   }
 };
 
-export async function updateSettings() {
-  chrome.storage.sync.set(settings);
-  settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+export async function updateSettings(built) {
+    if (built)
+        settings = built;
+
+    if (settings === undefined) {
+        settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+    }
+    await chrome.storage.sync.set(settings);
+    settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
 }

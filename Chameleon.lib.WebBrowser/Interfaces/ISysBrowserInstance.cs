@@ -10,7 +10,7 @@ public interface ISysBrowserInstance : IAmInitializer, IDisposable {
 	public event EventHandler<SysBrowserLaunchOptions>? OnProcessOpenError;
 	public event EventHandler<SysBrowserLaunchOptions>? OnBecameForeground;
 
-	abstract SystemBrowserType BrowserType { get; set; }
+	SysBrowserLaunchOptions Options { get; init; }
 	Process? Brocess { get; set; }
-	void MakeForeground();
+	void SetForeground(bool set);
 }

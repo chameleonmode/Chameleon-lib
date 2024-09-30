@@ -1,7 +1,7 @@
 ﻿using chameleon.assets;
 
 using Chameleon.lib.Common.Enums;
-using Chameleon.lib.Common.Managers;
+using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Services;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Interfaces;

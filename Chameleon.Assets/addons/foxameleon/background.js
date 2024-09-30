@@ -38,7 +38,7 @@ async function setInjectionScript() {
   });
 }
 async function OnLoad() {
-    await updateSettings(BuildExtSettings);
+  await updateSettings(BuildExtSettings);
   setInjectionScript();
 
   // await browser.storage.sync.set(settings);
@@ -68,7 +68,6 @@ async function handleContextMenuClick(info, tab) {
 chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
 
 browser.storage.onChanged.addListener(async (changes, _) => {
-  await updateSettings();
   log.info("Settings updated");
 });
 

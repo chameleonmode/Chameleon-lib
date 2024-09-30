@@ -12,8 +12,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
-	public override SystemBrowserType BrowserType { get; set; } = SystemBrowserType.Firefox;
-
 	private async Task CreateChameleonFirefoxCopy()
 	{
 		if (IOtil.IsNeedUpdate(Options.ExePath, Consts.Browser.LocalFirefoxExePath)) {
@@ -69,7 +67,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	private async Task<Dictionary<string, object>> InitializePrefsJs()
 	{
 		var prefs = new Dictionary<string, object>() {
-			["privacy.trackingprotection.enabled"] = Options.Emulation.DissableHyperlinkAuditing
+			["privacy.trackingprotection.enabled"] = true
 		};
 		foreach (var pref in SysBrowserInfoUtil.FirefoxUserPrefs) {
 			if (SysBrowserInfoUtil.FirefoxDepricatedPrefs.Any(pref.Key.Contains))

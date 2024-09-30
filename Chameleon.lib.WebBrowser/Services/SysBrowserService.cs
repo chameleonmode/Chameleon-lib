@@ -1,7 +1,8 @@
 ﻿using System.Collections.Concurrent;
+
 using Chameleon.lib.Common;
 using Chameleon.lib.Common.Enums;
-using Chameleon.lib.Common.Managers;
+using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.WebBrowser.Interfaces;
@@ -54,7 +55,9 @@ public class SysBrowserService
 				_ = await browser.LoadedTCS.Task;
 
 				if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle == obj) {
-					//EventAggregator.Pub<ForegroundUserSystemBrowserEvent>(browser.GetArgs);
+					browser.SetForeground(true);
+				} else if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle != obj) {
+					browser.SetForeground(false);
 				}
 			}
 		}
@@ -74,7 +77,6 @@ public class SysBrowserService
 					SpoofWebGLFingerprint = true,
 					SpoofGeoLocation = true,
 					AutoTimezone = true,
-					DissableHyperlinkAuditing = true,
 				};
 				var urls = IoC.GetValue<string[]>("DefaultHomePageSettings") ?? ["duckduckgo.com"];
 				var starturl = urls[new Random().Next(urls.Length)];
@@ -90,6 +92,7 @@ public class SysBrowserService
 
 				if (await browser.LoadedTCS.Task) {
 					//var args = browser.GetArgs;
+					browser.SetForeground(true);
 					//EventAggregator.Pub<ForegroundUserSystemBrowserEvent>(args);
 					//EventAggregator.Pub<OpenedUserSystemBrowserEvent>(args);
 				}
@@ -104,7 +107,7 @@ public class SysBrowserService
 				await Task.Delay(250);
 				_ = Open(options);
 			} else {
-				browser.MakeForeground();
+				browser.SetForeground(true);
 			}
 		}
 

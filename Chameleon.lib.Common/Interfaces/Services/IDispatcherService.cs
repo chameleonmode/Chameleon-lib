@@ -1,7 +1,7 @@
 ﻿using Chameleon.lib.Common.Interfaces.Systemics;
 
 namespace Chameleon.lib.Common.Interfaces.Services;
-public interface IDispatcherService : ISingletonDependency {
+public interface IDispatchService : ISingletonDependency {
 	void InvokeOnUiThread(Action callback);
 	T? InvokeOnUiThread<T>(Func<T?> action);
 	Task InvokeOnUiThreadAsync(Action action, Action<bool>? handler = null, Action? @finally = null);

@@ -1419,7 +1419,7 @@ user_pref("widget.non-native-theme.enabled", true) // [DEFAULT: true]
 
 	public static async Task AddAutoloadTemporaryAddonFF(string directory)
 	{
-		var browserExtensionsFolderPath = Path.Combine(Consts.Addons.DefaultExtensionsFolderPath, "firefox").Replace("\\", "\\\\");
+		var browserExtensionsFolderPath = Path.Combine(Consts.Addons.DefaultExtensionsFolderPath_FF).Replace("\\", "\\\\");
 		var debug = Debugger.IsAttached ? "true" : "false";
 
 		var userChrome =

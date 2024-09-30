@@ -57,7 +57,6 @@ public class IOCTest {
 			SpoofWebGLFingerprint = true,
 			SpoofGeoLocation = true,
 			AutoTimezone = true,
-			DissableHyperlinkAuditing = true,
 		}, nameof(EmulationOptions));
 		var emulations = IoC.GetValue<EmulationOptions>(nameof(EmulationOptions));
 		Assert.NotNull(emulations);

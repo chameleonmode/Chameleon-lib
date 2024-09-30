@@ -6,8 +6,7 @@ import { createTimezoneContextMenus, handleTimezoneMenuClick } from "./modules/t
 import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
 
 async function OnLoad() {
-  settings = BuildExtSettings;
-  await chrome.storage.sync.set(settings);
+  await updateSettings(BuildExtSettings);
     
   setLogLevel(settings.debug);
   createWebRTCContextMenus();
@@ -48,7 +47,6 @@ async function handleContextMenuClick(info, tab) {
 chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
 
 chrome.storage.onChanged.addListener(async (changes, _) => {
-  await updateSettings();
   handleWebRTCSettings();
   log.info("Settings updated");
 });

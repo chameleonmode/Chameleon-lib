@@ -9,7 +9,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Chrome, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettings() }));
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Chrome, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
 		Assert.NotNull(bi);
 	}
 
@@ -19,7 +19,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Brave, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettings() }));
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Brave, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
 		Assert.NotNull(bi);
 	}
 
@@ -34,7 +34,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 				Common.Enums.SystemBrowserType.Firefox,
 				new Common.Models.UserProfileModel() {
 					Id = 111,
-					Proxy = new Common.Models.ProxySettings() {
+					Proxy = new Common.Models.ProxySettingsModel() {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",

@@ -1,8 +1,9 @@
 ﻿
 using Chameleon.lib.Common.Interfaces.Services;
+using Chameleon.lib.Common.ServiceManagers;
 
 namespace Chameleon.lib.Common.Services;
-public class DispatcherService : IDispatcherService {
+public class DispatchService : IDispatchService {
 	public void InvokeOnUiThread(Action callback)
 	{
 		var syncContext = SynchronizationContext.Current;

@@ -12,9 +12,9 @@ public class UserProfileModel {
 		}
 	}
 
-	private ProxySettings _proxy = new();
-	public ProxySettings Proxy {
+	private ProxySettingsModel _proxy = new();
+	public ProxySettingsModel Proxy {
 		get => _proxy;
-		set => _proxy = value ?? new ProxySettings();
+		set => _proxy = value ?? new ProxySettingsModel();
 	}
 }

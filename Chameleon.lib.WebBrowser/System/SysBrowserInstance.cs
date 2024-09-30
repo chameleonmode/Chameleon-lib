@@ -7,12 +7,12 @@ using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.Common;
 using Chameleon.lib.ThirdParty.GeoIp;
-using Chameleon.lib.Common.Managers;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.WebBrowser.Models;
 using Newtonsoft.Json.Linq;
 using Chameleon.lib.WebBrowser.Util;
 using System;
+using Chameleon.lib.Common.ServiceManagers;
 
 namespace Chameleon.lib.WebBrowser.System;
 public abstract class SysBrowserInstance
@@ -23,7 +23,6 @@ public abstract class SysBrowserInstance
 
 	public readonly IExtensionLoaderService? _extensionLoaderService = IoC.GetService<IExtensionLoaderService>();
 
-	public abstract SystemBrowserType BrowserType { get; set; }
 	public required SysBrowserLaunchOptions Options { get; init; }
 
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
@@ -128,6 +127,7 @@ public abstract class SysBrowserInstance
 		List<string> args =
 		[
 			"--disable-session-crashed-bubble",
+			"--disable-hyperlink-auditing",
 			"--hide-crash-restore-bubble",
 			"--restore-last-session",
 			"--profile-directory=Default",
@@ -147,11 +147,6 @@ public abstract class SysBrowserInstance
 			args.Add("--no-proxy-server");
 		}
 
-		if (Options.Emulation.DissableHyperlinkAuditing) {
-			// not disable tracking totally, but disable for hyperlink
-			args.Add("--disable-hyperlink-auditing");
-		}
-
 		args.Add($"--user-data-dir=\"{Options.SysBrowserProfileCachePath}\"");
 
 		List<string> exts = [];
@@ -165,8 +160,8 @@ public abstract class SysBrowserInstance
 		//		exts.Add(dir.Value.AddonDir);
 		//}
 
-		if (Directory.Exists(Consts.Addons.DefaultExtensionsFolderPath))
-			exts.AddRange(Directory.GetDirectories(Consts.Addons.DefaultExtensionsFolderPath));
+		if (Directory.Exists(Options.SysBrowseUserExtDir))
+			exts.AddRange(Directory.GetDirectories(Options.SysBrowseUserExtDir));
 
 		if (exts.Count > 0)
 			args.Add($"--load-extension=\"{exts.ToCommaSeparatedString()}\"");
@@ -176,31 +171,34 @@ public abstract class SysBrowserInstance
 		return string.Join(" ", args);
 	}
 
-	public void MakeForeground()
+	public void SetForeground(bool set)
 	{
-		if (Brocess != null) {
+		if (set && Brocess != null) {
 			if (!OperatingSystem.IsMacOS()) {
 				if (Handle == IntPtr.Zero)
 					return;
 #pragma warning disable CA1416 // Validate platform compatibility
 				if (U32.IsWindow(Handle)) {
 					if (U32til.BringWindowToForeground(Handle)) {
-						OnBecameForeground?.Invoke(this, Options);
+						OnBecameForeground?.Invoke(set, Options);
 					}
 #pragma warning restore CA1416 // Validate platform compatibility
 				}
 			} else {
 				if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
 					Brocess.Refresh();
-					OnBecameForeground?.Invoke(this, Options);
+					OnBecameForeground?.Invoke(set, Options);
 				}
 			}
+		}
+		else {
+			OnBecameForeground?.Invoke(set, Options);
 		}
 	}
 
 	protected async Task StartProcess()
 	{
-			Brocess = ProUtil.Createa(BrowserType == SystemBrowserType.Firefox ? Consts.Browser.LocalFirefoxExePath : Options.ExePath, GetCommandLineArguments());
+			Brocess = ProUtil.Createa(Options.BrowserType == SystemBrowserType.Firefox ? Consts.Browser.LocalFirefoxExePath : Options.ExePath, GetCommandLineArguments());
 			_ = Brocess.Start();
 
 			if (OperatingSystem.IsMacOS()) {
@@ -221,7 +219,7 @@ public abstract class SysBrowserInstance
 #pragma warning disable CA1416 // Validate platform compatibility
 				await Task.Delay(1800);
 
-				if (BrowserType != SystemBrowserType.Firefox) {
+				if (Options.BrowserType != SystemBrowserType.Firefox) {
 					string? windowHandle = null;
 					while (IsRunning) {
 						windowHandle = await GetWebSocketDebuggerUrlAsync();

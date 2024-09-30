@@ -27,7 +27,6 @@ public class WebBroswserTestsBase {
 				.Build(), Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
 		}, (services) => {
 			_ = services
-			//app.Playwright
 			.AddSingleton<IExtensionLoaderService, ExtensionLoaderService>()
 			.AddSingleton<ISysBrowserService, SysBrowserService>();
 		});
