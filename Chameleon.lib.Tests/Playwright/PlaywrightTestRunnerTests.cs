@@ -82,15 +82,17 @@ public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 			runner.TestErrorReceived += (sender, error) => Debug.WriteLine($"Test error: {error}");
 			var data = new
 			{
-				url = "https://sites.google.com/",
-				email = "testjosh11011900@gmail.com",
-				password = "testjosh11011900@123",
-				textContent = "Anti-detect browser is capable of creating and running multiple digital identities that are not recognized by social platforms. This requires a lot of custom developer work, so such tools are generally not available for free. They are created to fight against tracking and analytics so that you can carry out your activities in private. In other words, an anti-fingerprint browser enhances privacy, keeps your data and web activities anonymous, and helps your web crawling tools avoid being blocked",
-				textSearch = "What is anti detect browser",
-				location = "washington",
-				publishTitle = "antidetectbrowsersexplanied5",
-				gsiteTitle = "GsiteTitle",
-				postTitle = "PostTitle",
+			urlGsite = "https://sites.google.com/",
+			email = "testjosh11011900@gmail.com",
+			password = "testjosh11011900@1234",
+			textContent = "Anti-detect browser is capable of creating and running digital multiple identities that are not recognized by social platforms. This requires a lot of custom developer work, so such tools are generally not available for free. They are created to fight against tracking and analytics so that you can carry out your activities in private. In other words, running digital an anti-fingerprint browser enhances privacy, keeps your data and web activities anonymous, and helps your web crawling tools avoid being blocked",
+			textSearch = "What is anti detect browser",
+			location = "washington",
+				publishTitle = "anti Detect Browser",
+			gsiteTitle = "GsiteTitle",
+			link = "www.google.com",
+			textWithLink = "running digital multiple",
+				postTitle = "Gsite",
 			};
 			await RunTestsInParallelAsync(new List<(string testName, int port, object testData)>() { new("gsites", Port, data) });
 			//DisposeBrowser();

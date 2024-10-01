@@ -8,7 +8,7 @@ namespace Chameleon.lib.Playwright.Scripts;
 public class KeepGmailAlive : IBundledCSScript {
 	public string Title => "Keep Gmail Alive";
 	public string Description => "Reads a random email in Gmail.";
-	public IList<string> Parameters => [];
+	public IDictionary<string,string> Parameters => new Dictionary<string,string>();
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
 	{
 		ArgumentNullException.ThrowIfNull(args, nameof(args));

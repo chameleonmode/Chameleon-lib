@@ -10,7 +10,12 @@ namespace Chameleon.lib.Playwright.Scripts;
 public class GoogleCTRClickThrough : IBundledCSScript {
 	public string Title => "Google Click Through Rate";
 	public string Description => "Clicks through Google search results to a target URL";
-	public IList<string> Parameters => ["keyword", "targetUrl", "pagescount", "timeout"];
+	public IDictionary<string, string> Parameters => new Dictionary<string, string>() {
+		{ "keyword", "Keyword" },
+		{ "targetUrl", "Target Url" },
+		{ "pagescount" , "Max Pages To Search On" },
+		{ "timeout" , "Default Timeout" },
+	};
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
 	{
 		ArgumentNullException.ThrowIfNull(args, nameof(args));

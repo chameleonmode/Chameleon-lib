@@ -3,6 +3,7 @@
 namespace Chameleon.lib.Common.Constants;
 public static class Consts {
 	public const string AppName = "Chameleon";
+	public const string AppSettingsFileName = "appsettings.json";
 
 	public static string AppTempDir {
 		get {

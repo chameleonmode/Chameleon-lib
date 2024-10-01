@@ -15,7 +15,18 @@ public class GsiteJsScript : IBundledJSScript {
 	public string Title => "Google Site Creator";
 	public string Description => "Chreate a google site";
 	public string Name => "gsites";
-	public IList<string> Parameters { get; } = ["url", "email", "password", "textContent", "textSearch", "location", "postTitle", "publishTitle", "gsiteTitle"];
+	public IDictionary<string, string> Parameters { get; } = new Dictionary<string, string>() {
+		{ "gsiteTitle" , "Google Site Title" },
+		{ "publishTitle" , "Publish Title" },
+		{ "postTitle" , "Post Title" },
+		{ "textContent" , "Post Content" },
+		{ "link", "HyperLink Link" },
+		{ "textWithLink", "HyperLink Text" },
+		{ "textSearch" , "Youtube KW Search" },
+		{ "location" , "Post Location Pin" },
+		{ "email" , "Email" },
+		{ "password" , "Password" },
+	};
 
 	public async Task Run(int port, IDictionary<string, string>? args = null)
 	{
@@ -23,7 +34,7 @@ public class GsiteJsScript : IBundledJSScript {
 
 		var data = new
 		{
-			url = args["url"],
+			url = "https://sites.google.com/new",
 			email = args["email"],
 			password = args["password"],
 			textContent = args["textContent"],

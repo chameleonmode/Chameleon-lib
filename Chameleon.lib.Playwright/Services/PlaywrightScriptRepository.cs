@@ -38,7 +38,11 @@ public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
 					 Title = s.Value.Title,
 					 Description = s.Value.Description,
 					 Parameters = s.Value.Parameters
-							.Select(p => new PlaywrightDescriptionParam { Key = p, Value = IoC.GetValue<string>($"{s.Value.Title} {p}") ?? string.Empty })
+							.Select(p => new PlaywrightDescriptionParam {
+								DisplayName = p.Value,
+								Key = p.Key, 
+								Value = IoC.GetValue<string>($"{s.Value.Title} {p.Key}") ?? string.Empty 
+							})
 							.ToList()
 				 };
 				 var options = createOptions(s.Value);

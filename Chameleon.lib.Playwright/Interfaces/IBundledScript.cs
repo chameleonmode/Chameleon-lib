@@ -1,14 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Interfaces;
 public interface IBundledScript {
 	string Title { get; }
 	string Description { get; }
-	IList<string> Parameters { get; }
+	IDictionary<string, string> Parameters { get; }
 }
 
 public interface IBundledCSScript : IBundledScript {

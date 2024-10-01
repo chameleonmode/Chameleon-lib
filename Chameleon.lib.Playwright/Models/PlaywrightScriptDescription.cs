@@ -6,5 +6,5 @@ public class PlaywrightScriptDescription {
 	public string? Title { get; set; }
 	public string? Description { get; set; }
 	public string? FilePath { get; set; }
-	public IList<PlaywrightDescriptionParam> Parameters { get; set; } = [];
+	public List<PlaywrightDescriptionParam> Parameters { get; set; } = [];
 }

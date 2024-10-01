@@ -14,7 +14,11 @@ public class URLsexplorer : IBundledCSScript {
 
 	public string Title => "URLs Explorer";
 	public string Description => "Opens a list of URLs in the browser.";
-	public IList<string> Parameters => ["urls", "timeout"];
+
+	public IDictionary<string, string> Parameters => new Dictionary<string, string>() {
+		{ "urls", "Urls" },
+		{ "timeout" , "Default Timeout" },
+	};
 
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
 	{

@@ -109,7 +109,7 @@ public class SysBrowserService
 					SpoofGeoLocation = true,
 					AutoTimezone = true,
 				};
-				var urls = IoC.GetValue<string[]>("DefaultHomePageSettings") ?? ["duckduckgo.com"];
+				var urls = IoC.GetJsonValue<string[]>("DefaultHomePageSettings") ?? ["duckduckgo.com"];
 				var starturl = urls[new Random().Next(urls.Length)];
 				starturl = starturl.Contains(Consts.Http.UrlSchemeEnd) ?
 				starturl : $"{Consts.Http.HttpsScheme}{starturl}";
