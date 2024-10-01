@@ -96,7 +96,7 @@ public class SysBrowserService
 			_ = await TaskUtil.AwaitFor(() => !IsBusy, 18, 256);
 			_ = Interlocked.Increment(ref _isBusy);
 			try {
-				var emulations = IoC.GetValue<EmulationOptions>(nameof(EmulationOptions)) ?? new EmulationOptions {
+				var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new EmulationOptions {
 					DisableWebRTC = true,
 					SpoofClientRects = true,
 					SpoofFontFingerprint = true,

@@ -1,4 +1,5 @@
-﻿using Chameleon.lib.WebBrowser.Models;
+﻿using Chameleon.lib.Common;
+using Chameleon.lib.WebBrowser.Models;
 
 using static Chameleon.lib.Common.Constants.Enums;
 
@@ -11,6 +12,15 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
+		IoC.SetJsonValue(new EmulationOptions {
+			DisableWebRTC = true,
+			SpoofClientRects = false,
+			SpoofFontFingerprint = true,
+			SpoofCanvasFingerprint = true,
+			SpoofWebGLFingerprint = false,
+			SpoofGeoLocation = true,
+			AutoTimezone = true,
+		}, nameof(EmulationOptions));
 		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(SystemBrowserType.Chrome, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
 		Assert.NotNull(bi);
 	}
@@ -30,6 +40,16 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 	{
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
+
+		IoC.SetJsonValue(new EmulationOptions {
+			DisableWebRTC = true,
+			SpoofClientRects = false,
+			SpoofFontFingerprint = true,
+			SpoofCanvasFingerprint = true,
+			SpoofWebGLFingerprint = true,
+			SpoofGeoLocation = true,
+			AutoTimezone = true,
+		}, nameof(EmulationOptions));
 
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(

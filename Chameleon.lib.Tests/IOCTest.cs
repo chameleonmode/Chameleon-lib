@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Threading.Tasks;
 using Chameleon.lib.WebBrowser.Models;
+using System.Text.Json;
 
 namespace Chameleon.lib.Tests;
 
@@ -49,7 +50,7 @@ public class IOCTest {
 		Assert.True(customSetting == "NewValue");
 
 		// Set a new Type value
-		IoC.SetValue(new EmulationOptions {
+		IoC.SetJsonValue(new EmulationOptions {
 			DisableWebRTC = true,
 			SpoofClientRects = true,
 			SpoofFontFingerprint = true,
@@ -58,7 +59,7 @@ public class IOCTest {
 			SpoofGeoLocation = true,
 			AutoTimezone = true,
 		}, nameof(EmulationOptions));
-		var emulations = IoC.GetValue<EmulationOptions>(nameof(EmulationOptions));
+		var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions));
 		Assert.NotNull(emulations);
 
 		// Set a new arrat Type value

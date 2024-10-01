@@ -68,13 +68,9 @@ export const promptDictionary = {
 };
 
 export async function updateSettings(built) {
-    if (settings === undefined) {
-        if (built) {
-            settings = built;
-        } else {
-            settings = await browser.storage.sync.get(SETTINGS_ARRAY);
-        }
-  }
-  await browser.storage.sync.set(settings);
+  if (built) {
+      settings = built;
+      await browser.storage.sync.set(settings);
+  } 
   settings = await browser.storage.sync.get(SETTINGS_ARRAY);
 }

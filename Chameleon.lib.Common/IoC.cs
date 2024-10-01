@@ -18,6 +18,7 @@ global using Chameleon.lib.Common.Interfaces;
 using Microsoft.Extensions.Logging.Console;
 using System.Reflection;
 using Chameleon.lib.Common.ServiceManagers;
+using System.Text.Json;
 
 namespace Chameleon.lib.Common;
 public class IoC {
@@ -91,6 +92,12 @@ public class IoC {
 		Instance.Config?.SetValue(string.Join('_', keys), value);
 		Toaster.ShowSuccess("Settings saved");
 	}
+	public static void SetJsonValue<T>(T value, params string[] keys)
+	{
+		Instance.Config?.SetValue(string.Join('_', keys), JsonSerializer.Serialize(value));
+		Toaster.ShowSuccess("Settings saved");
+	}
+	public static T? GetJsonValue<T>(params string[] keys) => GetValue<string>(string.Join('_', keys)) is string val ? JsonSerializer.Deserialize<T>(val) : default;
 	public static Task SetValueAsync<T>(T value, params string[] keys) => Task.Run(() => SetValue(value, keys));
 	//Singleton pattern
 	public static IoC Instance { get; } = new IoC();

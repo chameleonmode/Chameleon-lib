@@ -6,7 +6,7 @@ import { createTimezoneContextMenus, handleTimezoneMenuClick, getRandomTimezone,
 var injectionScript;
 async function setInjectionScript() {
   if(injectionScript) {
-    await this.injectionScript.unregister();
+    await injectionScript.unregister();
   }
 
   if (settings.myIP) {
@@ -68,6 +68,13 @@ async function handleContextMenuClick(info, tab) {
 chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
 
 browser.storage.onChanged.addListener(async (changes, _) => {
+    // Apply changes to settings
+    for (let key in changes) {
+        if (changes.hasOwnProperty(key)) {
+            settings[key] = changes[key].newValue;
+        }
+    }
+  setInjectionScript();
   log.info("Settings updated");
 });
 

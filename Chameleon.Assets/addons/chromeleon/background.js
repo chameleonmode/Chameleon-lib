@@ -47,6 +47,12 @@ async function handleContextMenuClick(info, tab) {
 chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
 
 chrome.storage.onChanged.addListener(async (changes, _) => {
+    // Apply changes to settings
+    for (let key in changes) {
+        if (changes.hasOwnProperty(key)) {
+            settings[key] = changes[key].newValue;
+        }
+    }
   handleWebRTCSettings();
   log.info("Settings updated");
 });
