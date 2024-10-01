@@ -32,6 +32,9 @@ public class SysBrowserService
 	private long _isBusy;
 	public bool IsBusy => Interlocked.Read(ref _isBusy) > 0;
 
+	private TaskCompletionSource<ISysBrowserInstance?>? otc;
+	public TaskCompletionSource<ISysBrowserInstance?>? OpenTaskCompletionSource => otc;
+
 	public SysBrowserService()
 	{
 		if (OperatingSystem.IsWindows()) {
@@ -93,6 +96,7 @@ public class SysBrowserService
 	public async Task<ISysBrowserInstance?> Open(SysBrowserOpenOptions options)
 	{
 		if (!Instances.TryGetValue(options, out var browser)) {
+			otc = new TaskCompletionSource<ISysBrowserInstance?>();
 			_ = await TaskUtil.AwaitFor(() => !IsBusy, 18, 256);
 			_ = Interlocked.Increment(ref _isBusy);
 			try {
@@ -128,6 +132,7 @@ public class SysBrowserService
 				Toaster.ShowErr(e.Message);
 				if(e is InvalidDataException) {
 					_ = Instances.TryRemove(options, out _);
+					_ = (OpenTaskCompletionSource?.TrySetResult(null));
 					return null;
 				}
 			} finally {
@@ -143,6 +148,7 @@ public class SysBrowserService
 			}
 		}
 
+		_ = (OpenTaskCompletionSource?.TrySetResult(browser));
 		return browser;
 	}
 
