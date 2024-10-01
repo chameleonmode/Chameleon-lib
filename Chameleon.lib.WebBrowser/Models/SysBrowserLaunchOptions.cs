@@ -1,30 +1,18 @@
-﻿using Chameleon.lib.Common.Enums;
+﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Util;
 
-namespace Chameleon.lib.WebBrowser.Models;
-public record SysBrowserOpenOptions(SystemBrowserType BrowserType, UserProfileModel Profile);
-public record SysBrowserLaunchOptions(SysBrowserOpenOptions OpenOptions, EmulationOptions Emulation, string StartUrl, int Port) {
-	public SystemBrowserType BrowserType => OpenOptions.BrowserType;
-	public UserProfileModel Profile => OpenOptions.Profile;
+using static Chameleon.lib.Common.Constants.Enums;
 
-	public string SysBrowserProfileCachePath {
-		get {
-			return IOtil.EnsureDirectoryExists(
-				Path.Combine(Consts.AppDataDir, BrowserType.ToString(), Profile.Id.ToString()));
-		}
-	}
-	public string SysBrowseUserExtDir {
-		get {
-			return BrowserType switch { 
-				SystemBrowserType.Chrome => Consts.Addons.DefaultExtensionsFolderPath_Chrome,
-				SystemBrowserType.Brave => Consts.Addons.DefaultExtensionsFolderPath_Brave, 
-				SystemBrowserType.Firefox => Consts.Addons.DefaultExtensionsFolderPath_FF,
-				_ => throw new IndexOutOfRangeException(nameof(BrowserType))
-			};
-		}
-	}
+namespace Chameleon.lib.WebBrowser.Models;
+public record SysBrowserOpenOptions(Enums.SystemBrowserType BrowserType, UserProfileModel Profile);
+public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOptions Emulation, string StartUrl, int Port) {
+	public Enums.SystemBrowserType BrowserType => OpenOptions.BrowserType;
+	public UserProfileModel Profile => OpenOptions.Profile;
+	public string SysBrowseUserExtDir => Path.Combine(Consts.Addons.DefaultExtensionsFolderPath, BrowserType.GetDescription());
+	public string ExePath => SysBrowserInfoUtil.FindByType(BrowserType).Path;
+	public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(Path.Combine(Consts.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()));
 
 	private string? _destextPath;
 	public string DestExtentionsDir {
@@ -38,5 +26,6 @@ public record SysBrowserLaunchOptions(SysBrowserOpenOptions OpenOptions, Emulati
 		}
 	}
 
-	public string ExePath => SysBrowserInfoUtil.FindByType(BrowserType).Path;
+
+	public SysBrowserEvent CreateEvent(Enums.SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
 }

@@ -1,4 +1,4 @@
-﻿using Chameleon.lib.Common.Enums;
+﻿using Chameleon.lib.Common.Constants;
 
 namespace Chameleon.lib.Common.Models;
 

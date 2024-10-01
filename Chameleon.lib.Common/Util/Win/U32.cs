@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-using Chameleon.lib.Common.Enums;
+using Chameleon.lib.Common.Constants;
 
 namespace Chameleon.lib.Common.Util.Win;
 /**
@@ -270,7 +270,7 @@ public static class U32til {
 }
 
 [SupportedOSPlatform("windows")]
-public class MWHandleTrackerUtility(Process aprocess, SystemBrowserType systemBrowserType, CancellationTokenSource cts) {
+public class MWHandleTrackerUtility(Process aprocess, Enums.SystemBrowserType systemBrowserType, CancellationTokenSource cts) {
 	private readonly List<int> _childProcessIds = [];
 
 	private IntPtr _mainWindowHandle = IntPtr.Zero;
@@ -292,11 +292,11 @@ public class MWHandleTrackerUtility(Process aprocess, SystemBrowserType systemBr
 					break;
 				}
 				if (_mainWindowHandle == IntPtr.Zero) {
-					if (systemBrowserType == SystemBrowserType.Firefox) {
+					if (systemBrowserType == Enums.SystemBrowserType.Firefox) {
 						Thread.Sleep(500);
 						var currentProcesses = Process.GetProcessesByName(
-								systemBrowserType == SystemBrowserType.Firefox ? "firefox"
-								: systemBrowserType == SystemBrowserType.Chrome ? "chrome"
+								systemBrowserType == Enums.SystemBrowserType.Firefox ? "firefox"
+								: systemBrowserType == Enums.SystemBrowserType.Chrome ? "chrome"
 								: "chrome").Where(p => p.Id != 0);
 						foreach (var p in currentProcesses) {
 							if (!_childProcessIds.Contains(p.Id) && p.ParentProcessId() == _process.Id) {

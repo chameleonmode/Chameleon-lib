@@ -2,18 +2,18 @@
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts;
 using Chameleon.lib.Common;
-using Chameleon.lib.Common.Enums;
+using Chameleon.lib.Common.Constants;
 
 namespace Chameleon.lib.Playwright.Services;
 public class PlaywriteService(ICompileScriptService compileScriptService)
 	: IPlaywriteService {
 
-	public static IPlaywrightBrowser Get(SystemBrowserType browserType) => browserType switch {
-		SystemBrowserType.Chrome or
-		SystemBrowserType.Chromium or
-		SystemBrowserType.Brave => IoC.GetService<IChromeiumPlaywrightBrowser>() as IPlaywrightBrowser ?? throw new ArgumentNullException(nameof(browserType)),
-		SystemBrowserType.Unknown => throw new NotImplementedException(),
-		SystemBrowserType.Firefox => throw new NotImplementedException(),
+	public static IPlaywrightBrowser Get(Enums.SystemBrowserType browserType) => browserType switch {
+		Enums.SystemBrowserType.Chrome or
+		Enums.SystemBrowserType.Chromium or
+		Enums.SystemBrowserType.Brave => IoC.GetService<IChromeiumPlaywrightBrowser>() as IPlaywrightBrowser ?? throw new ArgumentNullException(nameof(browserType)),
+		Enums.SystemBrowserType.Unknown => throw new NotImplementedException(),
+		Enums.SystemBrowserType.Firefox => throw new NotImplementedException(),
 		_ => throw new NotImplementedException(),
 	};
 
@@ -53,7 +53,7 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 
 	public void Dispose()
 	{
-		Get(SystemBrowserType.Chromium).Dispose();
+		Get(Enums.SystemBrowserType.Chromium).Dispose();
 	}
 }
 

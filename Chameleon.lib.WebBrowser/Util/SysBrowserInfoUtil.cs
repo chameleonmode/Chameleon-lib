@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Versioning;
 
-using Chameleon.lib.Common.Enums;
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.WebBrowser.Models;
 
@@ -105,10 +105,10 @@ public static class SysBrowserInfoUtil {
 				$"{char.ToUpper(browserName[0]) + browserName[1..]} browser is not installed.");
 	}
 
-	public static SysBrowserRecord FindByType(SystemBrowserType BrowserType) => BrowserType switch {
-		SystemBrowserType.Chrome => FindByName("chrome.exe"),
-		SystemBrowserType.Brave => FindByName("brave.exe"),
-		SystemBrowserType.Firefox => FindByName("firefox.exe"),
+	public static SysBrowserRecord FindByType(Enums.SystemBrowserType BrowserType) => BrowserType switch {
+		Enums.SystemBrowserType.Chrome => FindByName("chrome.exe"),
+		Enums.SystemBrowserType.Brave => FindByName("brave.exe"),
+		Enums.SystemBrowserType.Firefox => FindByName("firefox.exe"),
 		_ => throw new NotSupportedException("Browser type not found."),
 	};
 

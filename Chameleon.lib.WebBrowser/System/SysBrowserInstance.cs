@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Text;
-using Chameleon.lib.Common.Enums;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Common.Util;
@@ -10,25 +9,24 @@ using Chameleon.lib.ThirdParty.GeoIp;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.WebBrowser.Models;
 using Newtonsoft.Json.Linq;
-using Chameleon.lib.WebBrowser.Util;
-using System;
 using Chameleon.lib.Common.ServiceManagers;
+using Chameleon.lib.Common.Constants;
+using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser.System;
 public abstract class SysBrowserInstance
 		: ISysBrowserInstance {
-	public event EventHandler<SysBrowserLaunchOptions>? OnProcessClosed;
-	public event EventHandler<SysBrowserLaunchOptions>? OnProcessOpenError;
-	public event EventHandler<SysBrowserLaunchOptions>? OnBecameForeground;
+
+	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 
 	public readonly IExtensionLoaderService? _extensionLoaderService = IoC.GetService<IExtensionLoaderService>();
 
-	public required SysBrowserLaunchOptions Options { get; init; }
+	public required SysBrowserSettings Settings { get; init; }
 
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 
 	public Process? Brocess { get; set; }
-	public Dictionary<ExtensionType, string?> ExtentionsDirs { get; } = [];
+	public Dictionary<Enums.ExtensionType, string?> ExtentionsDirs { get; } = [];
 
 	public IntPtr Handle { get; private set; } = IntPtr.Zero;
 	public bool IsRunning => Brocess?.HasExited == false;
@@ -44,56 +42,111 @@ public abstract class SysBrowserInstance
 	}
 	protected virtual async Task InitializeExtensionPath()
 	{
-		ExtentionsDirs.Add(ExtensionType.chromeleon, await BuildExtSettings());
+		ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, await BuildExtSettings());
 
-		var enabled = Options.Profile.Proxy.CanUse ? "true" : "false";
-		ExtentionsDirs.Add(ExtensionType.chromeleon_auto_proxy, @$"
+		var enabled = Settings.Profile.Proxy.CanUse ? "true" : "false";
+		ExtentionsDirs.Add(Enums.ExtensionType.chromeleon_auto_proxy, @$"
                 let settings = {{
                     enabled: {enabled},
                     type: 'http',
-                    host: '{Options.Profile.Proxy.Host}',
-                    port: {Options.Profile.Proxy.Port},
-                    username: '{Options.Profile.Proxy.UserName}',
-                    password: '{Options.Profile.Proxy.Password}',
-                    url: '{Options.StartUrl}',
+                    host: '{Settings.Profile.Proxy.Host}',
+                    port: {Settings.Profile.Proxy.Port},
+                    username: '{Settings.Profile.Proxy.UserName}',
+                    password: '{Settings.Profile.Proxy.Password}',
+                    url: '{Settings.StartUrl}',
                     debug: false,
                 }};
             ");
 
 		foreach (var (ext, setting) in ExtentionsDirs) {
-			await _extensionLoaderService!.LoadExtension(ext, Options.DestExtentionsDir, setting);
+			await _extensionLoaderService!.LoadExtension(ext, Settings.DestExtentionsDir, setting);
 		}
+	}
+
+	protected virtual string GetCommandLineArguments()
+	{   // "--in-process-gpu","--disable-software-rasterizer",
+		List<string> args =
+		[
+			"--disable-session-crashed-bubble",
+			"--disable-hyperlink-auditing",
+			"--hide-crash-restore-bubble",
+			"--restore-last-session",
+			"--profile-directory=Default",
+			"--ash-no-nudges",
+			"--disable-domain-reliability",
+			"--no-default-browser-check",
+			"--no-first-run",
+			"--disable-field-trial-config",
+			"--silent-debugger-extension-api",
+			$"--remote-debugging-port={Settings.Port}",
+      //$"--window-name=\"{UserProfile.Title}\"",
+     ];
+
+		if (Settings.Profile.Proxy.CanUse) {
+			args.Add($"--proxy-server={Settings.Profile.Proxy.ServerForRequest}");
+		} else {
+			args.Add("--no-proxy-server");
+		}
+
+		args.Add($"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"");
+
+		List<string> exts = [];
+		if (Directory.Exists(Settings.DestExtentionsDir)) {
+			foreach (var item in Directory.GetDirectories(Settings.DestExtentionsDir)) {
+				exts.Add(item);
+			}
+		}
+		//foreach (var dir in ExtensionDirectories) {
+		//	if (Directory.Exists(dir.Value.AddonDir))
+		//		exts.Add(dir.Value.AddonDir);
+		//}
+
+		if (Directory.Exists(Settings.SysBrowseUserExtDir))
+			exts.AddRange(Directory.GetDirectories(Settings.SysBrowseUserExtDir));
+
+		if (exts.Count > 0)
+			args.Add($"--load-extension=\"{exts.ToCommaSeparatedString()}\"");
+
+		args.Add($"about:blank");
+
+		return string.Join(" ", args);
+	}
+
+	public void InvokeEvent(SysBrowserEventType eventType)
+	{
+		if (eventType == SysBrowserEventType.Foreground)
+			SetForeground();
+
+		OnEvent?.Invoke(this, Settings.CreateEvent(eventType));
 	}
 
 	public async Task<string?> BuildExtSettings()
 	{
 		var timezone = "America/Los_Angeles";
-		if (Options.Emulation.AutoTimezone && Options.Profile.Proxy.CanUse) {
+		if (Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse) {
 			try {
-				var ipapi = await GeoIpApi.GetIpapi(Options.Profile.Proxy.ServerForRequest, e => Toaster.ShowErr(e),
-						Options.Profile.Proxy.UserName, Options.Profile.Proxy.Password).ConfigureAwait(false);
+				var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.ServerForRequest, e => Toaster.ShowErr(e),
+						Settings.Profile.Proxy.UserName, Settings.Profile.Proxy.Password).ConfigureAwait(false);
 				if (ipapi != null) {
 					timezone = ipapi.timezone;
 				}
 			} catch (Exception ex) {
-				Toaster.ShowErr($"Request for timezone failed, {Options.Profile.Proxy.Server} - {ex.Message}");
-				OnProcessOpenError?.Invoke(this, Options);
-				Dispose();
-				throw;
+				_ = LoadedTCS.TrySetResult(false);
+				throw new InvalidDataException($"Request for timezone failed, {Settings.Profile.Proxy.Server} - {ex.Message}");
 			}
 		}
 
 		HashSet<KeyValuePair<string, string>> options =
 		[
-			new ("webglSpoofing", Options.Emulation.SpoofWebGLFingerprint.Tlwr()),
-			new ("canvasProtection", Options.Emulation.SpoofCanvasFingerprint.Tlwr()),
-			new ("clientRectsSpoofing",Options.Emulation.SpoofClientRects.Tlwr()),
-			new ("fontsSpoofing", Options.Emulation.SpoofFontFingerprint.Tlwr()),
-			new ("dAPI", Options.Emulation.DisableWebRTC.Tlwr()),
-			new ("webRtcEnabled", Options.Emulation.DisableWebRTC.Tlwr()),
-			new ("geoSpoofing", Options.Emulation.SpoofGeoLocation.Tlwr()),
-			new ("timezoneSpoofing", Options.Emulation.AutoTimezone.Tlwr()),
-			new ("myIP", (!Options.Emulation.AutoTimezone).Tlwr()),
+			new ("webglSpoofing", Settings.Emulation.SpoofWebGLFingerprint.Tlwr()),
+			new ("canvasProtection", Settings.Emulation.SpoofCanvasFingerprint.Tlwr()),
+			new ("clientRectsSpoofing",Settings.Emulation.SpoofClientRects.Tlwr()),
+			new ("fontsSpoofing", Settings.Emulation.SpoofFontFingerprint.Tlwr()),
+			new ("dAPI", Settings.Emulation.DisableWebRTC.Tlwr()),
+			new ("webRtcEnabled", Settings.Emulation.DisableWebRTC.Tlwr()),
+			new ("geoSpoofing", Settings.Emulation.SpoofGeoLocation.Tlwr()),
+			new ("timezoneSpoofing", Settings.Emulation.AutoTimezone.Tlwr()),
+			new ("myIP", (!Settings.Emulation.AutoTimezone).Tlwr()),
 		];
 		var settingsBuilder = new StringBuilder();
 		_ = settingsBuilder.AppendLine("let BuildExtSettings = {");
@@ -122,88 +175,39 @@ public abstract class SysBrowserInstance
 		return settingsBuilder.ToString();
 	}
 
-	protected virtual string GetCommandLineArguments()
-	{   // "--in-process-gpu","--disable-software-rasterizer",
-		List<string> args =
-		[
-			"--disable-session-crashed-bubble",
-			"--disable-hyperlink-auditing",
-			"--hide-crash-restore-bubble",
-			"--restore-last-session",
-			"--profile-directory=Default",
-			"--ash-no-nudges",
-			"--disable-domain-reliability",
-			"--no-default-browser-check",
-			"--no-first-run",
-			"--disable-field-trial-config",
-			"--silent-debugger-extension-api",
-			$"--remote-debugging-port={Options.Port}",
-      //$"--window-name=\"{UserProfile.Title}\"",
-     ];
-
-		if (Options.Profile.Proxy.CanUse) {
-			args.Add($"--proxy-server={Options.Profile.Proxy.ServerForRequest}");
-		} else {
-			args.Add("--no-proxy-server");
-		}
-
-		args.Add($"--user-data-dir=\"{Options.SysBrowserProfileCachePath}\"");
-
-		List<string> exts = [];
-		if (Directory.Exists(Options.DestExtentionsDir)) {
-			foreach (var item in Directory.GetDirectories(Options.DestExtentionsDir)) {
-				exts.Add(item);
-			}
-		}
-		//foreach (var dir in ExtensionDirectories) {
-		//	if (Directory.Exists(dir.Value.AddonDir))
-		//		exts.Add(dir.Value.AddonDir);
-		//}
-
-		if (Directory.Exists(Options.SysBrowseUserExtDir))
-			exts.AddRange(Directory.GetDirectories(Options.SysBrowseUserExtDir));
-
-		if (exts.Count > 0)
-			args.Add($"--load-extension=\"{exts.ToCommaSeparatedString()}\"");
-
-		args.Add($"about:blank");
-
-		return string.Join(" ", args);
-	}
-
-	public void SetForeground(bool set)
+	public bool SetForeground()
 	{
-		if (set && Brocess != null) {
+		if (Brocess != null) {
+#pragma warning disable CA1416 // Validate platform compatibility
 			if (!OperatingSystem.IsMacOS()) {
 				if (Handle == IntPtr.Zero)
-					return;
-#pragma warning disable CA1416 // Validate platform compatibility
+					return false;
 				if (U32.IsWindow(Handle)) {
 					if (U32til.BringWindowToForeground(Handle)) {
-						OnBecameForeground?.Invoke(set, Options);
+						return true;
 					}
-#pragma warning restore CA1416 // Validate platform compatibility
 				}
+#pragma warning restore CA1416 // Validate platform compatibility
 			} else {
 				if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
 					Brocess.Refresh();
-					OnBecameForeground?.Invoke(set, Options);
+				} else {
+					return true;
 				}
 			}
 		}
-		else {
-			OnBecameForeground?.Invoke(set, Options);
-		}
+
+		return false;
 	}
 
 	protected async Task StartProcess()
 	{
-			Brocess = ProUtil.Createa(Options.BrowserType == SystemBrowserType.Firefox ? Consts.Browser.LocalFirefoxExePath : Options.ExePath, GetCommandLineArguments());
+			Brocess = ProUtil.Createa(Settings.BrowserType == Enums.SystemBrowserType.Firefox ? Consts.Browser.LocalFirefoxExePath : Settings.ExePath, GetCommandLineArguments());
 			_ = Brocess.Start();
 
 			if (OperatingSystem.IsMacOS()) {
 				Handle = Brocess.Handle;
-				Brocess.Exited += (s, e) => { Dispose(); };
+				Brocess.Exited += (s, e) => { Close(); };
 				var tryCount = 0;
 				while (Brocess?.HasExited == false &&
 								MacOSUtil.FindWindowByPID(Brocess.Id) == null &&
@@ -214,12 +218,11 @@ public abstract class SysBrowserInstance
 				if (Brocess?.Id is int id)
 					MacOSWindowListener.Instance.AddPid(id);
 
-				MacOSWindowListener.Instance.WindowForegroundChanged += OnWindowForeground;
 			} else {
 #pragma warning disable CA1416 // Validate platform compatibility
 				await Task.Delay(1800);
 
-				if (Options.BrowserType != SystemBrowserType.Firefox) {
+				if (Settings.BrowserType != Enums.SystemBrowserType.Firefox) {
 					string? windowHandle = null;
 					while (IsRunning) {
 						windowHandle = await GetWebSocketDebuggerUrlAsync();
@@ -229,7 +232,7 @@ public abstract class SysBrowserInstance
 						await Task.Delay(250);
 					}
 					if (windowHandle?.Is() == false) {
-						Dispose();
+					Close();
 						return;
 					}
 
@@ -271,34 +274,26 @@ public abstract class SysBrowserInstance
 		if (Brocess?.HasExited == false)
 			_ = LoadedTCS.TrySetResult(true);
 		else
-			Dispose();
+			Close();
 	}
 
-	private void OnWindowForeground(int i)
-	{
-		if (i == Brocess?.Id)
-			OnBecameForeground?.Invoke(this, Options);
-	}
-
-	public void Dispose()
+	public void Close(bool raise = true)
 	{
 		if (OperatingSystem.IsMacOS()) {
-			MacOSWindowListener.Instance.WindowForegroundChanged -= OnWindowForeground;
 			if (Brocess?.Id is int id)
 				MacOSWindowListener.Instance.RemPid(id);
 		}
 
-		var r = LoadedTCS.TrySetResult(false);
+		_ = LoadedTCS.TrySetResult(false);
 		Brocess = null;
 		Handle = IntPtr.Zero;
-		OnProcessClosed?.Invoke(this, Options);
-
-		GC.SuppressFinalize(this);
+		if(raise)
+			InvokeEvent(Enums.SysBrowserEventType.Closed);
 	}
 
 	private async Task<string?> GetWebSocketDebuggerUrlAsync()
 	{
-		var url = $"http://localhost:{Options.Port}/json";
+		var url = $"http://localhost:{Settings.Port}/json";
 		using var client = new HttpClient {
 			Timeout = TimeSpan.FromSeconds(5) // Set a timeout of 5 seconds
 		};

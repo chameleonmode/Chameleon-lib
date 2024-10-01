@@ -1,25 +1,18 @@
-﻿using System.Diagnostics;
-using System.Linq;
-using System.Text;
-
-using Chameleon.lib.Common.Enums;
+﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.Util;
-
-using Newtonsoft.Json.Linq;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	private async Task CreateChameleonFirefoxCopy()
 	{
-		if (IOtil.IsNeedUpdate(Options.ExePath, Consts.Browser.LocalFirefoxExePath)) {
+		if (IOtil.IsNeedUpdate(Settings.ExePath, Consts.Browser.LocalFirefoxExePath)) {
 			await IOtil.DeleteDExistsAsync(Consts.Browser.LocalFirefoxDirPath);
 
 			await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS()
 				? "Applications/firefox.app"
-				: Path.GetDirectoryName(Options.ExePath)!, Consts.Browser.LocalFirefoxDirPath);
+				: Path.GetDirectoryName(Settings.ExePath)!, Consts.Browser.LocalFirefoxDirPath);
 
 			await Task.Delay(1000);
 		}
@@ -32,30 +25,30 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await CreateChameleonFirefoxCopy();
 		_ = await InitializePrefsJs();
 
-		var inDir = Path.Combine(Options.SysBrowserProfileCachePath, Consts.Browser.Foxameleon);
+		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Foxameleon);
 		await IOtil.DC(inDir);
 
-		ExtentionsDirs.Add(ExtensionType.foxameleon, await BuildExtSettings());
+		ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, await BuildExtSettings());
 
-		if (Options.Profile.Proxy.CanUse) {
-			ExtentionsDirs.Add(ExtensionType.foxameleon_proxy, @$"
+		if (Settings.Profile.Proxy.CanUse) {
+			ExtentionsDirs.Add(Enums.ExtensionType.foxameleon_proxy, @$"
                 let settings = {{
                     enabled: true,
                     type: 'http',
-                    host: '{Options.Profile.Proxy.Host}',
-                    port: {Options.Profile.Proxy.Port},
-										server: '{Options.Profile.Proxy.Server}',
-                    username: '{Options.Profile.Proxy.UserName}',
-                    password: '{Options.Profile.Proxy.Password}',
-                    url: '{Options.StartUrl}',
+                    host: '{Settings.Profile.Proxy.Host}',
+                    port: {Settings.Profile.Proxy.Port},
+										server: '{Settings.Profile.Proxy.Server}',
+                    username: '{Settings.Profile.Proxy.UserName}',
+                    password: '{Settings.Profile.Proxy.Password}',
+                    url: '{Settings.StartUrl}',
                     debug: false,
                 }};
             ");
 		}
 
 		foreach (var (ext, setting) in ExtentionsDirs) {
-			await _extensionLoaderService!.LoadExtension(ext, Options.DestExtentionsDir, setting).ConfigureAwait(true);
-			var extDir = Path.Combine(Options.DestExtentionsDir, ext.ToString());
+			await _extensionLoaderService!.LoadExtension(ext, Settings.DestExtentionsDir, setting).ConfigureAwait(true);
+			var extDir = Path.Combine(Settings.DestExtentionsDir, ext.ToString());
 			if (Directory.Exists(extDir)) {
 				await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid().ToString() + ".zip"), extDir);
 			}
@@ -76,9 +69,9 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		}
 
 		// Define a regular expression pattern to extract key-value pairs
-		var regex = Consts.Regexers.UserPrefRegex();
+		var regex = Regexers.UserPrefRegex();
 
-		var prefsFilePath = Path.Combine(Options.SysBrowserProfileCachePath, "prefs.js");
+		var prefsFilePath = Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
 		if (File.Exists(prefsFilePath)) {
 			foreach (var userPref in await File.ReadAllLinesAsync(prefsFilePath)) {
 				if (!userPref.Is()) continue;
@@ -117,7 +110,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			"-no-remote",
 			"-wait-for-browser",
 			$"-url about:newtab",
-			$"-profile \"{Options.SysBrowserProfileCachePath}\""
+			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
 		});
 	}
 }

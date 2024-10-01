@@ -1,6 +1,6 @@
 ﻿using chameleon.assets;
 
-using Chameleon.lib.Common.Enums;
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Services;
 using Chameleon.lib.Common.Util;
@@ -11,7 +11,7 @@ public class ExtensionLoaderService : IExtensionLoaderService {
 	private readonly EmbeddedResourceAssetLoader _assetLoader = new(typeof(Constas).Assembly);
 	private const string AddonsBasePath = Constas.AddonsDir;
 
-	public async Task LoadExtension(ExtensionType extensionType, string destinationPath, string? settings = null)
+	public async Task LoadExtension(Enums.ExtensionType extensionType, string destinationPath, string? settings = null)
 	{
 		try {
 			var extensionName = extensionType.ToString();

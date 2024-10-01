@@ -1,6 +1,5 @@
 ﻿namespace Chameleon.lib.Common.Extensions;
-    public static class ObjExts
-    {
+public static class ObjExts {
 	public static object ParseValue(this object value)
 	{
 		// Try parsing value as int

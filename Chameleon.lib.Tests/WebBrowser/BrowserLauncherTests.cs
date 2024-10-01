@@ -1,5 +1,7 @@
 ﻿using Chameleon.lib.WebBrowser.Models;
 
+using static Chameleon.lib.Common.Constants.Enums;
+
 namespace Chameleon.lib.Tests.WebBrowser;
 public class BrowserLauncherTests : WebBroswserTestsBase {
 
@@ -9,7 +11,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Chrome, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(SystemBrowserType.Chrome, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
 		Assert.NotNull(bi);
 	}
 
@@ -19,7 +21,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(Common.Enums.SystemBrowserType.Brave, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
+		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(SystemBrowserType.Brave, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
 		Assert.NotNull(bi);
 	}
 
@@ -31,7 +33,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
-				Common.Enums.SystemBrowserType.Firefox,
+				SystemBrowserType.Firefox,
 				new Common.Models.UserProfileModel() {
 					Id = 111,
 					Proxy = new Common.Models.ProxySettingsModel() {

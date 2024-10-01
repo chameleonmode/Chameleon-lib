@@ -1,6 +1,6 @@
-﻿using Chameleon.lib.Common.Enums;
+﻿using Chameleon.lib.Common.Constants;
 
 namespace Chameleon.lib.WebBrowser.Interfaces;
 public interface IExtensionLoaderService {
-	Task LoadExtension(ExtensionType extensionType, string destinationPath, string? settings = null);
+	Task LoadExtension(Enums.ExtensionType extensionType, string destinationPath, string? settings = null);
 }

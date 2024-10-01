@@ -1,10 +1,7 @@
-﻿using System.Security.Cryptography;
-using System.Text.RegularExpressions;
+﻿using Chameleon.lib.Common.Util;
 
-using Chameleon.lib.Common.Util;
-
-namespace Chameleon.lib.Common.Enums;
-public static partial class Consts {
+namespace Chameleon.lib.Common.Constants;
+public static class Consts {
 	public const string AppName = "Chameleon";
 
 	public static string AppTempDir {
@@ -13,13 +10,13 @@ public static partial class Consts {
 				Path.Combine(Path.GetTempPath(), AppName));
 		}
 	}
-	public static string AppDataRoamingDir {
+	public static string AppDataDir {
 		get {
 			return IOtil.EnsureDirectoryExists(
 				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName));
 		}
 	}
-	public static string AppDataDir {
+	public static string AppDataLocalDir {
 		get {
 			return IOtil.EnsureDirectoryExists(
 				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName));
@@ -33,11 +30,6 @@ public static partial class Consts {
 		public const string HttpsScheme = "https://";
 		public const string UrlSchemeEnd = "://";
 		public const string DomainLevelDelimiter = ".";
-	}
-
-	public static partial class Regexers {
-		[GeneratedRegex(@"user_pref\(""(.*?)"", (\""(.*?)\""|.*?)\);")]
-		public static partial Regex UserPrefRegex();
 	}
 
 	public static class Addons {
@@ -55,8 +47,8 @@ public static partial class Consts {
 		public const string Foxameleon = "Foxameleon";
 
 		public static string LocalFirefoxDirPath => OperatingSystem.IsMacOS()
-			? Path.Combine(AppDataDir, Foxameleon, "firefox.app")
-			: Path.Combine(AppDataDir, Foxameleon);
+			? Path.Combine(AppDataLocalDir, Foxameleon, "firefox.app")
+			: Path.Combine(AppDataLocalDir, Foxameleon);
 		public static string LocalFirefoxExePath => OperatingSystem.IsMacOS()
 			? Path.Combine(LocalFirefoxDirPath, "Contents", "MacOS", "firefox")
 			: Path.Combine(LocalFirefoxDirPath, "firefox.exe");

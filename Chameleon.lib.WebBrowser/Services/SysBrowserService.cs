@@ -1,9 +1,11 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 
 using Chameleon.lib.Common;
-using Chameleon.lib.Common.Enums;
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Models;
@@ -11,19 +13,21 @@ using Chameleon.lib.WebBrowser.System.Brave;
 using Chameleon.lib.WebBrowser.System.Chrome;
 using Chameleon.lib.WebBrowser.System.Firefox;
 
+using static Chameleon.lib.Common.Constants.Consts;
+
 namespace Chameleon.lib.WebBrowser.Services;
 public class SysBrowserService
 	: ISysBrowserService {
-	public static ISysBrowserInstance Create(SystemBrowserType browserType, SysBrowserLaunchOptions launchOptions) => browserType switch {
-		SystemBrowserType.Brave => new BraveSysBrowserInstance() { Options = launchOptions },
-		SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Options = launchOptions },
-		SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Options = launchOptions },
+	public static ISysBrowserInstance Create(Enums.SystemBrowserType browserType, SysBrowserSettings launchOptions) => browserType switch {
+		Enums.SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = launchOptions },
+		Enums.SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = launchOptions },
+		Enums.SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = launchOptions },
 		_ => throw new NotImplementedException(),
 	};
 
 	private readonly WindowEventHandler? windowEventHandler;
 
-	public ConcurrentDictionary<int, ISysBrowserInstance> Instances { get; } = [];
+	public ConcurrentDictionary<SysBrowserOpenOptions, ISysBrowserInstance> Instances { get; } = [];
 
 	private long _isBusy;
 	public bool IsBusy => Interlocked.Read(ref _isBusy) > 0;
@@ -35,6 +39,27 @@ public class SysBrowserService
 			windowEventHandler.OnForeground += U32til_OnForeground;
 			windowEventHandler.OnDestroy += U32til_OnClose;
 			windowEventHandler.StartListening();
+		} else {
+			MacOSWindowListener.Instance.WindowForegroundChanged += MacOS_WindowForegroundChanged;
+		}
+	}
+
+	private async void MacOS_WindowForegroundChanged(int obj)
+	{
+		for (var i = Instances.Count - 1; i >= 0; i--) {
+			var uid = Instances.Keys.ElementAt(i);
+			if (Instances.TryGetValue(uid, out var browser)) {
+				_ = await browser.LoadedTCS.Task;
+
+
+				if (browser.Brocess?.HasExited != true && browser.Settings.Profile.Id == obj) {
+					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
+					continue;
+				}
+
+				if(browser.Brocess?.HasExited != true)
+					browser.InvokeEvent(Enums.SysBrowserEventType.Background);
+			}
 		}
 	}
 
@@ -42,8 +67,9 @@ public class SysBrowserService
 	{
 		for (var i = Instances.Count - 1; i >= 0; i--) {
 			var uid = Instances.Keys.ElementAt(i);
-			if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.HasExited == true) 				
-				browser.Dispose();
+			if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.HasExited == true) {
+				browser.Close();
+			}
 		}
 	}
 
@@ -55,17 +81,18 @@ public class SysBrowserService
 				_ = await browser.LoadedTCS.Task;
 
 				if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle == obj) {
-					browser.SetForeground(true);
-				} else if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle != obj) {
-					browser.SetForeground(false);
+					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
+					continue;
 				}
+
+				browser.InvokeEvent(Enums.SysBrowserEventType.Background);
 			}
 		}
 	}
 
 	public async Task<ISysBrowserInstance?> Open(SysBrowserOpenOptions options)
 	{
-		if (!Instances.TryGetValue(options.Profile.Id, out var browser)) {
+		if (!Instances.TryGetValue(options, out var browser)) {
 			_ = await TaskUtil.AwaitFor(() => !IsBusy, 18, 256);
 			_ = Interlocked.Increment(ref _isBusy);
 			try {
@@ -80,62 +107,64 @@ public class SysBrowserService
 				};
 				var urls = IoC.GetValue<string[]>("DefaultHomePageSettings") ?? ["duckduckgo.com"];
 				var starturl = urls[new Random().Next(urls.Length)];
-					starturl = starturl.Contains(Consts.Http.UrlSchemeEnd) ?
-					starturl : $"{Consts.Http.HttpsScheme}{starturl}";
-				var launchOptions = new SysBrowserLaunchOptions(options, emulations, starturl, Netil.NextFreePort(9613));
+				starturl = starturl.Contains(Consts.Http.UrlSchemeEnd) ?
+				starturl : $"{Consts.Http.HttpsScheme}{starturl}";
+				var launchOptions = new SysBrowserSettings(options, emulations, starturl, Netil.NextFreePort(9613));
 				browser = Create(options.BrowserType, launchOptions);
-				browser.OnProcessClosed += Browser_OnProcessClosed;
-				browser.OnBecameForeground += Browser_OnBecameForeground;
-				Instances[options.Profile.Id] = browser;
+				browser.OnEvent += Browser_OnEvent;
 
-				_ = browser.InitializeAsync(options);
+				Instances[options] = browser;
+
+				var initTask = browser.InitializeAsync();
 
 				if (await browser.LoadedTCS.Task) {
-					//var args = browser.GetArgs;
-					browser.SetForeground(true);
-					//EventAggregator.Pub<ForegroundUserSystemBrowserEvent>(args);
-					//EventAggregator.Pub<OpenedUserSystemBrowserEvent>(args);
+					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
+					browser.InvokeEvent(Enums.SysBrowserEventType.Opened);
+				} else {
+					await initTask;
 				}
 			} catch (Exception e) {
+				browser?.InvokeEvent(Enums.SysBrowserEventType.Error);
 				Toaster.ShowErr(e.Message);
+				if(e is InvalidDataException) {
+					_ = Instances.TryRemove(options, out _);
+					return null;
+				}
 			} finally {
 				_ = Interlocked.Exchange(ref _isBusy, 0);
 			}
 		} else {
 			if (browser.Brocess?.HasExited == true) {
-				browser.Dispose();
+				browser.Close();
 				await Task.Delay(250);
 				_ = Open(options);
 			} else {
-				browser.SetForeground(true);
+				browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 			}
 		}
 
 		return browser;
 	}
 
-	private void Browser_OnBecameForeground(object? sender, SysBrowserLaunchOptions e) 
+	private async void Browser_OnEvent(object sender, SysBrowserEvent args)
 	{
+		switch (args.EventType) {
+			case Enums.SysBrowserEventType.Closed:
+				do {
+					if (Instances.TryGetValue(args.OpenOptions, out var browser)) {
+						_ = await browser.LoadedTCS.Task;
+						_ = Instances.TryRemove(args.OpenOptions, out _);
+						break;
+					}
 
-	}
-	private async void Browser_OnProcessClosed(object? sender, SysBrowserLaunchOptions o)
-	{
-		do {
-			if (Instances.TryGetValue(o.Profile.Id, out var browser)) {
-				_ = await browser.LoadedTCS.Task;
-
-				//EventAggregator
-				//	 .GetEvent<ClosedUserSystemBrowserEvent>()
-				//	 .Publish(browser.GetArgs);
-
-				_ = Instances.TryRemove(o.Profile.Id, out _);
-
+					await Task.Delay(250);
+				}
+				while (IsBusy);
 				break;
-			}
 
-			await Task.Delay(250);
+				default:
+					break;
 		}
-		while (IsBusy);
 	}
 }
 
