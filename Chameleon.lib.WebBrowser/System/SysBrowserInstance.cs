@@ -115,7 +115,7 @@ public abstract class SysBrowserInstance
 	public void InvokeEvent(SysBrowserEventType eventType)
 	{
 		if (eventType == SysBrowserEventType.Foreground)
-			SetForeground();
+			_ = SetForeground();
 
 		OnEvent?.Invoke(this, Settings.CreateEvent(eventType));
 	}

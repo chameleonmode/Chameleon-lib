@@ -13,14 +13,14 @@ public class ExtensionLoaderService : IExtensionLoaderService {
 		try {
 			var extensionName = extensionType.ToString();
 			var assetUri = new Uri($"{Consts.Addons.AddonsEmbeddedDir}/{extensionName}");
-			var assets = EmbeddedResourceAssetLoader.Instance.GetAssets(assetUri, null).ToList();
+			var assets = Loader.Instance.GetAssets(assetUri).ToList();
 
 			foreach (var asset in assets) {
 				var authorityParts = asset.Authority.Split('.');
 				var relativePath = IOtil.GetRelativePathFromAuthority(authorityParts, extensionName);
 
 				await IOtil.CopyFromStream(
-						EmbeddedResourceAssetLoader.Instance.Open(asset),
+						Loader.Instance.Open(asset),
 						destinationPath, relativePath,
 						relativePath.EndsWith("background.js") ? settings : null);
 			}

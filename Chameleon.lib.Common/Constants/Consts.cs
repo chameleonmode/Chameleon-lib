@@ -33,7 +33,7 @@ public static class Consts {
 		public const string DomainLevelDelimiter = ".";
 	}
 	public static class Json {
-		public const string JsonFontsEmbeddedDir = "embedded://chameleon.assets/json/fa_symbolfonts.json";
+		public const string JsonFontsEmbeddedDir = "embedded://chameleon.assets.json.fa_symbolfonts.json";
 	}
 
 	public static class Addons {

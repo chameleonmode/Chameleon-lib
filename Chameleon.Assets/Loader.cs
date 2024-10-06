@@ -1,13 +1,7 @@
 ﻿using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-
-using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Interfaces.Sys;
-using Chameleon.lib.Common.Models;
 
 namespace chameleon.assets;
-public class EmbeddedResourceAssetLoader {
+public class Loader {
 	private readonly Assembly _assembly = Assembly.GetExecutingAssembly();
 
 	public Stream Open(Uri uri)
@@ -25,7 +19,7 @@ public class EmbeddedResourceAssetLoader {
 		return stream;
 	}
 
-	public IEnumerable<Uri> GetAssets(Uri uri, string? pattern)
+	public IEnumerable<Uri> GetAssets(Uri uri, string? pattern = null)
 	{
 		ArgumentNullException.ThrowIfNull(uri, nameof(uri));
 
@@ -55,27 +49,9 @@ public class EmbeddedResourceAssetLoader {
 		return $"{_assembly.GetName().Name}.{path.Replace('/', '.')}";
 	}
 
-	public static EmbeddedResourceAssetLoader Instance { get; } = new EmbeddedResourceAssetLoader();
-	private EmbeddedResourceAssetLoader()
+	public static Loader Instance { get; } = new Loader();
+	private Loader()
 	{
 
-	}
-}
-public class Icons {
-	public static Icons Instance { get; } = new Icons();
-
-	private readonly Lazy<Task<List<FontIconInfo>>> _fontIcons = new(LoadFontIcons);
-
-	public Task<List<FontIconInfo>> FontIcons => _fontIcons.Value ?? Task.FromResult<List<FontIconInfo>>([]);
-
-	private static async Task<List<FontIconInfo>> LoadFontIcons()
-	{
-		return await Task.Run(() =>
-		{
-			using var s = EmbeddedResourceAssetLoader.Instance.Open(new Uri(Consts.Json.JsonFontsEmbeddedDir));
-			var icons = JsonSerializer.Deserialize(s, Jsonz.Default.ListFontIconInfo);
-
-			return icons ?? [];
-		});
 	}
 }

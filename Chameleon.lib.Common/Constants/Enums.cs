@@ -34,11 +34,20 @@ public static class Enums {
 	}
 
 	public enum MboxResult {
-		Unknown,
-		Yes,
-		No,
-		Ok,
-		Cancel
+		/// <summary>
+		/// No button was tapped.
+		/// </summary>
+		None = 0,
+
+		/// <summary>
+		/// The primary button was tapped by the user.
+		/// </summary>
+		Primary = 1,
+
+		/// <summary>
+		/// The secondary button was tapped by the user.
+		/// </summary>
+		Secondary = 2
 	}
 
 	public enum MBoxButtons {
