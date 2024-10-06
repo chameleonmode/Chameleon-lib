@@ -32,8 +32,12 @@ public static class Consts {
 		public const string UrlSchemeEnd = "://";
 		public const string DomainLevelDelimiter = ".";
 	}
+	public static class Json {
+		public const string JsonFontsEmbeddedDir = "embedded://chameleon.assets/json/fa_symbolfonts.json";
+	}
 
 	public static class Addons {
+		public const string AddonsEmbeddedDir = "embedded://chameleon.assets/addons";
 		public static string AddonExtentionDir => Path.Combine(AppTempDir, "Addons");
 		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../Resources/BrowserExtensions")

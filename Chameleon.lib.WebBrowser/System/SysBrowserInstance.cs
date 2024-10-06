@@ -285,6 +285,7 @@ public abstract class SysBrowserInstance
 		}
 
 		_ = LoadedTCS.TrySetResult(false);
+		Brocess?.Dispose();
 		Brocess = null;
 		Handle = IntPtr.Zero;
 		if(raise)

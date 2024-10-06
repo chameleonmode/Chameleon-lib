@@ -1,14 +1,5 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Chameleon.lib.Playwright.Interfaces;
+﻿using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.node;
-
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Chameleon.lib.Playwright.Scripts;
 public class GsiteJsScript : IBundledJSScript {
@@ -42,7 +33,9 @@ public class GsiteJsScript : IBundledJSScript {
 			location = args["location"],
 			postTitle = args["postTitle"],
 			publishTitle = args["publishTitle"],
-			gsiteTitle = args["gsiteTitle"]
+			gsiteTitle = args["gsiteTitle"],
+			link = args["link"],
+			textWithLink = args["textWithLink"],
 		};
 
 		using var runner = PlaywrightTestRunner.Create(Name);

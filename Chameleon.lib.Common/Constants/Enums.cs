@@ -32,6 +32,40 @@ public static class Enums {
 		Foreground,
 		Background
 	}
+
+	public enum MboxResult {
+		Unknown,
+		Yes,
+		No,
+		Ok,
+		Cancel
+	}
+
+	public enum MBoxButtons {
+		Ok,
+		OkCancel,
+		YesNo,
+		YesNoCancel
+	}
+
+	public static string PrimaryBtnText(this MBoxButtons btns) => btns switch {
+		MBoxButtons.Ok or MBoxButtons.OkCancel => "OK",
+		MBoxButtons.YesNoCancel or MBoxButtons.YesNo => "Yes",
+		_ => "OK"
+	};
+
+	public static string? SecondaryBtnText(this MBoxButtons btns) => btns switch {
+		MBoxButtons.YesNoCancel => "No",
+		_ => null
+	};
+
+	public static string? CloseBtnText(this MBoxButtons btns) => btns switch {
+		MBoxButtons.YesNo => "No",
+		MBoxButtons.YesNoCancel or
+		MBoxButtons.OkCancel => "Cancel",
+		_ => null
+	};
+
 	public static string GetDescription(this Enum value)
 	{
 		var field = value.GetType().GetField(value.ToString());

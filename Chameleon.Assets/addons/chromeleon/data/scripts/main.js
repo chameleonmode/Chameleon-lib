@@ -3,28 +3,29 @@
 
   // Defining the settings object with default values
   let settings = {
-    enabled: true,
-    webglSpoofing: true,
-    canvasProtection: true,
-    clientRectsSpoofing: true,
-    fontsSpoofing: true,
-    geoSpoofing: true,
-    timezoneSpoofing: true,
-    webRtcEnabled: true,
-    dAPI: true,
-    myIP: false,
-    randomize: false,
-    noiseLevel: "medium",
-    eMode: "disable_non_proxied_udp",
-    dMode: "default_public_interface_only",
-    timezone: "America/Los_Angeles",
-    locale: "en-US",
-    debug: 4,
-    latitude: 48.856892,
-    longitude: 2.350850,
-    accuracy: 69.96,
-    bypass: [],
-    history: [],
+      enabled: true,
+      webglSpoofing: true,
+      canvasProtection: true,
+      clientRectsSpoofing: true,
+      fontsSpoofing: true,
+      geoSpoofing: true,
+      timezoneSpoofing: true,
+      webRtcEnabled: true,
+      dAPI: true,
+      myIP: false,
+      randomizeTZ: false,
+      randomizeGeo: false,
+      noiseLevel: "medium",
+      eMode: "disable_non_proxied_udp",
+      dMode: "default_public_interface_only",
+      timezone: "America/Los_Angeles",
+      locale: "en-US",
+      debug: 4,
+      latitude: 48.856892,
+      longitude: 2.350850,
+      accuracy: 69.96,
+      bypass: [],
+      history: [],
   };
 
   const formatMessage = (level, message) => {
@@ -578,18 +579,7 @@
       config.fonts.offsetHeight(HTMLElement);
       config.fonts.offsetWidth(HTMLElement);
     }
-    // Spoofing of WebGLRenderingContext and WebGL2RenderingContext
-    if (settings.webglSpoofing) 
-    {
-      [WebGLRenderingContext, WebGL2RenderingContext].forEach((context) => {
-        config.webgl.buffer(context);
-        // config.webgl.parameter(context);
-        // config.webgl.extension(context);
-      });
-    }
-    // Spoofing of CanvasRenderingContext2D
-    if (settings.canvasProtection) config.canvas.toDataURL(HTMLCanvasElement);
-    //
+    // 
     if (settings.webRtcEnabled && navigator.mediaDevices?.enumerateDevices) {
       navigator.mediaDevices.enumerateDevices = new Proxy(
         navigator.mediaDevices.enumerateDevices,
@@ -607,8 +597,20 @@
     log.log(`Settings applied ${JSON.stringify(settings)}`);
   }
 
-  // Initialize framed settings
-  function applyFramedSettings() {
+    // Initialize framed settings
+    function applyFramedSettings() {
+    // Spoofing of WebGLRenderingContext and WebGL2RenderingContext
+    if (settings.webglSpoofing) {
+        [WebGLRenderingContext, WebGL2RenderingContext].forEach((context) => {
+            config.webgl.buffer(context);
+            // config.webgl.parameter(context);
+            // config.webgl.extension(context);
+        });
+    }
+
+    // Spoofing of CanvasRenderingContext2D
+    if (settings.canvasProtection) config.canvas.toDataURL(HTMLCanvasElement);
+
     // Spoofing of DOMRect and DOMRectReadOnly
     if (settings.clientRectsSpoofing) {
       //Spoofing of DOMRect

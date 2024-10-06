@@ -68,28 +68,36 @@ public class SysBrowserService
 
 	private void U32til_OnClose(nint obj)
 	{
-		for (var i = Instances.Count - 1; i >= 0; i--) {
-			var uid = Instances.Keys.ElementAt(i);
-			if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.HasExited == true) {
-				browser.Close();
+		try {
+			for (var i = Instances.Count - 1; i >= 0; i--) {
+				var uid = Instances.Keys.ElementAt(i);
+				if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.HasExited == true) {
+						browser.Close();
+				}
 			}
+		} catch (Exception e) {
+			Toaster.ShowErr(e.Message);
 		}
 	}
 
 	private async void U32til_OnForeground(nint obj)
 	{
-		for (var i = Instances.Count - 1; i >= 0; i--) {
-			var uid = Instances.Keys.ElementAt(i);
-			if (Instances.TryGetValue(uid, out var browser)) {
-				_ = await browser.LoadedTCS.Task;
+		try {
+			for (var i = Instances.Count - 1; i >= 0; i--) {
+				var uid = Instances.Keys.ElementAt(i);
+				if (Instances.TryGetValue(uid, out var browser)) {
+					_ = await browser.LoadedTCS.Task;
 
-				if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle == obj) {
-					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
-					continue;
+					if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle == obj) {
+						browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
+						continue;
+					}
+
+					browser.InvokeEvent(Enums.SysBrowserEventType.Background);
 				}
-
-				browser.InvokeEvent(Enums.SysBrowserEventType.Background);
 			}
+		} catch (Exception e) {
+			Toaster.ShowErr(e.Message);
 		}
 	}
 

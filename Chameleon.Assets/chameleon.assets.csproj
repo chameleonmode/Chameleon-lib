@@ -15,4 +15,8 @@
 	  <None Remove="addons\foxameleon_proxy\manifest.json" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
+	</ItemGroup>
+
 </Project>
