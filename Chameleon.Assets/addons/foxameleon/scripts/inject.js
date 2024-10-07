@@ -1,5 +1,8 @@
-(async () => {
-    "use strict";
+(async function () {
+    // Access the settings from the global window object
+    const settings = window.__myAddonSettings__;
+    const seed = window.__myAddonSeed__;
+    const randObjName = window.__myAddonRandObjName__;
 
     let script = document.createElement("script");
     script.textContent = `
@@ -445,13 +448,13 @@ spoofContext.Date = new Proxy(Date, {
         );
     // Inject the script into the page
     document.documentElement.append(script);
-    script.remove();
+    /*script.remove();*/
 
-    script = document.createElement('script');
-    script.src = URL.createObjectURL(new Blob([script.textContent], { type: 'text/javascript' }));
-    (document.head || document.documentElement).appendChild(script);
+    let scriptel = document.createElement('script');
+    scriptel.src = URL.createObjectURL(new Blob([script.textContent], { type: 'text/javascript' }));
+    (document.head || document.documentElement).appendChild(scriptel);
     try {
-        URL.revokeObjectURL(script.src);
+        URL.revokeObjectURL(scriptel.src);
     } catch (e) { }
-    script.remove();
+   /* scriptel.remove();*/
 })();

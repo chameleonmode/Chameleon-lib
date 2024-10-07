@@ -4,10 +4,10 @@ import { settings, updateSettings } from "../../modules/settings.js";
 document.addEventListener("DOMContentLoaded", async function () {
   await updateSettings();
   const toggleExtension = document.getElementById("toggle-extension");
-  const webglSpoofing = document.getElementById("webgl-spoofing");
-  const canvasProtection = document.getElementById("canvas-protection");
+  //const webglSpoofing = document.getElementById("webgl-spoofing");
+  //const canvasProtection = document.getElementById("canvas-protection");
+  //const fontsSpoofing = document.getElementById("fonts-spoofing");
   const clientRectsSpoofing = document.getElementById("client-rects-spoofing");
-  const fontsSpoofing = document.getElementById("fonts-spoofing");
   const geoSpoofing = document.getElementById("geo-spoofing");
   const timezoneSpoofing = document.getElementById("timezone-spoofing");
   const noiseLevel = document.getElementById("noise-level");
@@ -32,10 +32,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Save settings and update content scripts
   function saveSettings() {
     settings.enabled = toggleExtension.checked;
-    settings.webglSpoofing = webglSpoofing.checked;
-    settings.canvasProtection = canvasProtection.checked;
     settings.clientRectsSpoofing = clientRectsSpoofing.checked;
-    settings.fontsSpoofing = fontsSpoofing.checked;
     settings.geoSpoofing = geoSpoofing.checked;
     settings.timezoneSpoofing = timezoneSpoofing.checked;
     settings.noiseLevel = noiseLevel.value;

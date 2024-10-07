@@ -205,6 +205,7 @@ public static class IOtil {
 				await inputStream.CopyToAsync(tempFileStream);
 			}
 
+			if(desPath.Contains("manifest.json"))
 			File.Copy(tempFilePath, desPath, true);
 		} finally {
 			File.Delete(tempFilePath);

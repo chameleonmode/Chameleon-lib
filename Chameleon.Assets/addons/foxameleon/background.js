@@ -17,20 +17,22 @@ async function setInjectionScript() {
 
   settings.tzOffset = getTimezoneOffset(settings.timezone);
   
-  injectionScript  = await browser.contentScripts.register({
+    injectionScript =
+        await browser.contentScripts.register({
     allFrames: true,
     matchAboutBlank: true,
     matches: ['http://*/*', 'https://*/*'],
     js: [
       {
-        code: `
-          let settings = JSON.parse(\`${JSON.stringify(settings)}\`);
-          let seed = ${Math.random() * 0.00000001};
-          let randObjName = '${String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
-            Math.random()
-              .toString(36)
-              .substring(Math.floor(Math.random() * 5) + 5)}';
-        `,
+      code:`
+          if (!window.__myAddonInjected__) {
+            window.__myAddonInjected__ = true;
+            window.__myAddonSettings__ = JSON.parse(\`${JSON.stringify(settings)}\`);
+            window.__myAddonSeed__ = ${Math.random() * 0.00000001};
+            window.__myAddonRandObjName__ = '${String.fromCharCode(65 + Math.floor(Math.random() * 26)) + Math.random().toString(36).substring(Math.floor(Math.random() * 5) + 5)}';
+            console.log("Addon settings initialized:", window.__myAddonSettings__);
+          }
+      `,
       },
       { file: 'scripts/inject.js' },
     ],
@@ -43,9 +45,14 @@ async function OnLoad() {
 
   // await browser.storage.sync.set(settings);
     
-  setLogLevel(settings.debug);
-  createGeoContextMenus();
-  createTimezoneContextMenus();
+    setLogLevel(settings.debug);
+    try {
+        await browser.contextMenus.removeAll();
+        createGeoContextMenus();
+        createTimezoneContextMenus();
+    } catch (e) {
+        log.error("Failed to create context menus", e);
+    }
   log.info("OnLoad");
 }
 OnLoad();

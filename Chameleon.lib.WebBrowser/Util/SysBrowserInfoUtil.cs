@@ -201,7 +201,15 @@ public static class SysBrowserInfoUtil {
 		"security.insecure_connection_text.enabled",
 		/* IMPORTANT: last active pref must not have a trailing comma */
 		/* reset parrot: check your open about:config after running the script */
-		"_user.js.parrot"
+		"_user.js.parrot",
+		//
+		"general.appname.override",
+		"general.appversion.override",
+	  "general.buildID.override", 
+	  "general.oscpu.override",
+	  "general.platform.override",
+	  "general.useragent.override",
+		"media.navigator.enabled",
 ];
 	public static List<KeyValuePair<string, string>> FirefoxUserPrefs => [
 /* START: internal custom pref to test for syntax errors
@@ -218,11 +226,11 @@ user_pref("browser.aboutConfig.showWarning", false),
  * 0=blank, 1=home, 2=last visited page, 3=resume previous session
  * [NOTE] Session Restore is cleared with history (2811), and not used in Private Browsing mode
  * [SETTING] General>Startup>Restore previous session ***/
-user_pref("browser.startup.page", 3),
+//user_pref("browser.startup.page", 1),
 /* 0103: set HOME+NEWWINDOW page
  * about:home=Firefox Home (default, see 0105), custom URL, about:blank
  * [SETTING] Home>New Windows and Tabs>Homepage and new windows ***/
-user_pref("browser.startup.homepage", "about:blank"),
+//user_pref("browser.startup.homepage", "about:blank"),
 /* 0104: set NEWTAB page
  * true=Firefox Home (default, see 0105), false=blank page
  * [SETTING] Home>New Windows and Tabs>New tabs ***/
@@ -637,7 +645,7 @@ user_pref("browser.xul.error_pages.expert_bad_cert", true),
 //user_pref("_user.js.parrot", "1600 syntax error: the parrot rests in peace!"),
 /* 1602: control the amount of cross-origin information to send [FF52+]
  * 0=send full URI (default), 1=scheme+host+port+path, 2=scheme+host+port ***/
-user_pref("network.http.referer.XOriginTrimmingPolicy", 1),
+//user_pref("network.http.referer.XOriginTrimmingPolicy", 1),
 
 /*** [SECTION 1700]: CONTAINERS ***/
 //user_pref("_user.js.parrot", "1700 syntax error: the parrot's bit the dust!"),
@@ -749,7 +757,7 @@ user_pref("browser.download.always_ask_before_handling_new_types", true),
  * The pref value represents the sum: e.g. 5 would be profile and application directories
  * [SETUP-CHROME] Breaks usage of files which are installed outside allowed directories
  * [1] https://archive.is/DYjAM ***/
-user_pref("extensions.enabledScopes", 5), // [HIDDEN PREF]
+user_pref("extensions.enabledScopes", 31), // [HIDDEN PREF]
    // user_pref("extensions.autoDisableScopes", 15), // [DEFAULT: 15]
 /* 2661: disable bypassing 3rd party extension install prompts [FF82+]
  * [1] https://bugzilla.mozilla.org/buglist.cgi?bug_id=1659530,1681331 ***/
@@ -767,7 +775,7 @@ user_pref("extensions.postDownloadThirdPartyPrompt", false),
  * [1] https://blog.mozilla.org/security/2021/02/23/total-cookie-protection/
  * [SETTING] to add site exceptions: Urlbar>ETP Shield
  * [SETTING] to manage site exceptions: Options>Privacy & Security>Enhanced Tracking Protection>Manage Exceptions ***/
-user_pref("browser.contentblocking.category", "strict"), // [HIDDEN PREF]
+	// user_pref("browser.contentblocking.category", "strict"), // [HIDDEN PREF]
 /* 2702: disable ETP web compat features [FF93+]
  * [SETUP-HARDEN] Includes skip lists, heuristics (SmartBlock) and automatic grants
  * Opener and redirect heuristics are granted for 30 days, see [3]
@@ -876,13 +884,13 @@ user_pref("browser.contentblocking.category", "strict"), // [HIDDEN PREF]
  * e.g. "-AllTargets,+CanvasRandomization,+JSDateTimeUTC" = no targets but do use FPP canvas and change timezone
  * [NOTE] Not supported by arkenfox. Either use RFP or FPP at defaults
  * [1] https://searchfox.org/mozilla-central/source/toolkit/components/resistfingerprinting/RFPTargets.inc ***/
-  user_pref("privacy.fingerprintingProtection.overrides", "+JSDateTimeUTC,+AudioContext"),
+  //user_pref("privacy.fingerprintingProtection.overrides", "-AllTargets,+CanvasRandomization,+FontVisibilityLangPack,+JSDateTimeUTC"),
 /* 4003: set granular FPP overrides
  * JSON format: e.g."[{\"firstPartyDomain\": \"netflix.com\", \"overrides\": \"-CanvasRandomization,-FrameRate,\"}]"
  * [NOTE] Not supported by arkenfox. Either use RFP or FPP at defaults ***/
    // user_pref("privacy.fingerprintingProtection.granularOverrides", ""),
 /* 4004: disable remote FPP overrides [FF127+] ***/
-   // user_pref("privacy.fingerprintingProtection.remoteOverrides.enabled", false),
+   user_pref("privacy.fingerprintingProtection.remoteOverrides.enabled", false),
 
 /*** [SECTION 4500]: OPTIONAL RFP (resistFingerprinting)
    RFP overrides FPP (4000)
@@ -1319,13 +1327,13 @@ user_pref("extensions.quarantinedDomains.enabled", true), // [DEFAULT: true]
 	 user_pref("dom.w3c_touch_events.enabled", ""),
 	 user_pref("dom.webaudio.enabled", ""),
 	 user_pref("font.system.whitelist", ""),
-	 user_pref("general.appname.override", ""),
-	 user_pref("general.appversion.override", ""),
-	 user_pref("general.buildID.override", ""),
-	 user_pref("general.oscpu.override", ""),
-	 user_pref("general.platform.override", ""),
-	 user_pref("general.useragent.override", ""),
-	 user_pref("media.navigator.enabled", ""),
+	 //user_pref("general.appname.override", ""),
+	 //user_pref("general.appversion.override", ""),
+	 //user_pref("general.buildID.override", ""),
+	 //user_pref("general.oscpu.override", ""),
+	 //user_pref("general.platform.override", ""),
+	 //user_pref("general.useragent.override", ""),
+	 //user_pref("media.navigator.enabled", ""),
 	 user_pref("media.ondevicechange.enabled", ""),
 	 user_pref("media.video_stats.enabled", ""),
 	 user_pref("media.webspeech.synth.enabled", ""),
@@ -1426,67 +1434,71 @@ user_pref("widget.non-native-theme.enabled", true) // [DEFAULT: true]
 $@"// First line is always a comment
 lockPref(""a.b.c.d"", ""1.2.3.4""); // Debugging Firefox AutoConfig Problems
 
- function reportError(ex) {{
+const {{ FileUtils }} = ChromeUtils.import(""resource://gre/modules/FileUtils.jsm"", {{}});
+const {{ AddonManager }} = ChromeUtils.import(""resource://gre/modules/AddonManager.jsm"", {{}});
+
+const ERRORS = {{
+    [-1]: ""ERROR_NETWORK_FAILURE: A network error occurred."",
+    [-2]: ""ERROR_INCORRECT_HASH: The downloaded file did not match the expected hash."",
+    [-3]: ""ERROR_CORRUPT_FILE: The file appears to be corrupt."",
+    [-4]: ""ERROR_FILE_ACCESS: There was an error accessing the filesystem."",
+    [-5]: ""ERROR_SIGNEDSTATE_REQUIRED: The addon must be signed and isn't."",
+}};
+
+function reportError(ex) {{
 	if({debug}) {{
-     Components.utils.reportError(""userChrome.js Ex("" + ex + "")"");
+    Components.utils.reportError(""userChrome.js Ex("" + ex + "")"");
 	}}
- }}
+}}
 
- function printDebug(text) {{
+function printDebug(text) {{
 	if({debug}) {{
-		var consoleService = Components.classes[""@mozilla.org/consoleservice;1""]
-		                               .getService(Components.interfaces.nsIConsoleService);
-		consoleService.logStringMessage(""userChrome.js "" + text);
-		   //Components.utils.logStringMessage(""userChrome.js "" + text);
-		}}
- }}
+    var consoleService = Components.classes[""@mozilla.org/consoleservice;1""]
+                                   .getService(Components.interfaces.nsIConsoleService);
+    consoleService.logStringMessage(""userChrome.js "" + text);
+	}}
+}}
 
- // Based on class Addon {{ static async install(path, temporary = false) ... }}
- // d:\Files\Firefox102.2.0esr\omni_ja\chrome\remote\content\marionette\addon.js
- // from https://developer.mozilla.org/en-US/Add-ons/Add-on_Manager/AddonManager#AddonInstall_errors
- const ERRORS = {{
-   [-1]: ""ERROR_NETWORK_FAILURE: A network error occurred."",
-   [-2]: ""ERROR_INCORRECT_HASH: The downloaded file did not match the expected hash."",
-   [-3]: ""ERROR_CORRUPT_FILE: The file appears to be corrupt."",
-   [-4]: ""ERROR_FILE_ACCESS: There was an error accessing the filesystem."",
-   [-5]: ""ERROR_SIGNEDSTATE_REQUIRED: The addon must be signed and isn't."",
- }};
+async function uninstallAddonIfExists(idSubstring) {{
+    const addons = await AddonManager.getAllAddons();
+    for (let addon of addons) {{
+				printDebug(`Checking addon with ID containing: ${{idSubstring}} (Actual ID: ${{addon.id}})`);
+        if (addon.id.includes(idSubstring)) {{
+            await addon.uninstall();
+            printDebug(`Uninstalled addon with ID containing: ${{idSubstring}} (Actual ID: ${{addon.id}})`);
+        }}
+    }}
+}}
 
- async function installAddon(file) {{
-     let install = await AddonManager.getInstallForFile(file, null, {{ source: ""internal"", }});
-     if (install.error) {{
-         reportError(ERRORS[install.error]);
-     }}
-     return install.install().catch(err => {{
-         reportError(ERRORS[install.error]);
-     }});
- }}
+async function installAddon(file) {{
+    try {{
+        let install = await AddonManager.getInstallForFile(file, null, {{ source: ""internal"" }});
+        if (install.error) {{
+            reportError(ERRORS[install.error]);
+        }}
+        return install.install();
+    }} catch (err) {{
+        reportError(ERRORS[err]);
+    }}
+}}
 
- async function installExtension(path, temporary) {{
-     let addon;
-     let file;
+async function installExtension(path, temporary) {{
+    try {{
+        let file = new FileUtils.File(path);
+        if (!file.exists()) {{
+            reportError(`No such file or directory: ${{path}}`);
+            return;
+        }}
 
-     printDebug(""installTemporaryExtension("" + path + "")"");
-     try {{
-       file = new FileUtils.File(path);
-     }} catch (ex) {{
-         reportError(`Expected absolute path: ${{ex}}`, ex);
-     }}
-
-     if (!file.exists()) {{
-         reportError(`No such file or directory: ${{path}}`);
-     }}
-
-     try {{
-         if (temporary) {{
-             addon = await AddonManager.installTemporaryAddon(file);
-         }} else {{
-             addon = await installAddon(file);
-         }}
-     }} catch (ex) {{
-         reportError(`Could not install add-on: ${{path}}: ${{ex.message}}`, ex);
-     }}
- }}
+        if (temporary) {{
+            await AddonManager.installTemporaryAddon(file);
+        }} else {{
+            await installAddon(file);
+        }}
+    }} catch (ex) {{
+        reportError(`Could not install add-on: ${{path}}: ${{ex.message}}`);
+    }}
+}}
 
 async function processDirectory(dir) {{
     let entries = dir.directoryEntries;
@@ -1501,23 +1513,34 @@ async function processDirectory(dir) {{
     }}
 }}
 
- async function installUnpackedExtensions() {{
-    const BrowserExtensionsFolderPath = `{browserExtensionsFolderPath}`;
+async function setPermission(addonId) {{
+    const PRIVATE_BROWSING_PERMS = {{
+        permissions: [""internal:privateBrowsingAllowed""],
+        origins: [],
+    }};
 
-    const {{ FileUtils }} = ChromeUtils.import(""resource://gre/modules/FileUtils.jsm"", {{}});
-    printDebug(`BrowserExtensionsFolderPath: ${{BrowserExtensionsFolderPath}}`);
-    
-    let dir;
-    try {{
-        dir = new FileUtils.File(BrowserExtensionsFolderPath);
-        if (!dir.exists() || !dir.isDirectory()) {{
-            throw new Error(""Directory not found or is not a directory"");
-        }}
-    }} catch (ex) {{
-        reportError(`Directory not found: ${{BrowserExtensionsFolderPath}}`);
+    const {{ ExtensionPermissions }} = ChromeUtils.import(""resource://gre/modules/ExtensionPermissions.jsm"");
+
+    const myaddons = await AddonManager.getAddonsByTypes([""extension""]);
+    for (let addon of myaddons) {{
+        if (addon.id !== addonId) continue;
+        await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
+        if (addon.isActive) addon.reload();
     }}
+}}
+
+async function installUnpackedExtensions() {{
+    const BrowserExtensionsFolderPath = `{browserExtensionsFolderPath}`;
+    printDebug(`BrowserExtensionsFolderPath: ${{BrowserExtensionsFolderPath}}`);
 
     try {{
+        let dir = new FileUtils.File(BrowserExtensionsFolderPath);
+        if (!dir.exists() || !dir.isDirectory()) throw new Error(""Directory not found or is not a directory"");
+
+				// Uninstall the existing addon first
+        await uninstallAddonIfExists(""proxameleon@chameleonmode.com"");
+        await uninstallAddonIfExists(""foxameleon@chameleonmode.com"");
+
         let entries = dir.directoryEntries;
         while (entries.hasMoreElements()) {{
             let entry = entries.getNext().QueryInterface(Ci.nsIFile);
@@ -1526,78 +1549,43 @@ async function processDirectory(dir) {{
                 await installExtension(entry.path, true);
             }}
         }}
-    }} catch (ex) {{
-        reportError(`Error iterating directory: ${{ex.message}}`);
-    }}
 
-
-
-        var folder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
+        let folder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
         folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.Foxameleon}`;
-reportError(`Error iterating directory: ${{folder}}`);
-        var pdirDir = new FileUtils.File(folder);
+        let pdirDir = new FileUtils.File(folder);
         if (pdirDir.exists() && pdirDir.isDirectory()) {{
-            try {{
-                await processDirectory(pdirDir); // Process the profile directory
-            }} catch (ex) {{
-                reportError(`Error iterating directory: ${{ex.message}}`);
-            }}
+            await processDirectory(pdirDir); // Process the profile directory
         }}
 
         await setPermission(""proxameleon@chameleonmode.com"");
         await setPermission(""foxameleon@chameleonmode.com"");
- }}
+    }} catch (ex) {{
+        reportError(`Error: ${{ex.message}}`);
+    }}
+}}
 
- async function setPermission(addonId) {{
-     const PRIVATE_BROWSING_PERMS = {{
-         permissions: [""internal:privateBrowsingAllowed""],
-         origins: [],
-     }};
+try {{
+    let {{ classes: Cc, interfaces: Ci, manager: Cm }} = Components;
 
-     const {{ExtensionPermissions}} = ChromeUtils.import(""resource://gre/modules/ExtensionPermissions.jsm"");
+    function ConfigJS() {{
+        Services.obs.addObserver(this, 'final-ui-startup', false);
+    }}
 
-     const myaddons = await AddonManager.getAddonsByTypes([""extension""]);
-     for(let addon of myaddons){{
-         if (addon.id !== addonId){{
-             continue;
-         }}
+    ConfigJS.prototype = {{
+        observe: async function(subject, topic, data) {{
+            if (topic === 'final-ui-startup') {{
+                await installUnpackedExtensions();
+            }}
+        }}
+    }};
 
-         await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
-         if (addon.isActive)
-             addon.reload();
-     }}
- }}
+    if (!Services.appinfo.inSafeMode) {{
+        new ConfigJS();
+    }}
 
- try {{
-   let {{ classes: Cc, interfaces: Ci, manager: Cm  }} = Components;
-
-   function ConfigJS() {{
-       Services.obs.addObserver(this, 'final-ui-startup', false);
-   }}
-
-   const {{ AddonManager }} =
-       Components.utils.import(""resource://gre/modules/AddonManager.jsm"");
-
-   const {{ FileUtils }} =
-       Components.utils.import(""resource://gre/modules/FileUtils.jsm"");
-
-   ConfigJS.prototype = {{
-       observe: async function observe(subject, topic, data) {{
-           switch (topic) {{
-               case 'final-ui-startup':
-                   await installUnpackedExtensions();
-                   break;
-           }}
-       }}
-   }};
-
-   if (!Services.appinfo.inSafeMode) {{
-       new ConfigJS();
-   }}
-
- }} catch(ex) {{
-     reportError(ex);
- }};
+}} catch (ex) {{
+    reportError(ex);
+}}
 
 lockPref(""e.f.g.h"", ""5.6.7.8""); // Debugging Firefox AutoConfig Problems";
 

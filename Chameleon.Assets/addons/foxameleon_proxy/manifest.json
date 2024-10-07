@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Proxameleon",
   "description": "A Chameleon firefox addon to set proxy | username | password.",
-  "version": "2024.0.0.1",
+  "version": "2024.0.0.2",
   "permissions": [
     "proxy",
     "storage",

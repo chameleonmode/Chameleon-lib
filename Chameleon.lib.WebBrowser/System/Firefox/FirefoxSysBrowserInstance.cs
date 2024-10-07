@@ -1,5 +1,8 @@
-﻿using Chameleon.lib.Common.Constants;
+﻿using System.Diagnostics;
+
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
+using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Util;
 
@@ -57,17 +60,22 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	}
 
 	// TODO:
-	private async Task<Dictionary<string, object>> InitializePrefsJs()
+	private async Task<Dictionary<string, string>> InitializePrefsJs()
 	{
-		var prefs = new Dictionary<string, object>() {
-			["privacy.trackingprotection.enabled"] = true
-		};
-		foreach (var pref in SysBrowserInfoUtil.FirefoxUserPrefs) {
-			if (SysBrowserInfoUtil.FirefoxDepricatedPrefs.Any(pref.Key.Contains))
-				continue;
-			prefs.Add(pref.Key, pref.Value);
+		var prefs = SysBrowserInfoUtil.FirefoxUserPrefs.ToDictionary();
+		foreach (var p in new List<KeyValuePair<string, string>> {
+			SysBrowserInfoUtil.user_pref("privacy.trackingprotection.enabled", true),
+			SysBrowserInfoUtil.user_pref("browser.shell.checkDefaultBrowser", false),
+			SysBrowserInfoUtil.user_pref("app.update.service.enabled", false),
+			SysBrowserInfoUtil.user_pref("browser.startup.homepage", "https://arkenfox.github.io/TZP/tzp.html"),
+			SysBrowserInfoUtil.user_pref("browser.contentblocking.category", "strict"),
+			SysBrowserInfoUtil.user_pref("privacy.fingerprintingProtection.overrides","+JSDateTimeUTC"),
+			SysBrowserInfoUtil.user_pref("network.http.referer.XOriginTrimmingPolicy","0"),
+			SysBrowserInfoUtil.user_pref("browser.startup.page", 3),
+			SysBrowserInfoUtil.user_pref("xpinstall.signatures.required", false),
+		}) {
+			prefs[p.Key] = p.Value;
 		}
-
 		// Define a regular expression pattern to extract key-value pairs
 		var regex = Regexers.UserPrefRegex();
 
@@ -84,10 +92,12 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 					var value = match.Groups[2].Value.Trim('"');
 
 					// Add key-value pair to the dictionary
-					if (!prefs.ContainsKey(key)
+					if (!prefs.Any(p=>p.Key.Contains(key))
 						&& !SysBrowserInfoUtil.FirefoxDepricatedPrefs.Any(p => p == key)
 						&& !key.Contains(".proxy.")) {
-						prefs[key] = value;
+						Debug.WriteLine(key + " " + value);
+						var p = SysBrowserInfoUtil.user_pref(key, value);
+						prefs[p.Key] = p.Value;
 					}
 				}
 			}
@@ -109,7 +119,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			"-new-instance",
 			"-no-remote",
 			"-wait-for-browser",
-			$"-url about:newtab",
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
 		});
 	}
