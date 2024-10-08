@@ -1427,7 +1427,8 @@ user_pref("widget.non-native-theme.enabled", true) // [DEFAULT: true]
 
 	public static async Task AddAutoloadTemporaryAddonFF(string directory)
 	{
-		var browserExtensionsFolderPath = Path.Combine(Consts.Addons.DefaultExtensionsFolderPath_FF).Replace("\\", "\\\\");
+		var profileDirPath = Path.Combine(directory, Consts.Browser.Foxameleon).Replace("\\", "\\\\");
+		var browserExtensions = Path.Combine(Consts.Addons.DefaultExtensionsFolderPath_FF).Replace("\\", "\\\\");
 		var debug = Debugger.IsAttached ? "true" : "false";
 
 		var userChrome =
@@ -1436,6 +1437,13 @@ lockPref(""a.b.c.d"", ""1.2.3.4""); // Debugging Firefox AutoConfig Problems
 
 const {{ FileUtils }} = ChromeUtils.import(""resource://gre/modules/FileUtils.jsm"", {{}});
 const {{ AddonManager }} = ChromeUtils.import(""resource://gre/modules/AddonManager.jsm"", {{}});
+const {{ ExtensionPermissions }} = ChromeUtils.import(""resource://gre/modules/ExtensionPermissions.jsm"");
+
+// Define private browsing permissions
+const PRIVATE_BROWSING_PERMS = {{
+    permissions: [""internal:privateBrowsingAllowed""],
+    origins: [],
+}};
 
 const ERRORS = {{
     [-1]: ""ERROR_NETWORK_FAILURE: A network error occurred."",
@@ -1445,41 +1453,18 @@ const ERRORS = {{
     [-5]: ""ERROR_SIGNEDSTATE_REQUIRED: The addon must be signed and isn't."",
 }};
 
-function reportError(ex) {{
-	if({debug}) {{
-    Components.utils.reportError(""userChrome.js Ex("" + ex + "")"");
+function reportError(ex, emex) {{
+	if(true) {{
+    Components.utils.reportError(""userChrome.js Ex("" + ex + "") + emex"");
 	}}
 }}
 
 function printDebug(text) {{
-	if({debug}) {{
+	if(true) {{
     var consoleService = Components.classes[""@mozilla.org/consoleservice;1""]
                                    .getService(Components.interfaces.nsIConsoleService);
     consoleService.logStringMessage(""userChrome.js "" + text);
 	}}
-}}
-
-async function uninstallAddonIfExists(idSubstring) {{
-    const addons = await AddonManager.getAllAddons();
-    for (let addon of addons) {{
-				printDebug(`Checking addon with ID containing: ${{idSubstring}} (Actual ID: ${{addon.id}})`);
-        if (addon.id.includes(idSubstring)) {{
-            await addon.uninstall();
-            printDebug(`Uninstalled addon with ID containing: ${{idSubstring}} (Actual ID: ${{addon.id}})`);
-        }}
-    }}
-}}
-
-async function installAddon(file) {{
-    try {{
-        let install = await AddonManager.getInstallForFile(file, null, {{ source: ""internal"" }});
-        if (install.error) {{
-            reportError(ERRORS[install.error]);
-        }}
-        return install.install();
-    }} catch (err) {{
-        reportError(ERRORS[err]);
-    }}
 }}
 
 async function installExtension(path, temporary) {{
@@ -1493,72 +1478,190 @@ async function installExtension(path, temporary) {{
         if (temporary) {{
             await AddonManager.installTemporaryAddon(file);
         }} else {{
-            await installAddon(file);
+            let install = await AddonManager.getInstallForFile(file, null, {{ source: ""internal"" }});
+            if (install.error) {{
+                reportError(ERRORS[install.error]);
+            }}
+            return install.install();
         }}
     }} catch (ex) {{
         reportError(`Could not install add-on: ${{path}}: ${{ex.message}}`);
     }}
 }}
 
-async function processDirectory(dir) {{
-    let entries = dir.directoryEntries;
-    while (entries.hasMoreElements()) {{
-        let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-        if (entry.isDirectory()) {{
-            await processDirectory(entry); // Recursively process the directory
-        }} else if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
-            printDebug(`Attempting to install: ${{entry.leafName}}`);
-            await installExtension(entry.path, true);
-        }}
-    }}
-}}
-
-async function setPermission(addonId) {{
-    const PRIVATE_BROWSING_PERMS = {{
-        permissions: [""internal:privateBrowsingAllowed""],
-        origins: [],
-    }};
-
-    const {{ ExtensionPermissions }} = ChromeUtils.import(""resource://gre/modules/ExtensionPermissions.jsm"");
-
-    const myaddons = await AddonManager.getAddonsByTypes([""extension""]);
-    for (let addon of myaddons) {{
-        if (addon.id !== addonId) continue;
-        await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
-        if (addon.isActive) addon.reload();
-    }}
-}}
-
-async function installUnpackedExtensions() {{
-    const BrowserExtensionsFolderPath = `{browserExtensionsFolderPath}`;
-    printDebug(`BrowserExtensionsFolderPath: ${{BrowserExtensionsFolderPath}}`);
+// Function to install an addon from a local file and add private browsing permissions without reloading
+async function installAddon(filePath) {{
+    // Initialize the file object with the provided path
+    let file = Components.classes[""@mozilla.org/file/local;1""]
+        .createInstance(Components.interfaces.nsIFile);
+    file.initWithPath(filePath);
 
     try {{
-        let dir = new FileUtils.File(BrowserExtensionsFolderPath);
-        if (!dir.exists() || !dir.isDirectory()) throw new Error(""Directory not found or is not a directory"");
+				// Get the install object for the specified file
+        let install = await AddonManager.getInstallForFile(file, null, {{allowRemoteInstall: true }});
 
-				// Uninstall the existing addon first
-        await uninstallAddonIfExists(""proxameleon@chameleonmode.com"");
-        await uninstallAddonIfExists(""foxameleon@chameleonmode.com"");
 
-        let entries = dir.directoryEntries;
-        while (entries.hasMoreElements()) {{
-            let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-            if (entry.isFile() && entry.leafName.endsWith('.xpi')) {{
-                printDebug(`Attempting to install: ${{entry.leafName}}`);
-                await installExtension(entry.path, true);
+        if (install.error) {{
+            reportError(`Error: ${{install.error}}`);
+            return;
+        }}
+
+        // Define a listener to set permissions during the installation process
+        let listener = {{
+            /**
+             * Called when the installation has ended.
+             * This is the optimal place to set permissions before the add-on is activated.
+             *
+             * @param {{AddonInstall}} aInstall - The install object.
+             * @param {{Addon}} aAddon - The add-on being installed.
+             */
+            async onInstallEnded(aInstall, aAddon) {{
+                try {{
+                    // Add the specified permissions to the newly installed add-on
+                    await ExtensionPermissions.add(aAddon.id, PRIVATE_BROWSING_PERMS);
+                    printDebug(`Permissions added to add-on: ${{aAddon.id}}`);
+                    
+                    // No need to reload the add-on since permissions are set before activation
+                }} catch (permError) {{
+                    reportError(`Error: ${{permError.message}}`);
+                }}
+            }},
+
+            /**
+             * Optionally handle other listener events if needed.
+             */
+            onDownloadFailed(aInstall) {{
+                reportError(`Error onDownloadFailed: ${{aInstall}}`);
+            }},
+
+            onInstallFailed(aInstall) {{
+                reportError(`Error onInstallFailed: ${{aInstall}}`);
+            }},
+        }};
+
+        // Add the listener to the install object
+        install.addListener(listener);
+
+        // Start the installation process
+        await install.install();
+        printDebug(""Installation initiated."");
+
+        // Remove the listener after installation to clean up
+        install.removeListener(listener);
+    }} catch (err) {{
+        reportError(`Error: ${{err.message}}`);
+    }}
+}}
+const ADDON_ID = ""foxygeckomeleon@chameleonmode.com"";
+/**
+ * Function to install an unsigned add-on as a temporary extension and set specific permissions.
+ * @param {{string}} filePath - The absolute path to the .xpi file of the add-on.
+ */
+async function installTemporaryAddonWithPermissions(filePath) {{
+    try {{
+        // Step 1: Configure Firefox to allow temporary add-ons (if not already configured)
+        // Note: This step might be optional depending on your Firefox version and setup
+
+        // Step 2: Initialize the file object with the provided path
+        let file = Components.classes[""@mozilla.org/file/local;1""]
+            .createInstance(Components.interfaces.nsIFile);
+        file.initWithPath(filePath);
+
+        // Verify that the file exists
+        if (!file.exists()) {{
+            reportError(`The file at path ""${{filePath}}"" does not exist.`);
+            return;
+        }}
+
+        // Step 3: Install the add-on as a temporary extension
+        let addon = await AddonManager.installTemporaryAddon(file);
+
+        if (!addon) {{
+            reportError(""Failed to install the temporary add-on."");
+            return;
+        }}
+
+        printDebug(`Temporary add-on installed: ${{addon.name}} (ID: ${{addon.id}})`);
+
+        // Step 4: Add the specified permissions to the newly installed add-on
+        // Note: 'internal:' permissions are privileged and may not be settable by regular extensions
+        // Ensure that your environment permits setting such internal permissions
+        try {{
+            await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
+            printDebug(`Permissions added to add-on: ${{addon.id}}`);
+        }} catch (permError) {{
+            reportError(`Error adding permissions to add-on ${{addon.id}}:`, permError);
+        }}
+
+        // Step 5: (Optional) Perform additional actions if the add-on is active
+        if (addon.isActive) {{
+            // Add-on is already active; no need to reload
+            printDebug(`Add-on ""${{addon.name}}"" is active.`);
+        }} else {{
+            // If needed, activate the add-on
+            try {{
+                await addon.enable();
+                printDebug(`Add-on ""${{addon.name}}"" has been enabled.`);
+            }} catch (enableError) {{
+                reportError(`Error enabling add-on ""${{addon.name}}"":`, enableError);
             }}
         }}
 
-        let folder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
-        folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.Foxameleon}`;
-        let pdirDir = new FileUtils.File(folder);
-        if (pdirDir.exists() && pdirDir.isDirectory()) {{
-            await processDirectory(pdirDir); // Process the profile directory
+        // Define a listener for extension events
+        const listener = {{
+            onEnabled(enabledAddon) {{
+                if (enabledAddon.id === ADDON_ID) {{
+                    printDebug(`Add-on ${{ADDON_ID}} enabled.`);
+                }}
+            }},
+            onDisabled(disabledAddon) {{
+                if (disabledAddon.id === ADDON_ID) {{
+                    printDebug(`Add-on ${{ADDON_ID}} disabled.`);
+                }}
+            }},
+            onUninstalled(uninstalledAddon) {{
+                if (uninstalledAddon.id === ADDON_ID) {{
+                    printDebug(`Add-on ${{ADDON_ID}} uninstalled.`);
+                }}
+            }},
+            // Add other necessary listener methods here
+        }};
+
+        // Register the listener
+        AddonManager.addAddonListener(listener);
+    }} catch (error) {{
+        reportError(""An unexpected error occurred during add-on installation:"", error);
+    }}
+}}
+
+async function installExtensions() {{
+    const BrowserExtensionsFolderPath = `{browserExtensions}`;
+    const folder = `{profileDirPath}`;
+
+    try {{
+        let dir = new FileUtils.File(BrowserExtensionsFolderPath);
+        if (dir.exists() && dir.isDirectory()) {{
+            let entries = dir.directoryEntries;
+            while (entries.hasMoreElements()) {{
+                let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+                if (entry.isFile() && entry.leafName.endsWith('.xpi')) {{
+                    printDebug(`Attempting to install: ${{entry.leafName}}`);
+                    await installExtension(entry.path, false);
+                }}
+            }}
         }}
 
-        await setPermission(""proxameleon@chameleonmode.com"");
-        await setPermission(""foxameleon@chameleonmode.com"");
+        let pdirDir = new FileUtils.File(folder);
+        if (pdirDir.exists() && pdirDir.isDirectory()) {{
+            let entries = pdirDir.directoryEntries;
+            while (entries.hasMoreElements()) {{
+                let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+                if (entry.isFile() && entry.leafName.endsWith('.xpi')) {{
+                    printDebug(`Attempting to install: ${{entry.leafName}}`);
+                    await installTemporaryAddonWithPermissions(entry.path);
+                }}
+            }}
+        }}
     }} catch (ex) {{
         reportError(`Error: ${{ex.message}}`);
     }}
@@ -1574,7 +1677,7 @@ try {{
     ConfigJS.prototype = {{
         observe: async function(subject, topic, data) {{
             if (topic === 'final-ui-startup') {{
-                await installUnpackedExtensions();
+                await installExtensions();
             }}
         }}
     }};
@@ -1599,7 +1702,7 @@ pref("general.config.filename", "userChrome.js");
 pref("general.config.sandbox_enabled", false);
 """;
 
-		var dir = OperatingSystem.IsMacOS() ? Path.Combine(directory, "Contents", "Resources") : directory;
+		var dir = OperatingSystem.IsMacOS() ? Path.Combine(Consts.Browser.LocalFirefoxDirPath, "Contents", "Resources") : Consts.Browser.LocalFirefoxDirPath;
 		var ucp = Path.Combine(dir, "userChrome.js");
 		var cpp = Path.Combine(dir, "defaults", "pref", "config-prefs.js");
 		await File.WriteAllTextAsync(ucp, userChrome);

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Text.Json;
 
 namespace Chameleon.lib.Common.Util;
 public static class IOtil {
@@ -184,7 +185,35 @@ public static class IOtil {
 		return path;
 	}
 
-	public static async Task CopyFromStream(Stream inputStream, string targetDir, string relativePath, string? header = null)
+	//public static async Task CopyFromStream(Stream inputStream, string targetDir, string relativePath, string? header = null)
+	//{
+	//	ArgumentNullException.ThrowIfNull(inputStream);
+
+	//	var desPath = Path.Combine(targetDir, relativePath);
+	//	var destDir = Path.GetDirectoryName(desPath);
+	//	ArgumentNullException.ThrowIfNull(destDir);
+
+	//	await CreateDirectoryAsync(destDir);
+
+	//	var tempFilePath = Path.GetTempFileName();
+	//	try {
+	//		using (var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
+	//			if (!string.IsNullOrEmpty(header)) {
+	//				var headerBytes = System.Text.Encoding.UTF8.GetBytes(header);
+	//				await tempFileStream.WriteAsync(headerBytes);
+	//			}
+
+	//			await inputStream.CopyToAsync(tempFileStream);
+	//		}
+
+	//		if(desPath.Contains("manifest.json"))
+	//		File.Copy(tempFilePath, desPath, true);
+	//	} finally {
+	//		File.Delete(tempFilePath);
+	//	}
+	//}
+
+	public static async Task CopyFromStream(Stream inputStream, string targetDir, string relativePath, string? header = null, string? version = null)
 	{
 		ArgumentNullException.ThrowIfNull(inputStream);
 
@@ -197,19 +226,43 @@ public static class IOtil {
 		var tempFilePath = Path.GetTempFileName();
 		try {
 			using (var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
-				if (!string.IsNullOrEmpty(header)) {
-					var headerBytes = System.Text.Encoding.UTF8.GetBytes(header);
+				if (header.Is()) {
+					var headerBytes = Encoding.UTF8.GetBytes(header!);
 					await tempFileStream.WriteAsync(headerBytes);
 				}
 
 				await inputStream.CopyToAsync(tempFileStream);
 			}
 
-			if(desPath.Contains("manifest.json"))
-			File.Copy(tempFilePath, desPath, true);
+			if (version.Is()) {
+				// Read the JSON file
+				var jsonString = await File.ReadAllTextAsync(tempFilePath);
+				var manifest = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonString);
+
+				if (manifest != null && manifest.TryGetValue("version", out var value)) {
+						manifest["version"] = version!;
+
+						// Serialize back to JSON
+						jsonString = JsonSerializer.Serialize(manifest);
+				}
+
+				await File.WriteAllTextAsync(desPath, jsonString);
+			} else {
+				File.Copy(tempFilePath, desPath, true);
+			}
 		} finally {
 			File.Delete(tempFilePath);
 		}
+	}
+
+	public static string IncrementVersion(string version)
+	{
+		// Example: Increment the minor version for simplicity
+		var parts = version.Split('.');
+		if (parts.Length >= 2 && int.TryParse(parts[^1], out var buildNumber)) {
+			parts[^1] = (buildNumber + 1).ToString();
+		}
+		return string.Join('.', parts);
 	}
 }
 

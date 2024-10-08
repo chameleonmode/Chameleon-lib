@@ -36,7 +36,32 @@ export function createTimezoneContextMenus() {
       checked: settings.randomizeTZ,
     },
     () => chrome.runtime.lastError
-  );
+    );
+
+    chrome.contextMenus.create(
+        {
+            title: "Select From List Of Available Timezones",
+            id: "list-timezones",
+            contexts: ["browser_action"],
+            parentId: "timezone-menu",
+        },
+        () => {
+            chrome.runtime.lastError;
+            Object.keys(offsets).forEach((zone) => {
+                const offset = offsets[zone].offset;
+                const offsetHours = offset / 60;
+                chrome.contextMenus.create(
+                    {
+                        title: `${zone} (GMT${offsetHours > 0 ? '+' : ''}${offsetHours})`,
+                        id: `timezone-${zone}`,
+                        contexts: ["browser_action"],
+                        parentId: "list-timezones",
+                    },
+                    () => chrome.runtime.lastError
+                );
+            });
+        }
+    );
 }
 
 export async function handleTimezoneMenuClick(info, tab) {
@@ -56,6 +81,11 @@ export async function handleTimezoneMenuClick(info, tab) {
     } else {
       log.info("Randomize Timezone disabled");
     }
+  } else if (info.menuItemId.startsWith("timezone-")) {
+      const selectedZoneId = info.menuItemId.replace("timezone-", "");
+      // Update settings and log
+      settings.timezone = selectedZoneId;
+      log.info(`Selected Timezone: ${selectedZoneId}`);
   }
   updateSettings();
 }

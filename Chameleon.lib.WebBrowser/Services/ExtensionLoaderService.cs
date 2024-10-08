@@ -8,7 +8,7 @@ using Chameleon.lib.WebBrowser.Interfaces;
 namespace Chameleon.lib.WebBrowser.Services;
 public class ExtensionLoaderService : IExtensionLoaderService {
 
-	public async Task LoadExtension(Enums.ExtensionType extensionType, string destinationPath, string? settings = null)
+	public async Task LoadExtension(Enums.ExtensionType extensionType, string destinationPath, string? settings = null, string? version = null)
 	{
 		try {
 			var extensionName = extensionType.ToString();
@@ -22,7 +22,8 @@ public class ExtensionLoaderService : IExtensionLoaderService {
 				await IOtil.CopyFromStream(
 						Loader.Instance.Open(asset),
 						destinationPath, relativePath,
-						relativePath.EndsWith("background.js") ? settings : null);
+						relativePath.EndsWith("background.js") ? settings : null,
+						relativePath.EndsWith("manifest.json") ? version : null);
 			}
 		} catch (Exception ex) {
 			Toaster.ShowErr("Failed to load extension", ex.Message);

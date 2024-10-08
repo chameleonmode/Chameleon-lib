@@ -93,7 +93,7 @@ Use https://www.latlong.net/ to find these values`,
                         // Update settings
                         settings.latitude = geoSettings.latitude;
                         settings.longitude = geoSettings.longitude;
-                        browser.storage.sync.set(settings);
+                       /* browser.storage.sync.set(settings);*/
 
                         applyGeoSettings();
                     } catch (e) {

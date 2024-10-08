@@ -20,7 +20,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			await Task.Delay(1000);
 		}
 
-		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Consts.Browser.LocalFirefoxDirPath);
+		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
 	}
 
 	protected override async Task InitializeExtensionPath()
@@ -29,14 +29,22 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		_ = await InitializePrefsJs();
 
 		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Foxameleon);
+		var versionFile = Path.Combine(inDir, "version.txt");
+		var version = "2024.1.7.2";
+		if (File.Exists(versionFile)) {
+			var fileVersion = await File.ReadAllTextAsync(versionFile);
+			if(fileVersion.Is()) version = IOtil.IncrementVersion(fileVersion);
+		}
 		await IOtil.DC(inDir);
+		await File.WriteAllTextAsync(versionFile, version);
 
+		//
 		ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, await BuildExtSettings());
 
-		if (Settings.Profile.Proxy.CanUse) {
-			ExtentionsDirs.Add(Enums.ExtensionType.foxameleon_proxy, @$"
+		//
+		ExtentionsDirs.Add(Enums.ExtensionType.foxameleon_proxy, @$"
                 let settings = {{
-                    enabled: true,
+                    enabled: {Settings.Profile.Proxy.CanUse.Tlwr()},
                     type: 'http',
                     host: '{Settings.Profile.Proxy.Host}',
                     port: {Settings.Profile.Proxy.Port},
@@ -47,16 +55,41 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
                     debug: false,
                 }};
             ");
-		}
 
+		var foxyFname = Guid.NewGuid().ToString() + ".xpi";
+		var proxyFname = Guid.NewGuid().ToString() + ".xpi";
 		foreach (var (ext, setting) in ExtentionsDirs) {
-			await _extensionLoaderService!.LoadExtension(ext, Settings.DestExtentionsDir, setting).ConfigureAwait(true);
+			await _extensionLoaderService!.LoadExtension(ext, Settings.DestExtentionsDir, setting, version).ConfigureAwait(true);
 			var extDir = Path.Combine(Settings.DestExtentionsDir, ext.ToString());
 			if (Directory.Exists(extDir)) {
-				await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid().ToString() + ".zip"), extDir);
+				await IOtil.CreateZipAsync(Path.Combine(inDir, ext == Enums.ExtensionType.foxameleon ? foxyFname : proxyFname), extDir);
 			}
 		}
 
+//		var policy =
+//@$"
+//{{
+//   ""policies"": {{
+//		""ExtensionSettings"": {{
+//		  ""uBlock0@raymondhill.net"": {{
+//		    ""installation_mode"": ""normal_installed"",
+//		    ""install_url"": ""https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi""  
+//		  }},
+//		  ""adguardadblocker@adguard.com"": {{
+//		    ""installation_mode"": ""normal_installed"",
+//		    ""install_url"": ""https://addons.mozilla.org/firefox/downloads/latest/adguardadblocker@adguard.com/latest.xpi"" 
+//		  }}
+//		}}
+//	}}
+//}}";
+
+		//-Place the `policies.json` file in the appropriate directory based on the operating system:
+		//   -**Windows:** `C:\Program Files\Mozilla Firefox\distribution\policies.json`
+		//   -**macOS:** `/ Applications / Firefox.app / Contents / Resources / distribution / policies.json`
+		//   -**Linux:** `/ usr / lib / firefox / distribution / policies.json` or similar.
+		//var distributionDir = Path.Combine(Consts.Browser.LocalFirefoxDirPath, "distribution");
+		//Directory.CreateDirectory(distributionDir);
+		//File.WriteAllText(Path.Combine(distributionDir, "policies.json"), policy);
 	}
 
 	// TODO:
@@ -67,12 +100,14 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			SysBrowserInfoUtil.user_pref("privacy.trackingprotection.enabled", true),
 			SysBrowserInfoUtil.user_pref("browser.shell.checkDefaultBrowser", false),
 			SysBrowserInfoUtil.user_pref("app.update.service.enabled", false),
-			SysBrowserInfoUtil.user_pref("browser.startup.homepage", "https://arkenfox.github.io/TZP/tzp.html"),
+			//"https://arkenfox.github.io/TZP/tzp.html"
+			SysBrowserInfoUtil.user_pref("browser.startup.homepage", Settings.StartUrl),
 			SysBrowserInfoUtil.user_pref("browser.contentblocking.category", "strict"),
-			SysBrowserInfoUtil.user_pref("privacy.fingerprintingProtection.overrides","+JSDateTimeUTC"),
+			SysBrowserInfoUtil.user_pref("privacy.fingerprintingProtection.overrides",Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+JSDateTimeUTC" : ""),
 			SysBrowserInfoUtil.user_pref("network.http.referer.XOriginTrimmingPolicy","0"),
-			SysBrowserInfoUtil.user_pref("browser.startup.page", 3),
-			SysBrowserInfoUtil.user_pref("xpinstall.signatures.required", false),
+			SysBrowserInfoUtil.user_pref("browser.startup.page", Debugger.IsAttached ? 3 : 1),
+			//SysBrowserInfoUtil.user_pref("extensions.webextensions.uuids", ""),
+			//SysBrowserInfoUtil.user_pref("browser.uiCustomization.state", ""),
 		}) {
 			prefs[p.Key] = p.Value;
 		}
@@ -94,7 +129,8 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 					// Add key-value pair to the dictionary
 					if (!prefs.Any(p=>p.Key.Contains(key))
 						&& !SysBrowserInfoUtil.FirefoxDepricatedPrefs.Any(p => p == key)
-						&& !key.Contains(".proxy.")) {
+						&& !key.Contains(".proxy.")
+						&& !key.Contains("extensions.webextensions.ExtensionStorageIDB.migrated")) {
 						Debug.WriteLine(key + " " + value);
 						var p = SysBrowserInfoUtil.user_pref(key, value);
 						prefs[p.Key] = p.Value;
