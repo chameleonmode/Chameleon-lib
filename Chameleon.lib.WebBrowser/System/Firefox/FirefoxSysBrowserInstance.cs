@@ -95,15 +95,15 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	// TODO:
 	private async Task<Dictionary<string, string>> InitializePrefsJs()
 	{
+			//"https://arkenfox.github.io/TZP/tzp.html"
 		var prefs = SysBrowserInfoUtil.FirefoxUserPrefs.ToDictionary();
 		foreach (var p in new List<KeyValuePair<string, string>> {
 			SysBrowserInfoUtil.user_pref("privacy.trackingprotection.enabled", true),
 			SysBrowserInfoUtil.user_pref("browser.shell.checkDefaultBrowser", false),
 			SysBrowserInfoUtil.user_pref("app.update.service.enabled", false),
-			//"https://arkenfox.github.io/TZP/tzp.html"
 			SysBrowserInfoUtil.user_pref("browser.startup.homepage", Settings.StartUrl),
 			SysBrowserInfoUtil.user_pref("browser.contentblocking.category", "strict"),
-			SysBrowserInfoUtil.user_pref("privacy.fingerprintingProtection.overrides",Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+JSDateTimeUTC" : ""),
+			SysBrowserInfoUtil.user_pref("privacy.fingerprintingProtection.overrides", Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+JSDateTimeUTC" : ""),
 			SysBrowserInfoUtil.user_pref("network.http.referer.XOriginTrimmingPolicy","0"),
 			SysBrowserInfoUtil.user_pref("browser.startup.page", Debugger.IsAttached ? 3 : 1),
 			//SysBrowserInfoUtil.user_pref("extensions.webextensions.uuids", ""),

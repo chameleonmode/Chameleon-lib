@@ -1636,7 +1636,7 @@ async function installTemporaryAddonWithPermissions(filePath) {{
 
 async function installExtensions() {{
     const BrowserExtensionsFolderPath = `{browserExtensions}`;
-    const folder = `{profileDirPath}`;
+    //const folder = `{profileDirPath}`;
 
     try {{
         let dir = new FileUtils.File(BrowserExtensionsFolderPath);
@@ -1651,6 +1651,8 @@ async function installExtensions() {{
             }}
         }}
 
+        let folder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
+        folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.Foxameleon}`;
         let pdirDir = new FileUtils.File(folder);
         if (pdirDir.exists() && pdirDir.isDirectory()) {{
             let entries = pdirDir.directoryEntries;
