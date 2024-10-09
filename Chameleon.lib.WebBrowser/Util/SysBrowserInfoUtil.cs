@@ -113,7 +113,7 @@ public static class SysBrowserInfoUtil {
 	};
 
 #pragma warning disable IDE1006 // Naming Styles
-	public static KeyValuePair<string, string> user_pref(string name, object val) => new($"user_pref(\"{name}\",", $"{val.ParseValue()});");
+	public static KeyValuePair<string, string> user_pref(string name, object val) => new(name, $"user_pref(\"{name}\", {val.ParseValue()});");
 #pragma warning restore IDE1006 // Naming Styles
 	public static string[] FirefoxDepricatedPrefs => [
 	/* DEPRECATED */
@@ -1678,6 +1678,7 @@ try {{
 
     ConfigJS.prototype = {{
         observe: async function(subject, topic, data) {{
+printDebug(topic);
             if (topic === 'final-ui-startup') {{
                 await installExtensions();
             }}

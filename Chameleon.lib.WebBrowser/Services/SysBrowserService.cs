@@ -55,12 +55,12 @@ public class SysBrowserService
 				_ = await browser.LoadedTCS.Task;
 
 
-				if (browser.Brocess?.HasExited != true && browser.Settings.Profile.Id == obj) {
+				if (browser.Settings.Brocess?.HasExited != true && browser.Settings.Profile.Id == obj) {
 					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 					continue;
 				}
 
-				if(browser.Brocess?.HasExited != true)
+				if(browser.Settings.Brocess?.HasExited != true)
 					browser.InvokeEvent(Enums.SysBrowserEventType.Background);
 			}
 		}
@@ -71,7 +71,7 @@ public class SysBrowserService
 		try {
 			for (var i = Instances.Count - 1; i >= 0; i--) {
 				var uid = Instances.Keys.ElementAt(i);
-				if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.HasExited == true) {
+				if (Instances.TryGetValue(uid, out var browser) && browser.Settings.Brocess?.HasExited == true) {
 						browser.Close();
 				}
 			}
@@ -88,7 +88,7 @@ public class SysBrowserService
 				if (Instances.TryGetValue(uid, out var browser)) {
 					_ = await browser.LoadedTCS.Task;
 
-					if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle == obj) {
+					if (browser.Settings.Brocess?.HasExited != true && browser.Settings.Brocess?.MainWindowHandle == obj) {
 						browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 						continue;
 					}
@@ -108,19 +108,9 @@ public class SysBrowserService
 			_ = await TaskUtil.AwaitFor(() => !IsBusy, 18, 256);
 			_ = Interlocked.Increment(ref _isBusy);
 			try {
-				var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new EmulationOptions {
-					DisableWebRTC = true,
-					SpoofClientRects = true,
-					SpoofFontFingerprint = true,
-					SpoofCanvasFingerprint = true,
-					SpoofWebGLFingerprint = true,
-					SpoofGeoLocation = true,
-					AutoTimezone = true,
-				};
+				var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 				var urls = IoC.GetJsonValue<string[]>("DefaultHomePageSettings") ?? ["duckduckgo.com"];
 				var starturl = urls[new Random().Next(urls.Length)];
-				starturl = starturl.Contains(Consts.Http.UrlSchemeEnd) ?
-				starturl : $"{Consts.Http.HttpsScheme}{starturl}";
 				var launchOptions = new SysBrowserSettings(options, emulations, starturl, Netil.NextFreePort(9613));
 				browser = Create(options.BrowserType, launchOptions);
 				browser.OnEvent += Browser_OnEvent;
@@ -147,7 +137,7 @@ public class SysBrowserService
 				_ = Interlocked.Exchange(ref _isBusy, 0);
 			}
 		} else {
-			if (browser.Brocess?.HasExited == true) {
+			if (browser.Settings.Brocess?.HasExited == true) {
 				browser.Close();
 				await Task.Delay(250);
 				_ = Open(options);

@@ -1,4 +1,5 @@
 ﻿using Chameleon.lib.Common;
+using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Models;
 
 using static Chameleon.lib.Common.Constants.Enums;
@@ -43,7 +44,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 
 		IoC.SetJsonValue(new EmulationOptions {
 			DisableWebRTC = true,
-			SpoofClientRects = false,
+			SpoofClientRects = true,
 			SpoofFontFingerprint = true,
 			SpoofCanvasFingerprint = true,
 			SpoofWebGLFingerprint = true,
@@ -51,6 +52,14 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 			AutoTimezone = true,
 		}, nameof(EmulationOptions));
 
+		//var bi = await SysBrowserServiceBase.Open(
+		//	new SysBrowserOpenOptions(
+		//		SystemBrowserType.Firefox,
+		//		new Common.Models.UserProfileModel() {
+		//			Id = 111
+		//		})
+		//	);
+		//await ProUtil.TryKillProcess(bi!.Settings.Brocess);
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
 				SystemBrowserType.Firefox,

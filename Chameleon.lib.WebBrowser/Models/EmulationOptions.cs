@@ -1,10 +1,10 @@
 ﻿namespace Chameleon.lib.WebBrowser.Models;
 public class EmulationOptions {
-	public bool AutoTimezone { get; set; }
-	public bool SpoofWebGLFingerprint { get; set; }
-	public bool SpoofCanvasFingerprint { get; set; }
-	public bool SpoofClientRects { get; set; }
-	public bool SpoofFontFingerprint { get; set; }
-	public bool DisableWebRTC { get; set; }
-	public bool SpoofGeoLocation { get; set; }
+	public bool AutoTimezone { get; set; } = true;
+	public bool SpoofWebGLFingerprint { get; set; } = true;
+	public bool SpoofCanvasFingerprint { get; set; } = true;
+	public bool SpoofClientRects { get; set; } = true;
+	public bool SpoofFontFingerprint { get; set; } = true;
+	public bool DisableWebRTC { get; set; } = true;
+	public bool SpoofGeoLocation { get; set; } = true;
 }

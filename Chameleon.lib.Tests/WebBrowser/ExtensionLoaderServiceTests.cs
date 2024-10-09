@@ -19,7 +19,6 @@ public class ExtensionLoaderServiceTests : WebBroswserTestsBase {
 	public async Task LoadExtension_ValidExtension_Succeeds()
 	{
 		_ = await _tcs.Task;
-		Assert.NotNull(ExtensionLoaderService);
 
 		// Arrange
 		var extensionType = ExtensionType.chromeleon;
@@ -29,13 +28,13 @@ public class ExtensionLoaderServiceTests : WebBroswserTestsBase {
 		Debug.WriteLine($"Testing LoadExtension with destination path: {destinationPath}");
 		try {
 			// Check if the resource exists
-			var resourceNames = typeof(Constas).Assembly.GetManifestResourceNames();
-			foreach (var name in resourceNames) {
-				Debug.WriteLine(name);
-			}
+			//var resourceNames = typeof(Constas).Assembly.GetManifestResourceNames();
+			//foreach (var name in resourceNames) {
+			//	Debug.WriteLine(name);
+			//}
 
 			// Act
-			await ExtensionLoaderService!.LoadExtension(extensionType, destinationPath, settings);
+			await ExtensionLoaderService.Instance.LoadExtension(extensionType, destinationPath, settings);
 
 			// Assert
 			var dest = Path.Combine(destinationPath, extensionType.ToString());

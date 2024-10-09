@@ -3,6 +3,8 @@ using System.Management;
 using System.Runtime.InteropServices;
 
 using Chameleon.lib.Common.ServiceManagers;
+using Chameleon.lib.Common.Util.Mac;
+using Chameleon.lib.Common.Util.Win;
 
 namespace Chameleon.lib.Common.Util;
 public static class ProUtil {
@@ -74,4 +76,27 @@ public static class ProUtil {
 				},
 				EnableRaisingEvents = true,
 			};
+
+	public static bool TrySetForeground(Process? p)
+	{
+		if (p != null) {
+#pragma warning disable CA1416 // Validate platform compatibility
+			if (!OperatingSystem.IsMacOS()) {
+				if (p.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
+					if (U32til.BringWindowToForeground(handle)) {
+						return true;
+					}
+				}
+#pragma warning restore CA1416 // Validate platform compatibility
+			} else {
+				if (MacOSUtil.SetForegroundWindow(p.Id)) {
+					p.Refresh();
+				} else {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
 }

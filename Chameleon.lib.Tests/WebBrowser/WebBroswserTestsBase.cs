@@ -9,13 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Chameleon.lib.Tests.WebBrowser;
 public class WebBroswserTestsBase {
 	public readonly TaskCompletionSource<bool> _tcs = new();
-	public IExtensionLoaderService? ExtensionLoaderService;
 	public ISysBrowserService? SysBrowserServiceBase;
 	public WebBroswserTestsBase()
 	{
 		void setup(bool init)
 		{
-			ExtensionLoaderService = IoC.GetService<IExtensionLoaderService>();
 			SysBrowserServiceBase = IoC.GetService<ISysBrowserService>();
 			_tcs.SetResult(true);
 		}
@@ -27,7 +25,6 @@ public class WebBroswserTestsBase {
 				.Build(), Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
 		}, (services) => {
 			_ = services
-			.AddSingleton<IExtensionLoaderService, ExtensionLoaderService>()
 			.AddSingleton<ISysBrowserService, SysBrowserService>();
 		});
 		// Setup IoC

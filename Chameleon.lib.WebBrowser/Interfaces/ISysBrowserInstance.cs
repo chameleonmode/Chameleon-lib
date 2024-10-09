@@ -10,7 +10,6 @@ public interface ISysBrowserInstance : IAmInitializer
   public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 
   SysBrowserSettings Settings { get; init; }
-  Process? Brocess { get; set; }
 	void InvokeEvent(Enums.SysBrowserEventType eventType);
-	void Close(bool raise = true);
+	void Close();
 }

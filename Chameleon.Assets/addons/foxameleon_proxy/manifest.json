@@ -9,9 +9,11 @@
     "webRequest",
     "webRequestBlocking",
     "webRequestAuthProvider",
+    "webNavigation",
     "<all_urls>"
   ],
   "background": {
+    "persistent": true,
     "scripts": [ "background.js" ]
   },
   "browser_specific_settings": {

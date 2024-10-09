@@ -7,7 +7,8 @@ using Chameleon.lib.WebBrowser.Interfaces;
 
 namespace Chameleon.lib.WebBrowser.Services;
 public class ExtensionLoaderService : IExtensionLoaderService {
-
+	public static ExtensionLoaderService Instance { get; } = new();
+	private ExtensionLoaderService() { }
 	public async Task LoadExtension(Enums.ExtensionType extensionType, string destinationPath, string? settings = null, string? version = null)
 	{
 		try {
