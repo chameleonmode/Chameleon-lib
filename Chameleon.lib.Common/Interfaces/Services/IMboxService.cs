@@ -1,9 +1,11 @@
-﻿using static Chameleon.lib.Common.Constants.Enums;
+﻿using Chameleon.lib.Common.Constants;
 
 namespace Chameleon.lib.Common.Interfaces.Services;
 public interface IMboxService {
-	Task<MboxResult> ShowAsync(string title,
+	Task<Enums.MboxResult> Show(string title,
 		string content,
-		MBoxButtons btns = MBoxButtons.YesNo,
+		Enums.MBoxButtons btns = Enums.MBoxButtons.YesNo,
 		string icon = "Info");
+
+  Task<Enums.TaskDialogResult> ShowTaskDialog<TViewModel>(Func<TViewModel> initialize, object content, string header, string? subHeader = null, string title = Consts.AppName, object? footer = null, Enums.Symbas symbas = Enums.Symbas.Alert, Enums.MBoxButtons btns = Enums.MBoxButtons.YesNo);
 }

@@ -4,6 +4,7 @@ namespace Chameleon.lib.Common.Constants;
 public static class Consts {
 	public const string AppName = "Chameleon";
 	public const string AppSettingsFileName = "appsettings.json";
+	public const string ApiBaseUrl = "https://api.chameleonmode.com/api/";
 
 	public static string AppTempDir {
 		get {
