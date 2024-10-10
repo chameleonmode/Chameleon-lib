@@ -3,7 +3,7 @@ using Chameleon.lib.Api;
 
 namespace Chameleon.lib.Tests.Api;
 public class Base {
-	internal readonly string email = "", lkey = "";
+	internal readonly string email = "elimdadia@gmail.com", lkey = "HHTQ-QJYS-ZMWX-CO5U";
 	public Base()
 	{
 		HttpApiClient.Instance.OnAuthError += async() => {

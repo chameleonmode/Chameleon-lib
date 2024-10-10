@@ -83,7 +83,7 @@ public class IoC {
 	// Returns:
 	//     A service object of type T or null if there is no such service.
 	public static T? GetService<T>() => (T?)Instance.Services?.GetService(typeof(T));
-	public static T? GetService<T>(Type t) => (T?)Instance.Services?.GetService(t);
+	public static object? GetService(Type t) => Instance.Services?.GetService(t);
 
 	public static T? GetValue<T>(string key) => Instance.Config == null ? throw new ArgumentException("Configuration manager is not initialized", nameof(key)) : Instance.Config.GetValue<T>(key.Replace(' ', '_'));
 	public static string? GetValue(params string[] keys) => GetValue<string>(string.Join('_', keys));
