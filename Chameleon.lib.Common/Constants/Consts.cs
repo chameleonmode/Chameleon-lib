@@ -4,7 +4,7 @@ namespace Chameleon.lib.Common.Constants;
 public static class Consts {
 	public const string AppName = "Chameleon";
 	public const string AppSettingsFileName = "appsettings.json";
-	public const string ApiBaseUrl = "https://api.chameleonmode.com/api/";
+	
 
 	public static string AppTempDir {
 		get {
@@ -23,6 +23,11 @@ public static class Consts {
 			return IOtil.EnsureDirectoryExists(
 				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName));
 		}
+	}
+	public static class Api {
+		public const string ApiBaseUrl = "https://api.chameleonmode.com/api/";
+		public const string ProfileEndpoint = "services/app/profile/";
+		public const string FolderEndpoint = "services/app/folder/";
 	}
 
 	public static class Http {

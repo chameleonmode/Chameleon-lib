@@ -2,20 +2,25 @@
 using Chameleon.lib.Api;
 
 namespace Chameleon.lib.Tests.Api;
-public class Base {
+public class ApiTestsBase {
 	internal readonly string email = "elimdadia@gmail.com", lkey = "HHTQ-QJYS-ZMWX-CO5U";
-	public Base()
+	public TaskCompletionSource tcs = new();
+	public LoginResponse? LoginResponse { get; set; }	
+	public ApiTestsBase()
 	{
-		HttpApiClient.Instance.OnAuthError += async() => {
-			var login = await Auther.LoginAsync(email, lkey);
-			Assert.NotNull(login.AccessToken);
-			Assert.NotNull(login.RefreshToken);
-
-			var refresh = await Auther.RefreshTokenAsync(login.AccessToken, login.RefreshToken);
-			Debug.WriteLine("Auth error");
+		Login();
+		HttpApiClient.Instance.OnAuthError +=() => {
+			Debug.WriteLine("OnAuthError");
+			return Task.CompletedTask;
 		};
 		HttpApiClient.Instance.OnRetry += (ex) => {
 			Debug.WriteLine(ex);
 		};
+	}
+
+	private async void Login()
+	{
+		LoginResponse = await Auther.LoginAsync(email, lkey);
+		_ = tcs.TrySetResult();
 	}
 }

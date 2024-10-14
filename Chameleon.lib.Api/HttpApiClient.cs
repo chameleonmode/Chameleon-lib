@@ -1,15 +1,16 @@
 ﻿using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-
-using Chameleon.lib.Common.Constants;
 
 using Polly;
 using Polly.Wrap;
 
 namespace Chameleon.lib.Api;
 public class HttpApiClient {
+	public event Action<string>? OnRetry;
+	public event Action<string>? OnCircuitBreaker;
+	public event Func<Task>? OnAuthError;
+
 	private readonly HttpClient _httpClient = new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,
 		ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
@@ -18,13 +19,8 @@ public class HttpApiClient {
 		PropertyNameCaseInsensitive = true,
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 	};
-	public event Action<string>? OnRetry;
-	public event Action<string>? OnCircuitBreaker;
-	public event Func<Task>? OnAuthError;
 
 	public string AuthToken { get; set; } = string.Empty;
-
-	public AuthenticationHeaderValue Authorization => new("Bearer", AuthToken);
 	public AsyncPolicyWrap<HttpResponseMessage> AsyncPolicyWrap { get; } = Policy.WrapAsync([
 		Policy.HandleResult<HttpResponseMessage>(r => r.StatusCode >= HttpStatusCode.InternalServerError)
 			.Or<HttpRequestException>()
@@ -33,68 +29,49 @@ public class HttpApiClient {
 			}),
 		Policy.HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
 			.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), async (outcome, timespan, retryAttempt, context) => {
-				if(Instance.OnAuthError != null)
-				await Instance.OnAuthError();
+				if(Instance.OnAuthError != null) await Instance.OnAuthError.Invoke();
 			}),
 		Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
 			.Or<HttpRequestException>()
 			.CircuitBreakerAsync(
 					handledEventsAllowedBeforeBreaking: 2,
 					durationOfBreak: TimeSpan.FromSeconds(5),
-					onBreak: (outcome, breakDelay) => {
-						// Log the circuit breaker opening
-						Instance.OnCircuitBreaker?.Invoke($"Circuit breaker opened due to: {outcome.Exception?.Message ?? outcome.Result.ReasonPhrase}");
-					},
-					onReset: () => {
-						// Log the circuit breaker resetting
-						Instance.OnCircuitBreaker?.Invoke("Circuit breaker reset.");
-					},
-					onHalfOpen: () => {
-						// Log the circuit breaker half-open state
-						Instance.OnCircuitBreaker?.Invoke("Circuit breaker is half-open.");
-					})]);
+					onBreak: (outcome, breakDelay) => Instance.OnCircuitBreaker?.Invoke($"Circuit breaker opened due to: {outcome.Exception?.Message ?? outcome.Result.ReasonPhrase}"),
+					onReset: () => Instance.OnCircuitBreaker?.Invoke("Circuit breaker reset."),
+					onHalfOpen: () => Instance.OnCircuitBreaker?.Invoke("Circuit breaker is half-open.")
+			)]);
 
+	public Task<T> Put<T>(string path, object? body = default) => Send<T>(HttpMethod.Put, path, body);
+	public Task<T> Get<T>(string path, object? body = default) => Send<T>(HttpMethod.Get, path, body);
+	public Task<T> Post<T>(string path, object? body = default) => Send<T>(HttpMethod.Post, path, body);
+	public Task<RootResult> Post(string path, object? body = default) => Send<RootResult>(HttpMethod.Post, path, body);
+	public Task<RootResult> Delete(string path) => Send<RootResult>(HttpMethod.Delete, path);
 
-	public async Task<TResponse> Post<TResponse>(string path, object? body = default)
+	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default)
 	{
-		var response = await Send(() => Build(HttpMethod.Post, path, body));
-		return await Read<TResponse>(response);
-	}
-
-	public async Task<TResponse> Get<TResponse>(string path, object? body = default)
-	{
-		var response = await Send(() => Build(HttpMethod.Get, path, body));
-		return await Read<TResponse>(response);
-	}
-
-	private Task<HttpResponseMessage> Send(Func<HttpRequestMessage> @request)
-	{
-		return AsyncPolicyWrap.ExecuteAsync(() => {
-			return _httpClient.SendAsync(@request());
+		var response = await AsyncPolicyWrap.ExecuteAsync(() => {
+			var request = new HttpRequestMessage(method, Common.Constants.Consts.Api.ApiBaseUrl + path);
+			request.Headers.Authorization = new("Bearer", AuthToken);
+			if (body != null) {
+				request.Content = new StringContent(JsonSerializer.Serialize(body, options), Encoding.UTF8, "application/json");
+			}
+			return _httpClient.SendAsync(request);
 		});
-	}
 
+		if (typeof(T) == typeof(RootResult))
+			return await Read<T>(response);
+
+		var read = await Read<RootResponse<T>>(response);
+		return read.result ?? throw new InvalidDataException($"Response could not be determined for {nameof(T)}");
+	}
 	private async Task<T> Read<T>(HttpResponseMessage response)
 	{
 		_ = response.EnsureSuccessStatusCode();
-
-		var responseContent = JsonSerializer.Deserialize<RootResponse<T>>(await response.Content.ReadAsStringAsync(), options);
-		return responseContent is null
-			? throw new InvalidDataException($"Response could not be determined for {nameof(RootResponse<T>)}")
-			: responseContent.result is null 
-			? throw new InvalidDataException($"Response could not be determined for {nameof(T)}") : 
-			responseContent.result;
+		var responseContent = JsonSerializer.Deserialize<T>(await response.Content.ReadAsStringAsync(), options);
+		ArgumentNullException.ThrowIfNull(responseContent, $"Response is unserializable for {nameof(T)}");
+		return responseContent;
 	}
 
-	private HttpRequestMessage Build(HttpMethod method, string path, object? body = default)
-	{
-		var request = new HttpRequestMessage(method, Consts.ApiBaseUrl + path);
-		request.Headers.Authorization = Authorization;
-		if (body != null) {
-			request.Content = new StringContent(JsonSerializer.Serialize(body, options), Encoding.UTF8, "application/json");
-		}
-		return request;
-	}
 	public static HttpApiClient Instance { get; } = new HttpApiClient();
 	private HttpApiClient() { }
 }
