@@ -14,11 +14,16 @@ public class Mbox {
 		return Show(title, content, Enums.MBoxButtons.Ok, "Error");
 	}
 
-	public static Task<Enums.TaskDialogResult> ShowTaskDialog<TViewModel>(Func<TViewModel> initialize, object content, string header,
+	public static Task<Enums.TaskDialogResult> ShowTaskDialog<TViewModel, TView>(Func<TViewModel> initialize, string header,
 		string? subHeader = null, string title = Consts.AppName, object? footer = null, 
-		Enums.Symbas symbas = Enums.Symbas.Alert, Enums.MBoxButtons btns = Enums.MBoxButtons.YesNo)
+		Enums.Symbas symbas = Enums.Symbas.Alert, Enums.MBoxButtons btns = Enums.MBoxButtons.YesNo) where TView : new()
 	{
-		return Instance.MboxService!.ShowTaskDialog(initialize, content, header, subHeader, title, footer, symbas, btns);
+		return Instance.MboxService!.ShowTaskDialog(initialize, new TView(), header, subHeader, title, footer, symbas, btns);
+	}
+
+	public static Task<Enums.MboxResult> ShowContentDialog<TView, TViewModel>(Action<TViewModel> initialize)
+	{
+		return Instance.MboxService!.ShowContentDialog<TView, TViewModel>(initialize);
 	}
 	public static Mbox Instance { get; } = new Mbox();
 	private Mbox()

@@ -1,16 +1,15 @@
 ﻿using Chameleon.lib.Common;
 using Chameleon.lib.Common.Interfaces.Services;
+using Chameleon.lib.Common.Interfaces.Sys;
 
 using CommunityToolkit.Mvvm.Input;
 
 namespace Chameleon.lib.CommunityToolkit.MvvM;
 public partial class ViewModelObjectBase : ObservableObjectBase {
 
-	private readonly ICopyPastaService? copyPastaService;
-
 	public ViewModelObjectBase()
 	{
-		copyPastaService = IoC.GetService<ICopyPastaService>();
+		
 	}
 
 	public ViewModelObjectBase(string? title) : this()
@@ -18,7 +17,7 @@ public partial class ViewModelObjectBase : ObservableObjectBase {
 		Title = title;
 	}
 
-	public ViewModelObjectBase(string title, Action init) : this(title)
+	public ViewModelObjectBase(string title, Func<ViewModelObjectBase> init) : this(title)
 	{
 		init();
 	}
@@ -26,7 +25,8 @@ public partial class ViewModelObjectBase : ObservableObjectBase {
 	[RelayCommand]
 	private async Task Copy(object param)
 	{
-		if(copyPastaService == null)
+		var copyPastaService = IoC.GetService<ICopyPastaService>();
+		if (copyPastaService == null)
 			return;
 
 		await copyPastaService.SetTextAsync(param as string ?? "");
