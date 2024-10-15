@@ -126,14 +126,14 @@ public class ApiReposTests : ApiTestsBase {
 	public async Task Sort_Succeeds()
 	{
 		_ = UserProfilesRepo.Instance.ObservableCache
-		.Connect()
+		.Connect(i => i.isFavourite)
 		.Transform(i => new UserProfileVim(i))
 		.SortAndBind(out var pbd, SortExpressionComparer<UserProfileVim>.Ascending(p => p.Dto.title!))
 		.Subscribe();
 		Profiles = pbd;
 
 		_ = UserProfilesFolderRepo.Instance.ObservableCache
-		.Connect()
+	.Connect(i => i.isFavorite)
 		.Transform(i => new FolderVim(i))
 		.Bind(out var fbd)
 		.Subscribe(i => {
