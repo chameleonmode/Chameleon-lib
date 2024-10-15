@@ -2,6 +2,8 @@
 using System.Text;
 using System.Text.Json;
 
+using Chameleon.lib.Common.Models.Dto;
+
 using Polly;
 using Polly.Wrap;
 
@@ -44,8 +46,7 @@ public class HttpApiClient {
 	public Task<T> Put<T>(string path, object? body = default) => Send<T>(HttpMethod.Put, path, body);
 	public Task<T> Get<T>(string path, object? body = default) => Send<T>(HttpMethod.Get, path, body);
 	public Task<T> Post<T>(string path, object? body = default) => Send<T>(HttpMethod.Post, path, body);
-	public Task<RootResult> Post(string path, object? body = default) => Send<RootResult>(HttpMethod.Post, path, body);
-	public Task<RootResult> Delete(string path) => Send<RootResult>(HttpMethod.Delete, path);
+	public Task<T> Delete<T>(string path) => Send<T>(HttpMethod.Delete, path);
 
 	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default)
 	{

@@ -15,17 +15,17 @@ public class ProxySettingsModel {
 	private string _userName = string.Empty;
 	private string _password = string.Empty;
 
-	public string Host {
+	public string? Host {
 		get => _host;
 		set => _host = value?.Trim() ?? string.Empty;
 	}
 
-	public string UserName {
+	public string? UserName {
 		get => _userName;
 		set => _userName = value?.Trim() ?? string.Empty;
 	}
 
-	public string Password {
+	public string? Password {
 		get => _password;
 		set => _password = value?.Trim() ?? string.Empty;
 	}

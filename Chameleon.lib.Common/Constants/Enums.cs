@@ -98,6 +98,11 @@ public static class Enums {
 		return attribute == null ? value.ToString() : attribute.Description;
 	}
 
+	public enum ChangeComparereOption {
+		Ascending,
+		Descending
+	}
+
 	public enum Symbas {
 		Accept = 57611,
 		Account = 57704,

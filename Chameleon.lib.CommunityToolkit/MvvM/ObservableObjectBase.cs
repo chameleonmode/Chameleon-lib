@@ -12,10 +12,10 @@ public abstract partial class ObservableObjectBase : ObservableObject,
 	public readonly IEventAggregator EventAggregator;
 
 	[ObservableProperty]
-	private string? _title;
+	private string? title;
 
 	[ObservableProperty]
-	private bool _loaded;
+	private bool loaded;
 
 	private long _isBusy;
 	public bool IsBusy => Interlocked.Read(ref _isBusy) > 0;

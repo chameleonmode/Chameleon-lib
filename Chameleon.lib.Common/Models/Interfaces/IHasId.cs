@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Chameleon.lib.Common.Models.Interfaces;
+﻿namespace Chameleon.lib.Common.Models.Interfaces;
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
 public interface IHasid {
-#pragma warning disable IDE1006 // Naming Styles
 	int id { get; set; }
-#pragma warning restore IDE1006 // Naming Styles
+	public string? title { get; set; }
 }
