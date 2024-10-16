@@ -18,4 +18,9 @@ public class Navigator {
 	{
 		Instance.NavigationService?.NavigateToType(t, parameter);
 	}
+
+	public static void Pop()
+	{
+		Instance.NavigationService?.Pop();
+	}
 }

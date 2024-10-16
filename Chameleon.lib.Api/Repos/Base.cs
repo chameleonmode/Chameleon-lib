@@ -53,7 +53,7 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 		return r.items;
 	}
 
-	protected virtual Task<TDto> Create(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Post<TDto>($"{_endpoint}Create", dto));
+	public virtual Task<TDto> Create(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Post<TDto>($"{_endpoint}Create", dto));
 	public virtual Task<TDto> Put(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Put<TDto>($"{_endpoint}Update", dto));
 	//protected virtual Task<TDto> Save(TDto dto) => UpdateWithCache(() => SourceCache.Items.Any(i => i.id == dto.id) ? Put(dto) : Create(dto));
 	public virtual async Task<RootResult> Delete(int id)

@@ -103,6 +103,12 @@ public static class Enums {
 		Descending
 	}
 
+	public enum GenderType {
+		Unknown,
+		Male,
+		Female
+	}
+
 	public enum Symbas {
 		Accept = 57611,
 		Account = 57704,

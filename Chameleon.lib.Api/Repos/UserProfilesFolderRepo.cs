@@ -6,7 +6,7 @@ using DynamicData;
 namespace Chameleon.lib.Api.Repos;
 
 public class UserProfilesFolderRepo : ApiBase<UPFolderDto> {
-	private UserProfilesFolderRepo() : base(Consts.Api.FolderEndpoint) { }
+	private UserProfilesFolderRepo() : base(Consts.Api.Endpoints.Folder) { }
 
 	public static Task<UPFolderDto> CreateFolder(string title) => Instance.Create(new
 	{

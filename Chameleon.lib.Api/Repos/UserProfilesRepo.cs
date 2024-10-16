@@ -6,11 +6,11 @@ using DynamicData;
 namespace Chameleon.lib.Api.Repos;
 
 public class UserProfilesRepo : ApiBase<UserProfileDto> {
-	private UserProfilesRepo() : base(Consts.Api.ProfileEndpoint) { }
+	private UserProfilesRepo() : base(Consts.Api.Endpoints.Profile) { }
 
 	public static Task<UserProfileDto[]> GetAllByUserId(long userId) => Instance.Get<UserProfileDto[]>($"GetAllByUserId?Id={userId}");
 
-	public static async Task<RootResult> MoveUserProfileToFolder<T>(List<int> profileIds, int? foldeId)
+	public static async Task<RootResult> MoveUserProfileToFolder(List<int> profileIds, int? foldeId)
 	{
 		var o = await Instance.Post("MoveUserProfileToFolder", new
 		{
