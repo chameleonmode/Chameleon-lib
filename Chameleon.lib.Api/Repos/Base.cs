@@ -6,14 +6,14 @@ using DynamicData;
 namespace Chameleon.lib.Api.Repos;
 
 public abstract class ApiBase<TDto> where TDto : IHasid {
-	private readonly string _endpoint;
+	public string Endpoint { get; }
 
 	public IObservableCache<TDto, int> ObservableCache { get; }
 	public SourceCache<TDto, int> SourceCache { get; }
 
 	public ApiBase(string endpoint)
 	{
-		_endpoint = endpoint;
+		Endpoint = endpoint;
 
 		//var cache = new SourceCache<TDto, int>(p => p.id);
 		//var cache = ObservableChangeSet.Create<TDto, int>(async list =>
@@ -44,7 +44,7 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 
 	protected async Task<T[]> GetAll<T>()
 	{
-		var r = await HttpApiClient.Instance.Get<Result<T>>($"{_endpoint}GetAll", new
+		var r = await HttpApiClient.Instance.Get<Result<T>>($"{Endpoint}GetAll", new
 		{
 			MaxResultCount = int.MaxValue
 		});
@@ -53,30 +53,30 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 		return r.items;
 	}
 
-	public virtual Task<TDto> Create(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Post<TDto>($"{_endpoint}Create", dto));
-	public virtual Task<TDto> Put(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Put<TDto>($"{_endpoint}Update", dto));
+	public virtual Task<TDto> Create(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Post<TDto>($"{Endpoint}Create", dto));
+	public virtual Task<TDto> Put(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Put<TDto>($"{Endpoint}Update", dto));
 
 	public virtual async Task<RootResult> Delete(int id)
 	{
-		var o = await HttpApiClient.Instance.Delete<RootResult>($"{_endpoint}Delete?Id={id}");
+		var o = await HttpApiClient.Instance.Delete<RootResult>($"{Endpoint}Delete?Id={id}");
 		if (o.success) SourceCache.Remove(id);
 		return o;
 	}
 
 	public virtual Task<T> Get<T>(string path, object? body = default)
 	{
-		return HttpApiClient.Instance.Get<T>($"{_endpoint}{path}", body);
+		return HttpApiClient.Instance.Get<T>($"{Endpoint}{path}", body);
 	}
 	public virtual Task<T> Get<T>(int id)
 	{
-		return HttpApiClient.Instance.Get<T>($"{_endpoint}Get?Id={id}");
+		return HttpApiClient.Instance.Get<T>($"{Endpoint}Get?Id={id}");
 	}
-	protected virtual Task<RootResult> Post(string path, object dto)
+	protected virtual Task<RootResult> Post(string path, object? dto = default)
 	{
-		return HttpApiClient.Instance.Post<RootResult>($"{_endpoint}{path}", dto);
+		return HttpApiClient.Instance.Post<RootResult>($"{Endpoint}{path}", dto);
 	}
-	protected virtual Task<T> Post<T>(string path, object dto)
+	protected virtual Task<T> Post<T>(string path, object? dto = default)
 	{
-		return HttpApiClient.Instance.Post<T>($"{_endpoint}{path}", dto);
+		return HttpApiClient.Instance.Post<T>($"{Endpoint}{path}", dto);
 	}
 }
