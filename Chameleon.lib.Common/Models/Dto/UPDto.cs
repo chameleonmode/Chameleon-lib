@@ -42,15 +42,8 @@ public class UserProfileDto : Interfaces.Dto {
 	public bool isFavourite { get; set; }
 	public string? notes { get; set; }
 	public int proxyId { get; set; }
-	public UPProxyDto? proxy { get; set; }
+	public ProxDto proxy { get; set; } = new();
 
-}
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
-public class UPProxyDto {
-	public string? host { get; set; }
-	public int port { get; set; }
-	public string? userName { get; set; }
-	public string? password { get; set; }
 }
 public abstract class UP : Interfaces.Dto
 {

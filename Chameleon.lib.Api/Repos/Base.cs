@@ -55,7 +55,7 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 
 	public virtual Task<TDto> Create(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Post<TDto>($"{_endpoint}Create", dto));
 	public virtual Task<TDto> Put(object dto) => UpdateWithCache(() => HttpApiClient.Instance.Put<TDto>($"{_endpoint}Update", dto));
-	//protected virtual Task<TDto> Save(TDto dto) => UpdateWithCache(() => SourceCache.Items.Any(i => i.id == dto.id) ? Put(dto) : Create(dto));
+
 	public virtual async Task<RootResult> Delete(int id)
 	{
 		var o = await HttpApiClient.Instance.Delete<RootResult>($"{_endpoint}Delete?Id={id}");
@@ -63,9 +63,9 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 		return o;
 	}
 
-	public virtual Task<T> Get<T>(string path)
+	public virtual Task<T> Get<T>(string path, object? body = default)
 	{
-		return HttpApiClient.Instance.Get<T>($"{_endpoint}{path}");
+		return HttpApiClient.Instance.Get<T>($"{_endpoint}{path}", body);
 	}
 	public virtual Task<T> Get<T>(int id)
 	{
@@ -74,5 +74,9 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 	protected virtual Task<RootResult> Post(string path, object dto)
 	{
 		return HttpApiClient.Instance.Post<RootResult>($"{_endpoint}{path}", dto);
+	}
+	protected virtual Task<T> Post<T>(string path, object dto)
+	{
+		return HttpApiClient.Instance.Post<T>($"{_endpoint}{path}", dto);
 	}
 }

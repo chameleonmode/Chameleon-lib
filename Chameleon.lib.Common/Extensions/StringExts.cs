@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace Chameleon.lib.Common.Extensions;
+﻿namespace Chameleon.lib.Common.Extensions;
 public static class StringExts {
 	public static bool Is(this string? self) => self != null && self != string.Empty && !string.IsNullOrEmpty(self) && !string.IsNullOrWhiteSpace(self);
 

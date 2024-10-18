@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Chameleon\Chameleon.Web\aspnet-core\src\Chameleon.Application.Shared\Chameleon.Application.Shared.csproj" />
     <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
   </ItemGroup>
 

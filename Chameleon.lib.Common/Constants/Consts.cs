@@ -28,13 +28,15 @@ public static class Consts {
 		public const string ApiBaseUrl = "https://api.chameleonmode.com/api/";
 		public const string ServicesPath = "services/app/";
 		public static class Endpoints {
-			public const string Profile   = $"{ServicesPath}profile/";
-			public const string Folder    = $"{ServicesPath}folder/";
-			public const string Person    = $"{ServicesPath}person/";
-			public const string Business  = $"{ServicesPath}business/";
-			public const string Address   = $"{ServicesPath}address/";
-			public const string Credentia = $"{ServicesPath}credential/";
-			public const string Country   = $"{ServicesPath}country/";
+			public const string Profile     = $"{ServicesPath}profile/";
+			public const string Folder      = $"{ServicesPath}folder/";
+			public const string Person      = $"{ServicesPath}person/";
+			public const string Business    = $"{ServicesPath}business/";
+			public const string Address     = $"{ServicesPath}address/";
+			public const string Credentia   = $"{ServicesPath}credential/";
+			public const string Country     = $"{ServicesPath}country/";
+			public const string Proxy       = $"{ServicesPath}proxy/";
+			public const string ProxyCredit = $"{ServicesPath}proxycredit/";
 		}
 	}
 
