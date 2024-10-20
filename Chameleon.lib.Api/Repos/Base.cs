@@ -32,7 +32,7 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 		return o;
 	}
 
-	public async Task Load()
+	public virtual async Task Load()
 	{
 		var response = await GetAll<TDto>();
 
@@ -42,9 +42,9 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 		});
 	}
 
-	protected async Task<T[]> GetAll<T>()
+	public virtual async Task<T[]> GetAll<T>()
 	{
-		var r = await HttpApiClient.Instance.Get<Result<T>>($"{Endpoint}GetAll", new
+		var r = await HttpApiClient.Instance.Get<Result<T>>($"{Endpoint}GetAll?MaxResultCount={int.MaxValue}", new
 		{
 			MaxResultCount = int.MaxValue
 		});

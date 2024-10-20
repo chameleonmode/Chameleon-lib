@@ -7,6 +7,8 @@ using CommunityToolkit.Mvvm.Input;
 namespace Chameleon.lib.CommunityToolkit.MvvM;
 public partial class ViewModelObjectBase : ObservableObjectBase {
 
+	public bool Navigated { get; set; }
+
 	public ViewModelObjectBase()
 	{
 		

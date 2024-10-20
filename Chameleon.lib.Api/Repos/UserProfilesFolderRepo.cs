@@ -22,5 +22,16 @@ public class UserProfilesFolderRepo : ApiBase<UPFolderDto> {
 	public static IObservable<IChangeSet<UPFolderDto, int>> Connect(Func<UPFolderDto, bool>? predicate = null, bool suppressEmptyChangeSets = true)
 		=> Instance.ObservableCache.Connect(predicate, suppressEmptyChangeSets);
 
+	public override async Task Load()
+	{
+		var response = await GetAll<UPFolderDto>();
+
+		SourceCache.Edit(innerCache => {
+			innerCache.Clear();
+			innerCache.AddOrUpdate(new UPFolderDto() { title = "All profiles" });
+			innerCache.AddOrUpdate(response);
+		});
+	}
+
 	public static UserProfilesFolderRepo Instance { get; } = new UserProfilesFolderRepo();
 }

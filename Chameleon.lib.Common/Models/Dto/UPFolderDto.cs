@@ -5,3 +5,16 @@ public class UPFolderDto : Interfaces.Dto {
 	public int profilesCount { get; set; }
 	public long? creatorUserId { get; set; }
 }
+//TODO: ?
+        //"profiles": [
+        //  {
+        //    "id": 23960,
+        //    "title": "New Profile 0000",
+        //    "creatorUserId": 551
+        //  },
+        //  {
+        //    "id": 24734,
+        //    "title": "New Profile 3",
+        //    "creatorUserId": 551
+        //  }
+        //],

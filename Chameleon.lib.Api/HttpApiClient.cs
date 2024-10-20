@@ -68,7 +68,8 @@ public class HttpApiClient {
 	private async Task<T> Read<T>(HttpResponseMessage response)
 	{
 		_ = response.EnsureSuccessStatusCode();
-		var responseContent = JsonSerializer.Deserialize<T>(await response.Content.ReadAsStringAsync(), options);
+		var responseString = await response.Content.ReadAsStringAsync();
+		var responseContent = JsonSerializer.Deserialize<T>(responseString, options);
 		ArgumentNullException.ThrowIfNull(responseContent, $"Response is unserializable for {nameof(T)}");
 		return responseContent;
 	}

@@ -164,6 +164,17 @@ public class ApiReposTests : ApiTestsBase {
 
 	}
 
+	[Fact]
+	public async Task AddidtionalData_Succeds()
+	{
+		await tcs.Task;
+		await UPAdditionalDataRepo.Instance.Countryz.Load();
+		await UPAdditionalDataRepo.Instance.Personz.Load();
+		await UPAdditionalDataRepo.Instance.Loginz.Load();
+		await UPAdditionalDataRepo.Instance.Biz.Load();
+		await UPAdditionalDataRepo.Instance.Addrez.Load();
+	}
+
 	private readonly SortExpressionComparer<Dto> _descendingComparer = SortExpressionComparer<Dto>.Descending(p => p.title ?? "xxx");
 	private readonly SortExpressionComparer<Dto> _ascendingComparer = SortExpressionComparer<Dto>.Ascending(p => p.title ?? "xxx");
 

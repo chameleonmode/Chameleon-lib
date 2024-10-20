@@ -1,6 +1,4 @@
-﻿using System;
-
-using Chameleon.lib.Common.Constants;
+﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models.Dto;
 
 using DynamicData;
@@ -16,14 +14,15 @@ public class UPRepo<T>(string endpoint) : ApiBase<T>(endpoint) where T : UP {
 	public IObservable<IChangeSet<T, int>> Connect(Func<T, bool>? predicate = null, bool suppressEmptyChangeSets = true)
 		=> ObservableCache.Connect(predicate, suppressEmptyChangeSets);
 }
+
 public class UPAdditionalDataRepo {
 	private UPAdditionalDataRepo() { }
 
-	public UPRepo<CountryzDto> Countryz { get; } = new(Consts.Api.Endpoints.Country);
+	public CountryzRepo<CountryzDto> Countryz { get; } = new(Consts.Api.Endpoints.Country);
 	public UPRepo<UPPersonDto> Personz { get; } = new(Consts.Api.Endpoints.Person);
 	public UPRepo<UPBusinessDto> Biz { get; } = new(Consts.Api.Endpoints.Business);
 	public UPRepo<UPAddressDto> Addrez { get; } = new(Consts.Api.Endpoints.Address);
-	public UPRepo<UPLoginDto> Loginz { get; } = new(Consts.Api.Endpoints.Address);
+	public UPRepo<UPLoginDto> Loginz { get; } = new(Consts.Api.Endpoints.Credentia);
 
 	public static async Task<TT> Save<T, TT>(T repo, TT thang) 
 		where T : UPRepo<TT>
