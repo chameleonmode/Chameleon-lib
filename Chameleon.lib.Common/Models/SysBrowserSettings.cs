@@ -1,22 +1,30 @@
 ﻿using System.Diagnostics;
-using System.Reflection.Metadata;
-using System.Text;
-
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.ServiceManagers;
-using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
+
+using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Win;
-using Chameleon.lib.ThirdParty.GeoIp;
-using Chameleon.lib.WebBrowser.Util;
-
-using Newtonsoft.Json.Linq;
-
 using static Chameleon.lib.Common.Constants.Enums;
+using System.Text.Json;
 
-namespace Chameleon.lib.WebBrowser.Models;
+namespace Chameleon.lib.Common.Models;
+public class EmulationOptions {
+	public bool AutoTimezone { get; set; } = true;
+	public bool SpoofWebGLFingerprint { get; set; } = true;
+	public bool SpoofCanvasFingerprint { get; set; } = true;
+	public bool SpoofClientRects { get; set; } = true;
+	public bool SpoofFontFingerprint { get; set; } = true;
+	public bool DisableWebRTC { get; set; } = true;
+	public bool SpoofGeoLocation { get; set; } = true;
+}
+public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
+public record class SysBrowserRecord(string Name, string Path) {
+	public override string ToString()
+	{
+		return Name ?? Path;
+	}
+}
 public record SysBrowserOpenOptions(Enums.SystemBrowserType BrowserType, UserProfileModel Profile);
 public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOptions Emulation, string StartUrl, int Port) {
 	public Enums.SystemBrowserType BrowserType => OpenOptions.BrowserType;
@@ -116,12 +124,14 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 		try {
 			var jsonResponse = await client.GetStringAsync(url);
-			var targets = JArray.Parse(jsonResponse);
+			using var document = JsonDocument.Parse(jsonResponse);
+			var root = document.RootElement;
 
-			foreach (var target in targets.Cast<JObject>()) {
-				if (target["type"]?.ToString() == "page") // Assuming you want to debug a page
-				{
-					return target["webSocketDebuggerUrl"]?.ToString();
+			foreach (var target in root.EnumerateArray()) {
+				if (target.TryGetProperty("type", out var typeProperty) && typeProperty.GetString() == "page") {
+					if (target.TryGetProperty("webSocketDebuggerUrl", out var webSocketDebuggerUrlProperty)) {
+						return webSocketDebuggerUrlProperty.GetString();
+					}
 				}
 			}
 
@@ -142,20 +152,10 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 	}
 
 	public Dictionary<Enums.ExtensionType, (string? settings, string guid)> ExtentionsDirs { get; } = [];
-	public async Task<string?> BuildExtSettings()
+
+	public async Task<string?> BuildExtSettings(Func<Task<string>> @getimezone)
 	{
-		var timezone = "America/Los_Angeles";
-		if (Emulation.AutoTimezone && Profile.Proxy.CanUse) {
-			try {
-				var ipapi = await GeoIpApi.GetIpapi(Profile.Proxy.ServerForRequest, e => Toaster.ShowErr(e),
-					Profile.Proxy.UserName, Profile.Proxy.Password).ConfigureAwait(false);
-				if (ipapi != null) {
-					timezone = ipapi.timezone;
-				}
-			} catch (Exception ex) {
-				Toaster.ShowErr($"Request for timezone failed, {Profile.Proxy.Server} - {ex.Message}");
-			}
-		}
+		var timezone = await @getimezone(); 
 
 		HashSet<KeyValuePair<string, string>> options =
 		[
@@ -195,6 +195,4 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 		return settingsBuilder.ToString();
 	}
-
-
 }

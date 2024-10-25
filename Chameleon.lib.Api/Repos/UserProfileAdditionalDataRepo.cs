@@ -18,7 +18,7 @@ public class UPRepo<T>(string endpoint) : ApiBase<T>(endpoint) where T : UP {
 public class UPAdditionalDataRepo {
 	private UPAdditionalDataRepo() { }
 
-	public CountryzRepo<CountryzDto> Countryz { get; } = new(Consts.Api.Endpoints.Country);
+	//public CountryzRepo<CountryzDto> Countryz { get; } = new(Consts.Api.Endpoints.Country);
 	public UPRepo<UPPersonDto> Personz { get; } = new(Consts.Api.Endpoints.Person);
 	public UPRepo<UPBusinessDto> Biz { get; } = new(Consts.Api.Endpoints.Business);
 	public UPRepo<UPAddressDto> Addrez { get; } = new(Consts.Api.Endpoints.Address);

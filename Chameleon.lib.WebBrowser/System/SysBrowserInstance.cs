@@ -1,17 +1,15 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.WebBrowser.Interfaces;
-using Chameleon.lib.Common;
 using Chameleon.lib.ThirdParty.GeoIp;
 using Chameleon.lib.Common.Util.Mac;
-using Chameleon.lib.WebBrowser.Models;
-using Newtonsoft.Json.Linq;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Constants;
 using static Chameleon.lib.Common.Constants.Enums;
+using Chameleon.lib.Common.Interfaces.Sys;
+using Chameleon.lib.Common.Models;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System;
 
 namespace Chameleon.lib.WebBrowser.System;
 public abstract class SysBrowserInstance
@@ -55,6 +53,24 @@ public abstract class SysBrowserInstance
 		Settings.Brocess?.Dispose();
 		Settings.Brocess = null;
 		InvokeEvent(Enums.SysBrowserEventType.Closed);
+	}
+
+	public async Task<string> GetTimezone()
+	{
+		var timezone = "America/Los_Angeles";
+		if (Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse) {
+			try {
+				var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.ServerForRequest, e => Toaster.ShowErr(e),
+			Settings.Profile.Proxy.UserName, Settings.Profile.Proxy.Password).ConfigureAwait(false);
+				if (ipapi?.timezone != null) {
+					timezone = ipapi.timezone;
+				}
+			} catch (Exception ex) {
+				Toaster.ShowErr($"Request for timezone failed, {Settings.Profile.Proxy.Server} - {ex.Message}");
+			}
+		}
+	
+		return timezone;
 	}
 
 	protected abstract Task InitializeExtensionPath();

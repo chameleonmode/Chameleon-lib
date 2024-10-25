@@ -1,4 +1,6 @@
 ﻿
+using System;
+
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.WebBrowser.Services;
@@ -52,9 +54,16 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	protected override async Task InitializeExtensionPath()
 	{
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, (await Settings.BuildExtSettings(), Guid.NewGuid().ToString()));
+		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, (await Settings.BuildExtSettings(GetTimezone), Guid.NewGuid().ToString()));
 
 		var enabled = Settings.Profile.Proxy.CanUse ? "true" : "false";
+
+		var starturl = 
+			(Uri.TryCreate(Settings.StartUrl, UriKind.Absolute, out var uriResult) &&
+			(uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
+			? Settings.StartUrl
+			: "http://" + Settings.StartUrl;
+
 		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon_auto_proxy, (
 			@$"let settings = {{
 			   enabled: {enabled},
@@ -63,7 +72,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			   port: {Settings.Profile.Proxy.Port},
 			   username: '{Settings.Profile.Proxy.UserName}',
 			   password: '{Settings.Profile.Proxy.Password}',
-			   url: '{Settings.StartUrl}',
+			   url: '{starturl}',
 			   debug: false,
 			}};", Guid.NewGuid().ToString()));
 

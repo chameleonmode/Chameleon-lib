@@ -9,7 +9,6 @@ using Polly;
 namespace Chameleon.lib.ThirdParty.GeoIp;
 
 public class GeoIpApi {
-	// Make singleton
 	public static GeoIpApi Instance { get; } = new GeoIpApi();
 
 	public static async Task<Ipapi?> GetIpapi(string proxyUrl, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null) =>

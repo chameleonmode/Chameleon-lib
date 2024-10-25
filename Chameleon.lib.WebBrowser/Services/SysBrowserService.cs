@@ -1,19 +1,16 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
-
 using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
+using Chameleon.lib.Common.Interfaces.Sys;
+using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.WebBrowser.Interfaces;
-using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.System.Brave;
 using Chameleon.lib.WebBrowser.System.Chrome;
 using Chameleon.lib.WebBrowser.System.Firefox;
-
-using static Chameleon.lib.Common.Constants.Consts;
 
 namespace Chameleon.lib.WebBrowser.Services;
 public class SysBrowserService

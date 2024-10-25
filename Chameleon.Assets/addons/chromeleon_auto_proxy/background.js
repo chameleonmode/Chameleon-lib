@@ -45,12 +45,18 @@ async function updateProxy() {
     log('Updating proxy settings');
     const proxyConfig = settings.enabled ? updateProxyConfig() : updateNoProxyConfig();
     await chrome.proxy.settings.set({value: proxyConfig, scope: 'regular'});
-    let tabs = await chrome.tabs.query({});
+   /* let tabs = await chrome.tabs.query({});*/
     //if (tabs.length > 1) {
     //  await chrome.tabs.remove(tabs[tabs.length - 1].id);
     //}
-      await chrome.tabs.update({ url: settings.url });
-    /*  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });*/
+    /*    await chrome.tabs.update();*/
+    /*    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });*/
+
+    // Get the active tab and navigate to the specified URL
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+       await chrome.tabs.update(tab.id, { url: settings.url });
+    }
     log('Proxy settings updated successfully');
   } catch (error) {
     log(`Error updating proxy settings: ${error.message}`);

@@ -1,14 +1,12 @@
 ﻿using System.Diagnostics;
-using System.Xml.Linq;
 
 using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
+using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Interfaces;
-using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.Services;
-using Chameleon.lib.WebBrowser.Util;
 
 using static Chameleon.lib.Common.Constants.Enums;
 
@@ -49,7 +47,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await File.WriteAllTextAsync(versionFile, version);
 
 		//
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, (await Settings.BuildExtSettings(), Guid.NewGuid().ToString()));
+		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, (await Settings.BuildExtSettings(GetTimezone), Guid.NewGuid().ToString()));
 
 		//
 		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon_proxy,

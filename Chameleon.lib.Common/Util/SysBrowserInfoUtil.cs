@@ -2,12 +2,11 @@
 using System.Runtime.Versioning;
 
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.WebBrowser.Models;
+using Chameleon.lib.Common.Models;
 
 using Microsoft.Win32;
 
-namespace Chameleon.lib.WebBrowser.Util;
+namespace Chameleon.lib.Common.Util;
 public static class SysBrowserInfoUtil {
 
 	[SupportedOSPlatform("windows")]
@@ -20,9 +19,7 @@ public static class SysBrowserInfoUtil {
 				];
 
 		foreach (var path in commonPaths) {
-			if (File.Exists(path)) {
-				return (true, path);
-			}
+			if (File.Exists(path)) return (true, path);
 		}
 
 		// Check registry
@@ -35,18 +32,14 @@ public static class SysBrowserInfoUtil {
 			using var key = Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executableName));
 			if (key != null) {
 				var path = key.GetValue(null) as string;
-				if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
-					return (true, path);
-				}
+				if (!string.IsNullOrEmpty(path) && File.Exists(path)) return (true, path);
 			}
 		}
 
 		// Check for user-specific installation
 		var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 		var userSpecificPaths = Directory.GetFiles(appDataPath, executableName, SearchOption.AllDirectories);
-		if (userSpecificPaths.Length != 0) {
-			return (true, userSpecificPaths.First());
-		}
+		if (userSpecificPaths.Length != 0) return (true, userSpecificPaths.First());
 
 		// Check uninstall registry keys
 		string[] uninstallKeys = [
@@ -64,9 +57,7 @@ public static class SysBrowserInfoUtil {
 						var installLocation = subKey?.GetValue("InstallLocation") as string;
 						if (!string.IsNullOrEmpty(installLocation)) {
 							var fullPath = Path.Combine(installLocation, executableName);
-							if (File.Exists(fullPath)) {
-								return (true, fullPath);
-							}
+							if (File.Exists(fullPath)) return (true, fullPath);
 						}
 					}
 				}
@@ -94,9 +85,7 @@ public static class SysBrowserInfoUtil {
 #pragma warning disable CA1416 // Validate platform compatibility
 
 			var (isinstalled, filepath) = CheckApplication(browserName);
-			if (isinstalled && filepath.Is()) {
-				inf = new SysBrowserRecord(browserName, filepath);
-			}
+			if (isinstalled && filepath.Is()) inf = new SysBrowserRecord(browserName, filepath);
 
 #pragma warning restore CA1416 // Validate platform compatibility
 		}
@@ -205,10 +194,10 @@ public static class SysBrowserInfoUtil {
 		//
 		"general.appname.override",
 		"general.appversion.override",
-	  "general.buildID.override", 
-	  "general.oscpu.override",
-	  "general.platform.override",
-	  "general.useragent.override",
+		"general.buildID.override",
+		"general.oscpu.override",
+		"general.platform.override",
+		"general.useragent.override",
 		"media.navigator.enabled",
 ];
 	public static List<KeyValuePair<string, string>> FirefoxUserPrefs => [
