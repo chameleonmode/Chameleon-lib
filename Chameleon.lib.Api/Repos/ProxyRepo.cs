@@ -8,7 +8,7 @@ public class ProxyAccessRepo : ApiBase<ProxAccessDto> {
 
 	public static Task<ProxAccessDto[]> GetAccess(ProxyAccessRequestDto input)
 	{
-		return Instance.Get<ProxAccessDto[]>("GetAccess", input);
+		return Instance.Get<ProxAccessDto[]>($"GetAccess?IpType={input.IpType}&ProtocolType={input.ProtocolType}&HostType={input.HostType}&CountryId={input.CountryId}&Count={input.Count}");
 	}
 
 	public static Task<ProxCountryDto[]> GetCountries()
