@@ -1,5 +1,4 @@
-﻿using Chameleon.App.Shared.Proxies;
-using Chameleon.lib.Common.Constants;
+﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models.Dto;
 
 namespace Chameleon.lib.Api.Repos;
