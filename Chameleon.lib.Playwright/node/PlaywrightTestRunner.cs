@@ -23,7 +23,10 @@ public class PlaywrightTestRunner : IDisposable {
 #if DEBUG
 		isDebug = true;
 #endif
-		return new PlaywrightTestRunner(scriptName, isDebug ? "C:\\repos\\Chameleon\\Chameleon.Avalonia\\src\\Chameleon.Avalonia.Desktop\\obj\\outwin" : null);
+		return new PlaywrightTestRunner(scriptName, isDebug 
+		? OperatingSystem.IsMacOS() 
+		? "/Users/dev/Projects/Chameleon/Chameleon.Avalonia/src/Chameleon.Avalonia.Desktop/bin/release"
+		: "C:\\repos\\Chameleon\\Chameleon.Avalonia\\src\\Chameleon.Avalonia.Desktop\\obj\\outwin" : null);
 	}
 	private PlaywrightTestRunner(string scriptName, string? basePath = null)
 	{
@@ -34,13 +37,17 @@ public class PlaywrightTestRunner : IDisposable {
 				? "../Resources/.playwright"
 				: ".playwright");
 
-		var nodePath = @$"""{Path.Combine(basePath, OperatingSystem.IsMacOS()
+		var nodePath = Path.Combine(basePath, OperatingSystem.IsMacOS()
 				? "node/darwin-x64/node"
-				: "node\\win32_x64\\node.exe")}""";
+				: "node\\win32_x64\\node.exe");
+		if (!OperatingSystem.IsMacOS())
+			nodePath = @$"""{nodePath}""";
 
-		var args = @$"""{Path.Combine(basePath, OperatingSystem.IsMacOS()
-				? "script/dist/index.js"
-				: "scripts\\dist\\index.js")}""";
+		var args = Path.Combine(basePath, OperatingSystem.IsMacOS()
+				? "scripts/dist/index.js"
+				: "scripts\\dist\\index.js");
+		if (!OperatingSystem.IsMacOS())
+			args = @$"""{args}""";
 
 		var startInfo = new ProcessStartInfo {
 			FileName = nodePath,
