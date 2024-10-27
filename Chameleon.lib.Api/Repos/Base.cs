@@ -36,6 +36,10 @@ public abstract class ApiBase<TDto> where TDto : IHasid {
 	{
 		var response = await GetAll<TDto>();
 
+		//_ = Task.Run(() => SourceCache.Edit(innerCache => {
+		//	innerCache.Clear();
+		//	innerCache.AddOrUpdate(response);
+		//}));
 		SourceCache.Edit(innerCache => {
 			innerCache.Clear();
 			innerCache.AddOrUpdate(response);
