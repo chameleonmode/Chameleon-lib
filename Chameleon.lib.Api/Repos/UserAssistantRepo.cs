@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-
-using Chameleon.lib.Common.Constants;
+﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models.Dto;
 
 namespace Chameleon.lib.Api.Repos;
@@ -32,7 +30,7 @@ public class UserAssistantRepo : ApiBase<AssistDto> {
 
 	public static Task<RootResult> DeleteAssistantProfile(long assistantId, int profileId)
 	{
-		return HttpApiClient.Instance.Delete<RootResult>($"DeleteAssistantProfile?assistantId={assistantId}&profileId={profileId}");
+		return HttpApiClient.Instance.Delete<RootResult>($"{Instance.Endpoint}DeleteAssistantProfile?assistantId={assistantId}&profileId={profileId}");
 	}
 
 	public static Task<AssisProfileDto[]> GetAllAssistantProfilesById(long assistantId)
@@ -45,8 +43,8 @@ public class UserAssistantRepo : ApiBase<AssistDto> {
 	//	_apiClient.Post(GetEndpointUrl("ShareUserProfile"), input);
 	//}
 
-	public static Task<AssisProfileDto[]> AddProfiles(long assistantId, IList<int> profileIds, IList<int> profilePermissions) => Instance
-		.Post<AssisProfileDto[]>("AddProfiles", new {
+	public static Task<RootResult> AddProfiles(long assistantId, IList<int> profileIds, IList<int> profilePermissions) => Instance
+		.Post<RootResult>("AddProfiles", new {
 			Id = assistantId,
 			ProfileIds = profileIds,
 			ProfilePermissionIds = profilePermissions

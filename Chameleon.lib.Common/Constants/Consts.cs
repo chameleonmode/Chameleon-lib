@@ -4,7 +4,7 @@ namespace Chameleon.lib.Common.Constants;
 public static class Consts {
 	public const string AppName = "Chameleon";
 	public const string AppSettingsFileName = "appsettings.json";
-	public const int PageinationPageItems = 25;
+	public const int PageinationPageItems = 18;
 
 	public static string AppTempDir {
 		get {

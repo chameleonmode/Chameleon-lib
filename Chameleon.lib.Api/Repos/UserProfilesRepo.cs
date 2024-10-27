@@ -6,6 +6,7 @@ using DynamicData;
 namespace Chameleon.lib.Api.Repos;
 
 public class UserProfilesRepo : ApiBase<UserProfileDto> {
+	public event Action<UserProfileDto>? OnProfileChanged;
 	private UserProfilesRepo() : base(Consts.Api.Endpoints.Profile) { }
 
 	public static Task<UserProfileDto[]> GetAllByUserId(long userId) => Instance.Get<UserProfileDto[]>($"GetAllByUserId?Id={userId}");
@@ -21,6 +22,7 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 			foreach (var i in Instance.SourceCache.Items.Where(p => profileIds.Contains(p.id))) {
 				i.folderId = foldeId;
 				Instance.SourceCache.AddOrUpdate(i);
+				Instance.OnProfileChanged?.Invoke(i);
 			}
 		}
 		return o;

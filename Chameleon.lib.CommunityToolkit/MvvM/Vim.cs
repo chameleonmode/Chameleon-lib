@@ -6,6 +6,10 @@ public abstract class Vim<T> : ViewModelObjectBase
 	public Vim(string? title) : base(title)
 	{
 	}
+	public Vim(T dto) : base()
+	{
+		Dto = dto;
+	}
 	public Vim() : base()
 	{
 	}

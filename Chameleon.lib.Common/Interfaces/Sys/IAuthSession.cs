@@ -34,7 +34,7 @@ public interface IAuthPermissions {
 	string[] Permissions { get; set; }
 	bool CanCreateProfiles { get; set; }
 }
-[Obsolete("Added for compatibility with corrent infrastructure project until _authSession refactoed out only")]
+//TODO: [Obsolete("Added for compatibility with corrent infrastructure project until _authSession refactoed out only")]
 public interface IAuthSession
 			: IAuthUser
 			, IAuthUserToken
