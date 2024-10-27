@@ -14,9 +14,9 @@ public class Navigator {
 		Instance.NavigationService?.SetFrame(f);
 	}
 
-	public static void NavigateToType(Type t, object? parameter = null)
+	public static void NavigateToType(Type t, object? parameter = null, object? transitionInfo = null)
 	{
-		Instance.NavigationService?.NavigateToType(t, parameter);
+		Instance.NavigationService?.NavigateToType(t, parameter, transitionInfo);
 	}
 
 	public static void Pop()

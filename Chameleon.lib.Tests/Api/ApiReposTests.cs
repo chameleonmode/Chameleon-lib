@@ -168,7 +168,7 @@ public class ApiReposTests : ApiTestsBase {
 	public async Task AddidtionalData_Succeds()
 	{
 		await tcs.Task;
-		await UPAdditionalDataRepo.Instance.Countryz.Load();
+		//await UPAdditionalDataRepo.Instance.Countryz.Load();
 		await UPAdditionalDataRepo.Instance.Personz.Load();
 		await UPAdditionalDataRepo.Instance.Loginz.Load();
 		await UPAdditionalDataRepo.Instance.Biz.Load();

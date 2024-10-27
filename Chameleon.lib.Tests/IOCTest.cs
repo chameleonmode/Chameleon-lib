@@ -2,10 +2,7 @@ using Chameleon.lib.Common;
 using System.Diagnostics;
 using Chameleon.lib.Common.Types;
 using Microsoft.Extensions.Configuration;
-using System.IO;
-using System.Threading.Tasks;
-using Chameleon.lib.WebBrowser.Models;
-using System.Text.Json;
+using Chameleon.lib.Common.Models;
 
 namespace Chameleon.lib.Tests;
 

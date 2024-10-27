@@ -12,6 +12,7 @@ public class HttpApiClient {
 	public event Action<string>? OnRetry;
 	public event Action<string>? OnCircuitBreaker;
 	public event Func<Task>? OnAuthError;
+	public event Action<HttpMethod>? OnSendSeccess;
 
 	private readonly HttpClient _httpClient = new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,
@@ -63,7 +64,9 @@ public class HttpApiClient {
 			return await Read<T>(response);
 
 		var read = await Read<RootResponse<T>>(response);
-		return read.result ?? throw new InvalidDataException($"Response could not be determined for {nameof(T)}");
+		ArgumentNullException.ThrowIfNull(read.result, $"Response could not be determined for {nameof(T)}");
+		OnSendSeccess?.Invoke(method);
+		return read.result;
 	}
 	private async Task<T> Read<T>(HttpResponseMessage response)
 	{
