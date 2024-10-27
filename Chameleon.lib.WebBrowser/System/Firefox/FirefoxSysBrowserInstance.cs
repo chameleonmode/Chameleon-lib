@@ -4,6 +4,7 @@ using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models;
+using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
@@ -14,14 +15,18 @@ namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	private async Task CreateChameleonFirefoxCopy()
 	{
-		if (IOtil.IsNeedUpdate(Settings.ExePath, Consts.Browser.LocalFirefoxExePath)) {
+		var systempath = SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
+		if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath)) {
+			Toaster.ShowInf("Updating Firefox browser. Please wait...");
+
 			await IOtil.DeleteDExistsAsync(Consts.Browser.LocalFirefoxDirPath);
 
 			await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS()
 				? "Applications/firefox.app"
-				: Path.GetDirectoryName(Settings.ExePath)!, Consts.Browser.LocalFirefoxDirPath);
+				: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
 
 			await Task.Delay(1000);
+			Toaster.ShowSuccess("Firefox browser updated successfully.");
 		}
 
 		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);

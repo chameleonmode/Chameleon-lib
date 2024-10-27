@@ -18,4 +18,7 @@ public class Toaster {
 
 	public static void ShowSuccess(string err) =>
 		Current.ToastNotificationService?.ShowSuccess(string.Join(": ", err));
+
+	public static void ShowInf(string err) =>
+	Current.ToastNotificationService?.ShowInformation(string.Join(": ", err));
 }
