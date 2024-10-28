@@ -1696,7 +1696,12 @@ pref("general.config.sandbox_enabled", false);
 
 		var dir = OperatingSystem.IsMacOS() ? Path.Combine(Consts.Browser.LocalFirefoxDirPath, "Contents", "Resources") : Consts.Browser.LocalFirefoxDirPath;
 		var ucp = Path.Combine(dir, "userChrome.js");
-		var cpp = Path.Combine(dir, "defaults", "pref", "config-prefs.js");
+		var cppd = Path.Combine(dir, "defaults", "pref");
+      if(!Directory.Exists(cppd))
+      {
+			_ = Directory.CreateDirectory(cppd);
+      }
+		var cpp = Path.Combine(cppd, "config-prefs.js");
 		await File.WriteAllTextAsync(ucp, userChrome);
 		await File.WriteAllTextAsync(cpp, configPrefs);
 	}
