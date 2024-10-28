@@ -58,9 +58,9 @@ public abstract class SysBrowserInstance
 	public async Task<string> GetTimezone()
 	{
 		var timezone = "America/Los_Angeles";
-		if (Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse) {
+		if (Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse && Settings.Profile.Proxy.ServerForRequest.Is()) {
 			try {
-				var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.ServerForRequest, e => Toaster.ShowErr(e),
+				var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.ServerForRequest!, e => Toaster.ShowErr(e),
 			Settings.Profile.Proxy.UserName, Settings.Profile.Proxy.Password).ConfigureAwait(false);
 				if (ipapi?.timezone != null) {
 					timezone = ipapi.timezone;

@@ -1,6 +1,4 @@
-﻿using Chameleon.lib.Common;
-using Chameleon.lib.Common.Interfaces.Sys;
-using Chameleon.lib.Common.Interfaces.Systemics;
+﻿using Chameleon.lib.Common.Interfaces.Systemics;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,8 +7,6 @@ namespace Chameleon.lib.CommunityToolkit.MvvM;
 
 public abstract partial class ObservableObjectBase : ObservableObject,
 		IAmaViewModel {
-	public readonly IEventAggregator EventAggregator;
-
 	[ObservableProperty]
 	private string? title;
 
@@ -28,7 +24,6 @@ public abstract partial class ObservableObjectBase : ObservableObject,
 
 	public ObservableObjectBase()
 	{
-		EventAggregator = IoC.GetService<IEventAggregator>()!;
 		InitializeAsyncCommand = new AsyncRelayCommand<object>(
 				async (p) => {
 					_ = Interlocked.Increment(ref _isBusy);

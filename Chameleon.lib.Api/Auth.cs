@@ -1,33 +1,33 @@
-﻿using System.Net;
-
-using Chameleon.lib.Common.Extensions;
+﻿using Chameleon.lib.Common.Interfaces.Sys;
 
 namespace Chameleon.lib.Api;
-public record LoginRequest(string UserNameOrEmailAddress, string Password);
-public record LoginResponse(string? AccessToken, string? EncryptedAccessToken, long ExpireInSeconds, string? RefreshToken, long UserId, long? CreatorUserId, string[] Permissions, Limits LicenseLimits, bool TookGuidedTour, bool CanCreateProfiles);
-public record RefreshTokenRequest(string AccessToken, string RefreshToken);
+public record LoginResponse(string? AccessToken, string? EncryptedAccessToken, long ExpireInSeconds, string? RefreshToken, long UserId, long? CreatorUserId, string[] Permissions, Limits LicenseLimits, bool TookGuidedTour, bool CanCreateProfiles) {
+	public RefreshTokenResponse? RefreshedToken { get; set; }
+	public string? UserName { get; set; }
+}
 public record RefreshTokenResponse(string? NewAccessToken, string? NewRefreshToken, long ExpireInSeconds);
 public record IsActiveResponse(bool isActive);
 public record Limits(bool HasOutreach, bool HasYouTube, bool HasWordPress, int MaxProfilesCount, ContentDiscoveryLimits ContentDiscoveryLimits, int MaxAssistantsCount);
 public record ContentDiscoveryLimits(bool HasProspector, bool HasProspectorContent, bool HasSocials, bool HasSocialsContent, int MaxRssCount);
 
 public static class Auther {
-	public static async Task<LoginResponse> LoginAsync(string user, string pass)
+	public static LoginResponse? AuthSession { get; private set; }
+	public static string AuthToken => AuthSession?.RefreshedToken?.NewAccessToken ?? AuthSession?.AccessToken ?? string.Empty;
+	public static async Task LoginAsync(string user, string pass)
 	{
-		var response = await HttpApiClient.Instance.Post<LoginResponse>("TokenAuth/Authenticate", new LoginRequest(user, pass));
+		var response = await HttpApiClient.Instance.Post<LoginResponse>("TokenAuth/Authenticate", new { UserNameOrEmailAddress = user, Password = pass });
 		ArgumentNullException.ThrowIfNull(response.AccessToken, "Response not contain token");
-
-		HttpApiClient.Instance.AuthToken = response.AccessToken;
-		return response;
+		AuthSession = response;
+		AuthSession.UserName = user;
 	}
 
-	public static async Task<RefreshTokenResponse> RefreshTokenAsync(string acessToken, string refreshToken)
+	public static async Task RefreshTokenAsync()
 	{
-		var response = await HttpApiClient.Instance.Post<RefreshTokenResponse>("TokenAuth/RefreshToken", new RefreshTokenRequest(acessToken, refreshToken));
+		ArgumentNullException.ThrowIfNull(AuthSession, "AuthSession is null");
+		var response = await HttpApiClient.Instance.Post<RefreshTokenResponse>("TokenAuth/RefreshToken", new { AuthSession.AccessToken, AuthSession.RefreshToken });
 		ArgumentNullException.ThrowIfNull(response.NewAccessToken, "Response not contain token");
 		ArgumentNullException.ThrowIfNull(response.NewRefreshToken, "Response not contain refresh token");
-		HttpApiClient.Instance.AuthToken = response.NewAccessToken;
-		return response;
+		AuthSession!.RefreshedToken = response;
 	}
 
 	public static async Task<bool> IsLicenseActiveAsync(string license)

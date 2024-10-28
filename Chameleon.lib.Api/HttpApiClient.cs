@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 
+using Chameleon.lib.Common.Interfaces.Sys;
 using Chameleon.lib.Common.Models.Dto;
 
 using Polly;
@@ -23,7 +24,6 @@ public class HttpApiClient {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 	};
 
-	public string AuthToken { get; set; } = string.Empty;
 	public AsyncPolicyWrap<HttpResponseMessage> AsyncPolicyWrap { get; } = Policy.WrapAsync([
 		Policy.HandleResult<HttpResponseMessage>(r => r.StatusCode >= HttpStatusCode.InternalServerError)
 			.Or<HttpRequestException>()
@@ -53,7 +53,7 @@ public class HttpApiClient {
 	{
 		var response = await AsyncPolicyWrap.ExecuteAsync(() => {
 			var request = new HttpRequestMessage(method, Common.Constants.Consts.Api.ApiBaseUrl + path);
-			request.Headers.Authorization = new("Bearer", AuthToken);
+			request.Headers.Authorization = new("Bearer", Auther.AuthToken);
 			if (body != null) {
 				request.Content = new StringContent(JsonSerializer.Serialize(body, options), Encoding.UTF8, "application/json");
 			}

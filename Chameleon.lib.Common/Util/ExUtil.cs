@@ -1,19 +1,6 @@
-﻿using System.IO;
-
-namespace Chameleon.lib.Common.Util;
+﻿namespace Chameleon.lib.Common.Util;
 
 public static class ExUtil {
-	public static void TryOrCatch(Action action, Action? caught = null)
-	{
-		//TODO: refactu ??
-		try {
-			action();
-		} catch {
-			caught?.Invoke();
-			//ignore
-		}
-	}
-
 	public static void TryCatch(Action action, Action? caught = null)
 	{
 		try {
@@ -24,7 +11,7 @@ public static class ExUtil {
 		}
 	}
 
-	public static async Task? AsyncTryCatch(Func<Task> action, Action<Exception>? caught = null)
+	public static async Task AsyncTryCatch(Func<Task> action, Action<Exception>? caught = null)
 	{
 		try {
 			await action();

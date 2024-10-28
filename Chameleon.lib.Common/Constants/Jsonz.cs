@@ -16,6 +16,6 @@ public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
 
 	public override void Write(Utf8JsonWriter writer, T2 value, JsonSerializerOptions options)
 	{
-		JsonSerializer.Serialize(writer, (T1)value, options);
+		JsonSerializer.Serialize(writer, value, options);
 	}
 }

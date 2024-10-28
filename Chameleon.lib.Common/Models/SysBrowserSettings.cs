@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util.Mac;
 
 using Chameleon.lib.Common.Util;

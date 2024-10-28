@@ -43,5 +43,21 @@ public class UPAdditionalDataRepo {
 	{
 		return thang.id > 0 ? await repo.Delete(thang.id) : null;
 	}
+
+	public bool LoadedIniit { get; private set; }
+	public async Task LoadReload(bool force = false)
+	{
+		if (LoadedIniit && !force)
+			return;
+
+		await Task.WhenAll([
+			Personz.Load(),
+			Loginz.Load(),
+			Biz.Load(),
+			Addrez.Load()
+		]);
+
+		LoadedIniit = true;
+	}
 	public static UPAdditionalDataRepo Instance { get; } = new UPAdditionalDataRepo();
 }

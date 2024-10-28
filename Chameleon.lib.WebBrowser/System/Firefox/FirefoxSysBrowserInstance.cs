@@ -245,7 +245,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			// make absolutely sure it is really off
 			["app.update.auto"] = false,
 			["app.update.mode"] = 0,
-			["app.update.service.enabled"] = false,
 			// Do not redirect user when a milstone upgrade of Firefox is detected
 			//["browser.startup.homepage_override.mstone"] = "ignore",
 			// Disable topstories                       

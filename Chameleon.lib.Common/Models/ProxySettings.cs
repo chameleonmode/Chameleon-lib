@@ -3,9 +3,9 @@
 namespace Chameleon.lib.Common.Models;
 
 public class ProxySettingsModel {
-	public string HostForRequest => Host.Contains(Consts.Http.ChameleonModeHost) ? Consts.Http.PacketStreamHost : Host;
-	public string Server => CanUse ? $"{HostForRequest}:{Port}" : string.Empty;
-	public string ServerForRequest => CanUse ? $"http://{Server}" : string.Empty;
+	public string? HostForRequest => Host?.Contains(Consts.Http.ChameleonModeHost) == true ? Consts.Http.PacketStreamHost : Host;
+	public string? Server => CanUse ? $"{HostForRequest}:{Port}" : string.Empty;
+	public string? ServerForRequest => CanUse ? $"http://{Server}" : string.Empty;
 
 	public bool CanUse => Host.Is() && Port > 0;
 	public bool HasLogin => UserName.Is() && Password.Is();
