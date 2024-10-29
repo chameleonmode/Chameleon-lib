@@ -26,8 +26,8 @@ public class GsiteJsScript : IBundledJSScript {
 		var data = new
 		{
 			url = "https://sites.google.com/new",
-			email = args["email"],
-			password = args["password"],
+			email = args.ContainsKey("email") ? args["email"] : Parameters["email"],
+			password = args.ContainsKey("password") ? args["password"] : Parameters["password"],
 			textContent = args["textContent"],
 			textSearch = args["textSearch"],
 			location = args["location"],

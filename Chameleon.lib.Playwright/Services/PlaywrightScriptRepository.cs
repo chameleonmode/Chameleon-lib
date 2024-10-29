@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-
-using Chameleon.lib.Common;
+﻿using Chameleon.lib.Common;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
@@ -19,7 +13,8 @@ public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
 	};
 
 	public IDictionary<string, IBundledJSScript> BundledJSScripts { get; } = new Dictionary<string, IBundledJSScript> {
-		{ nameof(GsiteJsScript), new GsiteJsScript() }
+		{ nameof(GsiteJsScript), new GsiteJsScript() },
+		{ nameof(RedditCommentVoteJsScript), new RedditCommentVoteJsScript() },
 	};
 
 	public async Task<IList<PlaywriteRunScriptOptions>> GetAll(string filepath)

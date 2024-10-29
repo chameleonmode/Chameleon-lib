@@ -7,10 +7,6 @@ using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Common.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.IO;
-using System;
-using System.Threading.Tasks;
-using System.Threading;
 using System.Diagnostics;
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
@@ -19,9 +15,6 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		async void setup(bool init)
 		{
 			// Setup code
-			Port = Netil.NextFreePort(Port);
-			CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-			BrowserProcess = GrowserProcess(CachePath, [$"--remote-debugging-port={Port}"]);
 			await LaunchBrowser();
 			_tcs.SetResult(true);
 		}
@@ -110,7 +103,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestBundledJSScript()
+	public async Task TestBundledGsiteJsScriptScript()
 	{
 		_ = await _tcs.Task;
 
@@ -124,52 +117,107 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 				Parameters = [
 				new PlaywrightDescriptionParam {
 						Id = 1,
-						Key = "url",
-						Value = "https://sites.google.com/"
+						Key = "gsiteTitle",
+						Value = "Google Site Title"
 					},
 					new PlaywrightDescriptionParam {
 						Id = 2,
-						Key = "email",
-						Value = "testjosh11011900@gmail.com"
+						Key = "publishTitle",
+						Value = "Publish Title"
 					},
 					new PlaywrightDescriptionParam {
 						Id = 3,
-						Key = "password",
-						Value = "testjosh11011900@123"
+						Key = "postTitle",
+						Value = "Post Title"
 					},
 					new PlaywrightDescriptionParam {
 						Id = 4,
 						Key = "textContent",
-						Value = "blaa blaa laddy dAAAA doo"
+						Value = "Post Content"
 					},
 					new PlaywrightDescriptionParam {
 						Id = 5,
-						Key = "textSearch",
-						Value = "What is da title"
+						Key = "link",
+						Value = "HyperLink Link"
 					},
 					new PlaywrightDescriptionParam {
 						Id = 6,
-						Key = "location",
-						Value = "new york"
+						Key = "textWithLink",
+						Value = "HyperLink Text"
 					},
 					new PlaywrightDescriptionParam {
 						Id = 7,
-						Key = "publishTitle",
-						Value = "datitleexplained"
+						Key = "textSearch",
+						Value = "Youtube KW Search"
 					},
 					new PlaywrightDescriptionParam {
 						Id = 8,
-						Key = "gsiteTitle",
-						Value = "Da Title"
+						Key = "location",
+						Value = "Post Location Pin"
 					},
 					new PlaywrightDescriptionParam {
 						Id = 9,
-						Key = "postTitle",
-						Value = "zIpErry doo daa"
+						Key = "email",
+						Value = "Email"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 10,
+						Key = "password",
+						Value = "Password"
 					}
 				]
 			}
 		}, CancellationToken.None);
+	}
+
+	[Fact]
+	public async Task TestBundledRedditCommentVoteJsScript()
+	{
+		_ = await _tcs.Task;
+
+		var repo = IoC.GetService<IPlaywrightScriptRepository>();
+		var playBrowserService = IoC.GetService<IPlaywriteService>();
+
+		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
+			Port = Port,
+			BundledJSScript = repo!.BundledJSScripts[nameof(RedditCommentVoteJsScript)],
+			Description = new PlaywrightScriptDescription {
+				Parameters = [
+		new PlaywrightDescriptionParam {
+						Id = 1,
+						Key = "textToSearch",
+						Value = "Search Key Word"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 2,
+						Key = "commenttoMainthread",
+						Value = "First Comment"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 3,
+						Key = "commenttoMainthread2",
+						Value = "Second Comment"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 4,
+						Key = "replToComment",
+						Value = "Post Content"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 5,
+						Key = "reddit_username",
+						Value = "chamelionTest1"
+					},
+					new PlaywrightDescriptionParam {
+						Id = 6,
+						Key = "test_password",
+						Value = "testjosh11011900@123"
+					}
+				]
+			}
+		}, CancellationToken.None);
+
+		//await BrowserProcess!.WaitForExitAsync();
 	}
 
 	[Fact]

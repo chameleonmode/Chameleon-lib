@@ -11,9 +11,10 @@ namespace Chameleon.lib.Tests.Playwright;
 public abstract class PlaywrightTestsBase {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 
-	public string CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-	public Process? BrowserProcess;
-	public int Port = 9669;
+	public string CachePath { get; } = @"C:\Users\eli\AppData\Local\Temp\4a26dbc2-32e3-4c3d-8ee3-3c9b853313ef";// Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+	public Process? BrowserProcess { get; set; }
+	public int Port { get; set; }
 
 	public static Process GrowserProcess(string cachepath, List<string> args) => new() {
 		StartInfo = new ProcessStartInfo {
@@ -40,20 +41,22 @@ public abstract class PlaywrightTestsBase {
 
 	public async Task LaunchBrowser()
 	{
+		//CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 		Port = Netil.NextFreePort(Port);
-		CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 		BrowserProcess = GrowserProcess(CachePath, [$"--remote-debugging-port={Port}"]);
 		_ = BrowserProcess!.Start();
 		await Task.Delay(2000);
 	}
-	public async Task DisposeBrowser()
+	public Task DisposeBrowser()
 	{
 		if (BrowserProcess != null) {
 			BrowserProcess.Kill();
 			BrowserProcess.Dispose();
 			BrowserProcess = null;
 		}
-		await Task.Delay(2000);
 		if (Directory.Exists(CachePath)) Directory.Delete(CachePath, true);
+		return Task.CompletedTask;
+		//await Task.Delay(2000);
+		//if (Directory.Exists(CachePath)) Directory.Delete(CachePath, true);
 	}
 }

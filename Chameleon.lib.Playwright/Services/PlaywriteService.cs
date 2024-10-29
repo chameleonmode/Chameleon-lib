@@ -36,8 +36,6 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 
 					if (options.BundledCSScript != null) {
 						await options.BundledCSScript.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
-					} else if (options.BundledJSScript != null) {
-						await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
 					} else if (options.BundledCSScript == null && options.Description!.FilePath != null) {
 						var scripBody = await File.ReadAllTextAsync(options.Description!.FilePath, token);
 						var instance = await compileScriptService.CompileScript(scripBody);

@@ -22,12 +22,10 @@ public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 
 	public PlaywrightTestRunnerTests() : base()
 	{
-	  void setup(bool init)
+	  async void setup(bool init)
 		{
 			// Setup code
-			Port = Netil.NextFreePort(Port);
-			CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-			BrowserProcess = GrowserProcess(CachePath, [$"--remote-debugging-port={Port}"]);
+			await LaunchBrowser();
 			_tcs.SetResult(true);
 		}
 		IoC.Instance.Configure(() => {

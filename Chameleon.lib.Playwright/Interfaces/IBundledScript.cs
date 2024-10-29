@@ -2,7 +2,9 @@
 
 namespace Chameleon.lib.Playwright.Interfaces;
 public interface IBundledScript {
+	//Display Title
 	string Title { get; }
+	//Display Description
 	string Description { get; }
 	IDictionary<string, string> Parameters { get; }
 }
@@ -12,6 +14,7 @@ public interface IBundledCSScript : IBundledScript {
 }
 
 public interface IBundledJSScript : IBundledScript {
+	//Script Name
 	string Name { get; }
 	Task Run(int port, IDictionary<string, string>? args = null);
 }
