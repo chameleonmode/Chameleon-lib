@@ -10,7 +10,8 @@
     "*://*/*",
     "webNavigation",
     "notifications",
-    "privacy"
+    "privacy",
+    "declarativeNetRequest"
   ],
   "icons": {
     "16": "data/icons/16.png",

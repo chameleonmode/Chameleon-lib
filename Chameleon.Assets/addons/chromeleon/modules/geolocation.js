@@ -1,6 +1,7 @@
 import { settings, updateSettings, Actions } from './settings.js';
 import { tryPrompt } from './prompter.js';
 import { log } from './logger.js';
+import { genUULE, updateLocationRules } from './uule.js';
 
 export function createGeoContextMenus() {
   chrome.contextMenus.create({ title: "GEO", id: "geo", contexts: ["action"] });
@@ -103,7 +104,10 @@ export async function handleGeoMenuClick(info, tab) {
   } else if (info.menuItemId === "exception-editor") {
     openExceptionEditor();
   }
-  updateSettings();
+    updateSettings();
+
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
 }
 
 function updateGeoHistory() {

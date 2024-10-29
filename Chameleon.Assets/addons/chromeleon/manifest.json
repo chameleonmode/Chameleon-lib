@@ -16,7 +16,8 @@
     "scripting",
     "tabs",
     "webNavigation",
-    "webRequest"
+    "webRequest",
+    "geolocation"
   ],
   "host_permissions": [ "<all_urls>" ],
   "commands": {

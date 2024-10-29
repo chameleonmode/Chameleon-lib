@@ -20,7 +20,8 @@ public class ApiTestsBase {
 
 	private async void Login()
 	{
-		LoginResponse = await Auther.LoginAsync(email, lkey);
+		await Auther.LoginAsync(email, lkey);
+		LoginResponse = Auther.AuthSession;
 		_ = tcs.TrySetResult();
 	}
 }

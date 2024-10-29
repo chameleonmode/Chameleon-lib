@@ -2,12 +2,16 @@ import { setLogLevel, log } from "./modules/logger.js";
 import { settings, updateSettings } from "./modules/settings.js";
 import { createGeoContextMenus, handleGeoMenuClick } from "./modules/geolocation.js";
 import { createTimezoneContextMenus, handleTimezoneMenuClick, getRandomTimezone, getTimezoneOffset } from "./modules/timezone.js";
+import { genUULE, updateLocationRules } from './modules/uule.js';
 
 var injectionScript;
 async function setInjectionScript() {
   if(injectionScript) {
     await injectionScript.unregister();
   }
+
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
 
   if (settings.myIP) {
     settings.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;

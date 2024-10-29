@@ -13,8 +13,8 @@ public class AuthTests : ApiTestsBase {
 		Assert.NotNull(LoginResponse.AccessToken);
 		Assert.NotNull(LoginResponse.RefreshToken);
 
-		var refresh = await Auther.RefreshTokenAsync(LoginResponse.AccessToken, LoginResponse.RefreshToken);
-		Assert.NotNull(refresh.NewAccessToken);
-		Assert.NotNull(refresh.NewRefreshToken);
+		await Auther.RefreshTokenAsync();
+		Assert.NotNull(Auther.AuthSession?.RefreshedToken?.NewAccessToken);
+		Assert.NotNull(Auther.AuthSession.RefreshedToken.NewRefreshToken);
 	}
 }
