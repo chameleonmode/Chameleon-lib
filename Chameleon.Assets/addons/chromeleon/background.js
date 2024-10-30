@@ -18,8 +18,8 @@ async function OnLoad() {
 }
 chrome.runtime.onInstalled.addListener(async () => {
     await OnLoad();
-    const uule = genUULE(settings.latitude, settings.longitude);
-    updateLocationRules(uule);
+    //const uule = genUULE(settings.latitude, settings.longitude);
+    //updateLocationRules(uule);
     chrome.tabs.query({}, (tabs) => {
         tabs.forEach((tab) => {
             applyOverrides(tab);

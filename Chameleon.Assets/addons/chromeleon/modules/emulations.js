@@ -79,8 +79,8 @@ function randomizeGeoLocation() {
     settings.longitude = settings.longitude + (Math.random() > 0.5 ? 1 : -1) * settings.randomizeGeo * Math.random();
     settings.longitude = Number(settings.longitude.toFixed(n));
 
-      const uule = genUULE(settings.latitude, settings.longitude);
-      updateLocationRules(uule);
+      //const uule = genUULE(settings.latitude, settings.longitude);
+      //updateLocationRules(uule);
   } catch (e) {
     log.warn("Cannot randomizeGeo GEO", e);
   }
