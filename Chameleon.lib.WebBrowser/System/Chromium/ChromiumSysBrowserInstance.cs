@@ -1,11 +1,8 @@
-﻿
-using System;
-
-using Chameleon.lib.Common.Constants;
+﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.WebBrowser.Services;
 
-namespace Chameleon.lib.WebBrowser.System.Chrome;
+namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	protected override string GetCommandLineArguments()
 	{
@@ -40,6 +37,11 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 				exts.Add(item);
 			}
 		}
+		if (Directory.Exists(Settings.CachedExtentionsDir)) {
+			foreach (var item in Directory.GetDirectories(Settings.CachedExtentionsDir)) {
+				exts.Add(item);
+			}
+		}
 
 		if (Directory.Exists(Settings.SysBrowseUserExtDir))
 			exts.AddRange(Directory.GetDirectories(Settings.SysBrowseUserExtDir));
@@ -54,17 +56,26 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	protected override async Task InitializeExtensionPath()
 	{
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, (await Settings.BuildExtSettings(GetTimezone), Guid.NewGuid().ToString()));
+		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, (
+			await Settings.BuildExtSettings(GetTimezone),
+			Guid.NewGuid().ToString(), 
+			Settings.DestExtentionsDir)
+		);
+
+		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.extreloader, (
+		//"",
+		//Guid.NewGuid().ToString(),
+		//Settings.DestExtentionsDir));
 
 		var enabled = Settings.Profile.Proxy.CanUse ? "true" : "false";
 
-		var starturl = 
-			(Uri.TryCreate(Settings.StartUrl, UriKind.Absolute, out var uriResult) &&
-			(uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
+		var starturl =
+			Uri.TryCreate(Settings.StartUrl, UriKind.Absolute, out var uriResult) &&
+			(uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
 			? Settings.StartUrl
 			: "http://" + Settings.StartUrl;
 
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon_auto_proxy, (
+		Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
 			@$"let settings = {{
 			   enabled: {enabled},
 			   type: 'http',
@@ -73,11 +84,14 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			   username: '{Settings.Profile.Proxy.UserName}',
 			   password: '{Settings.Profile.Proxy.Password}',
 			   url: '{starturl}',
-			   debug: false,
-			}};", Guid.NewGuid().ToString()));
+			   debug: true,
+			}};",
+			Guid.NewGuid().ToString(), 
+			Settings.DestExtentionsDir)
+		);
 
-		foreach (var (ext, (setting, guid)) in Settings.ExtentionsDirs) {
-			await ExtensionLoaderService.Instance.LoadExtension(ext, Settings.DestExtentionsDir, setting);
+		foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
+			_ = await ExtensionLoaderService.LoadExtension(ext, destDir, setting);
 		}
 	}
 }

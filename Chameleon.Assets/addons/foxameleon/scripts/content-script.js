@@ -1,10 +1,29 @@
 (async function () {
-    let { SETTINGS_ARRAY, promptDictionary, Actions } = await import(chrome.runtime.getURL("modules/settings.js"));
-    let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
-
-  let { setLogLevel, log } = await import(chrome.runtime.getURL("modules/logger.js"));
-  setLogLevel(settings.debug);
-
+   const SETTINGS_ARRAY = [
+        "enabled",
+        "webglSpoofing",
+        "canvasProtection",
+        "clientRectsSpoofing",
+        "fontsSpoofing",
+        "geoSpoofing",
+        "timezoneSpoofing",
+        "dAPI",
+        "webRtcEnabled",
+        "randomizeTZ",
+        "randomizeGeo",
+        "noiseLevel",
+        "eMode",
+        "dMode",
+        "timezone",
+        "locale",
+        "debug",
+        "latitude",
+        "longitude",
+        "accuracy",
+        "myIP",
+        "bypass",
+        "history",
+    ];
   const background = {
     send(id, data, callback) {
       chrome.runtime.sendMessage(
@@ -14,9 +33,7 @@
         },
         function (response) {
           if (chrome.runtime.lastError) {
-            log.error("Error sending message:", chrome.runtime.lastError);
           } else {
-            log.info("Message sent successfully:", response);
             callback && callback(response);
           }
         }
@@ -28,11 +45,10 @@
         sender,
         sendResponse
       ) {
-        log.info("Received message in content script:", request);
-        if (request.action === Actions.TZ_RESET || request.action === Actions.GEO_RESET) {
-          let { promptText, defaultInput } = promptDictionary[request.action];
-          if (request.action === Actions.GEO_RESET)
-             defaultInput = `${settings.latitude}, ${settings.longitude}`;
+          let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
+          if (request.action === "geo_reset") {
+          const promptText = "Enter a \"latitude\" and \"longitude\" separated by a comma. Use https://www.latlong.net/ to find these values";
+          const defaultInput = `${settings.latitude}, ${settings.longitude}`;
 
           const userInput = prompt(promptText, defaultInput);
           if (userInput === null) {

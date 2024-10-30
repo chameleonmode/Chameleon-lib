@@ -52,10 +52,10 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await File.WriteAllTextAsync(versionFile, version);
 
 		//
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, (await Settings.BuildExtSettings(GetTimezone), Guid.NewGuid().ToString()));
+		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, (await Settings.BuildExtSettings(GetTimezone), Guid.NewGuid().ToString(), Settings.DestExtentionsDir));
 
 		//
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon_proxy,
+		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxyproxy,
 			(@$"let settings = {{
                 enabled: {Settings.Profile.Proxy.CanUse.Tlwr()},
                 type: 'http',
@@ -66,11 +66,10 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
                 password: '{Settings.Profile.Proxy.Password}',
                 url: '{Settings.StartUrl}',
                 debug: false,
-             }};", Guid.NewGuid().ToString()));
+             }};", Guid.NewGuid().ToString(), Settings.DestExtentionsDir));
 
-		foreach (var (ext, (setting, guid)) in Settings.ExtentionsDirs) {
-			await ExtensionLoaderService.Instance.LoadExtension(ext, Settings.DestExtentionsDir, setting, version).ConfigureAwait(true);
-			var extDir = Path.Combine(Settings.DestExtentionsDir, ext.ToString());
+		foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
+			var extDir = await ExtensionLoaderService.LoadExtension(ext, destDir, setting, version).ConfigureAwait(true);
 			if (Directory.Exists(extDir)) {
 				await IOtil.CreateZipAsync(Path.Combine(inDir, guid + ".xpi"), extDir);
 			}

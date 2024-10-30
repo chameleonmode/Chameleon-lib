@@ -24,8 +24,9 @@ public class Loader {
 		ArgumentNullException.ThrowIfNull(uri, nameof(uri));
 
 		var basePath = GetResourcePath(uri);
-		var resources = _assembly.GetManifestResourceNames()
-				.Where(x => x.StartsWith(basePath, StringComparison.OrdinalIgnoreCase));
+		var resources = _assembly
+			.GetManifestResourceNames()
+			.Where(x => x.StartsWith(basePath, StringComparison.OrdinalIgnoreCase));
 
 		if (!string.IsNullOrEmpty(pattern)) {
 			resources = resources.Where(x => Path.GetFileName(x).Contains(pattern));

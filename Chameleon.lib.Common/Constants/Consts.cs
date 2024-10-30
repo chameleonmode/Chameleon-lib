@@ -4,6 +4,16 @@ namespace Chameleon.lib.Common.Constants;
 public static class Consts {
 	public const string AppName = "Chameleon";
 	public const string AppSettingsFileName = "appsettings.json";
+	public const string LocalHostUrl = "http://localhost:21021/api";
+	public const string ApiBaseUrl = "https://api.chameleonmode.com/api";
+	public const string NotionProfile = "https://www.notion.so/4-Setting-Up-Your-First-Profile-d2d001b2127e4a0e8e083fc13ad4cf99";
+	public const string NotionUrl = "https://intercom.help/chameleonmode/en";
+	public const string ApiSocialAnimalUrl = "https://api.socialanimal.com/api/v1/search";
+	public const string WebsiteUrl = "https://chameleonmode.com/";
+	public const string SupportUrl = "https://intercom.help/chameleonmode/en";
+	public const string FacebookGroupUrl = "https://www.facebook.com/groups/962349154557466";
+	public const string PricingUrl = "https://chameleonmode.com/pricing/";
+	public const string DefaultHomePage = "https://example.com/";
 	public const int PageinationPageItems = 13;
 
 	public static string AppTempDir {
@@ -58,6 +68,7 @@ public static class Consts {
 	public static class Addons {
 		public const string AddonsEmbeddedDir = "embedded://chameleon.assets/addons";
 		public static string AddonExtentionDir => Path.Combine(AppTempDir, "Addons");
+		public static string CachedExtentionDir => Path.Combine(AppTempDir, "AddonsCache");
 		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../Resources/BrowserExtensions")
 			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BrowserExtensions");
@@ -116,17 +127,5 @@ public static class Consts {
 
 		public const string Automation = "Automaation";
 		public const string Automation_Edit = Automation + ".Edit";
-	}
-
-	public class GlobalSettings {
-		public const string LocalHostUrl = "http://localhost:21021/api";
-		public const string ApiBaseUrl = "https://api.chameleonmode.com/api";
-		public const string NotionProfile = "https://www.notion.so/4-Setting-Up-Your-First-Profile-d2d001b2127e4a0e8e083fc13ad4cf99";
-		public const string NotionUrl = "https://intercom.help/chameleonmode/en";
-		public const string ApiSocialAnimalUrl = "https://api.socialanimal.com/api/v1/search";
-		public const string WebsiteUrl = "https://chameleonmode.com/";
-		public const string SupportUrl = "https://intercom.help/chameleonmode/en";
-		public const string FacebookGroupUrl = "https://www.facebook.com/groups/962349154557466";
-		public const string PricingUrl = "https://chameleonmode.com/pricing/";
 	}
 }

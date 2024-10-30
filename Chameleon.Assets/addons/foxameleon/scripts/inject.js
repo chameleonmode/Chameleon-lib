@@ -16,8 +16,8 @@
     if (settings.geoSpoofing) {
         script.addEventListener("sp-request-geo-data", () => {
             const geoSettings = {
-                latitude: settings.latitude,
-                longitude: settings.longitude,
+                latitude: Number(settings.latitude),
+                longitude: Number(settings.longitude),
                 accuracy: settings.accuracy,
                 enabled: settings.geoSpoofing,
                 randomize: settings.randomizeGeo,
@@ -51,59 +51,125 @@
                 script.dataset.prefs = JSON.stringify(geoSettings);
                 script.dispatchEvent(new Event("sp-response-geo-data"));
             };
+            applyGeoSettings();
+        });
 
-            if (!geoSettings.enabled) {
-                applyGeoSettings();
-            } else if (geoSettings.latitude && geoSettings.longitude) {
-                applyGeoSettings();
-            } else {
-                // Prompt for coordinates if not set
-                const r = prompt(
-                    `Enter your spoofed "latitude" and "longitude" (e.g. values for London, UK)
+        // polyfill
+        navigator.geolocation = navigator.geolocation || {
+            getCurrentPosition() { },
+            watchPosition() { }
+        };
 
-The number of digits to appear after the decimal point must be greater than 4
-Use https://www.latlong.net/ to find these values`,
-                    "51.507351, -0.127758"
-                );
-
-                if (r === null) {
-                    applyGeoSettings();
-                } else {
-                    const [latitude, longitude] = r.split(/\s*,\s*/);
-
-                    try {
-                        if (!isFinite(latitude) || Math.abs(latitude) > 90) {
-                            throw Error("Latitude must be a number between -90 and 90");
-                        }
-                        if (!isFinite(longitude) || Math.abs(longitude) > 180) {
-                            throw Error("Longitude must a number between -180 and 180");
-                        }
-                        if (
-                            latitude.split(".")[1].length < 4 ||
-                            longitude.split(".")[1].length < 4
-                        ) {
-                            throw Error(
-                                "The number of digits to appear after the decimal point must be greater than 4. Example: 51.507351, -0.127758"
-                            );
-                        }
-
-                        geoSettings.latitude = Number(latitude);
-                        geoSettings.longitude = Number(longitude);
-
-                        // Update settings
-                        settings.latitude = geoSettings.latitude;
-                        settings.longitude = geoSettings.longitude;
-                       /* browser.storage.sync.set(settings);*/
-
-                        applyGeoSettings();
-                    } catch (e) {
-                        console.error(e);
-                        applyGeoSettings();
-                        alert("GEO Request Denied\n\n" + e.message);
-                    }
+        {
+            class PositionError extends Error {
+                constructor(code, message) {
+                    super();
+                    this.code = code;
+                    this.message = message;
                 }
             }
-        });
+            PositionError.PERMISSION_DENIED = 1;
+            PositionError.POSITION_UNAVAILABLE = 2;
+            PositionError.TIMEOUT = 3;
+
+            let id = 0;
+            const lazy = {
+                geos: [],
+                permissions: []
+            };
+
+
+            const root = document.documentElement;
+
+            root.addEventListener('sp-response-geo-data', e => {
+                const prefs = e.detail;
+
+                // bypass
+                if (bypass(prefs)) {
+                    for (const o of lazy.geos) {
+                        Reflect.apply(o.target, o.self, o.args);
+                    }
+                }
+                else {
+                    for (const o of lazy.geos) {
+                        try {
+                            const [success, error] = o.args;
+                            if (prefs.latitude && prefs.longitude && prefs.enabled) {
+                                success({
+                                    timestamp: Date.now(),
+                                    coords: {
+                                        latitude: prefs.latitude,
+                                        longitude: prefs.longitude,
+                                        altitude: null,
+                                        accuracy: prefs.accuracy,
+                                        altitudeAccuracy: null,
+                                        heading: parseInt('NaN', 10),
+                                        velocity: null
+                                    }
+                                });
+                            }
+                            else {
+                                error(new PositionError(PositionError.POSITION_UNAVAILABLE, 'Position unavailable'));
+                            }
+                        }
+                        catch (e) { }
+                    }
+                }
+
+                lazy.geos.length = 0;
+            });
+
+            navigator.geolocation.getCurrentPosition = new Proxy(navigator.geolocation.getCurrentPosition, {
+                apply(target, self, args) {
+                    lazy.geos.push({ target, self, args });
+                    root.dispatchEvent(new Event('sp-request-geo-data'));
+                }
+            });
+
+            navigator.geolocation.watchPosition = new Proxy(navigator.geolocation.watchPosition, {
+                apply(target, self, args) {
+                    navigator.geolocation.getCurrentPosition(...args);
+                    id += 1;
+                    return id;
+                }
+            });
+
+            root.addEventListener('sp-response-permission', e => {
+                const prefs = e.detail;
+
+                const b = bypass(prefs);
+
+                for (const { resolve, result } of lazy.permissions) {
+                    try {
+                        if (!b) {
+                            Object.defineProperty(result, 'state', {
+                                value: prefs.enabled ? 'granted' : 'denied'
+                            });
+                        }
+
+                        resolve(result);
+                    }
+                    catch (e) { }
+                }
+                lazy.permissions.length = 0;
+            });
+
+            navigator.permissions.query = new Proxy(navigator.permissions.query, {
+                apply(target, self, args) {
+                    return Reflect.apply(target, self, args).then(result => {
+                        if (args[0] && args[0].name === 'geolocation') {
+                            return new Promise(resolve => {
+                                lazy.permissions.push({ resolve, result });
+                                root.dispatchEvent(new Event('sp-request-permission'));
+                            });
+                        }
+                        else {
+                            return result;
+                        }
+                    });
+                }
+            });
+        }
     }
 
     // Timezone spoofing

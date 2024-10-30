@@ -16,15 +16,14 @@ public static class Enums {
 			Ssl
 		}
 	}
+
 	public enum ExtensionType {
-		[Description("cromeleon")]
 		chromeleon,
-		[Description("chromeleon_auto_proxy")]
-		chromeleon_auto_proxy,
-		[Description("foxameleon")]
+		proxychromeleon,
 		foxameleon,
-		[Description("foxameleon_proxy")]
-		foxameleon_proxy,
+		foxyproxy,
+		//https://github.com/JeromeDane/chrome-extension-auto-reload/blob/master/src/js/background.js
+		extreloader,
 	}
 
 	public enum SystemBrowserType {

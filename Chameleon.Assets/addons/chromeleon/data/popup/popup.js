@@ -1,9 +1,9 @@
 import { log } from "../../modules/logger.js";
-import { settings, updateSettings } from "../../modules/settings.js";
+import { settings, loadSettings } from "../../modules/settings.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
-    await updateSettings();
-    log.info(JSON.stringify(settings));
+  await loadSettings();
+  log.info(JSON.stringify(settings));
   const toggleExtension = document.getElementById("toggle-extension");
   const webglSpoofing = document.getElementById("webgl-spoofing");
   const canvasProtection = document.getElementById("canvas-protection");
@@ -16,16 +16,16 @@ document.addEventListener("DOMContentLoaded", async function () {
   const blockedCount = document.getElementById("blocked-count");
 
   // Load saved settings
-    toggleExtension.checked = settings.enabled !== false;
-    webglSpoofing.checked = settings.webglSpoofing;
-    canvasProtection.checked = settings.canvasProtection !== false;
-    clientRectsSpoofing.checked = settings.clientRectsSpoofing !== false;
-    fontsSpoofing.checked = settings.fontsSpoofing !== false;
-    geoSpoofing.checked = settings.geoSpoofing !== false;
-    timezoneSpoofing.checked = settings.timezoneSpoofing !== false;
-    noiseLevel.value = settings.noiseLevel || "medium";
-    blockedCount.textContent = settings.blockedCount || 0;
-    updateStatus();
+  toggleExtension.checked = settings.enabled !== false;
+  webglSpoofing.checked = settings.webglSpoofing;
+  canvasProtection.checked = settings.canvasProtection;
+  clientRectsSpoofing.checked = settings.clientRectsSpoofing;
+  fontsSpoofing.checked = settings.fontsSpoofing;
+  geoSpoofing.checked = settings.geoSpoofing;
+  timezoneSpoofing.checked = settings.timezoneSpoofing;
+  noiseLevel.value = settings.noiseLevel || "medium";
+  blockedCount.textContent = settings.blockedCount || 0;
+  updateStatus();
 
   // Update status text
   function updateStatus() {

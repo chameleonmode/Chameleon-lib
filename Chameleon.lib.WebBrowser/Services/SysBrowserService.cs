@@ -106,9 +106,9 @@ public class SysBrowserService
 			_ = Interlocked.Increment(ref _isBusy);
 			try {
 				var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
-				var urls = IoC.GetJsonValue<string[]>("DefaultHomePageSettings") ?? ["https://example.com/"];
-				if(urls.Length == 0)
-					urls = ["https://example.com/"];
+				var urls = IoC.GetJsonValue<string[]>("DefaultHomePageSettings");
+				if(urls is null || urls.Length == 0)
+					urls = [Consts.DefaultHomePage];
 
 				var starturl = urls[new Random().Next(urls.Length)];
 				var launchOptions = new SysBrowserSettings(options, emulations, starturl, Netil.NextFreePort(9613));

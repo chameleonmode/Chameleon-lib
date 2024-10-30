@@ -86,11 +86,13 @@ export async function handleGeoMenuClick(info, tab) {
     const [latitude, longitude] = userInput.split(",");
     settings.latitude = parseFloat(latitude.trim());
     settings.longitude = parseFloat(longitude.trim());
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
     updateGeoHistory();
   } else if (info.menuItemId === "enabled") {
     settings.geoSpoofing = info.checked;
   } else if (info.menuItemId === "geo-test") {
-    chrome.tabs.create({ url: "https://webbrowsertools.com/geolocation/", index: tab.index + 1 });
+    chrome.tabs.create({ url: "https://browserleaks.com/geo", index: tab.index + 1 });
   } else if (info.menuItemId.startsWith("set:")) {
     const [latitude, longitude] = info.menuItemId.slice(4).split("|").map(Number);
     settings.latitude = latitude;
@@ -104,10 +106,7 @@ export async function handleGeoMenuClick(info, tab) {
   } else if (info.menuItemId === "exception-editor") {
     openExceptionEditor();
   }
-    updateSettings();
-
-    const uule = genUULE(settings.latitude, settings.longitude);
-    updateLocationRules(uule);
+  updateSettings();
 }
 
 function updateGeoHistory() {

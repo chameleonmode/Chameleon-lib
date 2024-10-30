@@ -3,13 +3,10 @@
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.WebBrowser.Interfaces;
 
 namespace Chameleon.lib.WebBrowser.Services;
-public class ExtensionLoaderService : IExtensionLoaderService {
-	public static ExtensionLoaderService Instance { get; } = new();
-	private ExtensionLoaderService() { }
-	public async Task LoadExtension(Enums.ExtensionType extensionType, string destinationPath, string? settings = null, string? version = null)
+public static class ExtensionLoaderService {
+	public static async Task<string> LoadExtension(Enums.ExtensionType extensionType, string destinationPath, string? settings = null, string? version = null)
 	{
 		try {
 			var extensionName = extensionType.ToString();
@@ -30,5 +27,7 @@ public class ExtensionLoaderService : IExtensionLoaderService {
 			Toaster.ShowErr("Failed to load extension", ex.Message);
 			throw;
 		}
+
+		return Path.Combine(destinationPath, extensionType.ToString());
 	}
 }

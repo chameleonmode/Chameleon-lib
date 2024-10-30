@@ -17,27 +17,27 @@ const formatMessage = (level, message) => {
 
 export const log = {
   log: (message, ...args) => {
-    if (LOG_LEVELS.DEBUG <= currentLogLevel) {
+    if (0 <= currentLogLevel) {
       console.log(formatMessage("LOG", message), ...args);
     }
   },
   debug: (message, ...args) => {
-    if (LOG_LEVELS.DEBUG <= currentLogLevel) {
+    if (1 <= currentLogLevel) {
       console.debug(formatMessage("DEBUG", message), ...args);
     }
   },
   info: (message, ...args) => {
-    if (LOG_LEVELS.INFO <= currentLogLevel) {
+    if (2 <= currentLogLevel) {
       console.info(formatMessage("INFO", message), ...args);
     }
   },
   warn: (message, ...args) => {
-    if (LOG_LEVELS.WARN <= currentLogLevel) {
+    if (3 <= currentLogLevel) {
       console.warn(formatMessage("WARN", message), ...args);
     }
   },
   error: (message, ...args) => {
-    if (LOG_LEVELS.ERROR <= currentLogLevel) {
+    if (4 <= currentLogLevel) {
       console.error(formatMessage("ERROR", message), ...args);
     }
   },

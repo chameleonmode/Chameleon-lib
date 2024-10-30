@@ -32,15 +32,22 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 	public string ExePath => BrowserType == Enums.SystemBrowserType.Firefox ? Consts.Browser.LocalFirefoxExePath : SysBrowserInfoUtil.FindByType(BrowserType).Path;
 	public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(Path.Combine(Consts.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()));
 
-	private string? _destextPath;
+	private string? destextPath;
 	public string DestExtentionsDir {
 		get {
-			if (_destextPath == null) {
-				_destextPath = Path.Combine(Consts.Addons.AddonExtentionDir, BrowserType.ToString(), Profile.Id.ToString());
-				IOtil.DeleteDExists(_destextPath);
-				_destextPath = IOtil.EnsureDirectoryExists(Path.Combine(_destextPath, Guid.NewGuid().ToString()));
+			if (destextPath == null) {
+				destextPath = Path.Combine(Consts.Addons.AddonExtentionDir, BrowserType.ToString(), Profile.Id.ToString());
+				IOtil.DeleteDExists(destextPath);
+				destextPath = IOtil.EnsureDirectoryExists(Path.Combine(destextPath, Guid.NewGuid().ToString()));
 			}
-			return _destextPath;
+			return destextPath;
+		}
+	}
+	private string? cachedExtentionsDir;
+	public string CachedExtentionsDir {
+		get {
+			cachedExtentionsDir ??= IOtil.EnsureDirectoryExists(Path.Combine(Consts.Addons.CachedExtentionDir, BrowserType.ToString(), Profile.Id.ToString()));
+			return cachedExtentionsDir;
 		}
 	}
 	public SysBrowserEvent CreateEvent(Enums.SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
@@ -150,12 +157,16 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		}
 	}
 
-	public Dictionary<Enums.ExtensionType, (string? settings, string guid)> ExtentionsDirs { get; } = [];
+	public Dictionary<Enums.ExtensionType, (string? settings, string guid, string destDir)> ExtentionsDirs { get; } = [];
 
-	public async Task<string?> BuildExtSettings(Func<Task<string>> @getimezone)
+	public async Task<string> BuildExtSettings(Func<Task<Ipapi>> @getimezone)
 	{
-		var timezone = await @getimezone(); 
-
+		var ipapi = await @getimezone();
+	//LOG: 0,
+ // DEBUG: 1,
+ // INFO: 2,
+ // WARN: 3,
+ // ERROR: 4,
 		HashSet<KeyValuePair<string, string>> options =
 		[
 			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
@@ -174,7 +185,9 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		foreach (var o in options) {
 			_ = settingsBuilder.AppendLine($"{o.Key}: {o.Value},");
 		}
-		_ = settingsBuilder.AppendLine($"timezone: '{timezone}',");
+		_ = settingsBuilder.AppendLine($"timezone: '{ipapi.timezone}',");
+		_ = settingsBuilder.AppendLine($"latitude: {ipapi.lat},");
+		_ = settingsBuilder.AppendLine($"longitude:{ipapi.lon},");
 		_ = settingsBuilder.AppendLine(
 """
 	randomizeTZ: false,
@@ -183,9 +196,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 	eMode: "disable_non_proxied_udp",
 	dMode: "default_public_interface_only",
 	locale: "en-US",
-	debug: 4,
-	latitude: 48.856892,
-	longitude: 2.350850,
+	debug: 'LOG',
 	accuracy: 69.96,
 	bypass: [],
 	history: [],

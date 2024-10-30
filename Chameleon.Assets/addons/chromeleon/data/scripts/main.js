@@ -565,12 +565,13 @@
   // Apply settings
   var tries = 0;
   function applySettings() {
-    if (!loaded && tries < 18) {
+    if (!loaded && tries < 9) {
       tries++;
       log.log("Settings not loaded yet");
       window.setTimeout(applySettings, 250);
       return;
     }
+
     log.log("Settings loaded");
     if (!settings.enabled) return;
     // Spoofing of fonts

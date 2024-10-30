@@ -4,6 +4,7 @@ import { createWebRTCContextMenus, handleWebRTCMenuClick, handleWebRTCSettings }
 import { createGeoContextMenus, handleGeoMenuClick } from "./modules/geolocation.js";
 import { createTimezoneContextMenus, handleTimezoneMenuClick } from "./modules/timezone.js";
 import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
+import { genUULE, updateLocationRules } from './modules/uule.js';
 
 async function OnLoad() {
   await updateSettings(BuildExtSettings);
@@ -12,15 +13,20 @@ async function OnLoad() {
   createWebRTCContextMenus();
   createGeoContextMenus();
   createTimezoneContextMenus();
+
   log.info("OnLoad");
 }
-OnLoad();
-
-chrome.tabs.query({}, (tabs) => {
-  tabs.forEach((tab) => {
-    applyOverrides(tab);
-  });
+chrome.runtime.onInstalled.addListener(async () => {
+    await OnLoad();
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
+    chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+            applyOverrides(tab);
+        });
+    });
 });
+
 
 async function handleContextMenuClick(info, tab) {
   if (info.menuItemId === "test") {
@@ -37,11 +43,6 @@ async function handleContextMenuClick(info, tab) {
   }
   
   await chrome.storage.sync.set(settings);
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach((tab) => {
-      applyOverrides(tab);
-    });
-  });
 }
 
 chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
@@ -53,10 +54,16 @@ chrome.storage.onChanged.addListener(async (changes, _) => {
             settings[key] = changes[key].newValue;
         }
     }
-  handleWebRTCSettings();
+    handleWebRTCSettings();
+    //chrome.tabs.query({}, (tabs) => {
+    //    tabs.forEach((tab) => {
+    //        applyOverrides(tab);
+    //    });
+    //});
   log.info("Settings updated");
 });
 
+//chrome.runtime.onInstalled.addListener(OnLoad)
 setupTabListeners();
 
 log.info("Background script loaded");

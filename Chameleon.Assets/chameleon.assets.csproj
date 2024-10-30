@@ -13,9 +13,12 @@
 
 	<ItemGroup>
 	  <None Remove="addons\chromeleon\modules\uule.js" />
+	  <None Remove="addons\extreloader\background.js" />
+	  <None Remove="addons\extreloader\manifest.json" />
 	  <None Remove="addons\foxameleon\modules\uule.js" />
-	  <None Remove="addons\foxameleon_proxy\background.js" />
-	  <None Remove="addons\foxameleon_proxy\manifest.json" />
+	  <None Remove="addons\foxameleon\scripts\content-script.js" />
+	  <None Remove="addons\foxyproxy\background.js" />
+	  <None Remove="addons\foxyproxy\manifest.json" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -67,9 +67,6 @@ async function applyGeoOverride(tab) {
       accuracy: settings.accuracy,
     }
    );
-
-    const uule = genUULE(settings.latitude, settings.longitude);
-    updateLocationRules(uule);
 }
 
 function randomizeGeoLocation() {

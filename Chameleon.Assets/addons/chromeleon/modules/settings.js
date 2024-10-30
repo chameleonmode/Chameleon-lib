@@ -66,10 +66,29 @@ export const promptDictionary = {
   }
 };
 
+export async function loadSettings() {
+    settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+}
+
 export async function updateSettings(built) {
     if (built) {
-        settings = built;
-        await chrome.storage.sync.set(settings);
+        var current = await chrome.storage.sync.get(SETTINGS_ARRAY);
+        if (current) Object.assign(settings, current);
+
+        settings.webglSpoofing       = built.webglSpoofing  
+        settings.canvasProtection    = built.canvasProtection
+        settings.clientRectsSpoofing = built.clientRectsSpoofing
+        settings.fontsSpoofing       = built.fontsSpoofing
+        settings.dAPI                = built.dAPI
+        settings.webRtcEnabled       = built.webRtcEnabled
+        settings.geoSpoofing         = built.geoSpoofing
+        settings.timezoneSpoofing    = built.timezoneSpoofing
+        settings.myIP = built.myIP
+        settings.latitude = built.latitude
+        settings.longitude = built.longitude
+        settings.debug = built.debug;
+        /*settings = built;*/
     }
+    await chrome.storage.sync.set(settings);
     settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
 }

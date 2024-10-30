@@ -20,7 +20,6 @@ public abstract class SysBrowserInstance
 
 	public required SysBrowserSettings Settings { get; init; }
 
-
 	public async Task InitializeAsync(object? param = null)
 	{
 		if (Settings.Brocess is null) {
@@ -55,21 +54,24 @@ public abstract class SysBrowserInstance
 		InvokeEvent(Enums.SysBrowserEventType.Closed);
 	}
 
-	public async Task<string> GetTimezone()
+	public async Task<Ipapi> GetTimezone()
 	{
-		var timezone = "America/Los_Angeles";
+		var timezone = new Ipapi() { timezone = "America/Los_Angeles" , lat = 34.052235, lon = -118.243683 };
 		if (Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse && Settings.Profile.Proxy.ServerForRequest.Is()) {
 			try {
-				var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.ServerForRequest!, e => Toaster.ShowErr(e),
-			Settings.Profile.Proxy.UserName, Settings.Profile.Proxy.Password).ConfigureAwait(false);
-				if (ipapi?.timezone != null) {
-					timezone = ipapi.timezone;
+				var ipapi = await GeoIpApi.GetIpapi
+					(Settings.Profile.Proxy.ServerForRequest!,
+					e => Toaster.ShowErr(e),
+					Settings.Profile.Proxy.UserName,
+					Settings.Profile.Proxy.Password).ConfigureAwait(false);
+				if (ipapi != null) {
+					timezone = ipapi;
 				}
 			} catch (Exception ex) {
 				Toaster.ShowErr($"Request for timezone failed, {Settings.Profile.Proxy.Server} - {ex.Message}");
 			}
 		}
-	
+
 		return timezone;
 	}
 

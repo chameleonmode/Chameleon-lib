@@ -2,7 +2,7 @@
 using System.Text.Json;
 
 using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.ThirdParty.GeoIp.Models;
+using Chameleon.lib.Common.Models;
 
 using Polly;
 
