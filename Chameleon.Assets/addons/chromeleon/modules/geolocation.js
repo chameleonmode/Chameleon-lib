@@ -86,8 +86,7 @@ export async function handleGeoMenuClick(info, tab) {
     const [latitude, longitude] = userInput.split(",");
     settings.latitude = parseFloat(latitude.trim());
     settings.longitude = parseFloat(longitude.trim());
-    //const uule = genUULE(settings.latitude, settings.longitude);
-    //updateLocationRules(uule);
+
     updateGeoHistory();
   } else if (info.menuItemId === "enabled") {
     settings.geoSpoofing = info.checked;
@@ -106,7 +105,9 @@ export async function handleGeoMenuClick(info, tab) {
   } else if (info.menuItemId === "exception-editor") {
     openExceptionEditor();
   }
-  updateSettings();
+    updateSettings();
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
 }
 
 function updateGeoHistory() {

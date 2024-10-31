@@ -47,12 +47,16 @@ function OnLoad() {
   log.info("OnLoad");
 }
 
-function applyTabOverrides(){
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach((tab) => {
-        applyOverrides(tab);
-    });
-});
+function applyTabOverrides() {
+    try {
+        chrome.tabs.query({}, (tabs) => {
+            tabs.forEach((tab) => {
+                applyOverrides(tab);
+            });
+        });
+    } catch (e) {
+        log.error("Failed to apply tab overrides", e);
+    }
 }
 
 async function handleContextMenuClick(info, tab) {
