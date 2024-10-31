@@ -33,6 +33,8 @@ chrome.storage.onChanged.addListener(async (changes, _) => {
     }
     handleWebRTCSettings();
     applyTabOverrides();
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
   log.info("Settings updated");
 });
 
