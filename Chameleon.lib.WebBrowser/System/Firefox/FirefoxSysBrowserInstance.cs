@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
+using System.Text;
 
 using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
@@ -9,6 +11,7 @@ using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
 
+using static System.Net.Mime.MediaTypeNames;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
@@ -52,30 +55,58 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await File.WriteAllTextAsync(versionFile, version);
 
 		//
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, (await Settings.BuildExtSettings(GetTimezone), Guid.NewGuid().ToString(), Settings.DestExtentionsDir));
-
+		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, (
+		//	"", 
+		//	Guid.NewGuid().ToString(),
+		//	Settings.CachedExtentionsDir)
+		//);
+		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.CachedFoxameleon);
+		await IOtil.DC(inDirCached);
+		var geckoextDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.foxameleon, Settings.CachedExtentionsDir);
+		var ipapi = await GetTimezone();
+		var options = Settings.EmulationOptions;
+		var settingsBuilder = new StringBuilder();
+		_ = settingsBuilder.AppendLine("{");
+		_ = settingsBuilder.AppendLine($"\"enabled\": {options.Any(o => o.Value == "true").Tlwr()},");
+		foreach (var o in options) {
+			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
+		}
+		_ = settingsBuilder.AppendLine($"\"timezone\": \"{ipapi.timezone}\",");
+		_ = settingsBuilder.AppendLine($"\"latitude\": {ipapi.lat},");
+		_ = settingsBuilder.AppendLine($"\"longitude\":{ipapi.lon},");
+		_ = settingsBuilder.AppendLine(
+"""
+	"randomizeTZ": false,
+	"randomizeGeo": false,
+	"noiseLevel": "medium",
+	"eMode": "disable_non_proxied_udp",
+	"dMode": "default_public_interface_only",
+	"locale": "en-US",
+	"debug": "LOG",
+	"accuracy": 69.96,
+	"bypass": [],
+	"history": []
+""");
+		_ = settingsBuilder.AppendLine("}");
+		await File.WriteAllTextAsync(Path.Combine(geckoextDir, "settings.json"), settingsBuilder.ToString());
+		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
+		
 		//
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxyproxy,
-			(@$"let settings = {{
-                enabled: {Settings.Profile.Proxy.CanUse.Tlwr()},
-                type: 'http',
-                host: '{Settings.Profile.Proxy.Host}',
-                port: {Settings.Profile.Proxy.Port},
-						    server: '{Settings.Profile.Proxy.Server}',
-                username: '{Settings.Profile.Proxy.UserName}',
-                password: '{Settings.Profile.Proxy.Password}',
-                url: '{Settings.StartUrl}',
-                debug: false,
-             }};", Guid.NewGuid().ToString(), Settings.DestExtentionsDir));
+		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxyproxy, (
+			Settings.BuildProxyExtSettings(),
+			Guid.NewGuid().ToString(),
+			Settings.DestExtentionsDir)
+		);
 
 		foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
-			var extDir = await ExtensionLoaderService.LoadExtension(ext, destDir, setting, version).ConfigureAwait(true);
+			var extDir = await ExtensionLoaderService.LoadExtension(ext, destDir, setting, version);
 			if (Directory.Exists(extDir)) {
 				await IOtil.CreateZipAsync(Path.Combine(inDir, guid + ".xpi"), extDir);
+				await IOtil.DeleteDExistsAsync(destDir);
 			}
 		}
 
-		//		var policy =
+		//var policy =
 		//@$"
 		//{{
 		//   ""policies"": {{
@@ -381,18 +412,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			}
 			prefs.Add(up);
 		}
-		//dupe
-		//user_pref("network.connectivity-service.enabled", false);
-		//user_pref("browser.startup.homepage_override.mstone", "ignore");
-		//user_pref("browser.uitour.enabled", false);
-		//user_pref("network.http.speculative-parallel-limit", 0);
-		//dep/ree
-		//user_pref("privacy.resistFingerprinting.testGranularityMask", 0);
-		//user_pref("browser.newtab.preload", false);
-		//user_pref("browser.tabs.warnOnClose", false);
-		//user_pref("browser.region.network.url", "");
-		//user_pref("network.captive-portal-service.enabled", false);
-		//user_pref("dom.disable_beforeunload", false);
+
 		var prefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
 		if (!File.Exists(prefsFile)) {
 			await File.WriteAllLinesAsync(prefsFile, prefs);
@@ -404,6 +424,10 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 				await ProUtil.TryKillProcess(bi?.Settings.Brocess);
 			}
 		} else {
+			var lines = await File.ReadAllLinesAsync(prefsFile);
+			if (lines.Any(l=> l.Is() && !l.StartsWith("user_pref(\"") && !l.StartsWith("//"))) {
+				await File.WriteAllLinesAsync(prefsFile, prefs);
+			}
 			var userprefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
 			await File.WriteAllLinesAsync(userprefsFile, prefs);
 		}

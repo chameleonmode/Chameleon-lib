@@ -23,22 +23,22 @@ export const log = {
   },
   debug: (message, ...args) => {
     if (1 <= currentLogLevel) {
-      console.debug(formatMessage("DEBUG", message), ...args);
+      console.log(formatMessage("DEBUG", message), ...args);
     }
   },
   info: (message, ...args) => {
     if (2 <= currentLogLevel) {
-      console.info(formatMessage("INFO", message), ...args);
+      console.log(formatMessage("INFO", message), ...args);
     }
   },
   warn: (message, ...args) => {
     if (3 <= currentLogLevel) {
-      console.warn(formatMessage("WARN", message), ...args);
+      console.log(formatMessage("WARN", message), ...args);
     }
   },
   error: (message, ...args) => {
     if (4 <= currentLogLevel) {
-      console.error(formatMessage("ERROR", message), ...args);
+      console.log(formatMessage("ERROR", message), ...args);
     }
   },
 };

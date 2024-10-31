@@ -5,7 +5,7 @@ import { genUULE, updateLocationRules } from './uule.js';
 
 export function createGeoContextMenus() {
   chrome.contextMenus.create({ title: "GEO", id: "geo", contexts: ["action"] });
-  chrome.contextMenus.create({ title: "Allow/Disallow GEO requests", id: "enabled", contexts: ["action"], type: "checkbox", checked: settings.geoSpoofing, parentId: "geo" });
+/*  chrome.contextMenus.create({ title: "Allow/Disallow GEO requests", id: "enabled", contexts: ["action"], type: "checkbox", checked: settings.geoSpoofing, parentId: "geo" });*/
   chrome.contextMenus.create({ title: "Reset GEO data (ask for new values)", id: "reset", contexts: ["action"], parentId: "geo" });
   chrome.contextMenus.create({ title: "Test GEO location", id: "geo-test", contexts: ["action"], parentId: "geo" });
   chrome.contextMenus.create({ title: "Options", id: "options", contexts: ["action"], parentId: "geo" });

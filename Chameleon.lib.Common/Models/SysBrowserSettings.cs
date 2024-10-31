@@ -50,6 +50,19 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 			return cachedExtentionsDir;
 		}
 	}
+
+	public HashSet<KeyValuePair<string, string>> EmulationOptions =>
+	[
+			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
+			new ("canvasProtection", Emulation.SpoofCanvasFingerprint.Tlwr()),
+			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
+			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
+			new ("dAPI", Emulation.DisableWebRTC.Tlwr()),
+			new ("webRtcEnabled", Emulation.DisableWebRTC.Tlwr()),
+			new ("geoSpoofing", Emulation.SpoofGeoLocation.Tlwr()),
+			new ("timezoneSpoofing", Emulation.AutoTimezone.Tlwr()),
+			new ("myIP", (!Emulation.AutoTimezone).Tlwr()),
+	];
 	public SysBrowserEvent CreateEvent(Enums.SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
 
 	public Process? Brocess { get; set; }
@@ -159,26 +172,10 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 	public Dictionary<Enums.ExtensionType, (string? settings, string guid, string destDir)> ExtentionsDirs { get; } = [];
 
-	public async Task<string> BuildExtSettings(Func<Task<Ipapi>> @getimezone)
+	public async Task<string> BuildMeleonExtSettings(Func<Task<Ipapi>> @getimezone)
 	{
 		var ipapi = await @getimezone();
-	//LOG: 0,
- // DEBUG: 1,
- // INFO: 2,
- // WARN: 3,
- // ERROR: 4,
-		HashSet<KeyValuePair<string, string>> options =
-		[
-			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
-			new ("canvasProtection", Emulation.SpoofCanvasFingerprint.Tlwr()),
-			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
-			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
-			new ("dAPI", Emulation.DisableWebRTC.Tlwr()),
-			new ("webRtcEnabled", Emulation.DisableWebRTC.Tlwr()),
-			new ("geoSpoofing", Emulation.SpoofGeoLocation.Tlwr()),
-			new ("timezoneSpoofing", Emulation.AutoTimezone.Tlwr()),
-			new ("myIP", (!Emulation.AutoTimezone).Tlwr()),
-		];
+		var options = EmulationOptions;
 		var settingsBuilder = new StringBuilder();
 		_ = settingsBuilder.AppendLine("let BuildExtSettings = {");
 		_ = settingsBuilder.AppendLine($"enabled: {options.Any(o => o.Value == "true").Tlwr()},");
@@ -204,5 +201,22 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		_ = settingsBuilder.AppendLine("};");
 
 		return settingsBuilder.ToString();
+	}
+
+	public string BuildProxyExtSettings()
+	{
+		var enabled = Profile.Proxy.CanUse ? "true" : "false";
+
+		return @$"let settings = {{
+			   enabled: {enabled},
+			   type: 'http',
+				 server: '{Profile.Proxy.Server}',
+			   host: '{Profile.Proxy.Host}',
+			   port: {Profile.Proxy.Port},
+			   username: '{Profile.Proxy.UserName}',
+			   password: '{Profile.Proxy.Password}',
+			   url: '{StartUrl}',
+			   debug: true,
+			}};";
 	}
 }

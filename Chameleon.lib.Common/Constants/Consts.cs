@@ -80,6 +80,7 @@ public static class Consts {
 
 	public static class Browser {
 		public const string Foxameleon = "Foxameleon";
+		public const string CachedFoxameleon = "CachedFoxameleon";
 
 		public static string LocalFirefoxDirPath => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDataLocalDir, Foxameleon, "firefox.app")

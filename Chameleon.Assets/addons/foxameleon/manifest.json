@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Foxameleon",
-  "version": "2024.1.7.2",
+  "version": "2024.3.6.9",
   "description": "A Firefox addon for Chameleon - Enhance your browser privacy and security",
   "permissions": [
     "storage",
@@ -38,9 +38,12 @@
       "js": [ "scripts/content-script.js" ]
     }
   ],
+  "web_accessible_resources": [
+    "settings.json"
+  ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "foxygeckomeleon@chameleonmode.com",
+      "id": "geckomeleon@chameleonmode.com",
       "strict_min_version": "109.0"
     }
   }

@@ -16,8 +16,4 @@
     <ProjectReference Include="..\Chameleon.lib.ThirdParty\Chameleon.lib.ThirdParty.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Util\" />
-  </ItemGroup>
-
 </Project>

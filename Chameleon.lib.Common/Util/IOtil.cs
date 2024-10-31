@@ -37,8 +37,6 @@ public static class IOtil {
 		}
 
 		ZipFile.CreateFromDirectory(directoryPath, zipFilePath, CompressionLevel.Fastest, false);
-
-		DeleteDExists(directoryPath);
 	});
 
 	public static Task CreateZipAsync(string filePath, Dictionary<string, string> files)

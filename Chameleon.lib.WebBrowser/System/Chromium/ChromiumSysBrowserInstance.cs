@@ -57,9 +57,9 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	protected override async Task InitializeExtensionPath()
 	{
 		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, (
-			await Settings.BuildExtSettings(GetTimezone),
+			null,
 			Guid.NewGuid().ToString(), 
-			Settings.DestExtentionsDir)
+			Settings.CachedExtentionsDir)
 		);
 
 		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.extreloader, (
@@ -67,25 +67,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		//Guid.NewGuid().ToString(),
 		//Settings.DestExtentionsDir));
 
-		var enabled = Settings.Profile.Proxy.CanUse ? "true" : "false";
-
-		var starturl =
-			Uri.TryCreate(Settings.StartUrl, UriKind.Absolute, out var uriResult) &&
-			(uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
-			? Settings.StartUrl
-			: "http://" + Settings.StartUrl;
-
 		Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
-			@$"let settings = {{
-			   enabled: {enabled},
-			   type: 'http',
-			   host: '{Settings.Profile.Proxy.Host}',
-			   port: {Settings.Profile.Proxy.Port},
-			   username: '{Settings.Profile.Proxy.UserName}',
-			   password: '{Settings.Profile.Proxy.Password}',
-			   url: '{starturl}',
-			   debug: true,
-			}};",
+			Settings.BuildProxyExtSettings() + await Settings.BuildMeleonExtSettings(GetTimezone),
 			Guid.NewGuid().ToString(), 
 			Settings.DestExtentionsDir)
 		);

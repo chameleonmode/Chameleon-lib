@@ -42,10 +42,10 @@ export let settings = {
   dMode: "default_public_interface_only",
   locale: "en-US",
   timezone: "America/Los_Angeles",
+  latitude: 34.052235,
+  longitude: -118.243683,
   tzOffset: -420,
   debug: 4,
-  latitude: 48.856892,
-  longitude: 2.350850,
   accuracy: 69.96,
   bypass: [],
   history: [],
@@ -69,7 +69,22 @@ export const promptDictionary = {
 
 export async function updateSettings(built) {
   if (built) {
-      settings = built;
+      var current = await browser.storage.sync.get(SETTINGS_ARRAY);
+      if (current) Object.assign(settings, current);
+
+      settings.webglSpoofing = built.webglSpoofing
+      settings.canvasProtection = built.canvasProtection
+      settings.clientRectsSpoofing = built.clientRectsSpoofing
+      settings.fontsSpoofing = built.fontsSpoofing
+      settings.dAPI = built.dAPI
+      settings.webRtcEnabled = built.webRtcEnabled
+      settings.geoSpoofing = built.geoSpoofing
+      settings.timezoneSpoofing = built.timezoneSpoofing
+      settings.myIP = built.myIP
+      settings.latitude = built.latitude
+      settings.longitude = built.longitude
+      settings.debug = built.debug;
+
       await browser.storage.sync.set(settings);
   } 
   settings = await browser.storage.sync.get(SETTINGS_ARRAY);

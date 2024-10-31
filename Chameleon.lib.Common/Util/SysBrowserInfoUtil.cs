@@ -1541,7 +1541,7 @@ async function installAddon(filePath) {{
         reportError(`Error: ${{err.message}}`);
     }}
 }}
-const ADDON_ID = ""foxygeckomeleon@chameleonmode.com"";
+const ADDON_ID = ""geckomeleon@chameleonmode.com"";
 /**
  * Function to install an unsigned add-on as a temporary extension and set specific permissions.
  * @param {{string}} filePath - The absolute path to the .xpi file of the add-on.
@@ -1653,6 +1653,20 @@ async function installExtensions() {{
                 }}
             }}
         }}
+
+    let cachedfolder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
+    cachedfolder = `${{cachedfolder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.CachedFoxameleon}`;
+    let pdirDirCached = new FileUtils.File(cachedfolder);
+    if (pdirDirCached.exists() && pdirDirCached.isDirectory()) {{
+      let entries = pdirDirCached.directoryEntries;
+      while (entries.hasMoreElements()) {{
+        let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+        if (entry.isFile() && entry.leafName.endsWith("".xpi"")) {{
+          printDebug(`Attempting to install: ${{entry.leafName}}`);
+          await installTemporaryAddonWithPermissions(entry.path);
+        }}
+      }}
+    }}
     }} catch (ex) {{
         reportError(`Error: ${{ex.message}}`);
     }}

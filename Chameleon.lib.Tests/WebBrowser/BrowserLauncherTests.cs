@@ -21,7 +21,14 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 			SpoofGeoLocation = true,
 			AutoTimezone = true,
 		}, nameof(EmulationOptions));
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(SystemBrowserType.Chrome, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
+		var bi = await SysBrowserServiceBase.Open(
+			new SysBrowserOpenOptions(
+				SystemBrowserType.Chrome, 
+				new Common.Models.UserProfileModel() { 
+					Id = 123, 
+					Proxy = new Common.Models.ProxySettingsModel()
+				})
+			);
 		Assert.NotNull(bi);
 	}
 
@@ -43,7 +50,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 
 		IoC.SetJsonValue(new EmulationOptions {
 			DisableWebRTC = true,
-			SpoofClientRects = true,
+			SpoofClientRects = false,
 			SpoofFontFingerprint = true,
 			SpoofCanvasFingerprint = true,
 			SpoofWebGLFingerprint = true,

@@ -34,7 +34,7 @@ public class ExtensionLoaderServiceTests : WebBroswserTestsBase {
 			//}
 
 			// Act
-			await ExtensionLoaderService.Instance.LoadExtension(extensionType, destinationPath, settings);
+			_ = await ExtensionLoaderService.LoadExtension(extensionType, destinationPath, settings);
 
 			// Assert
 			var dest = Path.Combine(destinationPath, extensionType.ToString());

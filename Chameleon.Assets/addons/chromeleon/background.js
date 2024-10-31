@@ -5,28 +5,53 @@ import { createGeoContextMenus, handleGeoMenuClick } from "./modules/geolocation
 import { createTimezoneContextMenus, handleTimezoneMenuClick } from "./modules/timezone.js";
 import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
 import { genUULE, updateLocationRules } from './modules/uule.js';
+let loaded = false
+chrome.runtime.onConnectExternal.addListener((port) => {
+  console.assert(port.name === "communication");
 
-async function OnLoad() {
-  await updateSettings(BuildExtSettings);
-    
-  setLogLevel(settings.debug);
+  // Listen for messages from the sender extension
+  port.onMessage.addListener(async (msg) => {
+    await updateSettings(msg.message);
+    setLogLevel(settings.debug);
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
+    if (!loaded) {
+      OnLoad();
+      loaded = true;
+    }
+  });
+});
+
+chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
+
+chrome.storage.onChanged.addListener(async (changes, _) => {
+    // Apply changes to settings
+    for (let key in changes) {
+        if (changes.hasOwnProperty(key)) {
+            settings[key] = changes[key].newValue;
+        }
+    }
+    handleWebRTCSettings();
+    applyTabOverrides();
+  log.info("Settings updated");
+});
+
+function OnLoad() {
+  applyTabOverrides();
   createWebRTCContextMenus();
   createGeoContextMenus();
   createTimezoneContextMenus();
 
   log.info("OnLoad");
 }
-chrome.runtime.onInstalled.addListener(async () => {
-    await OnLoad();
-    //const uule = genUULE(settings.latitude, settings.longitude);
-    //updateLocationRules(uule);
-    chrome.tabs.query({}, (tabs) => {
-        tabs.forEach((tab) => {
-            applyOverrides(tab);
-        });
+
+function applyTabOverrides(){
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+        applyOverrides(tab);
     });
 });
-
+}
 
 async function handleContextMenuClick(info, tab) {
   if (info.menuItemId === "test") {
@@ -44,26 +69,6 @@ async function handleContextMenuClick(info, tab) {
   
   await chrome.storage.sync.set(settings);
 }
-
-chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
-
-chrome.storage.onChanged.addListener(async (changes, _) => {
-    // Apply changes to settings
-    for (let key in changes) {
-        if (changes.hasOwnProperty(key)) {
-            settings[key] = changes[key].newValue;
-        }
-    }
-    handleWebRTCSettings();
-    //chrome.tabs.query({}, (tabs) => {
-    //    tabs.forEach((tab) => {
-    //        applyOverrides(tab);
-    //    });
-    //});
-  log.info("Settings updated");
-});
-
-//chrome.runtime.onInstalled.addListener(OnLoad)
 setupTabListeners();
 
 log.info("Background script loaded");

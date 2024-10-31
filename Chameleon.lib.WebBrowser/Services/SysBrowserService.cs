@@ -111,6 +111,10 @@ public class SysBrowserService
 					urls = [Consts.DefaultHomePage];
 
 				var starturl = urls[new Random().Next(urls.Length)];
+				starturl = Uri.TryCreate(starturl, UriKind.Absolute, out var uriResult) 
+					&& (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
+					? starturl
+					: "https://" + starturl;
 				var launchOptions = new SysBrowserSettings(options, emulations, starturl, Netil.NextFreePort(9613));
 				browser = Create(options.BrowserType, launchOptions);
 				browser.OnEvent += Browser_OnEvent;
