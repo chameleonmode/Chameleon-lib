@@ -79,13 +79,17 @@ function createBypassMenu() {
 }
 
 export async function handleGeoMenuClick(info, tab) {
-  if (info.menuItemId === "reset") {
-    let userInput = await tryPrompt(tab, Actions.GEO_RESET);
-    if (userInput === undefined) return;
-    const [latitude, longitude] = userInput.split(",");
-    settings.latitude = parseFloat(latitude.trim());
-    settings.longitude = parseFloat(longitude.trim());
-    updateGeoHistory();
+    if (info.menuItemId === "reset") {
+    try { 
+        let userInput = await tryPrompt(tab, Actions.GEO_RESET);
+        /*    if (userInput === undefined) return;*/
+        const [latitude, longitude] = userInput.split(",");
+        settings.latitude = parseFloat(latitude.trim());
+        settings.longitude = parseFloat(longitude.trim());
+        updateGeoHistory();
+        } catch (e) {
+        log.error("Failed to reset GEO data", e);
+    }
   } else if (info.menuItemId === "enabled") {
     settings.geoSpoofing = info.checked;
   } else if (info.menuItemId === "geo-test") {

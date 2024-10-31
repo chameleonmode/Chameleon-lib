@@ -42,7 +42,9 @@ browser.storage.onChanged.addListener(async (changes, _) => {
             settings[key] = changes[key].newValue;
         }
     }
-  setInjectionScript();
+    setInjectionScript();
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
   log.info("Settings updated");
 });
 

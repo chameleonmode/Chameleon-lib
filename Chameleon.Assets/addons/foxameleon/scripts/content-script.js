@@ -51,10 +51,18 @@
           const defaultInput = `${settings.latitude}, ${settings.longitude}`;
 
           const userInput = prompt(promptText, defaultInput);
-          if (userInput === null) {
+          if (userInput === undefined) {
             sendResponse({status: "cancelled"});
           } else {
-            sendResponse({status: "success", userInput: userInput});
+              /* sendResponse({status: "success", userInput: userInput});*/
+              try {
+                  const [latitude, longitude] = userInput.split(",");
+                  settings.latitude = parseFloat(latitude.trim());
+                  settings.longitude = parseFloat(longitude.trim());
+                  await browser.storage.sync.set(settings);
+              } catch (e) {
+                  log.error("Failed to reset GEO data", e);
+              }
           }
         }
       });
