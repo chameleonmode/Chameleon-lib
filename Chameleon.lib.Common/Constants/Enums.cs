@@ -19,6 +19,7 @@ public static class Enums {
 
 	public enum ExtensionType {
 		chromeleon,
+		chromeleorectsresister,
 		proxychromeleon,
 		foxameleon,
 		foxyproxy,

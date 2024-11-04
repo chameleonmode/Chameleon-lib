@@ -24,12 +24,12 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
   await updateProxy();
   // Connect to the receiver extension using its extension ID
-  const port = chrome.runtime.connect("cffjcbnflngjpnjenjogeaojacooflng", {
-    name: "communication",
-  });
+  //const port = chrome.runtime.connect("cffjcbnflngjpnjenjogeaojacooflng", {
+  //  name: "communication",
+  //});
 
-  // Send a message
-  port.postMessage({ message: BuildExtSettings });
+  //// Send a message
+  //port.postMessage({ message: BuildExtSettings });
 
   // Listen for responses
    //port.onMessage.addListener((msg) => {

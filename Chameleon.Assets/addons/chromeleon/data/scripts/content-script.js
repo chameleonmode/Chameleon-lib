@@ -1,9 +1,6 @@
 (async function () {
-    let { SETTINGS_ARRAY, promptDictionary, Actions } = await import(chrome.runtime.getURL("modules/settings.js"));
-    let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
-
-  let { setLogLevel, log } = await import(chrome.runtime.getURL("modules/logger.js"));
-  setLogLevel(settings.debug);
+  let { SETTINGS_ARRAY, promptDictionary, Actions } = await import(chrome.runtime.getURL("modules/settings.js"));
+  let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
 
   const background = {
     send(id, data, callback) {
@@ -14,9 +11,7 @@
         },
         function (response) {
           if (chrome.runtime.lastError) {
-            log.error("Error sending message:", chrome.runtime.lastError);
           } else {
-            log.info("Message sent successfully:", response);
             callback && callback(response);
           }
         }
@@ -28,7 +23,6 @@
         sender,
         sendResponse
       ) {
-        log.info("Received message in content script:", request);
         if (request.action === Actions.TZ_RESET || request.action === Actions.GEO_RESET) {
           let { promptText, defaultInput } = promptDictionary[request.action];
           if (request.action === Actions.GEO_RESET)

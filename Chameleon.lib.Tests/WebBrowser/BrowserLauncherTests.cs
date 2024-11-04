@@ -14,10 +14,10 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 
 		IoC.SetJsonValue(new EmulationOptions {
 			DisableWebRTC = true,
-			SpoofClientRects = false,
-			SpoofFontFingerprint = true,
+			SpoofClientRects = true,
+			SpoofFontFingerprint = false,
 			SpoofCanvasFingerprint = true,
-			SpoofWebGLFingerprint = false,
+			SpoofWebGLFingerprint = true,
 			SpoofGeoLocation = true,
 			AutoTimezone = true,
 		}, nameof(EmulationOptions));
@@ -50,7 +50,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 
 		IoC.SetJsonValue(new EmulationOptions {
 			DisableWebRTC = true,
-			SpoofClientRects = false,
+			SpoofClientRects = true,
 			SpoofFontFingerprint = true,
 			SpoofCanvasFingerprint = true,
 			SpoofWebGLFingerprint = true,

@@ -40,9 +40,9 @@ export let settings = {
   noiseLevel: "medium",
   eMode: "disable_non_proxied_udp",
   dMode: "default_public_interface_only",
-    timezone: "America/Los_Angeles",
-    latitude: 34.052235,
-    longitude: -118.243683,
+  timezone: "America/Los_Angeles",
+  latitude: 34.052235,
+  longitude: -118.243683,
   locale: "en-US",
   debug: 4,
   accuracy: 69.96,
@@ -81,12 +81,12 @@ export async function updateSettings(built) {
         settings.fontsSpoofing       = built.fontsSpoofing
         settings.dAPI                = built.dAPI
         settings.webRtcEnabled       = built.webRtcEnabled
-        settings.geoSpoofing         = built.geoSpoofing
         settings.timezoneSpoofing    = built.timezoneSpoofing
         settings.myIP = built.myIP
+        settings.debug = built.debug;
+        settings.geoSpoofing = built.geoSpoofing
         settings.latitude = built.latitude
         settings.longitude = built.longitude
-        settings.debug = built.debug;
         /*settings = built;*/
     }
     await chrome.storage.sync.set(settings);

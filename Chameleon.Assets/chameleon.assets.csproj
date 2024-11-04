@@ -12,7 +12,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="addons\chromeleon\content.js" />
+	  <None Remove="addons\chromeleon\data\scripts\content-script-settings.js" />
 	  <None Remove="addons\chromeleon\modules\uule.js" />
+	  <None Remove="addons\chromeleorectsresister\background.js" />
+	  <None Remove="addons\chromeleorectsresister\content.js" />
+	  <None Remove="addons\chromeleorectsresister\injected.js" />
+	  <None Remove="addons\chromeleorectsresister\manifest.json" />
+	  <None Remove="addons\chromeleorectsresister\popup.html" />
+	  <None Remove="addons\chromeleorectsresister\popup.js" />
 	  <None Remove="addons\extreloader\background.js" />
 	  <None Remove="addons\extreloader\manifest.json" />
 	  <None Remove="addons\foxameleon\modules\uule.js" />

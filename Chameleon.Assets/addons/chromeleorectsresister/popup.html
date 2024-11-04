@@ -1,0 +1,25 @@
+﻿<!--Step 3: Popup UI to Set Mode and Refresh Offsets
+Add a popup UI (popup.js and popup.html) to let users choose the fingerprint resistance mode and refresh the offsets for multi-session.
+
+popup.html-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fingerprint Resistance</title>
+</head>
+<body>
+    <h2>Fingerprint Resistance</h2>
+    <label>
+        <input type="radio" name="mode" value="perCall"> Per-call
+    </label>
+    <label>
+        <input type="radio" name="mode" value="session"> Session
+    </label>
+    <label>
+        <input type="radio" name="mode" value="multiSession"> Multi-session
+    </label>
+    <button id="refreshOffsets">Refresh Offsets</button>
+
+    <script src="popup.js"></script>
+</body>
+</html>

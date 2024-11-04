@@ -172,33 +172,60 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 	public Dictionary<Enums.ExtensionType, (string? settings, string guid, string destDir)> ExtentionsDirs { get; } = [];
 
-	public async Task<string> BuildMeleonExtSettings(Func<Task<Ipapi>> @getimezone)
+	public async Task<string> BuildMeleonExtSettings(Func<Task<Ipapi>> @getimezone, string extDir)
 	{
+		//	var ipapi = await @getimezone();
+		//		var options = EmulationOptions;
+		//		var settingsBuilder = new StringBuilder();
+		//		_ = settingsBuilder.AppendLine("let BuildExtSettings = {");
+		//		_ = settingsBuilder.AppendLine($"enabled: {options.Any(o => o.Value == "true").Tlwr()},");
+		//		foreach (var o in options) {
+		//			_ = settingsBuilder.AppendLine($"{o.Key}: {o.Value},");
+		//		}
+		//		_ = settingsBuilder.AppendLine($"timezone: '{ipapi.timezone}',");
+		//		_ = settingsBuilder.AppendLine($"latitude: {ipapi.lat},");
+		//		_ = settingsBuilder.AppendLine($"longitude:{ipapi.lon},");
+		//		_ = settingsBuilder.AppendLine(
+		//"""
+		//	randomizeTZ: false,
+		//	randomizeGeo: false,
+		//	noiseLevel: "medium",
+		//	eMode: "disable_non_proxied_udp",
+		//	dMode: "default_public_interface_only",
+		//	locale: "en-US",
+		//	debug: 'LOG',
+		//	accuracy: 69.96,
+		//	bypass: [],
+		//	history: [],
+		//""");
+		//		_ = settingsBuilder.AppendLine("};");
+
 		var ipapi = await @getimezone();
 		var options = EmulationOptions;
 		var settingsBuilder = new StringBuilder();
-		_ = settingsBuilder.AppendLine("let BuildExtSettings = {");
-		_ = settingsBuilder.AppendLine($"enabled: {options.Any(o => o.Value == "true").Tlwr()},");
+		_ = settingsBuilder.AppendLine("{");
+		_ = settingsBuilder.AppendLine($"\"enabled\": {options.Any(o => o.Value == "true").Tlwr()},");
 		foreach (var o in options) {
-			_ = settingsBuilder.AppendLine($"{o.Key}: {o.Value},");
+			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
 		}
-		_ = settingsBuilder.AppendLine($"timezone: '{ipapi.timezone}',");
-		_ = settingsBuilder.AppendLine($"latitude: {ipapi.lat},");
-		_ = settingsBuilder.AppendLine($"longitude:{ipapi.lon},");
+		_ = settingsBuilder.AppendLine($"\"timezone\": \"{ipapi.timezone}\",");
+		_ = settingsBuilder.AppendLine($"\"latitude\": {ipapi.lat},");
+		_ = settingsBuilder.AppendLine($"\"longitude\":{ipapi.lon},");
 		_ = settingsBuilder.AppendLine(
 """
-	randomizeTZ: false,
-	randomizeGeo: false,
-	noiseLevel: "medium",
-	eMode: "disable_non_proxied_udp",
-	dMode: "default_public_interface_only",
-	locale: "en-US",
-	debug: 'LOG',
-	accuracy: 69.96,
-	bypass: [],
-	history: [],
+"randomizeTZ": false,
+"randomizeGeo": false,
+"noiseLevel": "medium",
+"eMode": "disable_non_proxied_udp",
+"dMode": "default_public_interface_only",
+"locale": "en-US",
+"debug": "LOG",
+"accuracy": 69.96,
+"bypass": [],
+"history": []
 """);
-		_ = settingsBuilder.AppendLine("};");
+		_ = settingsBuilder.AppendLine("}");
+		await File.WriteAllTextAsync(Path.Combine(extDir, "settings.json"), settingsBuilder.ToString());
 
 		return settingsBuilder.ToString();
 	}

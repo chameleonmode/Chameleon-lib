@@ -1,5 +1,29 @@
 (async () => {
-  let { SETTINGS_ARRAY } = await import(chrome.runtime.getURL("modules/settings.js"));
+  const SETTINGS_ARRAY = [
+      "enabled",
+      "webglSpoofing",
+      "canvasProtection",
+      "clientRectsSpoofing",
+      "fontsSpoofing",
+      "geoSpoofing",
+      "timezoneSpoofing",
+      "dAPI",
+      "webRtcEnabled",
+      "randomizeTZ",
+      "randomizeGeo",
+      "noiseLevel",
+      "eMode",
+      "dMode",
+      "timezone",
+      "locale",
+      "debug",
+      "latitude",
+      "longitude",
+      "accuracy",
+      "myIP",
+      "bypass",
+      "history",
+  ];
   let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
 
   const win = {

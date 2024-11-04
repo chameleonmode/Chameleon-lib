@@ -79,8 +79,8 @@ export async function updateSettings(built) {
       settings.dAPI = built.dAPI
       settings.webRtcEnabled = built.webRtcEnabled
       settings.geoSpoofing = built.geoSpoofing
-      settings.timezoneSpoofing = built.timezoneSpoofing
       settings.myIP = built.myIP
+      settings.timezoneSpoofing = built.timezoneSpoofing
       settings.latitude = built.latitude
       settings.longitude = built.longitude
       settings.debug = built.debug;
