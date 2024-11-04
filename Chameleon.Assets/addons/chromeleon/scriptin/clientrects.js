@@ -1,4 +1,5 @@
 ﻿{
+  //https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
   const noiseLevels = {
     low: 0.3,
     medium: 0.5,

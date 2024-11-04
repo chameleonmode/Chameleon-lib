@@ -64,7 +64,8 @@
       "match_origin_as_fallback": true,
       "js": [ 
         "scriptin/clientrects.js",
-        "scriptin/webgl.js"]
+        "scriptin/webgl.js",
+        "scriptin/canvas.js"]
     },
     {
       "matches": [ "<all_urls>" ],

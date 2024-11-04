@@ -26,6 +26,10 @@ export const SETTINGS_ARRAY = [
   "DOMRectReadOnlynoise",
   "WebGLnoise",
   "WebGLnoiseAmplitude",
+  "canvasR",
+  "canvasG",
+  "canvasB",
+  "canvasA",
 ];
 
 export let settings = {
@@ -46,6 +50,10 @@ export let settings = {
   DOMRectReadOnlynoise: 1,
   WebGLnoise: 1,
   WebGLnoiseAmplitude: 1,
+  canvasR: 1,
+  canvasG: 1,
+  canvasB: 1,
+  canvasA: 1,
   eMode: "disable_non_proxied_udp",
   dMode: "default_public_interface_only",
   timezone: "America/Los_Angeles",
@@ -167,6 +175,23 @@ export async function updateSettings(built) {
         : settings.noiseLevel === "medium"
         ? 0.001
         : 0.0001;
+    }
+    if (
+      settings.canvasR === 1 ||
+      settings.canvasG === 1 ||
+      settings.canvasB === 1 ||
+      settings.canvasA === 1
+    ) {
+      const noiseAmplitude =
+        settings.noiseLevel === "high"
+          ? 2
+          : settings.noiseLevel === "medium"
+          ? 1
+          : 0.5;
+      settings.canvasR = Math.floor(noiseAmplitude * 10) - 5;
+      settings.canvasG = Math.floor(noiseAmplitude * 10) - 5;
+      settings.canvasB = Math.floor(noiseAmplitude * 10) - 5;
+      settings.canvasA = Math.floor(noiseAmplitude * 10) - 5;
     }
   }
   await chrome.storage.sync.set(settings);

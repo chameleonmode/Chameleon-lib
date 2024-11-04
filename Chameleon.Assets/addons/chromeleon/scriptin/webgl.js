@@ -5,7 +5,6 @@
     webglSpoofing: true,
     WebGLnoise: 1,
     WebGLnoiseAmplitude: 1,
-    noiseLevel: "medium",
   };
 
   const config = {

@@ -42,18 +42,36 @@ document.addEventListener("DOMContentLoaded", async function () {
     settings.timezoneSpoofing = timezoneSpoofing.checked;
     if (settings.noiseLevel !== noiseLevel.value) {
       settings.noiseLevel = noiseLevel.value;
-      // Update rectys noise levels  
+      // Update rectys noise levels
       settings.DOMRectnoise =
-        1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
+        1 +
+        (Math.random() < 0.5 ? -1 : +1) *
+          (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
       settings.DOMRectReadOnlynoise =
-        1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRectReadOnly * noises.noiseLevel[settings.noiseLevel])
+        1 +
+        (Math.random() < 0.5 ? -1 : +1) *
+          (noises.DOMRectReadOnly * noises.noiseLevel[settings.noiseLevel]);
+
       // Update WebGL noise levels
       settings.WebGLnoise = noises.random.randvalue();
-      settings.WebGLnoiseAmplitude = settings.noiseLevel === "high"
-        ? 0.01
-        : settings.noiseLevel === "medium"
-        ? 0.001
-        : 0.0001;
+      settings.WebGLnoiseAmplitude =
+        settings.noiseLevel === "high"
+          ? 0.01
+          : settings.noiseLevel === "medium"
+          ? 0.001
+          : 0.0001;
+          
+      // Update canvas noise levels
+      const noiseAmplitude =
+        settings.noiseLevel === "high"
+          ? 2
+          : settings.noiseLevel === "medium"
+          ? 1
+          : 0.5;
+      settings.canvasR = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
+      settings.canvasG = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
+      settings.canvasB = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
+      settings.canvasA = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
     }
 
     chrome.storage.sync.set(settings, function () {

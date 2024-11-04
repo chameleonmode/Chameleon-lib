@@ -16,6 +16,10 @@
       "DOMRectReadOnlynoise",
       "WebGLnoise",
       "WebGLnoiseAmplitude",
+      "canvasR",
+      "canvasG",
+      "canvasB",
+      "canvasA",
     ])
     .then((items) => {
       window.dispatchEvent(
@@ -28,6 +32,7 @@
   [
     "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-rects",
     "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-gl",
+    "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-canvas",
   ].forEach((ikey) => {
     if (document.documentElement.getAttribute(ikey) === null) {
       parent.postMessage({ key: ikey }, "*");
