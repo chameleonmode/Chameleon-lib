@@ -90,7 +90,7 @@
       );
     });
 
-    const mkey = "cffjcbnflngjpnjenjogeaojacooflng-sandboxed";
+    const mkey = "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-rects";
     document.documentElement.setAttribute(mkey, "");
     //
     window.addEventListener(

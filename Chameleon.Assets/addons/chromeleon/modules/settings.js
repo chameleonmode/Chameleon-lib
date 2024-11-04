@@ -24,6 +24,8 @@ export const SETTINGS_ARRAY = [
   "history",
   "DOMRectnoise",
   "DOMRectReadOnlynoise",
+  "WebGLnoise",
+  "WebGLnoiseAmplitude",
 ];
 
 export let settings = {
@@ -42,6 +44,8 @@ export let settings = {
   noiseLevel: "medium",
   DOMRectnoise: 1,
   DOMRectReadOnlynoise: 1,
+  WebGLnoise: 1,
+  WebGLnoiseAmplitude: 1,
   eMode: "disable_non_proxied_udp",
   dMode: "default_public_interface_only",
   timezone: "America/Los_Angeles",
@@ -62,6 +66,48 @@ export const noises = {
   },
   DOMRect: 0.00000001,
   DOMRectReadOnly: 0.000001,
+  random: {
+    seed: Math.floor(Math.random() * 1000000),
+    noise: {
+        DOMRect: 0.00000001,
+        DOMRectReadOnly: 0.000001,
+    },
+    metrics: {
+        DOMRect: ["x", "y", "width", "height"],
+        DOMRectReadOnly: ["top", "right", "bottom", "left"],
+    },
+    randvalue: function () {
+        let thisseed = (this.seed * 9301 + 49297) % 233280;
+        return thisseed / 233280;
+    },
+    item: function (e) {
+        let rand = e.length * this.randvalue();
+        return e[Math.floor(rand)];
+    },
+    number: function (power) {
+        let tmp = [];
+        for (let i = 0; i < power.length; i++) {
+            tmp.push(Math.pow(2, power[i]));
+        }
+        return this.item(tmp);
+    },
+    int: function (power) {
+        let tmp = [];
+        for (let i = 0; i < power.length; i++) {
+            let n = Math.pow(2, power[i]);
+            tmp.push(new Int32Array([n, n]));
+        }
+        return this.item(tmp);
+    },
+    float: function (power) {
+        let tmp = [];
+        for (let i = 0; i < power.length; i++) {
+            let n = Math.pow(2, power[i]);
+            tmp.push(new Float32Array([1, n]));
+        }
+        return this.item(tmp);
+    },
+  },
 };
 
 export const Actions = {
@@ -103,18 +149,24 @@ export async function updateSettings(built) {
     settings.geoSpoofing = built.geoSpoofing;
     settings.latitude = built.latitude;
     settings.longitude = built.longitude;
-    if(settings.DOMRectnoise === 1) {
-    settings.DOMRectnoise =
-    1 +
-      (Math.random() < noises.noiseLevel[settings.noiseLevel] ? -1 : +1) *
-        noises.DOMRect;
+    if (settings.DOMRectnoise === 1) {
+      settings.DOMRectnoise =
+        1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
     }
-    
-    if(settings.DOMRectReadOnlynoise === 1) {
-    settings.DOMRectReadOnlynoise =
-    1 +
-      (Math.random() < noises.noiseLevel[settings.noiseLevel] ? -1 : +1) *
-        noises.DOMRectReadOnly;
+
+    if (settings.DOMRectReadOnlynoise === 1) {
+      settings.DOMRectReadOnlynoise =
+        1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRectReadOnly * noises.noiseLevel[settings.noiseLevel])
+    }
+    if (settings.WebGLnoise === 1) {
+      settings.WebGLnoise = noises.random.randvalue();
+    }
+    if(settings.WebGLnoiseAmplitude === 1){
+      settings.WebGLnoiseAmplitude = settings.noiseLevel === "high"
+        ? 0.01
+        : settings.noiseLevel === "medium"
+        ? 0.001
+        : 0.0001;
     }
   }
   await chrome.storage.sync.set(settings);

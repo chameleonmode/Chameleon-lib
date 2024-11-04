@@ -42,19 +42,18 @@ document.addEventListener("DOMContentLoaded", async function () {
     settings.timezoneSpoofing = timezoneSpoofing.checked;
     if (settings.noiseLevel !== noiseLevel.value) {
       settings.noiseLevel = noiseLevel.value;
+      // Update rectys noise levels  
       settings.DOMRectnoise =
         1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
-          // ? noises.DOMRect
-          // : settings.noiseLevel === "medium"
-          // ? (noises.DOMRect * 1.5)
-          // : (noises.DOMRect * 3);
       settings.DOMRectReadOnlynoise =
         1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRectReadOnly * noises.noiseLevel[settings.noiseLevel])
-        // settings.noiseLevel === "low"
-        // ? noises.DOMRectReadOnly
-        // : settings.noiseLevel === "medium"
-        // ? (noises.DOMRectReadOnly * 2)
-        // : (noises.DOMRectReadOnly * 3);
+      // Update WebGL noise levels
+      settings.WebGLnoise = noises.random.randvalue();
+      settings.WebGLnoiseAmplitude = settings.noiseLevel === "high"
+        ? 0.01
+        : settings.noiseLevel === "medium"
+        ? 0.001
+        : 0.0001;
     }
 
     chrome.storage.sync.set(settings, function () {

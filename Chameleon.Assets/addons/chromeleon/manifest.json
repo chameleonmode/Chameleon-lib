@@ -5,14 +5,14 @@
   "name": "Chromeleon",
   "description": "A Chrome addon for Chameleon - Enhance your browser privacy and security",
   "permissions": [
-    "activeTab",
+    "storage",
     "contextMenus",
+    "notifications",
+    "activeTab",
     "debugger",
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
-    "notifications",
     "privacy",
-    "storage",
     "scripting",
     "tabs",
     "webNavigation",
@@ -63,8 +63,8 @@
       "run_at": "document_start",
       "match_origin_as_fallback": true,
       "js": [ 
-        "data/scripts/main.js",
-        "scriptin/clientrects.js"]
+        "scriptin/clientrects.js",
+        "scriptin/webgl.js"]
     },
     {
       "matches": [ "<all_urls>" ],
