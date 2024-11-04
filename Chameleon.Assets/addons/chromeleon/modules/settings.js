@@ -30,6 +30,8 @@ export const SETTINGS_ARRAY = [
   "canvasG",
   "canvasB",
   "canvasA",
+  "Fontsnoise",
+  "Fontssign",
 ];
 
 export let settings = {
@@ -54,6 +56,8 @@ export let settings = {
   canvasG: 1,
   canvasB: 1,
   canvasA: 1,
+  Fontsnoise: 1,
+  Fontssign: 1,
   eMode: "disable_non_proxied_udp",
   dMode: "default_public_interface_only",
   timezone: "America/Los_Angeles",
@@ -176,22 +180,31 @@ export async function updateSettings(built) {
         ? 0.001
         : 0.0001;
     }
+    const noiseAmplitude =
+      settings.noiseLevel === "high"
+        ? 2
+        : settings.noiseLevel === "medium"
+        ? 1
+        : 0.5;
     if (
       settings.canvasR === 1 ||
       settings.canvasG === 1 ||
       settings.canvasB === 1 ||
       settings.canvasA === 1
     ) {
-      const noiseAmplitude =
-        settings.noiseLevel === "high"
-          ? 2
-          : settings.noiseLevel === "medium"
-          ? 1
-          : 0.5;
       settings.canvasR = Math.floor(noiseAmplitude * 10) - 5;
       settings.canvasG = Math.floor(noiseAmplitude * 10) - 5;
       settings.canvasB = Math.floor(noiseAmplitude * 10) - 5;
       settings.canvasA = Math.floor(noiseAmplitude * 10) - 5;
+    }
+    if (settings.Fontsnoise === 1) {
+      const SIGN = Math.random() < Math.random() ? -1 : 1;
+      settings.Fontsnoise = Math.floor(SIGN * noiseAmplitude);
+    }
+    if (settings.Fontssign === 1) {
+      const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
+      const index = Math.floor(Math.random() * tmp.length);
+      settings.Fontssign = tmp[index];
     }
   }
   await chrome.storage.sync.set(settings);

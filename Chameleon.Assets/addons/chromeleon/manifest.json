@@ -65,7 +65,8 @@
       "js": [ 
         "scriptin/clientrects.js",
         "scriptin/webgl.js",
-        "scriptin/canvas.js"]
+        "scriptin/canvas.js",
+        "scriptin/fonts.js"]
     },
     {
       "matches": [ "<all_urls>" ],

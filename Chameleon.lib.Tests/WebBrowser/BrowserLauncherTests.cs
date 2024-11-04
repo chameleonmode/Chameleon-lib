@@ -15,7 +15,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		IoC.SetJsonValue(new EmulationOptions {
 			DisableWebRTC = true,
 			SpoofClientRects = true,
-			SpoofFontFingerprint = false,
+			SpoofFontFingerprint = true,
 			SpoofCanvasFingerprint = true,
 			SpoofWebGLFingerprint = true,
 			SpoofGeoLocation = true,

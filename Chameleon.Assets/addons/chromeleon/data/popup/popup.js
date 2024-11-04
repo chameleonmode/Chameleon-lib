@@ -72,6 +72,13 @@ document.addEventListener("DOMContentLoaded", async function () {
       settings.canvasG = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
       settings.canvasB = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
       settings.canvasA = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
+
+      const SIGN = Math.random() < Math.random() ? -1 : 1;
+      settings.Fontsnoise = Math.floor(Math.random() + SIGN * Math.random()) * noiseAmplitude;
+    
+      const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
+      const index = Math.floor(Math.random() * tmp.length);
+      settings.Fontssign = tmp[index];
     }
 
     chrome.storage.sync.set(settings, function () {

@@ -20,6 +20,8 @@
       "canvasG",
       "canvasB",
       "canvasA",
+      "Fontsnoise",
+      "Fontssign",
     ])
     .then((items) => {
       window.dispatchEvent(
@@ -33,6 +35,7 @@
     "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-rects",
     "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-gl",
     "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-canvas",
+    "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-fonts",
   ].forEach((ikey) => {
     if (document.documentElement.getAttribute(ikey) === null) {
       parent.postMessage({ key: ikey }, "*");
