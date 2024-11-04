@@ -1,5 +1,6 @@
 ﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
+using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
@@ -56,15 +57,18 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	protected override async Task InitializeExtensionPath()
 	{
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, (
-			null,
-			Guid.NewGuid().ToString(), 
-			Settings.CachedExtentionsDir)
-		);
-		_ = await Settings.BuildMeleonExtSettings(
-			GetTimezone,
-			Path.Combine(Settings.CachedExtentionsDir, Enums.ExtensionType.chromeleon.ToString())
-		);
+		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, (
+		//	null,
+		//	Guid.NewGuid().ToString(), 
+		//	Settings.CachedExtentionsDir)
+		//);
+		//_ = await Settings.BuildMeleonExtSettings(
+		//	GetTimezone,
+		//	Path.Combine(Settings.CachedExtentionsDir, Enums.ExtensionType.chromeleon.ToString())
+		//);
+		
+		var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+		_ = await Settings.BuildMeleonExtSettings(GetTimezone, extDir);
 
 		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleorectsresister, (
 		//"",

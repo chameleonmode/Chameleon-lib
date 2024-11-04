@@ -1,9 +1,8 @@
-import { settings, updateSettings, Actions } from "./settings.js";
-import { tryPrompt } from "./prompter.js";
-import { log } from "./logger.js";
+import { SETTINGS_ARRAY } from "./settings.js";
 import { offsets } from "./offsets.js";
 
-export function createTimezoneContextMenus() {
+export async function createTimezoneContextMenus() {
+  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
   chrome.contextMenus.create(
     { title: "Timezone", id: "timezone-menu", contexts: ["browser_action"] },
     () => chrome.runtime.lastError
@@ -65,6 +64,7 @@ export function createTimezoneContextMenus() {
 }
 
 export async function handleTimezoneMenuClick(info, tab) {
+  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
   if (info.menuItemId === "update-timezone") {
     settings.myIP = true;
     settings.randomizeTZ = false;
@@ -87,7 +87,7 @@ export async function handleTimezoneMenuClick(info, tab) {
       settings.timezone = selectedZoneId;
       log.info(`Selected Timezone: ${selectedZoneId}`);
   }
-  updateSettings();
+  await browser.storage.sync.set(settings);
 }
 
 export function getRandomTimezone() {

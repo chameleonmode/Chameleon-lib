@@ -16,24 +16,12 @@ public static class Consts {
 	public const string DefaultHomePage = "https://example.com/";
 	public const int PageinationPageItems = 13;
 
-	public static string AppTempDir {
-		get {
-			return IOtil.EnsureDirectoryExists(
-				Path.Combine(Path.GetTempPath(), AppName));
-		}
-	}
-	public static string AppDataDir {
-		get {
-			return IOtil.EnsureDirectoryExists(
+	public static string AppTempDir => Path.Combine(Path.GetTempPath(), AppName);
+	public static string AppDataDir => IOtil.EnsureDirectoryExists(
 				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName));
-		}
-	}
-	public static string AppDataLocalDir {
-		get {
-			return IOtil.EnsureDirectoryExists(
+	public static string AppDataLocalDir => IOtil.EnsureDirectoryExists(
 				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName));
-		}
-	}
+
 	public static class Api {
 		public const string ApiBaseUrl = "https://api.chameleonmode.com/api/";
 		public const string ServicesPath = "services/app/";
@@ -68,7 +56,7 @@ public static class Consts {
 	public static class Addons {
 		public const string AddonsEmbeddedDir = "embedded://chameleon.assets/addons";
 		public static string AddonExtentionDir => Path.Combine(AppTempDir, "Addons");
-		public static string CachedExtentionDir => Path.Combine(AppTempDir, "AddonsCache");
+		public static string CachedExtentionDir => Path.Combine(AppTempDir, "eleonextcache");
 		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../Resources/BrowserExtensions")
 			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BrowserExtensions");

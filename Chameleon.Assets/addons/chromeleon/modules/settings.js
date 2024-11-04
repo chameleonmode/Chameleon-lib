@@ -33,7 +33,6 @@ export const SETTINGS_ARRAY = [
   "Fontsnoise",
   "Fontssign",
 ];
-
 export let settings = {
   enabled: true,
   webglSpoofing: true,
@@ -69,7 +68,6 @@ export let settings = {
   bypass: [],
   history: [],
 };
-
 export const noises = {
   noiseLevel: {
     low: 0.3,
@@ -122,28 +120,6 @@ export const noises = {
   },
 };
 
-export const Actions = {
-  TZ_RESET: "tz_reset",
-  GEO_RESET: "geo_reset",
-};
-
-export const promptDictionary = {
-  [Actions.TZ_RESET]: {
-    promptText:
-      'Enter a "timezone" value. Use https://www.timeanddate.com/time/map/ to find these values',
-    defaultInput: settings.timezone,
-  },
-  [Actions.GEO_RESET]: {
-    promptText:
-      'Enter a "latitude" and "longitude" separated by a comma. Use https://www.latlong.net/ to find these values',
-    defaultInput: `${settings.latitude}, ${settings.longitude}`,
-  },
-};
-
-export async function loadSettings() {
-  settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
-}
-
 export async function updateSettings(built) {
   if (built) {
     var current = await chrome.storage.sync.get(SETTINGS_ARRAY);
@@ -153,14 +129,19 @@ export async function updateSettings(built) {
     settings.canvasProtection = built.canvasProtection;
     settings.clientRectsSpoofing = built.clientRectsSpoofing;
     settings.fontsSpoofing = built.fontsSpoofing;
-    settings.dAPI = built.dAPI;
-    settings.webRtcEnabled = built.webRtcEnabled;
-    settings.timezoneSpoofing = built.timezoneSpoofing;
-    settings.myIP = built.myIP;
     settings.debug = built.debug;
+    settings.timezoneSpoofing = built.timezoneSpoofing;
+    if(settings.timezoneSpoofing) {
+      settings.myIP = false;
+      settings.timezone = built.timezone;
+    }else{
+      settings.myIP = true;
+    }
     settings.geoSpoofing = built.geoSpoofing;
-    settings.latitude = built.latitude;
-    settings.longitude = built.longitude;
+    if(settings.geoSpoofing) {
+      settings.latitude = built.latitude;
+      settings.longitude = built.longitude;
+    }
     if (settings.DOMRectnoise === 1) {
       settings.DOMRectnoise =
         1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
@@ -210,3 +191,21 @@ export async function updateSettings(built) {
   await chrome.storage.sync.set(settings);
   settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
 }
+
+export const Actions = {
+  TZ_RESET: "tz_reset",
+  GEO_RESET: "geo_reset",
+};
+
+export const promptDictionary = {
+  [Actions.TZ_RESET]: {
+    promptText:
+      'Enter a "timezone" value. Use https://www.timeanddate.com/time/map/ to find these values',
+    defaultInput: settings.timezone,
+  },
+  [Actions.GEO_RESET]: {
+    promptText:
+      'Enter a "latitude" and "longitude" separated by a comma. Use https://www.latlong.net/ to find these values',
+    defaultInput: `${settings.latitude}, ${settings.longitude}`,
+  },
+};

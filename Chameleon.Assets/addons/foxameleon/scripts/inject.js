@@ -1,115 +1,78 @@
 (async function () {
-    // Access the settings from the global window object
-    const settings = window.__myAddonSettings__;
-    const seed = window.__myAddonSeed__;
-    const randObjName = window.__myAddonRandObjName__;
-    // Geolocation spoofing
-    if (settings.geoSpoofing) {
-        const thisscript = document.createElement('script');
+  // Access the settings from the global window object
+  const settings = window.__myAddonSettings__;
+  const seed = window.__myAddonSeed__;
+  const randObjName = window.__myAddonRandObjName__;
+  if(!settings.enabled) return;
 
+  // Geolocation spoofing
+  if (settings.geoSpoofing) {
+    const thisscript = document.createElement("script");
 
-        thisscript.addEventListener('sp-request-permission', () => {
-            thisscript.dataset.prefs = JSON.stringify(settings);
-            thisscript.dispatchEvent(new Event('sp-response-permission'));
-        });
+    thisscript.addEventListener("sp-request-permission", () => {
+      thisscript.dataset.prefs = JSON.stringify(settings);
+      thisscript.dispatchEvent(new Event("sp-response-permission"));
+    });
 
-        thisscript.addEventListener('sp-request-geo-data', () => {
-            const next = () => {
-                if (settings.randomizeGeo) {
-                    try {
-                        const m = settings.latitude.toString().split('.')[1].length;
-                        settings.latitude = settings.latitude +
-                            (Math.random() > 0.5 ? 1 : -1) * settings.randomizeGeo * Math.random();
-                        settings.latitude = Number(settings.latitude.toFixed(m));
+    thisscript.addEventListener("sp-request-geo-data", () => {
+      const next = () => {
+        if (settings.geoSpoofing === true && settings.randomizeGeo) {
+          try {
+            const m = settings.latitude.toString().split(".")[1].length;
+            settings.latitude =
+              settings.latitude +
+              (Math.random() > 0.5 ? 1 : -1) *
+                settings.randomizeGeo *
+                Math.random();
+            settings.latitude = Number(settings.latitude.toFixed(m));
 
-                        const n = settings.longitude.toString().split('.')[1].length;
-                        settings.longitude = settings.longitude +
-                            (Math.random() > 0.5 ? 1 : -1) * settings.randomizeGeo * Math.random();
-                        settings.longitude = Number(settings.longitude.toFixed(n));
-                    }
-                    catch (e) {
-                        console.warn('Cannot randomize GEO', e);
-                    }
-                }
+            const n = settings.longitude.toString().split(".")[1].length;
+            settings.longitude =
+              settings.longitude +
+              (Math.random() > 0.5 ? 1 : -1) *
+                settings.randomizeGeo *
+                Math.random();
+            settings.longitude = Number(settings.longitude.toFixed(n));
+          } catch (e) {
+            console.warn("Cannot randomize GEO", e);
+          }
+        }
 
-                thisscript.dataset.prefs = JSON.stringify(settings);
-                thisscript.dispatchEvent(new Event('sp-response-geo-data'));
-            };
+        thisscript.dataset.prefs = JSON.stringify(settings);
+        thisscript.dispatchEvent(new Event("sp-response-geo-data"));
+      };
 
-            if (settings.latitude === -1) {
-                settings.latitude = undefined;
-            }
-            if (settings.longitude === -1) {
-                settings.longitude = undefined;
-            }
+      if (settings.latitude === -1) {
+        settings.latitude = undefined;
+      }
+      if (settings.longitude === -1) {
+        settings.longitude = undefined;
+      }
 
-            if (settings.geoSpoofing === false) {
-                next();
-            }
-            else if (settings.latitude && settings.longitude) {
-                next();
-            }
-//            else {
-//                const r = prompt(`Enter your spoofed "latitude" and "longitude" (e.g. values for London, UK)
+      if (settings.geoSpoofing === false) {
+        next();
+      } else if (settings.latitude && settings.longitude) {
+        next();
+      }
+    });
 
-//The number of digits to appear after the decimal point must be greater than 4
-//Use https://www.latlong.net/ to find these values`, '51.507351, -0.127758');
+    try {
+      thisscript.addEventListener("sp-bypassed", () =>
+        chrome.runtime.sendMessage({
+          method: "geo-bypassed",
+        })
+      );
+      thisscript.addEventListener("sp-requested", () =>
+        chrome.runtime.sendMessage({
+          method: "geo-requested",
+          enabled: thisscript.dataset.enabled === "true",
+        })
+      );
+    } catch (e) {
+      console.error(e);
+    }
 
-//                if (r === null) {
-//                    next(false);
-//                }
-//                else {
-//                    const [latitude, longitude] = r.split(/\s*,\s*/);
-
-//                    try {
-//                        // validate latitude
-//                        if (!isFinite(latitude) || Math.abs(latitude) > 90) {
-//                            throw Error('Latitude must be a number between -90 and 90');
-//                        }
-//                        if (!isFinite(longitude) || Math.abs(longitude) > 180) {
-//                            throw Error('Longitude must a number between -180 and 180');
-//                        }
-//                        if (latitude.split('.')[1].length < 4 || longitude.split('.')[1].length < 4) {
-//                            throw Error('The number of digits to appear after the decimal point must be greater than 4. Example: 51.507351, -0.127758');
-//                        }
-
-//                        prefs.latitude = Number(latitude);
-//                        prefs.longitude = Number(longitude);
-
-//                        chrome.storage.local.get({
-//                            history: []
-//                        }, ps => {
-//                            const names = [];
-//                            ps.history.forEach(([a, b]) => names.push(a + '|' + b));
-//                            if (names.includes(prefs.latitude + '|' + prefs.longitude) === false) {
-//                                ps.history.unshift([prefs.latitude, prefs.longitude]);
-//                                prefs.history = ps.history.slice(0, 10);
-//                            }
-
-//                            chrome.storage.local.set(prefs, () => next(true));
-//                        });
-//                    }
-//                    catch (e) {
-//                        console.error(e);
-//                        next(false);
-//                        alert('GEO Request Denied\n\n' + e.message);
-//                    }
-//                }
-//            }
-        });
-
-        try { 
-        thisscript.addEventListener('sp-bypassed', () => chrome.runtime.sendMessage({
-            method: 'geo-bypassed'
-        }));
-        thisscript.addEventListener('sp-requested', () => chrome.runtime.sendMessage({
-            method: 'geo-requested',
-            enabled: thisscript.dataset.enabled === 'true'
-        }));
-        } catch (e) { console.error(e); }
-
-
-        thisscript.textContent = `
+    thisscript.textContent = `
 // polyfill
 navigator.geolocation = navigator.geolocation || {
   getCurrentPosition() {},
@@ -305,24 +268,26 @@ navigator.geolocation = navigator.geolocation || {
   });
 }
 `;
-        // https://github.com/joue-quroi/spoof-geolocation/issues/3
-        if (document.contentType && document.contentType.endsWith('xml') === false) {
-            document.documentElement.append(thisscript);
-        }
+    // https://github.com/joue-quroi/spoof-geolocation/issues/3
+    if (
+      document.contentType &&
+      document.contentType.endsWith("xml") === false
+    ) {
+      document.documentElement.append(thisscript);
     }
+  }
 
-    let script = document.createElement("script");
-    script.textContent = `
+  let script = document.createElement("script");
+  script.textContent = `
 (function(){
     const inject = (spoofContext) => {
-      if (spoofContext.CHAMELEON_SPOOF) return;
+      // if (spoofContext.CHAMELEON_SPOOF) return;
 
-      spoofContext.CHAMELEON_SPOOF = "CHAMELEON_SPOOF";`
+      spoofContext.CHAMELEON_SPOOF = "CHAMELEON_SPOOF";`;
 
-
-    // Timezone spoofing
-    if (settings.timezoneSpoofing) {
-        script.textContent += `
+  // Timezone spoofing
+  if (settings.timezoneSpoofing) {
+    script.textContent += `
 if (new Date()[spoofContext.CHAMELEON_SPOOF]) {
   spoofContext.Date = Date;
   return;
@@ -505,170 +470,38 @@ spoofContext.Date = new Proxy(Date, {
     }
   });
 `.replace(
-            /ORIGINAL_DATE/g,
-            String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
-            Math.random()
-                .toString(36)
-                .substring(Math.floor(Math.random() * 5) + 5)
-        );
-    }
-
-    // Client rects spoofing
-    if (settings.clientRectsSpoofing) {
-        const clientRectsScript = `
-  {
-    const rand = { 
-        noise: {
-        DOMRect: 0.1,
-        DOMRectReadOnly: 0.1,
-        low: 0.3,
-        medium: 0.5,
-        high: 0.8,
-      },
-      metrics: {
-        DOMRect: ["x", "y", "width", "height"],
-        DOMRectReadOnly: ["top", "right", "bottom", "left"],
-      },
-    };
-    const noieMultiplier = rand.noise['${settings.noiseLevel}'];
-
-    const originalGetClientRects = spoofContext.Element.prototype.getClientRects;
-    const originalGetBoundingClientRect = spoofContext.Element.prototype.getBoundingClientRect;
-
-    spoofContext.Element.prototype.getClientRects = function() {
-      const rects = originalGetClientRects.call(this);
-      for (let i = 0; i < rects.length; i++) {
-        rects[i].x += (Math.random() - noieMultiplier) * 0.01;
-        rects[i].y += (Math.random() - noieMultiplier) * 0.01;
-        rects[i].width += (Math.random() - noieMultiplier) * 0.01;
-        rects[i].height += (Math.random() - noieMultiplier) * 0.01;
-      }
-      return rects;
-    };
-
-    spoofContext.Element.prototype.getBoundingClientRect = function() {
-      const rect = originalGetBoundingClientRect.call(this);
-      rect.x += (Math.random() - noieMultiplier) * 0.01;
-      rect.y += (Math.random() - noieMultiplier) * 0.01;
-      rect.width += (Math.random() - noieMultiplier) * 0.01;
-      rect.height += (Math.random() - noieMultiplier) * 0.01;
-      return rect;
-    };
-    const domRectProto = spoofContext.DOMRect.prototype;
-    const domRectReadOnlyProto = spoofContext.DOMRectReadOnly.prototype;
-    const clientRects = {
-        DOMRect: function (e) {
-          try {
-            Object.defineProperty(domRectProto, e, {
-              get: new Proxy(
-                Object.getOwnPropertyDescriptor(domRectProto, e).get,
-                {
-                  get(target, p, receiver) {
-                    return target;
-                  },
-                  apply(target, self, args) {
-                    const result = Reflect.apply(target, self, args);
-                    //
-                    const _result =
-                      result *
-                      (1 +
-                        (Math.random() < noieMultiplier
-                          ? -1
-                          : +1) *
-                          rand.noise.DOMRect);
-                    return _result;
-                  },
-                }
-              ),
-            });
-            //
-            Object.defineProperty(domRectProto, e, {
-              get: Object.getOwnPropertyDescriptor(domRectProto, e).get,
-            });
-          } catch (e) {
-            console.error(e);
-          }
-        },
-        DOMRectReadOnly: function (e) {
-          try {
-            Object.defineProperty(domRectReadOnlyProto, e, {
-              get: new Proxy(
-                Object.getOwnPropertyDescriptor(
-                  domRectReadOnlyProto,
-                  e
-                ).get,
-                {
-                  get(target, p, receiver) {
-                    return target;
-                  },
-                  apply(target, self, args) {
-                    const result = Reflect.apply(target, self, args);
-                    //
-                    const _result =
-                      result *
-                      (1 +
-                        (Math.random() < noieMultiplier
-                          ? -1
-                          : +1) *
-                          rand.noise.DOMRectReadOnly);
-                    return _result;
-                  },
-                }
-              ),
-            });
-            //
-            Object.defineProperty(domRectReadOnlyProto, e, {
-              get: Object.getOwnPropertyDescriptor(domRectReadOnlyProto, e)
-                .get,
-            });
-          } catch (e) {
-            console.error(e);
-          }
-        },
-    }; 
-    
-    //Spoofing of DOMRect
-    {
-      const metrics = ["x", "y", "width", "height"];
-      for (let i = 0; i < metrics.length; i++) {
-        clientRects.DOMRect(metrics[i]);
-      }
-    }
-
-    // Spoofing of DOMRectReadOnly
-    {
-      const metrics = ["top", "right", "bottom", "left"];
-      for (let i = 0; i < metrics.length; i++) {
-        clientRects.DOMRectReadOnly(metrics[i]);
-      }
-    }
+      /ORIGINAL_DATE/g,
+      String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
+        Math.random()
+          .toString(36)
+          .substring(Math.floor(Math.random() * 5) + 5)
+    );
   }
-`;
-        script.textContent += clientRectsScript;
-    }
 
-    script.textContent += ` };
+  script.textContent += ` };
 
     inject(window);
   })()
   `
-        .replace(/CHAMELEON_SPOOF/g, randObjName)
-        .replace(
-            /ORIGINAL_INTL/g,
-            String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
-            Math.random()
-                .toString(36)
-                .substring(Math.floor(Math.random() * 5) + 5)
-        );
-    // Inject the script into the page
-    document.documentElement.append(script);
-    /*script.remove();*/
+    .replace(/CHAMELEON_SPOOF/g, randObjName)
+    .replace(
+      /ORIGINAL_INTL/g,
+      String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
+        Math.random()
+          .toString(36)
+          .substring(Math.floor(Math.random() * 5) + 5)
+    );
+  // Inject the script into the page
+  document.documentElement.append(script);
+  /*script.remove();*/
 
-    let scriptel = document.createElement('script');
-    scriptel.src = URL.createObjectURL(new Blob([script.textContent], { type: 'text/javascript' }));
-    (document.head || document.documentElement).appendChild(scriptel);
-    try {
-        URL.revokeObjectURL(scriptel.src);
-    } catch (e) { }
-   /* scriptel.remove();*/
+  let scriptel = document.createElement("script");
+  scriptel.src = URL.createObjectURL(
+    new Blob([script.textContent], { type: "text/javascript" })
+  );
+  (document.head || document.documentElement).appendChild(scriptel);
+  try {
+    URL.revokeObjectURL(scriptel.src);
+  } catch (e) {}
+  /* scriptel.remove();*/
 })();

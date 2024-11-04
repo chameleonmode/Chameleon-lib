@@ -4,13 +4,13 @@
     low: 0.3,
     medium: 0.5,
     high: 0.8,
-  }
+  };
 
   const storageCache = {
     enabled: true,
     clientRectsSpoofing: true,
-    DOMRectnoise: 1,
-    DOMRectReadOnlynoise: 1,
+    DOMRectnoise: 0.00000001,
+    DOMRectReadOnlynoise: 0.00000001,
     noiseLevel: "medium",
   };
 
@@ -60,85 +60,45 @@
       },
     },
   };
+
+  config.method.DOMRect(
+    config.metrics.DOMRect.sort(() => noiseLevels[storageCache.noiseLevel])[0]
+  );
+  config.method.DOMRectReadOnly(
+    config.metrics.DOMRectReadOnly.sort(
+      () => noiseLevels[storageCache.noiseLevel]
+    )[0]
+  );
+
   //
-  // config.method.DOMRect(
-  //   config.metrics.DOMRect.sort(() => 0.5 - Math.random())[0]
-  // );
-  // config.method.DOMRectReadOnly(
-  //   config.metrics.DOMRectReadOnly.sort(() => 0.5 - Math.random())[0]
-  // );
-
-  {
-    const loadPromise = new Promise((resolve) => {
-      window.addEventListener(
-        "cffjcbnflngjpnjenjogeaojacooflng-settings",
-        (event) => {
-          Object.assign(storageCache, event.detail);
-          resolve();
-        }
-      );
-    });
-
-    const mkey = "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-rects";
-    document.documentElement.setAttribute(mkey, "");
-    //
-    window.addEventListener(
-      "message",
-      async function (e) {
-        if (e.data && e.data.key === mkey) {
-          e.preventDefault();
-          e.stopPropagation();
-          await loadPromise;
-          if (
-            storageCache.clientRectsSpoofing === false ||
-            storageCache.enabled === false
-          ) {
-            return;
-          }
-          
-          config.method.DOMRect(
-            config.metrics.DOMRect.sort(() => noiseLevels[storageCache.noiseLevel])[0]
-          );
-          config.method.DOMRectReadOnly(
-            config.metrics.DOMRectReadOnly.sort(() => noiseLevels[storageCache.noiseLevel])[0]
-          );
-          //
-          try {
-            if (e.source.DOMRect) {
-              const metrics = ["x", "y", "width", "height"];
-              for (let i = 0; i < metrics.length; i++) {
-                Object.defineProperty(e.source.DOMRect.prototype, metrics[i], {
-                  get: Object.getOwnPropertyDescriptor(
-                    DOMRect.prototype,
-                    metrics[i]
-                  ).get,
-                });
-              }
-            }
-          } catch (e) {
-            console.error(e);
-          }
-          //
-          try {
-            if (e.source.DOMRectReadOnly) {
-              const metrics = ["top", "right", "bottom", "left"];
-              for (let i = 0; i < metrics.length; i++) {
-                Object.defineProperty(e.source.DOMRectReadOnly.prototype, metrics[i], {
-                    get: Object.getOwnPropertyDescriptor(
-                      DOMRectReadOnly.prototype,
-                      metrics[i]
-                    ).get,
-                  }
-                );
-              }
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      },
-      false
-    );
+  try {
+    if (window.DOMRect) {
+      const metrics = ["x", "y", "width", "height"];
+      for (let i = 0; i < metrics.length; i++) {
+        Object.defineProperty(window.DOMRect.prototype, metrics[i], {
+          get: Object.getOwnPropertyDescriptor(DOMRect.prototype, metrics[i])
+            .get,
+        });
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  //
+  try {
+    if (window.DOMRectReadOnly) {
+      const metrics = ["top", "right", "bottom", "left"];
+      for (let i = 0; i < metrics.length; i++) {
+        Object.defineProperty(window.DOMRectReadOnly.prototype, metrics[i], {
+          get: Object.getOwnPropertyDescriptor(
+            DOMRectReadOnly.prototype,
+            metrics[i]
+          ).get,
+        });
+      }
+    }
+  } catch (e) {
+    console.error(e);
   }
 }
 // {

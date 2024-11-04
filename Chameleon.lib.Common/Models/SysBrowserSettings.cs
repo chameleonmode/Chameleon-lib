@@ -10,12 +10,12 @@ using System.Text.Json;
 namespace Chameleon.lib.Common.Models;
 public class EmulationOptions {
 	public bool AutoTimezone { get; set; } = true;
+	public bool SpoofGeoLocation { get; set; } = true;
 	public bool SpoofWebGLFingerprint { get; set; } = true;
 	public bool SpoofCanvasFingerprint { get; set; } = true;
 	public bool SpoofClientRects { get; set; } = true;
 	public bool SpoofFontFingerprint { get; set; } = true;
 	public bool DisableWebRTC { get; set; } = true;
-	public bool SpoofGeoLocation { get; set; } = true;
 }
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
 public record class SysBrowserRecord(string Name, string Path) {
@@ -57,11 +57,8 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 			new ("canvasProtection", Emulation.SpoofCanvasFingerprint.Tlwr()),
 			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
 			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
-			new ("dAPI", Emulation.DisableWebRTC.Tlwr()),
-			new ("webRtcEnabled", Emulation.DisableWebRTC.Tlwr()),
 			new ("geoSpoofing", Emulation.SpoofGeoLocation.Tlwr()),
 			new ("timezoneSpoofing", Emulation.AutoTimezone.Tlwr()),
-			new ("myIP", (!Emulation.AutoTimezone).Tlwr()),
 	];
 	public SysBrowserEvent CreateEvent(Enums.SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
 
@@ -174,32 +171,6 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 	public async Task<string> BuildMeleonExtSettings(Func<Task<Ipapi>> @getimezone, string extDir)
 	{
-		//	var ipapi = await @getimezone();
-		//		var options = EmulationOptions;
-		//		var settingsBuilder = new StringBuilder();
-		//		_ = settingsBuilder.AppendLine("let BuildExtSettings = {");
-		//		_ = settingsBuilder.AppendLine($"enabled: {options.Any(o => o.Value == "true").Tlwr()},");
-		//		foreach (var o in options) {
-		//			_ = settingsBuilder.AppendLine($"{o.Key}: {o.Value},");
-		//		}
-		//		_ = settingsBuilder.AppendLine($"timezone: '{ipapi.timezone}',");
-		//		_ = settingsBuilder.AppendLine($"latitude: {ipapi.lat},");
-		//		_ = settingsBuilder.AppendLine($"longitude:{ipapi.lon},");
-		//		_ = settingsBuilder.AppendLine(
-		//"""
-		//	randomizeTZ: false,
-		//	randomizeGeo: false,
-		//	noiseLevel: "medium",
-		//	eMode: "disable_non_proxied_udp",
-		//	dMode: "default_public_interface_only",
-		//	locale: "en-US",
-		//	debug: 'LOG',
-		//	accuracy: 69.96,
-		//	bypass: [],
-		//	history: [],
-		//""");
-		//		_ = settingsBuilder.AppendLine("};");
-
 		var ipapi = await @getimezone();
 		var options = EmulationOptions;
 		var settingsBuilder = new StringBuilder();
@@ -211,15 +182,18 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		_ = settingsBuilder.AppendLine($"\"timezone\": \"{ipapi.timezone}\",");
 		_ = settingsBuilder.AppendLine($"\"latitude\": {ipapi.lat},");
 		_ = settingsBuilder.AppendLine($"\"longitude\":{ipapi.lon},");
+		_ = settingsBuilder.AppendLine($"\"debug\":{(Debugger.IsAttached ? 5 : -1)},");
 		_ = settingsBuilder.AppendLine(
 """
+"myIP": false,
+"dAPI": true,
+"webRtcEnabled": true,
 "randomizeTZ": false,
 "randomizeGeo": false,
 "noiseLevel": "medium",
 "eMode": "disable_non_proxied_udp",
 "dMode": "default_public_interface_only",
 "locale": "en-US",
-"debug": "LOG",
 "accuracy": 69.96,
 "bypass": [],
 "history": []

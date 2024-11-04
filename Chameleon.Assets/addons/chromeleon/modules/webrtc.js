@@ -1,28 +1,28 @@
-import { settings, updateSettings } from './settings.js';
+import { SETTINGS_ARRAY } from './settings.js';
 import { log } from './logger.js';
 
 const IS_FIREFOX = /Firefox/.test(navigator.userAgent) || typeof InstallTrigger !== "undefined";
 
-export function handleWebRTCSettings() {
+export async function handleWebRTCSettings() {
   const value = settings.webRtcEnabled && settings.dAPI ? settings.eMode : settings.dMode;
   chrome.privacy.network.webRTCIPHandlingPolicy.clear({}, () => {
     chrome.privacy.network.webRTCIPHandlingPolicy.set({ value }, () => {
       chrome.privacy.network.webRTCIPHandlingPolicy.get({}, (s) => {
-        let path = "/data/icons/";
-        let title = "WebRTC Protection is On";
+        //let path = "/data/icons/";
+        //let title = "WebRTC Protection is On";
 
-        if (s.value !== value) {
-          path += "red/";
-          title = "WebRTC access cannot be changed. It is controlled by another extension";
-        } else if (settings.webRtcEnabled === false) {
-          path += "disabled/";
-          title = "WebRTC Protection is Off";
-        }
+        //if (s.value !== value) {
+        //  path += "red/";
+        //  title = "WebRTC access cannot be changed. It is controlled by another extension";
+        //} else if (settings.webRtcEnabled === false) {
+        //  path += "disabled/";
+        //  title = "WebRTC Protection is Off";
+        //}
 
-        chrome.action.setIcon({
-          path: { 16: path + "16.png", 32: path + "32.png" },
-        });
-        chrome.action.setTitle({ title });
+        //chrome.action.setIcon({
+        //  path: { 16: path + "16.png", 32: path + "32.png" },
+        //});
+        //chrome.action.setTitle({ title });
       });
     });
   });
@@ -30,8 +30,8 @@ export function handleWebRTCSettings() {
 
 export function createWebRTCContextMenus() {
   chrome.contextMenus.create({ title: "WebRTC", id: "webrtc-menu", contexts: ["action"] });
-  chrome.contextMenus.create({ title: "Check WebRTC Leakage", id: "test", contexts: ["action"], parentId: "webrtc-menu" });
-  chrome.contextMenus.create({ title: "WebRTC Protection Enabled", id: "webRtcEnabled", contexts: ["action"], type: "checkbox", parentId: "webrtc-menu", checked: settings.webRtcEnabled });
+  chrome.contextMenus.create({ title: "Check WebRTC Leakage", id: "rtc-test", contexts: ["action"], parentId: "webrtc-menu" });
+  /*chrome.contextMenus.create({ title: "WebRTC Protection Enabled", id: "webRtcEnabled", contexts: ["action"], type: "checkbox", parentId: "webrtc-menu", checked: settings.webRtcEnabled });*/
   chrome.contextMenus.create({ title: "Disable WebRTC Media Device Enumeration API", id: "dApi", contexts: ["action"], type: "checkbox", parentId: "webrtc-menu", checked: settings.dAPI });
   chrome.contextMenus.create({ title: "Options", id: "webrtc-options", contexts: ["action"], parentId: "webrtc-menu" });
   
@@ -80,7 +80,8 @@ function createWhenDisabledMenu() {
   });
 }
 
-export function handleWebRTCMenuClick(info) {
+export async function handleWebRTCMenuClick(info) {
+  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
   if (info.menuItemId === "webRtcEnabled") {
     settings.webRtcEnabled = info.checked;
   } else if (info.menuItemId === "dApi") {
@@ -89,9 +90,9 @@ export function handleWebRTCMenuClick(info) {
     settings.eMode = info.menuItemId;
   } else if (["default_public_interface_only", "default_public_and_private_interfaces"].includes(info.menuItemId)) {
     settings.dMode = info.menuItemId;
-  } else if (info.menuItemId === "test") {
-    chrome.tabs.create({ url: "https://webbrowsertools.com/ip-address/" });
+  } else if (info.menuItemId === "rtc-test") {
+    chrome.tabs.create({ url: "https://browserleaks.com/webrtc" });
   }
-  updateSettings();
+  await browser.storage.sync.set(settings);
   handleWebRTCSettings();
 }

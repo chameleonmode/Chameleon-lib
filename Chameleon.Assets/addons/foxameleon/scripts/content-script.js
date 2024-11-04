@@ -1,29 +1,4 @@
 (async function () {
-   const SETTINGS_ARRAY = [
-        "enabled",
-        "webglSpoofing",
-        "canvasProtection",
-        "clientRectsSpoofing",
-        "fontsSpoofing",
-        "geoSpoofing",
-        "timezoneSpoofing",
-        "dAPI",
-        "webRtcEnabled",
-        "randomizeTZ",
-        "randomizeGeo",
-        "noiseLevel",
-        "eMode",
-        "dMode",
-        "timezone",
-        "locale",
-        "debug",
-        "latitude",
-        "longitude",
-        "accuracy",
-        "myIP",
-        "bypass",
-        "history",
-    ];
   const background = {
     send(id, data, callback) {
       chrome.runtime.sendMessage(
@@ -45,7 +20,41 @@
         sender,
         sendResponse
       ) {
-          let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
+          let settings = await browser.storage.sync.get([
+            "enabled",
+            "webglSpoofing",
+            "canvasProtection",
+            "clientRectsSpoofing",
+            "fontsSpoofing",
+            "geoSpoofing",
+            "timezoneSpoofing",
+            "dAPI",
+            "webRtcEnabled",
+            "randomizeTZ",
+            "randomizeGeo",
+            "noiseLevel",
+            "eMode",
+            "dMode",
+            "timezone",
+            "locale",
+            "debug",
+            "latitude",
+            "longitude",
+            "accuracy",
+            "myIP",
+            "bypass",
+            "history",
+            "DOMRectnoise",
+            "DOMRectReadOnlynoise",
+            "WebGLnoise",
+            "WebGLnoiseAmplitude",
+            "canvasR",
+            "canvasG",
+            "canvasB",
+            "canvasA",
+            "Fontsnoise",
+            "Fontssign",
+          ]);
           if (request.action === "geo_reset") {
           const promptText = "Enter a \"latitude\" and \"longitude\" separated by a comma. Use https://www.latlong.net/ to find these values";
           const defaultInput = `${settings.latitude}, ${settings.longitude}`;

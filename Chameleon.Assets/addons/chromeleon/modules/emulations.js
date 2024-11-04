@@ -1,7 +1,6 @@
 import { settings } from './settings.js';
 import { log } from './logger.js';
 import { offsets } from './offsets.js';
-import { genUULE, updateLocationRules } from './uule.js';
 
 export async function applyOverrides(tab) {
   try {

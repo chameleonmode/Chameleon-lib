@@ -63,32 +63,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.CachedFoxameleon);
 		await IOtil.DC(inDirCached);
 		var geckoextDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.foxameleon, Settings.CachedExtentionsDir);
-		//		var ipapi = await GetTimezone();
-		//		var options = Settings.EmulationOptions;
-		//		var settingsBuilder = new StringBuilder();
-		//		_ = settingsBuilder.AppendLine("{");
-		//		_ = settingsBuilder.AppendLine($"\"enabled\": {options.Any(o => o.Value == "true").Tlwr()},");
-		//		foreach (var o in options) {
-		//			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
-		//		}
-		//		_ = settingsBuilder.AppendLine($"\"timezone\": \"{ipapi.timezone}\",");
-		//		_ = settingsBuilder.AppendLine($"\"latitude\": {ipapi.lat},");
-		//		_ = settingsBuilder.AppendLine($"\"longitude\":{ipapi.lon},");
-		//		_ = settingsBuilder.AppendLine(
-		//"""
-		//	"randomizeTZ": false,
-		//	"randomizeGeo": false,
-		//	"noiseLevel": "medium",
-		//	"eMode": "disable_non_proxied_udp",
-		//	"dMode": "default_public_interface_only",
-		//	"locale": "en-US",
-		//	"debug": "LOG",
-		//	"accuracy": 69.96,
-		//	"bypass": [],
-		//	"history": []
-		//""");
-		//		_ = settingsBuilder.AppendLine("}");
-		//		await File.WriteAllTextAsync(Path.Combine(geckoextDir, "settings.json"), settingsBuilder.ToString());
 		_ = await Settings.BuildMeleonExtSettings(GetTimezone, geckoextDir);
 		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
 		

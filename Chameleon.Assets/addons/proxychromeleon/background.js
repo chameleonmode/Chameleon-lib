@@ -29,12 +29,18 @@ chrome.runtime.onInstalled.addListener(async () => {
   //});
 
   //// Send a message
-  //port.postMessage({ message: BuildExtSettings });
+  //port.postMessage({ message: "reload" });
 
   // Listen for responses
    //port.onMessage.addListener((msg) => {
    //    port.postMessage({ message: BuildExtSettings });
-   //});
+    //});
+    const extensionId = "cffjcbnflngjpnjenjogeaojacooflng";
+    chrome.management.setEnabled(extensionId, false, function () {
+        chrome.management.setEnabled(extensionId, true, function () {
+                chrome.management.launchApp(extensionId);
+        });
+    });
 });
 
 function log(message, type = "info") {

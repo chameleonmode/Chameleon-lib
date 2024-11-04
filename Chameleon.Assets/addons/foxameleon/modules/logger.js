@@ -1,4 +1,4 @@
-const ADDON_NAME = "Chromeleon Defender";
+const ADDON_NAME = "Geckoleon Defender";
 
 const LOG_LEVELS = {
   LOG: 0,
@@ -23,22 +23,22 @@ export const log = {
   },
   debug: (message, ...args) => {
     if (1 <= currentLogLevel) {
-      console.debug(formatMessage("DEBUG", message), ...args);
+      console.log(formatMessage("DEBUG", message), ...args);
     }
   },
   info: (message, ...args) => {
     if (2 <= currentLogLevel) {
-      console.info(formatMessage("INFO", message), ...args);
+      console.log(formatMessage("INFO", message), ...args);
     }
   },
   warn: (message, ...args) => {
     if (3 <= currentLogLevel) {
-      console.warn(formatMessage("WARN", message), ...args);
+      console.log(formatMessage("WARN", message), ...args);
     }
   },
   error: (message, ...args) => {
     if (4 <= currentLogLevel) {
-      console.error(formatMessage("ERROR", message), ...args);
+      console.log(formatMessage("ERROR", message), ...args);
     }
   },
 };
@@ -65,7 +65,5 @@ export default function logger(type, message, ...args) {
 
 // Example of setting the log level dynamically
 export function setLogLevel(level) {
-  if (LOG_LEVELS[level] !== undefined) {
-    currentLogLevel = LOG_LEVELS[level];
-  }
+  currentLogLevel = level;
 }

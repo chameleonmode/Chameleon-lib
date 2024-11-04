@@ -1,15 +1,9 @@
-import { log } from "../../modules/logger.js";
-import { settings, updateSettings } from "../../modules/settings.js";
+import { noises, SETTINGS_ARRAY } from "../../modules/settings.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
-  await updateSettings();
+  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
   const toggleExtension = document.getElementById("toggle-extension");
-  //const webglSpoofing = document.getElementById("webgl-spoofing");
-  //const canvasProtection = document.getElementById("canvas-protection");
-  //const fontsSpoofing = document.getElementById("fonts-spoofing");
   const clientRectsSpoofing = document.getElementById("client-rects-spoofing");
-  const geoSpoofing = document.getElementById("geo-spoofing");
-  const timezoneSpoofing = document.getElementById("timezone-spoofing");
   const noiseLevel = document.getElementById("noise-level");
   const statusText = document.getElementById("status-text");
   const blockedCount = document.getElementById("blocked-count");
@@ -17,8 +11,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Load saved settings
     toggleExtension.checked = settings.enabled !== false;
     clientRectsSpoofing.checked = settings.clientRectsSpoofing !== false;
-    geoSpoofing.checked = settings.geoSpoofing !== false;
-    timezoneSpoofing.checked = settings.timezoneSpoofing !== false;
     noiseLevel.value = settings.noiseLevel || "medium";
     blockedCount.textContent = settings.blockedCount || 0;
     updateStatus();
@@ -33,12 +25,20 @@ document.addEventListener("DOMContentLoaded", async function () {
   function saveSettings() {
     settings.enabled = toggleExtension.checked;
     settings.clientRectsSpoofing = clientRectsSpoofing.checked;
-    settings.geoSpoofing = geoSpoofing.checked;
-    settings.timezoneSpoofing = timezoneSpoofing.checked;
-    settings.noiseLevel = noiseLevel.value;
+    if (settings.noiseLevel !== noiseLevel.value) {
+      settings.noiseLevel = noiseLevel.value;
+      // Update rectys noise levels
+      settings.DOMRectnoise =
+        1 +
+        (Math.random() < 0.5 ? -1 : +1) *
+          (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
+      settings.DOMRectReadOnlynoise =
+        1 +
+        (Math.random() < 0.5 ? -1 : +1) *
+          (noises.DOMRectReadOnly * noises.noiseLevel[settings.noiseLevel]);
+    }
 
     chrome.storage.sync.set(settings, function () {
-      log.info("Settings saved");
       updateStatus();
     });
   }
@@ -46,7 +46,5 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Event listeners
   toggleExtension.addEventListener("change", saveSettings);
   clientRectsSpoofing.addEventListener("change", saveSettings);
-  geoSpoofing.addEventListener("change", saveSettings);
-  timezoneSpoofing.addEventListener("change", saveSettings);
   noiseLevel.addEventListener("change", saveSettings);
 });

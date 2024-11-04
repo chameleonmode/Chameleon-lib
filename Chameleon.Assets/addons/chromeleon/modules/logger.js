@@ -65,7 +65,5 @@ export default function logger(type, message, ...args) {
 
 // Example of setting the log level dynamically
 export function setLogLevel(level) {
-  if (LOG_LEVELS[level] !== undefined) {
-    currentLogLevel = LOG_LEVELS[level];
-  }
+  currentLogLevel = level;
 }

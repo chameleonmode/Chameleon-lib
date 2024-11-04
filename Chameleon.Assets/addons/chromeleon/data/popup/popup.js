@@ -7,8 +7,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   const canvasProtection = document.getElementById("canvas-protection");
   const clientRectsSpoofing = document.getElementById("client-rects-spoofing");
   const fontsSpoofing = document.getElementById("fonts-spoofing");
-  const geoSpoofing = document.getElementById("geo-spoofing");
-  const timezoneSpoofing = document.getElementById("timezone-spoofing");
   const noiseLevel = document.getElementById("noise-level");
   const statusText = document.getElementById("status-text");
   const blockedCount = document.getElementById("blocked-count");
@@ -19,8 +17,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   canvasProtection.checked = settings.canvasProtection;
   clientRectsSpoofing.checked = settings.clientRectsSpoofing;
   fontsSpoofing.checked = settings.fontsSpoofing;
-  geoSpoofing.checked = settings.geoSpoofing;
-  timezoneSpoofing.checked = settings.timezoneSpoofing;
   noiseLevel.value = settings.noiseLevel || "medium";
   blockedCount.textContent = settings.blockedCount || 0;
   updateStatus();
@@ -38,8 +34,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     settings.canvasProtection = canvasProtection.checked;
     settings.clientRectsSpoofing = clientRectsSpoofing.checked;
     settings.fontsSpoofing = fontsSpoofing.checked;
-    settings.geoSpoofing = geoSpoofing.checked;
-    settings.timezoneSpoofing = timezoneSpoofing.checked;
     if (settings.noiseLevel !== noiseLevel.value) {
       settings.noiseLevel = noiseLevel.value;
       // Update rectys noise levels
@@ -92,7 +86,5 @@ document.addEventListener("DOMContentLoaded", async function () {
   canvasProtection.addEventListener("change", saveSettings);
   clientRectsSpoofing.addEventListener("change", saveSettings);
   fontsSpoofing.addEventListener("change", saveSettings);
-  geoSpoofing.addEventListener("change", saveSettings);
-  timezoneSpoofing.addEventListener("change", saveSettings);
   noiseLevel.addEventListener("change", saveSettings);
 });

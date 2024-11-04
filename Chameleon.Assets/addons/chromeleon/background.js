@@ -30,12 +30,26 @@ fetch(chrome.runtime.getURL("settings.json"))
   .then(async (data) => {
     await updateSettings(data);
     setLogLevel(settings.debug);
+    await handleWebRTCSettings();
     const uule = genUULE(settings.latitude, settings.longitude);
     updateLocationRules(uule);
-    OnLoad();
+    applyTabOverrides();
+    createWebRTCContextMenus();
+    createGeoContextMenus();
+    createTimezoneContextMenus();
     log.info("Received: ", data);
   })
   .catch((error) => console.error("Error loading settings:", error));
+
+//chrome.runtime.onConnectExternal.addListener((port) => {
+//  console.assert(port.name === "communication");
+
+//  // Listen for messages from the sender extension
+//    port.onMessage.addListener(async (msg) => {
+//      if(msg.message === "reload")
+//        chrome.runtime.reload();
+//  });
+//});
 
 //chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 //    if (request.action === 'getSettings') {
@@ -45,15 +59,6 @@ fetch(chrome.runtime.getURL("settings.json"))
 //        // Return true to indicate you want to send a response asynchronously
 //        return true;
 //    }
-//});
-//chrome.runtime.onConnectExternal.addListener((port) => {
-//  console.assert(port.name === "communication");
-
-//  // Listen for messages from the sender extension
-//  port.onMessage.addListener(async (msg) => {
-//      var theseSettings = await chrome.storage.sync.get(SETTINGS_ARRAY);
-//      port.postMessage({ message: theseSettings });
-//  });
 //});
 
 // chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -83,7 +88,7 @@ fetch(chrome.runtime.getURL("settings.json"))
 // });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === "test") {
+  if (info.menuItemId === "rtc-test") {
     chrome.tabs.create({
       url: "https://webbrowsertools.com/ip-address/",
       index: tab.index + 1,
@@ -101,8 +106,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     handleWebRTCMenuClick(info);
   } else if (
     info.menuItemId.startsWith("geo") ||
-    info.menuItemId === "enabled" ||
-    info.menuItemId === "reset" ||
     info.menuItemId.startsWith("set:") ||
     info.menuItemId.startsWith("randomizeGeo:") ||
     info.menuItemId.startsWith("accuracy:") ||
@@ -112,11 +115,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   ) {
     await handleGeoMenuClick(info, tab);
   } else if (
+    info.menuItemId.startsWith("timezone") ||
     [
       "update-timezone",
       "set-timezone",
       "check-timezone",
       "randomize-timezone",
+      "timezone-",
+      "tz-enabled",
     ].includes(info.menuItemId)
   ) {
     await handleTimezoneMenuClick(info, tab);
@@ -124,20 +130,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   await chrome.storage.sync.set(settings);
 });
-
-// chrome.storage.onChanged.addListener(async (changes, _) => {
-//   // Apply changes to settings
-//   for (let key in changes) {
-//     if (changes.hasOwnProperty(key)) {
-//       settings[key] = changes[key].newValue;
-//     }
-//   }
-//   handleWebRTCSettings();
-//   applyTabOverrides();
-//   const uule = genUULE(settings.latitude, settings.longitude);
-//   updateLocationRules(uule);
-//   log.info("Settings updated");
-// });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
   for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
@@ -147,21 +139,10 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     );
     settings[key] = newValue;
   }
-
-  handleWebRTCSettings();
   applyTabOverrides();
   const uule = genUULE(settings.latitude, settings.longitude);
   updateLocationRules(uule);
 });
-
-function OnLoad() {
-  applyTabOverrides();
-  createWebRTCContextMenus();
-  createGeoContextMenus();
-  createTimezoneContextMenus();
-
-  log.info("OnLoad");
-}
 
 function applyTabOverrides() {
   try {
