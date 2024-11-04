@@ -86,6 +86,13 @@ browser.storage.onChanged.addListener((changes, namespace) => {
   log.info("Settings updated");
 });
 
+// Listen for messages from content scripts
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message === "getSettings") {
+    sendResponse(settings);
+  }
+});
+
 var injectionScript;
 async function setInjectionScript() {
   if (injectionScript) {

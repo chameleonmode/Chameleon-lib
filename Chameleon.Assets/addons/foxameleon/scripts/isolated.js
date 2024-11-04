@@ -1,4 +1,4 @@
-﻿(async () => {
+﻿{
   // Asynchronously retrieve data from storage.sync, then cache it.
   browser.storage.sync
     .get([
@@ -23,9 +23,8 @@
       "Fontsnoise",
       "Fontssign",
     ])
-    .then((items) => {
-      // window.top.postMessage({ key: "cffjcbnflngjpnjenjogeaojacooflng-settings", detail: items }, "*");
-      // parent.postMessage({ key: "cffjcbnflngjpnjenjogeaojacooflng-settings", detail: items }, "*");
+    .then((settings) => {
+      window.postMessage({ type: "cffjcbnflngjpnjenjogeaojacooflng-settings", settings }, "*");
     });
 
   // [
@@ -41,4 +40,4 @@
   //     document.documentElement.removeAttribute(ikey);
   //   }
   // });
-})();
+}

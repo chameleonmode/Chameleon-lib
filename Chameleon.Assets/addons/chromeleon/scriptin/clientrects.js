@@ -15,10 +15,6 @@
   };
 
   let config = {
-    noise: {
-      DOMRect: 0.00000001,
-      DOMRectReadOnly: 0.000001,
-    },
     metrics: {
       DOMRect: ["x", "y", "width", "height"],
       DOMRectReadOnly: ["top", "right", "bottom", "left"],
