@@ -1,27 +1,41 @@
 import { setLogLevel, log } from "./modules/logger.js";
-import { settings, updateSettings, SETTINGS_ARRAY } from "./modules/settings.js";
-import { createWebRTCContextMenus, handleWebRTCMenuClick, handleWebRTCSettings } from "./modules/webrtc.js";
-import { createGeoContextMenus, handleGeoMenuClick } from "./modules/geolocation.js";
-import { createTimezoneContextMenus, handleTimezoneMenuClick } from "./modules/timezone.js";
+import {
+  settings,
+  updateSettings,
+  SETTINGS_ARRAY,
+} from "./modules/settings.js";
+import {
+  createWebRTCContextMenus,
+  handleWebRTCMenuClick,
+  handleWebRTCSettings,
+} from "./modules/webrtc.js";
+import {
+  createGeoContextMenus,
+  handleGeoMenuClick,
+} from "./modules/geolocation.js";
+import {
+  createTimezoneContextMenus,
+  handleTimezoneMenuClick,
+} from "./modules/timezone.js";
 import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
-import { genUULE, updateLocationRules } from './modules/uule.js';
+import { genUULE, updateLocationRules } from "./modules/uule.js";
 
 fetch(chrome.runtime.getURL("settings.json"))
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("Network response was not ok");
-        }
-        return response.json(); // Parse JSON directly
-    })
-    .then(async (data) => {
-        await updateSettings(data);
-        setLogLevel(settings.debug);
-        const uule = genUULE(settings.latitude, settings.longitude);
-        updateLocationRules(uule);
-        OnLoad();
-        log.info("Received: ", data);
-    })
-    .catch(error => console.error('Error loading settings:', error));
+  .then((response) => {
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    return response.json(); // Parse JSON directly
+  })
+  .then(async (data) => {
+    await updateSettings(data);
+    setLogLevel(settings.debug);
+    const uule = genUULE(settings.latitude, settings.longitude);
+    updateLocationRules(uule);
+    OnLoad();
+    log.info("Received: ", data);
+  })
+  .catch((error) => console.error("Error loading settings:", error));
 
 //chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 //    if (request.action === 'getSettings') {
@@ -42,60 +56,102 @@ fetch(chrome.runtime.getURL("settings.json"))
 //  });
 //});
 
-//chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-//    if (changeInfo.status === 'loading' && /^http/.test(tab.url)) {
-//        const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+// chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+//   if (changeInfo.status === "loading" && /^http/.test(tab.url)) {
+//     chrome.scripting.executeScript(
+//       {
+//         target: { tabId: tabId, allFrames: true },
+//         func: (settings) => {
+//           window._extensionSettings = settings;
+//         },
+//         args: [settings],
+//       },
+//       (results) => {
+//         if (chrome.runtime.lastError) {
+//           console.error("Injection error:", chrome.runtime.lastError);
+//         } else {
+//           results.forEach((result, index) => {
+//             console.log(
+//               `Settings successfully injected in frame ${index}`,
+//               result
+//             );
+//           });
+//         }
+//       }
+//     );
+//   }
+// });
 
-//        chrome.scripting.executeScript({
-//            target: { tabId: tabId, allFrames: true },
-//            func: (settings) => {
-//                console.log('Injecting settings into frame:', window.location.href); // Log frame URL
-//                window._extensionSettings = settings;
-//                console.log('Settings available:', window._extensionSettings);
-//            },
-//            args: [settings]
-//        }, (results) => {
-//            if (chrome.runtime.lastError) {
-//                console.error('Injection error:', chrome.runtime.lastError);
-//            } else {
-//                results.forEach((result, index) => {
-//                    console.log(`Settings successfully injected in frame ${index}`, result);
-//                });
-//            }
-//        });
-//    }
-//});
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === "test") {
+    chrome.tabs.create({
+      url: "https://webbrowsertools.com/ip-address/",
+      index: tab.index + 1,
+    });
+  } else if (
+    info.menuItemId.startsWith("webrtc") ||
+    [
+      "dApi",
+      "disable_non_proxied_udp",
+      "proxy_only",
+      "default_public_interface_only",
+      "default_public_and_private_interfaces",
+    ].includes(info.menuItemId)
+  ) {
+    handleWebRTCMenuClick(info);
+  } else if (
+    info.menuItemId.startsWith("geo") ||
+    info.menuItemId === "enabled" ||
+    info.menuItemId === "reset" ||
+    info.menuItemId.startsWith("set:") ||
+    info.menuItemId.startsWith("randomizeGeo:") ||
+    info.menuItemId.startsWith("accuracy:") ||
+    ["add-exception", "remove-exception", "exception-editor"].includes(
+      info.menuItemId
+    )
+  ) {
+    await handleGeoMenuClick(info, tab);
+  } else if (
+    [
+      "update-timezone",
+      "set-timezone",
+      "check-timezone",
+      "randomize-timezone",
+    ].includes(info.menuItemId)
+  ) {
+    await handleTimezoneMenuClick(info, tab);
+  }
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) =>
-{
-    if (info.menuItemId === "test") {
-        chrome.tabs.create({
-            url: "https://webbrowsertools.com/ip-address/",
-            index: tab.index + 1,
-        });
-    } else if (info.menuItemId.startsWith("webrtc") || ["dApi", "disable_non_proxied_udp", "proxy_only", "default_public_interface_only", "default_public_and_private_interfaces"].includes(info.menuItemId)) {
-        handleWebRTCMenuClick(info);
-    } else if (info.menuItemId.startsWith("geo") || info.menuItemId === "enabled" || info.menuItemId === "reset" || info.menuItemId.startsWith("set:") || info.menuItemId.startsWith("randomizeGeo:") || info.menuItemId.startsWith("accuracy:") || ["add-exception", "remove-exception", "exception-editor"].includes(info.menuItemId)) {
-        await handleGeoMenuClick(info, tab);
-    } else if (["update-timezone", "set-timezone", "check-timezone", "randomize-timezone"].includes(info.menuItemId)) {
-        await handleTimezoneMenuClick(info, tab);
-    }
-
-    await chrome.storage.sync.set(settings);
+  await chrome.storage.sync.set(settings);
 });
 
-chrome.storage.onChanged.addListener(async (changes, _) => {
-    // Apply changes to settings
-    for (let key in changes) {
-        if (changes.hasOwnProperty(key)) {
-            settings[key] = changes[key].newValue;
-        }
-    }
-    handleWebRTCSettings();
-    applyTabOverrides();
-    const uule = genUULE(settings.latitude, settings.longitude);
-    updateLocationRules(uule);
-    log.info("Settings updated");
+// chrome.storage.onChanged.addListener(async (changes, _) => {
+//   // Apply changes to settings
+//   for (let key in changes) {
+//     if (changes.hasOwnProperty(key)) {
+//       settings[key] = changes[key].newValue;
+//     }
+//   }
+//   handleWebRTCSettings();
+//   applyTabOverrides();
+//   const uule = genUULE(settings.latitude, settings.longitude);
+//   updateLocationRules(uule);
+//   log.info("Settings updated");
+// });
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+    log.info(
+      `Storage key "${key}" in namespace "${namespace}" changed.`,
+      `Old value was "${oldValue}", new value is "${newValue}".`
+    );
+    settings[key] = newValue;
+  }
+
+  handleWebRTCSettings();
+  applyTabOverrides();
+  const uule = genUULE(settings.latitude, settings.longitude);
+  updateLocationRules(uule);
 });
 
 function OnLoad() {
@@ -108,15 +164,15 @@ function OnLoad() {
 }
 
 function applyTabOverrides() {
-    try {
-        chrome.tabs.query({}, (tabs) => {
-            tabs.forEach((tab) => {
-                applyOverrides(tab);
-            });
-        });
-    } catch (e) {
-        log.error("Failed to apply tab overrides", e);
-    }
+  try {
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        applyOverrides(tab);
+      });
+    });
+  } catch (e) {
+    log.error("Failed to apply tab overrides", e);
+  }
 }
 setupTabListeners();
 

@@ -1,8 +1,8 @@
-﻿
-///// Inject the `injected.js` script file into the page context
-//chrome.runtime.sendMessage({ action: "getInjectionStatus" }, (shouldInject) => {
-//        chrome.scripting.executeScript({
-//            target: { allFrames: true, tabId: chrome.devtools.inspectedWindow.tabId },
-//            files: ["injected.js"],
-//        });
-//});
+﻿const ikey = "clientrects-defender-sandboxed-frame";
+
+if (document.documentElement.getAttribute(ikey) === null) {
+  parent.postMessage(ikey, '*');
+  window.top.postMessage(ikey, '*');
+} else {
+  document.documentElement.removeAttribute(ikey);
+}

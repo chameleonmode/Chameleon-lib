@@ -22,6 +22,8 @@ export const SETTINGS_ARRAY = [
   "myIP",
   "bypass",
   "history",
+  "DOMRectnoise",
+  "DOMRectReadOnlynoise",
 ];
 
 export let settings = {
@@ -38,6 +40,8 @@ export let settings = {
   randomizeTZ: false,
   randomizeGeo: false,
   noiseLevel: "medium",
+  DOMRectnoise: 1,
+  DOMRectReadOnlynoise: 1,
   eMode: "disable_non_proxied_udp",
   dMode: "default_public_interface_only",
   timezone: "America/Los_Angeles",
@@ -50,45 +54,69 @@ export let settings = {
   history: [],
 };
 
+export const noises = {
+  noiseLevel: {
+    low: 0.3,
+    medium: 0.6,
+    high: 0.9,
+  },
+  DOMRect: 0.00000001,
+  DOMRectReadOnly: 0.000001,
+};
+
 export const Actions = {
-  TZ_RESET: 'tz_reset',
-  GEO_RESET: 'geo_reset',
+  TZ_RESET: "tz_reset",
+  GEO_RESET: "geo_reset",
 };
 
 export const promptDictionary = {
   [Actions.TZ_RESET]: {
-    promptText: "Enter a \"timezone\" value. Use https://www.timeanddate.com/time/map/ to find these values",
-    defaultInput: settings.timezone
+    promptText:
+      'Enter a "timezone" value. Use https://www.timeanddate.com/time/map/ to find these values',
+    defaultInput: settings.timezone,
   },
   [Actions.GEO_RESET]: {
-    promptText: "Enter a \"latitude\" and \"longitude\" separated by a comma. Use https://www.latlong.net/ to find these values",
-    defaultInput: `${settings.latitude}, ${settings.longitude}`
-  }
+    promptText:
+      'Enter a "latitude" and "longitude" separated by a comma. Use https://www.latlong.net/ to find these values',
+    defaultInput: `${settings.latitude}, ${settings.longitude}`,
+  },
 };
 
 export async function loadSettings() {
-    settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+  settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
 }
 
 export async function updateSettings(built) {
-    if (built) {
-        var current = await chrome.storage.sync.get(SETTINGS_ARRAY);
-        if (current) Object.assign(settings, current);
+  if (built) {
+    var current = await chrome.storage.sync.get(SETTINGS_ARRAY);
+    if (current) Object.assign(settings, current);
 
-        settings.webglSpoofing       = built.webglSpoofing  
-        settings.canvasProtection    = built.canvasProtection
-        settings.clientRectsSpoofing = built.clientRectsSpoofing
-        settings.fontsSpoofing       = built.fontsSpoofing
-        settings.dAPI                = built.dAPI
-        settings.webRtcEnabled       = built.webRtcEnabled
-        settings.timezoneSpoofing    = built.timezoneSpoofing
-        settings.myIP = built.myIP
-        settings.debug = built.debug;
-        settings.geoSpoofing = built.geoSpoofing
-        settings.latitude = built.latitude
-        settings.longitude = built.longitude
-        /*settings = built;*/
+    settings.webglSpoofing = built.webglSpoofing;
+    settings.canvasProtection = built.canvasProtection;
+    settings.clientRectsSpoofing = built.clientRectsSpoofing;
+    settings.fontsSpoofing = built.fontsSpoofing;
+    settings.dAPI = built.dAPI;
+    settings.webRtcEnabled = built.webRtcEnabled;
+    settings.timezoneSpoofing = built.timezoneSpoofing;
+    settings.myIP = built.myIP;
+    settings.debug = built.debug;
+    settings.geoSpoofing = built.geoSpoofing;
+    settings.latitude = built.latitude;
+    settings.longitude = built.longitude;
+    if(settings.DOMRectnoise === 1) {
+    settings.DOMRectnoise =
+    1 +
+      (Math.random() < noises.noiseLevel[settings.noiseLevel] ? -1 : +1) *
+        noises.DOMRect;
     }
-    await chrome.storage.sync.set(settings);
-    settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+    
+    if(settings.DOMRectReadOnlynoise === 1) {
+    settings.DOMRectReadOnlynoise =
+    1 +
+      (Math.random() < noises.noiseLevel[settings.noiseLevel] ? -1 : +1) *
+        noises.DOMRectReadOnly;
+    }
+  }
+  await chrome.storage.sync.set(settings);
+  settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
 }

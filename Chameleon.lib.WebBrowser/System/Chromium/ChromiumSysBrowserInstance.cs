@@ -61,12 +61,15 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			Guid.NewGuid().ToString(), 
 			Settings.CachedExtentionsDir)
 		);
-		_ = await Settings.BuildMeleonExtSettings(GetTimezone, Path.Combine(Settings.CachedExtentionsDir, Enums.ExtensionType.chromeleon.ToString()));
+		_ = await Settings.BuildMeleonExtSettings(
+			GetTimezone,
+			Path.Combine(Settings.CachedExtentionsDir, Enums.ExtensionType.chromeleon.ToString())
+		);
 
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleorectsresister, (
-		"",
-		Guid.NewGuid().ToString(),
-		Settings.DestExtentionsDir));
+		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleorectsresister, (
+		//"",
+		//Guid.NewGuid().ToString(),
+		//Settings.DestExtentionsDir));
 
 		Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
 			Settings.BuildProxyExtSettings(),

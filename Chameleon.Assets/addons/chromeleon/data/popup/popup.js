@@ -1,9 +1,7 @@
-import { log } from "../../modules/logger.js";
-import { settings, loadSettings } from "../../modules/settings.js";
+import { noises, SETTINGS_ARRAY } from "../../modules/settings.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
-  await loadSettings();
-  log.info(JSON.stringify(settings));
+  let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
   const toggleExtension = document.getElementById("toggle-extension");
   const webglSpoofing = document.getElementById("webgl-spoofing");
   const canvasProtection = document.getElementById("canvas-protection");
@@ -42,10 +40,24 @@ document.addEventListener("DOMContentLoaded", async function () {
     settings.fontsSpoofing = fontsSpoofing.checked;
     settings.geoSpoofing = geoSpoofing.checked;
     settings.timezoneSpoofing = timezoneSpoofing.checked;
-    settings.noiseLevel = noiseLevel.value;
+    if (settings.noiseLevel !== noiseLevel.value) {
+      settings.noiseLevel = noiseLevel.value;
+      settings.DOMRectnoise =
+        1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
+          // ? noises.DOMRect
+          // : settings.noiseLevel === "medium"
+          // ? (noises.DOMRect * 1.5)
+          // : (noises.DOMRect * 3);
+      settings.DOMRectReadOnlynoise =
+        1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRectReadOnly * noises.noiseLevel[settings.noiseLevel])
+        // settings.noiseLevel === "low"
+        // ? noises.DOMRectReadOnly
+        // : settings.noiseLevel === "medium"
+        // ? (noises.DOMRectReadOnly * 2)
+        // : (noises.DOMRectReadOnly * 3);
+    }
 
     chrome.storage.sync.set(settings, function () {
-      log.info("Settings saved");
       updateStatus();
     });
   }
