@@ -133,7 +133,8 @@ async function setInjectionScript() {
       `,
       },
       { file: "scripts/clientrects.js" },
-      { file: "scripts/inject.js" },
+      { file: "scripts/timezone.js" },
+      { file: "scripts/geolocation.js" },
     ],
   });
 }

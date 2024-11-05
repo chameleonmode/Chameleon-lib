@@ -1,5 +1,6 @@
 import { SETTINGS_ARRAY } from "./settings.js";
 import { offsets } from "./offsets.js";
+import { log } from "./logger.js";
 
 export async function createTimezoneContextMenus() {
   let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
@@ -18,15 +19,6 @@ export async function createTimezoneContextMenus() {
   );
   chrome.contextMenus.create(
     {
-      title: "Update Timezone from Local System Time",
-      id: "update-timezone",
-      contexts: ["browser_action"],
-      parentId: "timezone-menu",
-    },
-    () => chrome.runtime.lastError
-  );
-  chrome.contextMenus.create(
-    {
       title: "Randomize Timezone",
       id: "randomize-timezone",
       contexts: ["browser_action"],
@@ -35,32 +27,40 @@ export async function createTimezoneContextMenus() {
       checked: settings.randomizeTZ,
     },
     () => chrome.runtime.lastError
-    );
-
-    chrome.contextMenus.create(
-        {
-            title: "Select From List Of Available Timezones",
-            id: "list-timezones",
+  );
+  chrome.contextMenus.create(
+    {
+      title: "Set Timezone to Computers System Time",
+      id: "update-timezone",
+      contexts: ["browser_action"],
+      parentId: "timezone-menu",
+    },
+    () => chrome.runtime.lastError
+  );
+  chrome.contextMenus.create(
+    {
+      title: "Select From List Of Available Timezones",
+      id: "list-timezones",
+      contexts: ["browser_action"],
+      parentId: "timezone-menu",
+    },
+    () => {
+      chrome.runtime.lastError;
+      Object.keys(offsets).forEach((zone) => {
+        const offset = offsets[zone].offset;
+        const offsetHours = offset / 60;
+        chrome.contextMenus.create(
+          {
+            title: `${zone} (GMT${offsetHours > 0 ? "+" : ""}${offsetHours})`,
+            id: `timezone-${zone}`,
             contexts: ["browser_action"],
-            parentId: "timezone-menu",
-        },
-        () => {
-            chrome.runtime.lastError;
-            Object.keys(offsets).forEach((zone) => {
-                const offset = offsets[zone].offset;
-                const offsetHours = offset / 60;
-                chrome.contextMenus.create(
-                    {
-                        title: `${zone} (GMT${offsetHours > 0 ? '+' : ''}${offsetHours})`,
-                        id: `timezone-${zone}`,
-                        contexts: ["browser_action"],
-                        parentId: "list-timezones",
-                    },
-                    () => chrome.runtime.lastError
-                );
-            });
-        }
-    );
+            parentId: "list-timezones",
+          },
+          () => chrome.runtime.lastError
+        );
+      });
+    }
+  );
 }
 
 export async function handleTimezoneMenuClick(info, tab) {
@@ -82,10 +82,10 @@ export async function handleTimezoneMenuClick(info, tab) {
       log.info("Randomize Timezone disabled");
     }
   } else if (info.menuItemId.startsWith("timezone-")) {
-      const selectedZoneId = info.menuItemId.replace("timezone-", "");
-      // Update settings and log
-      settings.timezone = selectedZoneId;
-      log.info(`Selected Timezone: ${selectedZoneId}`);
+    const selectedZoneId = info.menuItemId.replace("timezone-", "");
+    settings.myIP = false;
+    settings.timezone = selectedZoneId;
+    log.info(`Selected Timezone: ${selectedZoneId}`);
   }
   await browser.storage.sync.set(settings);
 }

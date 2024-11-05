@@ -1,4 +1,4 @@
-import { SETTINGS_ARRAY } from "./settings.js";
+import { SETTINGS_ARRAY, Actions } from "./settings.js";
 import { tryPrompt } from "./prompter.js";
 import { log } from "./logger.js";
 

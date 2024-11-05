@@ -1,4 +1,6 @@
 import { settings } from './settings.js';
+import { log } from "./logger.js";
+
 export function genUULE() {
     const lat = Math.floor(settings.latitude * 1e7);
     const lng = Math.floor(settings.longitude * 1e7);
@@ -31,9 +33,9 @@ export function updateLocationRules(uule) {
         ]
     }, () => {
         if (chrome.runtime.lastError) {
-            console.error(chrome.runtime.lastError.message);
+            log.error(chrome.runtime.lastError.message);
         } else {
-            console.log("Google search headers updated with new location.");
+            log.log("Google search headers updated with new location.");
         }
     });
 }
@@ -43,9 +45,9 @@ export function removeLocationRules() {
         removeRuleIds: [1],
     }, () => {
         if (chrome.runtime.lastError) {
-            console.error(chrome.runtime.lastError.message);
+            log.error(chrome.runtime.lastError.message);
         } else {
-            console.log("Custom Google search location reset to default.");
+            log.log("Custom Google search location reset to default.");
         }
     });
 }
