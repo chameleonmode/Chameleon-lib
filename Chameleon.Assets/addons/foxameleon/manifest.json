@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "Foxameleon",
+  "name": "Geckoleon",
   "version": "2024.9.6.31",
   "description": "A Firefox addon for Chameleon - Enhance your browser privacy and security",
   "permissions": [
@@ -36,26 +36,6 @@
     {
       "matches": [ "<all_urls>" ],
       "js": [ "scripts/content-script.js" ]
-    },
-    {
-      "world": "ISOLATED",
-      "matches": [ "<all_urls>" ],
-      "all_frames": true,
-      "match_about_blank": true,
-      "run_at": "document_start",
-      "match_origin_as_fallback": true,
-      "js": [ 
-        "scripts/isolated.js" 
-      ]
-    },
-    {
-      "world": "MAIN",
-      "matches": [ "<all_urls>" ],
-      "all_frames": true,
-      "match_about_blank": true,
-      "run_at": "document_start",
-      "match_origin_as_fallback": true,
-      "js": [ "scripts/clientrects.js" ]
     }
   ],
   "browser_specific_settings": {

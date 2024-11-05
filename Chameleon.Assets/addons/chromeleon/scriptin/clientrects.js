@@ -6,7 +6,7 @@
     high: 0.8,
   }
 
-  const storageCache = {
+  const settings = {
     enabled: true,
     clientRectsSpoofing: true,
     DOMRectnoise: 1,
@@ -28,7 +28,7 @@
               {
                 apply(target, self, args) {
                   const result = Reflect.apply(target, self, args);
-                  return result * storageCache.DOMRectnoise;
+                  return result * settings.DOMRectnoise;
                 },
               }
             ),
@@ -45,7 +45,7 @@
               {
                 apply(target, self, args) {
                   const result = Reflect.apply(target, self, args);
-                  return result * storageCache.DOMRectReadOnlynoise;
+                  return result * settings.DOMRectReadOnlynoise;
                 },
               }
             ),
@@ -69,7 +69,7 @@
       window.addEventListener(
         "cffjcbnflngjpnjenjogeaojacooflng-settings",
         (event) => {
-          Object.assign(storageCache, event.detail);
+          Object.assign(settings, event.detail);
           resolve();
         }
       );
@@ -86,17 +86,17 @@
           e.stopPropagation();
           await loadPromise;
           if (
-            storageCache.clientRectsSpoofing === false ||
-            storageCache.enabled === false
+            settings.clientRectsSpoofing === false ||
+            settings.enabled === false
           ) {
             return;
           }
           
           config.method.DOMRect(
-            config.metrics.DOMRect.sort(() => noiseLevels[storageCache.noiseLevel])[0]
+            config.metrics.DOMRect.sort(() => noiseLevels[settings.noiseLevel])[0]
           );
           config.method.DOMRectReadOnly(
-            config.metrics.DOMRectReadOnly.sort(() => noiseLevels[storageCache.noiseLevel])[0]
+            config.metrics.DOMRectReadOnly.sort(() => noiseLevels[settings.noiseLevel])[0]
           );
           //
           try {

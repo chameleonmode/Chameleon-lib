@@ -109,6 +109,9 @@ async function setInjectionScript() {
   injectionScript = await browser.contentScripts.register({
     allFrames: true,
     matchAboutBlank: true,
+    matchOriginAsFallback: true,
+    world: "MAIN",
+    runAt: "document_start",
     matches: ["*://*/*"],
     js: [
       {
@@ -129,9 +132,9 @@ async function setInjectionScript() {
           }
       `,
       },
+      { file: "scripts/clientrects.js" },
       { file: "scripts/inject.js" },
     ],
-    runAt: "document_start",
   });
 }
 log.info("Background script loaded");
