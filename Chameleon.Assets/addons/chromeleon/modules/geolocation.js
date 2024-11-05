@@ -1,10 +1,9 @@
-import { Actions,  SETTINGS_ARRAY} from "./settings.js";
+import { Actions, settings, SETTINGS_ARRAY, updateSettings } from "./settings.js";
 import { tryPrompt } from "./prompter.js";
 import { log } from "./logger.js";
 import { genUULE, updateLocationRules } from "./uule.js";
 
 export async function createGeoContextMenus() {
-  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
   chrome.contextMenus.create({ title: "GEO", id: "geo", contexts: ["action"] });
   chrome.contextMenus.create({
     title: "Enabled",
@@ -121,7 +120,6 @@ export async function createGeoContextMenus() {
 }
 
 export async function handleGeoMenuClick(info, tab) {
-  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
   if (info.menuItemId === "geo-reset") {
     let userInput = await tryPrompt(tab, Actions.GEO_RESET);
     if (userInput === null) return;
@@ -159,7 +157,7 @@ export async function handleGeoMenuClick(info, tab) {
   } else if (info.menuItemId === "exception-editor") {
     openExceptionEditor();
   }
-  await browser.storage.sync.set(settings);
+    updateSettings();
 }
 
 function updateGeoHistory() {

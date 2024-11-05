@@ -1,9 +1,10 @@
-import { SETTINGS_ARRAY } from './settings.js';
+import { SETTINGS_ARRAY, settings, updateSettings } from './settings.js';
 import { log } from './logger.js';
 
 const IS_FIREFOX = /Firefox/.test(navigator.userAgent) || typeof InstallTrigger !== "undefined";
 
 export async function handleWebRTCSettings() {
+/*    let settings = await browser.storage.sync.get(SETTINGS_ARRAY);*/
   const value = settings.webRtcEnabled && settings.dAPI ? settings.eMode : settings.dMode;
   chrome.privacy.network.webRTCIPHandlingPolicy.clear({}, () => {
     chrome.privacy.network.webRTCIPHandlingPolicy.set({ value }, () => {
@@ -93,6 +94,6 @@ export async function handleWebRTCMenuClick(info) {
   } else if (info.menuItemId === "rtc-test") {
     chrome.tabs.create({ url: "https://browserleaks.com/webrtc" });
   }
-  await browser.storage.sync.set(settings);
+    updateSettings();
   handleWebRTCSettings();
 }

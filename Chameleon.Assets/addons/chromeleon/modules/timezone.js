@@ -1,10 +1,10 @@
-import { SETTINGS_ARRAY, Actions } from "./settings.js";
+import { SETTINGS_ARRAY, settings, Actions, updateSettings } from "./settings.js";
 import { tryPrompt } from "./prompter.js";
 import { log } from "./logger.js";
 import { offsets } from "./offsets.js";
 
 export async function createTimezoneContextMenus() {
-  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
+/*  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);*/
   chrome.contextMenus.create(
     { title: "Timezone", id: "timezone-menu", contexts: ["action"] },
     () => chrome.runtime.lastError
@@ -83,7 +83,7 @@ export async function createTimezoneContextMenus() {
 }
 
 export async function handleTimezoneMenuClick(info, tab) {
-  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
+/*  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);*/
   try {
     if (info.menuItemId === "tz-enabled") {
       settings.timezoneSpoofing = info.checked;
@@ -119,5 +119,6 @@ export async function handleTimezoneMenuClick(info, tab) {
   } catch (error) {
     log.error(`Failed to attach debugger to tab ${tab.id}:`, error);
   }
-  await browser.storage.sync.set(settings);
+    /* await browser.storage.sync.set(settings);*/
+    updateSettings();
 }

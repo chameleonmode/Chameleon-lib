@@ -1,24 +1,24 @@
-import { setLogLevel, log } from "./modules/logger.js";
+import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
 import {
-  settings,
-  updateSettings,
-  SETTINGS_ARRAY,
+    createGeoContextMenus,
+    handleGeoMenuClick,
+} from "./modules/geolocation.js";
+import { log, setLogLevel } from "./modules/logger.js";
+import {
+    SETTINGS_ARRAY,
+    settings,
+    updateSettings,
 } from "./modules/settings.js";
 import {
-  createWebRTCContextMenus,
-  handleWebRTCMenuClick,
-  handleWebRTCSettings,
-} from "./modules/webrtc.js";
-import {
-  createGeoContextMenus,
-  handleGeoMenuClick,
-} from "./modules/geolocation.js";
-import {
-  createTimezoneContextMenus,
-  handleTimezoneMenuClick,
+    createTimezoneContextMenus,
+    handleTimezoneMenuClick,
 } from "./modules/timezone.js";
-import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
 import { genUULE, updateLocationRules } from "./modules/uule.js";
+import {
+    createWebRTCContextMenus,
+    handleWebRTCMenuClick,
+    handleWebRTCSettings,
+} from "./modules/webrtc.js";
 
 fetch(chrome.runtime.getURL("settings.json"))
   .then((response) => {
@@ -27,7 +27,7 @@ fetch(chrome.runtime.getURL("settings.json"))
     }
     return response.json(); // Parse JSON directly
   })
-  .then(async (data) => {
+    .then(async (data) => {
     await updateSettings(data);
     setLogLevel(settings.debug);
     await handleWebRTCSettings();
