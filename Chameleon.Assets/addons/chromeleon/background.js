@@ -1,23 +1,23 @@
 import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
 import {
-    createGeoContextMenus,
-    handleGeoMenuClick,
+  createGeoContextMenus,
+  handleGeoMenuClick,
 } from "./modules/geolocation.js";
 import { log, setLogLevel } from "./modules/logger.js";
 import {
-    SETTINGS_ARRAY,
-    settings,
-    updateSettings,
+  SETTINGS_ARRAY,
+  settings,
+  updateSettings,
 } from "./modules/settings.js";
 import {
-    createTimezoneContextMenus,
-    handleTimezoneMenuClick,
+  createTimezoneContextMenus,
+  handleTimezoneMenuClick,
 } from "./modules/timezone.js";
 import { genUULE, updateLocationRules } from "./modules/uule.js";
 import {
-    createWebRTCContextMenus,
-    handleWebRTCMenuClick,
-    handleWebRTCSettings,
+  createWebRTCContextMenus,
+  handleWebRTCMenuClick,
+  handleWebRTCSettings,
 } from "./modules/webrtc.js";
 
 fetch(chrome.runtime.getURL("settings.json"))
@@ -27,13 +27,14 @@ fetch(chrome.runtime.getURL("settings.json"))
     }
     return response.json(); // Parse JSON directly
   })
-    .then(async (data) => {
+  .then(async (data) => {
     await updateSettings(data);
     setLogLevel(settings.debug);
     await handleWebRTCSettings();
     const uule = genUULE(settings.latitude, settings.longitude);
     updateLocationRules(uule);
     applyTabOverrides();
+    setInjectionScript();
     createWebRTCContextMenus();
     createGeoContextMenus();
     createTimezoneContextMenus();
@@ -66,10 +67,12 @@ fetch(chrome.runtime.getURL("settings.json"))
 //     chrome.scripting.executeScript(
 //       {
 //         target: { tabId: tabId, allFrames: true },
+//         args: [settings],
+//         injectImmediately: true,
+//         world: "MAIN",
 //         func: (settings) => {
 //           window._extensionSettings = settings;
 //         },
-//         args: [settings],
 //       },
 //       (results) => {
 //         if (chrome.runtime.lastError) {
@@ -131,7 +134,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   await chrome.storage.sync.set(settings);
 });
 
-chrome.storage.onChanged.addListener((changes, namespace) => {
+chrome.storage.onChanged.addListener(async (changes, namespace) => {
   for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
     log.info(
       `Storage key "${key}" in namespace "${namespace}" changed.`,
@@ -140,8 +143,9 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     settings[key] = newValue;
   }
   applyTabOverrides();
-  const uule = genUULE(settings.latitude, settings.longitude);
-  updateLocationRules(uule);
+  // await setInjectionScript();
+  updateLocationRules(genUULE(settings.latitude, settings.longitude));
+  return true;
 });
 
 function applyTabOverrides() {
@@ -156,5 +160,135 @@ function applyTabOverrides() {
   }
 }
 setupTabListeners();
+
+async function setInjectionScript() {
+  // try {
+  //   const scripts = await chrome.scripting.getRegisteredContentScripts({
+  //     ids: ["chromeleonairz"],
+  //   });
+  //   if(scripts.length > 0){
+  //     const scriptIds = scripts.map((script) => script.id);
+  //     await chrome.scripting.unregisterContentScripts(scriptIds);
+  //   }
+  // } catch (error) {
+  //   const message = [
+  //     "An unexpected error occurred while",
+  //     "unregistering dynamic content scripts.",
+  //   ].join(" ");
+  //   log.error(message, { cause: error });
+  // }
+
+  // await chrome.scripting.registerContentScripts(
+  //   [
+  //     {
+  //       id: "chromeleonairz",
+  //       allFrames: true,
+  //       matchOriginAsFallback: true,
+  //       world: "MAIN",
+  //       runAt: "document_start",
+  //       matches: ["*://*/*"],
+  //       js: [
+  //         "scriptin/inject-settings.js",
+  //         "scriptin/clientrects.js"
+  //       ],
+  //     },
+  //   ],
+  //   () => {
+  //     if (chrome.runtime.lastError) {
+  //       log.error(
+  //         "Error registering content script:",
+  //         chrome.runtime.lastError
+  //       );
+  //     } else {
+  //       log.log("Content script registered successfully");
+  //     }
+  //   }
+  // );
+
+  //https://developer.chrome.com/docs/extensions/reference/api/userScripts
+  // const USER_SCRIPT_ID = "chromeleonairz";
+  // const USER_SCRIPT_CODE = `
+  //           if (!window.__myAddonInjected__) {
+  //             window.__myAddonInjected__ = true;
+  //             window.__myAddonSettings__ = JSON.parse(\`${JSON.stringify(
+  //               settings
+  //             )}\`);
+  //           }
+  //       `;
+  // const existingScripts = await chrome.userScripts.getScripts({
+  //   ids: [USER_SCRIPT_ID],
+  // });
+
+  // if (existingScripts.length > 0) {
+  //   // Update existing script.
+  //   await chrome.userScripts.update([
+  //     {
+  //       id: USER_SCRIPT_ID,
+  //       allFrames: true,
+  //       world: "MAIN",
+  //       runAt: "document_start",
+  //       matches: ["*://*/*"],
+  //       js: [
+  //         { code: USER_SCRIPT_CODE },
+  //         { file: "scriptin/clientrects.js" },
+  //       ],
+  //     },
+  //   ]);
+  // } else {
+  //   // Register new script.
+  //   await chrome.userScripts.register([
+  //     {
+  //       id: USER_SCRIPT_ID,
+  //       allFrames: true,
+  //       world: "MAIN",
+  //       runAt: "document_start",
+  //       matches: ["*://*/*"],
+  //       js: [
+  //         { code: USER_SCRIPT_CODE },
+  //         { file: "scriptin/clientrects.js" },
+  //       ],
+  //     },
+  //   ]);
+  // }
+}
+
+// chrome.webNavigation.onDOMContentLoaded.addListener(async ({ tabId, url }) => {
+//   chrome.scripting.executeScript({
+//     target: { tabId, allFrames : true},
+//     injectImmediately: true,
+//     world: "MAIN",
+//     args: [settings],
+//     func: (settings) => {
+//       // window.__myAddonSettings__ = settings;
+//       document.documentElement.setAttribute("__myAddonSettings__", settings);
+//     }
+//   });
+//   chrome.scripting.executeScript({
+//     target: { tabId, allFrames : true},
+//     injectImmediately: true,
+//     world: "MAIN",
+//     files: ['scriptin/clientrects.js'],
+//   });
+// });
+// chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+//   if (changeInfo.status === "loading" && /^http/.test(tab.url)) {
+//   chrome.scripting.executeScript({
+//     target: { tabId, allFrames : true},
+//     injectImmediately: true,
+//     world: "MAIN",
+//     args: [settings],
+//     func: (settings) => {
+//       // window.__myAddonSettings__ = settings;
+//       document.documentElement.setAttribute("__myAddonSettings__", settings);
+//     }
+//   });
+//   chrome.scripting.executeScript({
+//     target: { tabId, allFrames : true},
+//     injectImmediately: true,
+//     world: "MAIN",
+//     files: ['scriptin/clientrects.js'],
+//   });
+// }
+// });
 
 log.info("Background script loaded");

@@ -1,7 +1,7 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
-  padding: 20px;
+  padding: 6px;
   background-color: #f3f3f3;
   color: #323130;
 }
@@ -72,12 +72,58 @@ body {
   margin-left: 10px;
 }
 
+/* Inline toggle styles */
+.toggle.inline {
+  margin-left: 20px;
+}
+
+.toggle.inline .toggle-switch {
+  width: 32px;
+  height: 16px;
+}
+
+.toggle.inline .toggle-switch::before {
+  width: 14px;
+  height: 14px;
+}
+
+.toggle.inline input:checked + .toggle-switch::before {
+  transform: translateX(16px);
+}
+
+.toggle.inline .toggle-label {
+  font-size: 14px;
+  color: #605e5c;
+}
+
+.toggle.inline.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .setting-item {
   margin-bottom: 15px;
 }
 
+.setting-subitem {
+  position: relative;
+  margin: 8px 0 8px 15px;
+  padding-left: 0px;
+  border-left: 1px solid #c8c6c4;
+}
+
+.setting-subitem::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  background-color: #c8c6c4;
+}
+
 .checkbox {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   cursor: pointer;
 }

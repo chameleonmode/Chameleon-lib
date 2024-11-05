@@ -14,14 +14,14 @@
     "declarativeNetRequestFeedback",
     "privacy",
     "scripting",
+    "userScripts",
     "tabs",
     "webNavigation",
     "webRequest",
     "geolocation"
   ],
   "host_permissions": [
-    "http://*/*",
-    "https://*/*"
+    "*://*/*"
   ],
   "commands": {
     "_execute_action": {}
@@ -45,7 +45,7 @@
   "content_scripts": [
     {
       "world": "ISOLATED",
-      "matches": [ "<all_urls>" ],
+      "matches": [ "*://*/*" ],
       "all_frames": true,
       "match_about_blank": true,
       "run_at": "document_start",
@@ -57,7 +57,7 @@
     {
       "world": "MAIN",
       "all_frames": true,
-      "matches": ["*://*/*", "<all_urls>"],
+      "matches": ["*://*/*"],
       "match_about_blank": true,
       "run_at": "document_start",
       "match_origin_as_fallback": true,

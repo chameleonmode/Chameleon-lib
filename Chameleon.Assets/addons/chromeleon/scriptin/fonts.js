@@ -1,7 +1,20 @@
 {
+  const noiseLevels = {
+    micro: 0.1,
+    mini: 0.2,
+    low: 0.3,
+    medium: 0.4,
+    bold: 0.5,
+    high: 0.6,
+    ultra: 0.7,
+    super: 0.8,
+    max: 0.9,
+  }
+  
   const storageCache = {
     enabled: true,
     fontsSpoofing: true,
+    randomFontsSpoofing: false,
     Fontsnoise: 1,
     Fontssign: 1,
   };
@@ -18,6 +31,14 @@
         "cffjcbnflngjpnjenjogeaojacooflng-settings",
         (event) => {
           Object.assign(storageCache, event.detail);
+          if(storageCache.randomFontsSpoofing){
+            const SIGN = Math.random() < Math.random() ? -1 : 1;
+            storageCache.Fontsnoise = Math.floor(Math.random() + SIGN * Math.random()) * noiseLevels[storageCache.noiseLevel];
+            
+            const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
+            const index = Math.floor(Math.random() * tmp.length);
+            storageCache.Fontssign = tmp[index];
+          }
           resolve();
         }
       );

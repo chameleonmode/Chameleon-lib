@@ -1,7 +1,7 @@
 export const SETTINGS_ARRAY = [
   "enabled",
   "webglSpoofing",
-  "canvasProtection",
+  "canvasProtection", 
   "clientRectsSpoofing",
   "fontsSpoofing",
   "geoSpoofing",
@@ -32,6 +32,10 @@ export const SETTINGS_ARRAY = [
   "canvasA",
   "Fontsnoise",
   "Fontssign",
+  "randomWebGLSpoofing",
+  "randomCanvasSpoofing",
+  "randomFontsSpoofing",
+  "randomRectsSpoofing"
 ];
 export let settings = {
   enabled: true,
@@ -67,12 +71,22 @@ export let settings = {
   accuracy: 69.96,
   bypass: [],
   history: [],
+  randomWebGLSpoofing: false,
+  randomCanvasSpoofing: false,
+  randomFontsSpoofing: false,
+  randomRectsSpoofing: false
 };
 export const noises = {
   noiseLevel: {
+    micro: 0.1,
+    mini: 0.2,
     low: 0.3,
-    medium: 0.6,
-    high: 0.9,
+    medium: 0.4,
+    bold: 0.5,
+    high: 0.6,
+    ultra: 0.7,
+    super: 0.8,
+    max: 0.9,
   },
   DOMRect: 0.00000001,
   DOMRectReadOnly: 0.000001,
@@ -142,47 +156,47 @@ export async function updateSettings(built) {
       settings.latitude = built.latitude;
       settings.longitude = built.longitude;
     }
-    if (settings.DOMRectnoise === 1) {
+    if (settings.DOMRectnoise === 1 || settings.randomRectsSpoofing) {
+      // Update rects noise levels
       settings.DOMRectnoise =
-        1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
+        1 +
+        (Math.random() < 0.5 ? -1 : +1) *
+          (noises.DOMRect * noises.noiseLevel[settings.noiseLevel]);
     }
 
-    if (settings.DOMRectReadOnlynoise === 1) {
+    if (settings.DOMRectReadOnlynoise === 1 || settings.randomRectsSpoofing) {
       settings.DOMRectReadOnlynoise =
-        1 + (Math.random() < 0.5 ? -1 : +1) * (noises.DOMRectReadOnly * noises.noiseLevel[settings.noiseLevel])
+      1 +
+      (Math.random() < 0.5 ? -1 : +1) *
+        (noises.DOMRectReadOnly * noises.noiseLevel[settings.noiseLevel]);
     }
-    if (settings.WebGLnoise === 1) {
+    if (settings.WebGLnoise === 1 || settings.randomWebGLSpoofing) {
+      // Update WebGL noise levels
       settings.WebGLnoise = noises.random.randvalue();
     }
-    if(settings.WebGLnoiseAmplitude === 1){
-      settings.WebGLnoiseAmplitude = settings.noiseLevel === "high"
-        ? 0.01
-        : settings.noiseLevel === "medium"
-        ? 0.001
-        : 0.0001;
+    if(settings.WebGLnoiseAmplitude === 1 || settings.randomWebGLSpoofing){
+      settings.WebGLnoiseAmplitude = noises.noiseLevel[settings.noiseLevel];
     }
-    const noiseAmplitude =
-      settings.noiseLevel === "high"
-        ? 2
-        : settings.noiseLevel === "medium"
-        ? 1
-        : 0.5;
+    // Update canvas noise levels
+    const noiseAmplitude = noises.noiseLevel[settings.noiseLevel];
     if (
       settings.canvasR === 1 ||
       settings.canvasG === 1 ||
       settings.canvasB === 1 ||
-      settings.canvasA === 1
+      settings.canvasA === 1 ||
+      settings.randomCanvasSpoofing
     ) {
-      settings.canvasR = Math.floor(noiseAmplitude * 10) - 5;
-      settings.canvasG = Math.floor(noiseAmplitude * 10) - 5;
-      settings.canvasB = Math.floor(noiseAmplitude * 10) - 5;
-      settings.canvasA = Math.floor(noiseAmplitude * 10) - 5;
+        
+      settings.canvasR = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
+      settings.canvasG = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
+      settings.canvasB = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
+      settings.canvasA = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
     }
-    if (settings.Fontsnoise === 1) {
+    if (settings.Fontsnoise === 1 || settings.randomFontsSpoofing) {
       const SIGN = Math.random() < Math.random() ? -1 : 1;
-      settings.Fontsnoise = Math.floor(SIGN * noiseAmplitude);
+      settings.Fontsnoise = Math.floor(Math.random() + SIGN * Math.random()) * noiseAmplitude;
     }
-    if (settings.Fontssign === 1) {
+    if (settings.Fontssign === 1 || settings.randomFontsSpoofing) {
       const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
       const index = Math.floor(Math.random() * tmp.length);
       settings.Fontssign = tmp[index];

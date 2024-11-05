@@ -7,6 +7,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   const canvasProtection = document.getElementById("canvas-protection");
   const clientRectsSpoofing = document.getElementById("client-rects-spoofing");
   const fontsSpoofing = document.getElementById("fonts-spoofing");
+  const randomWebGLSpoofing = document.getElementById("random-webgl-spoofing");
+  const randomCanvasSpoofing = document.getElementById("random-canvas-spoofing");
+  const randomFontsSpoofing = document.getElementById("random-fonts-spoofing");
+  const randomRectsSpoofing = document.getElementById("random-rects-spoofing");
   const noiseLevel = document.getElementById("noise-level");
   const statusText = document.getElementById("status-text");
   const blockedCount = document.getElementById("blocked-count");
@@ -17,6 +21,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   canvasProtection.checked = settings.canvasProtection;
   clientRectsSpoofing.checked = settings.clientRectsSpoofing;
   fontsSpoofing.checked = settings.fontsSpoofing;
+  randomWebGLSpoofing.checked = settings.randomWebGLSpoofing;
+  randomCanvasSpoofing.checked = settings.randomCanvasSpoofing;
+  randomFontsSpoofing.checked = settings.randomFontsSpoofing;
+  randomRectsSpoofing.checked = settings.randomRectsSpoofing;
   noiseLevel.value = settings.noiseLevel || "medium";
   blockedCount.textContent = settings.blockedCount || 0;
   updateStatus();
@@ -24,7 +32,23 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Update status text
   function updateStatus() {
     statusText.textContent = toggleExtension.checked ? "Enabled" : "Disabled";
-    statusText.style.color = toggleExtension.checked ? "green" : "red";
+    // statusText.style.color = toggleExtension.checked ? "green" : "red";
+    updateChecked(clientRectsSpoofing, randomRectsSpoofing);
+    updateChecked(webglSpoofing, randomWebGLSpoofing);
+    updateChecked(canvasProtection, randomCanvasSpoofing);
+    updateChecked(fontsSpoofing, randomFontsSpoofing);
+  }
+
+  function updateChecked(element, toggle){
+    const randomToggle = toggle.parentElement;
+    if(!element.checked){
+      randomToggle.classList.add('disabled');
+      toggle.disabled = true;
+      toggle.checked = false;
+    } else {
+      randomToggle.classList.remove('disabled');
+      toggle.disabled = false;
+    }
   }
 
   // Save settings and update content scripts
@@ -34,9 +58,14 @@ document.addEventListener("DOMContentLoaded", async function () {
     settings.canvasProtection = canvasProtection.checked;
     settings.clientRectsSpoofing = clientRectsSpoofing.checked;
     settings.fontsSpoofing = fontsSpoofing.checked;
+    settings.randomWebGLSpoofing = randomWebGLSpoofing.checked;
+    settings.randomCanvasSpoofing = randomCanvasSpoofing.checked;
+    settings.randomFontsSpoofing = randomFontsSpoofing.checked;
+    settings.randomRectsSpoofing = randomRectsSpoofing.checked;
+
     if (settings.noiseLevel !== noiseLevel.value) {
       settings.noiseLevel = noiseLevel.value;
-      // Update rectys noise levels
+      // Update rects noise levels
       settings.DOMRectnoise =
         1 +
         (Math.random() < 0.5 ? -1 : +1) *
@@ -48,12 +77,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       // Update WebGL noise levels
       settings.WebGLnoise = noises.random.randvalue();
-      settings.WebGLnoiseAmplitude =
-        settings.noiseLevel === "high"
-          ? 0.01
-          : settings.noiseLevel === "medium"
-          ? 0.001
-          : 0.0001;
+      settings.WebGLnoiseAmplitude = noises.noiseLevel[settings.noiseLevel];
           
       // Update canvas noise levels
       const noiseAmplitude =
@@ -86,5 +110,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   canvasProtection.addEventListener("change", saveSettings);
   clientRectsSpoofing.addEventListener("change", saveSettings);
   fontsSpoofing.addEventListener("change", saveSettings);
+  randomWebGLSpoofing.addEventListener("change", saveSettings);
+  randomCanvasSpoofing.addEventListener("change", saveSettings);
+  randomFontsSpoofing.addEventListener("change", saveSettings);
+  randomRectsSpoofing.addEventListener("change", saveSettings);
   noiseLevel.addEventListener("change", saveSettings);
 });

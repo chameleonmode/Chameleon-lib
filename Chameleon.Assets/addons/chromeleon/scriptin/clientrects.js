@@ -1,68 +1,67 @@
 ﻿{
   //https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
   const noiseLevels = {
+    micro: 0.1,
+    mini: 0.2,
     low: 0.3,
-    medium: 0.5,
-    high: 0.8,
+    medium: 0.4,
+    bold: 0.5,
+    high: 0.6,
+    ultra: 0.7,
+    super: 0.8,
+    max: 0.9,
   }
 
   const settings = {
     enabled: true,
     clientRectsSpoofing: true,
+    randomRectsSpoofing: false,
     DOMRectnoise: 1,
     DOMRectReadOnlynoise: 1,
     noiseLevel: "medium",
   };
 
-  let config = {
-    metrics: {
-      DOMRect: ["x", "y", "width", "height"],
-      DOMRectReadOnly: ["top", "right", "bottom", "left"],
+  const metrics = {
+    DOMRect: ["x", "y", "width", "height"],
+    DOMRectReadOnly: ["top", "right", "bottom", "left"],
+  }
+
+  const methods = {
+    DOMRect: function (e) {
+      try {
+        Object.defineProperty(DOMRect.prototype, e, {
+          get: new Proxy(
+            Object.getOwnPropertyDescriptor(DOMRect.prototype, e).get,
+            {
+              apply(target, self, args) {
+                const result = Reflect.apply(target, self, args);
+                return result * settings.DOMRectnoise;
+              },
+            }
+          ),
+        });
+      } catch (e) {
+        console.error(e);
+      }
     },
-    method: {
-      DOMRect: function (e) {
-        try {
-          Object.defineProperty(DOMRect.prototype, e, {
-            get: new Proxy(
-              Object.getOwnPropertyDescriptor(DOMRect.prototype, e).get,
-              {
-                apply(target, self, args) {
-                  const result = Reflect.apply(target, self, args);
-                  return result * settings.DOMRectnoise;
-                },
-              }
-            ),
-          });
-        } catch (e) {
-          console.error(e);
-        }
-      },
-      DOMRectReadOnly: function (e) {
-        try {
-          Object.defineProperty(DOMRectReadOnly.prototype, e, {
-            get: new Proxy(
-              Object.getOwnPropertyDescriptor(DOMRectReadOnly.prototype, e).get,
-              {
-                apply(target, self, args) {
-                  const result = Reflect.apply(target, self, args);
-                  return result * settings.DOMRectReadOnlynoise;
-                },
-              }
-            ),
-          });
-        } catch (e) {
-          console.error(e);
-        }
-      },
+    DOMRectReadOnly: function (e) {
+      try {
+        Object.defineProperty(DOMRectReadOnly.prototype, e, {
+          get: new Proxy(
+            Object.getOwnPropertyDescriptor(DOMRectReadOnly.prototype, e).get,
+            {
+              apply(target, self, args) {
+                const result = Reflect.apply(target, self, args);
+                return result * settings.DOMRectReadOnlynoise;
+              },
+            }
+          ),
+        });
+      } catch (e) {
+        console.error(e);
+      }
     },
   };
-  //
-  // config.method.DOMRect(
-  //   config.metrics.DOMRect.sort(() => 0.5 - Math.random())[0]
-  // );
-  // config.method.DOMRectReadOnly(
-  //   config.metrics.DOMRectReadOnly.sort(() => 0.5 - Math.random())[0]
-  // );
 
   {
     const loadPromise = new Promise((resolve) => {
@@ -92,12 +91,21 @@
             return;
           }
           
-          config.method.DOMRect(
-            config.metrics.DOMRect.sort(() => noiseLevels[settings.noiseLevel])[0]
+          methods.DOMRect(
+            metrics.DOMRect.sort(() =>
+              settings.randomRectsSpoofing
+                ? 0.5 - Math.random()
+                : noiseLevels[settings.noiseLevel]
+            )[0]
           );
-          config.method.DOMRectReadOnly(
-            config.metrics.DOMRectReadOnly.sort(() => noiseLevels[settings.noiseLevel])[0]
+          methods.DOMRectReadOnly(
+            metrics.DOMRectReadOnly.sort(() =>
+              settings.randomRectsSpoofing
+                ? 0.5 - Math.random()
+                : noiseLevels[settings.noiseLevel]
+            )[0]
           );
+
           //
           try {
             if (e.source.DOMRect) {

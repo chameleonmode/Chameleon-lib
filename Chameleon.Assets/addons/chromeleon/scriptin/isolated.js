@@ -22,6 +22,10 @@
       "canvasA",
       "Fontsnoise",
       "Fontssign",
+      "randomWebGLSpoofing",
+      "randomCanvasSpoofing",
+      "randomFontsSpoofing",
+      "randomRectsSpoofing"
     ])
     .then((items) => {
       window.dispatchEvent(

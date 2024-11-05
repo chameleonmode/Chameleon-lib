@@ -1,4 +1,4 @@
-﻿(async function () {
+﻿(function () {
   //https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
   const settings = window.__myAddonSettings__;
   if(!settings.enabled || !settings.clientRectsSpoofing)

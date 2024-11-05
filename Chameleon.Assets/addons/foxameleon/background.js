@@ -128,7 +128,6 @@ async function setInjectionScript() {
                 .toString(36)
                 .substring(Math.floor(Math.random() * 5) + 5)
             }';
-            console.log("Addon settings initialized:", window.__myAddonSettings__);
           }
       `,
       },

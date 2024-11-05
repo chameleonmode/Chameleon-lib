@@ -3,6 +3,7 @@
   const storageCache = {
     enabled: true,
     canvasProtection: true,
+    randomCanvasSpoofing: false,
     canvasR: 1,
     canvasG: 1,
     canvasB: 1,
@@ -14,14 +15,10 @@
   const noisify = function (canvas, context) {
     if (context) {
       const shift = {
-        // r: Math.floor(Math.random() * 10) - 5,
-        // g: Math.floor(Math.random() * 10) - 5,
-        // b: Math.floor(Math.random() * 10) - 5,
-        // a: Math.floor(Math.random() * 10) - 5,
-        r: storageCache.canvasR,
-        g: storageCache.canvasG,
-        b: storageCache.canvasB,
-        a: storageCache.canvasA,
+        r: storageCache.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : storageCache.canvasR,
+        g: storageCache.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : storageCache.canvasG,
+        b: storageCache.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : storageCache.canvasB,
+        a: storageCache.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : storageCache.canvasA,
       };
       //
       const width = canvas.width;

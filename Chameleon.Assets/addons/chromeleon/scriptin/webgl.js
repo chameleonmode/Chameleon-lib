@@ -1,13 +1,30 @@
 //https://gist.github.com/abrahamjuliot/7baf3be8c451d23f7a8693d7e28a35e2
 {
+  const noiseLevels = {
+    micro: 0.0001,
+    mini: 0.0002,
+    low: 0.0003,
+    medium: 0.0004,
+    bold: 0.0005,
+    high: 0.006,
+    ultra: 0.007,
+    super: 0.08,
+    max: 0.09,
+  }
   const storageCache = {
     enabled: true,
     webglSpoofing: true,
+    randomWebGLSpoofing: false,
     WebGLnoise: 1,
     WebGLnoiseAmplitude: 1,
   };
 
   const config = {
+    seed: Math.floor(Math.random() * 1000000),
+    randvalue: function () {
+      let thisseed = (this.seed * 9301 + 49297) % 233280;
+      return thisseed / 233280;
+    },
     buffer: function (target) {
       let proto = target.prototype ? target.prototype : target.__proto__;
       //
@@ -42,6 +59,11 @@
         "cffjcbnflngjpnjenjogeaojacooflng-settings",
         (event) => {
           Object.assign(storageCache, event.detail);
+          if(storageCache.randomWebGLSpoofing){
+            // Update WebGL noise levels
+            storageCache.WebGLnoise = config.randvalue();
+            storageCache.WebGLnoiseAmplitude = noiseLevels[storageCache.noiseLevel];
+          }
           resolve();
         }
       );
