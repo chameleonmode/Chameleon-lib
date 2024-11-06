@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using Chameleon.lib.Common;
@@ -122,48 +123,64 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	protected override async Task InitializeExtensionPath()
 	{
+    var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+    _ = await Settings.BuildMeleonExtSettings(GetTimezone, extDir);
+
+    Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
+      Settings.BuildProxyExtSettings(),
+      Guid.NewGuid().ToString(),
+      Settings.DestExtentionsDir)
+    );
+
+    foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
+      _ = await ExtensionLoaderService.LoadExtension(ext, destDir, setting);
+    }
+
 		if (!File.Exists(Settings.PrefsFile)) {
 			Toaster.ShowInf("Creating Prefs file for new browser instance");
 			TaskCompletionSource tcs = new();
-			new Thread(() => {
+			new Thread(new ThreadStart(() => {
 				try {
-					using (var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments())) {
+					using (var p = Process.Start(new ProcessStartInfo {
+						FileName = Settings.ExePath,
+						Arguments = GetCommandLineArguments(),
+						UseShellExecute = false,
+						CreateNoWindow = true
+					})) {
 						p.EnableRaisingEvents = true;
 						p.Exited += (sender, e) => {
 							_ = tcs.TrySetResult();
 						};
-
 						_ = p.Start();
+						var tries = 0;
 						do {
 							Thread.Sleep(256);
-						} while (p.ProcessName is not "chrome" and not "Google Chrome");
-
-						try {
 							// Attempt to close the browser gracefully
 							_ = p.CloseMainWindow();
-							p.WaitForExit(TimeSpan.FromSeconds(2)); // Ensure the process has fully exited
-						} catch {
-							if (!p.HasExited) {
-								// Kill the process if it hasn't exited after 2 seconds
-								p.Kill();
-							}
+							p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited
+						} while (!p.HasExited && tries++ < 36);
+						if (!p.HasExited) {
+							// Kill the process if it hasn't exited after 2 seconds
+							p.Kill();
 						}
-						
 					}
 				} catch (Exception ex) {
 					// Handle or log the exception as needed
 					Console.WriteLine($"An error occurred: {ex.Message}");
 					_ = tcs.TrySetException(ex);
+				} finally {
+					_ = tcs.TrySetResult();
 				}
-			}).Start();
+			})) {
+				IsBackground = true,
+			}.Start();
 
-			await tcs.Task;
+			await Task.Factory.StartNew(() => tcs.Task, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default).Unwrap();
 		}
-		if (!File.Exists(Settings.PrefsFile))
-			return;
+		if (File.Exists(Settings.PrefsFile)) {
 
-      var document = JsonDocument.Parse(await File.ReadAllTextAsync(Settings.PrefsFile));
-      var root = document.RootElement.Clone();
+			var document = JsonDocument.Parse(await File.ReadAllTextAsync(Settings.PrefsFile));
+			var root = document.RootElement.Clone();
 
 			// Convert the root element to a JsonObject
 			var mutableRoot = JsonNode.Parse(root.GetRawText())?.AsObject();
@@ -187,18 +204,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 			// Serialize the modified JsonObject back to JSON
 			var modifiedJson = JsonSerializer.Serialize(mutableRoot);
-    await File.WriteAllTextAsync(Settings.PrefsFile, modifiedJson);
-    var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-    _ = await Settings.BuildMeleonExtSettings(GetTimezone, extDir);
-
-    Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
-      Settings.BuildProxyExtSettings(),
-      Guid.NewGuid().ToString(),
-      Settings.DestExtentionsDir)
-    );
-
-    foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
-      _ = await ExtensionLoaderService.LoadExtension(ext, destDir, setting);
-    }
-  }
+			await File.WriteAllTextAsync(Settings.PrefsFile, modifiedJson);
+		}
+	}
 }
