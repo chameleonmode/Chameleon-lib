@@ -5,6 +5,7 @@ using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models;
+using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
@@ -122,19 +123,31 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
   {
     if (!File.Exists(Settings.PrefsFile))
     {
-      var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
-      _ = p.Start();
-			do {
-				await Task.Delay(256);
-			}
-			while (p.ProcessName != "chrome");
-      await ProUtil.TryKillProcess(p);
-			await InitializeExtensionPath();
-			return;
-		}
-    using (var stream = new FileStream(Settings.PrefsFile, FileMode.Open, FileAccess.ReadWrite))
-    {
-      var document = await JsonDocument.ParseAsync(stream);
+		Toaster.ShowInf("Creating Prefs file for new browser instance");
+		TaskCompletionSource tcs = new();
+		new Thread(async () => {
+		  var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
+          _ = p.Start();
+	      do {
+	    	await Task.Delay(256);
+	      }while (p.ProcessName != "chrome" && p.ProcessName != "Google Chrome");
+	      if(OperatingSystem.IsMacOS()){
+	    	while(!File.Exists(Settings.PrefsFile)){
+	    		await Task.Delay(256);
+	    	}
+	      }
+          await ProUtil.TryKillProcess(p);
+	      p.Dispose();
+	      p = null;
+		  _ = tcs.TrySetResult();
+		}).Start();
+
+	  await tcs.Task;
+	} 
+	if (!File.Exists(Settings.PrefsFile))
+	 return;
+
+      var document = JsonDocument.Parse(await File.ReadAllTextAsync(Settings.PrefsFile));
       var root = document.RootElement.Clone();
 
 			// Convert the root element to a JsonObject
@@ -159,14 +172,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 			// Serialize the modified JsonObject back to JSON
 			var modifiedJson = JsonSerializer.Serialize(mutableRoot);
-
-			// Write the modified JSON back to the stream
-			stream.SetLength(0); // Clear the stream
-			stream.Position = 0; // Reset the position to the beginning
-			using var writer = new StreamWriter(stream);
-			await writer.WriteAsync(modifiedJson);
-		}
-
+    await File.WriteAllTextAsync(Settings.PrefsFile, modifiedJson);
     var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
     _ = await Settings.BuildMeleonExtSettings(GetTimezone, extDir);
 
