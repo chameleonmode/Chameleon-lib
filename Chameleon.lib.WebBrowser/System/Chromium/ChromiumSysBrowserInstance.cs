@@ -124,27 +124,34 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		if (!File.Exists(Settings.PrefsFile)) {
 			Toaster.ShowInf("Creating Prefs file for new browser instance");
 			TaskCompletionSource tcs = new();
-			new Thread(async () => {
+			new Thread(async () =>
+			{
 				try {
-					using var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
-					_ = p.Start();
-					do {
-						await Task.Delay(256);
-					} while (p.ProcessName is not "chrome" and not "Google Chrome");
+					using (var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments())) {
+						p.EnableRaisingEvents = true;
+						p.Exited += (sender, e) => {
+							_ = tcs.TrySetResult();
+						};
 
-					await ProUtil.TryKillProcess(p);
+						_ = p.Start();
+						do {
+							await Task.Delay(256);
+						} while (p.ProcessName is not "chrome" and not "Google Chrome");
+
+						await ProUtil.TryKillProcess(p);
+						p.WaitForExit(); // Ensure the process has fully exited
+					}
 				} catch (Exception ex) {
 					// Handle or log the exception as needed
 					Console.WriteLine($"An error occurred: {ex.Message}");
-				} finally {
-					_ = tcs.TrySetResult();
+					_ = tcs.TrySetException(ex);
 				}
 			}).Start();
 
 			await tcs.Task;
 		}
 		if (!File.Exists(Settings.PrefsFile))
-	 return;
+			return;
 
       var document = JsonDocument.Parse(await File.ReadAllTextAsync(Settings.PrefsFile));
       var root = document.RootElement.Clone();
