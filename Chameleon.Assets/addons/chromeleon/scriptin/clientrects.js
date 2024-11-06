@@ -10,21 +10,12 @@
     ultra: 0.7,
     super: 0.8,
     max: 0.9,
-  }
-
-  const settings = {
-    enabled: true,
-    clientRectsSpoofing: true,
-    randomRectsSpoofing: false,
-    DOMRectnoise: 1,
-    DOMRectReadOnlynoise: 1,
-    noiseLevel: "medium",
   };
 
   const metrics = {
     DOMRect: ["x", "y", "width", "height"],
     DOMRectReadOnly: ["top", "right", "bottom", "left"],
-  }
+  };
 
   const methods = {
     DOMRect: function (e) {
@@ -63,141 +54,70 @@
     },
   };
 
-  {
-    const loadPromise = new Promise((resolve) => {
-      window.addEventListener(
-        "cffjcbnflngjpnjenjogeaojacooflng-settings",
-        (event) => {
-          Object.assign(settings, event.detail);
-          resolve();
+  const mkey = "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-rects";
+  document.documentElement.setAttribute(mkey, "");
+  //
+  window.addEventListener(
+    "message",
+    async function (e) {
+      if (e.data && e.data.key === mkey) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (
+          settings.clientRectsSpoofing === false ||
+          settings.enabled === false
+        ) {
+          return;
         }
-      );
-    });
 
-    const mkey = "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-rects";
-    document.documentElement.setAttribute(mkey, "");
-    //
-    window.addEventListener(
-      "message",
-      async function (e) {
-        if (e.data && e.data.key === mkey) {
-          e.preventDefault();
-          e.stopPropagation();
-          await loadPromise;
-          if (
-            settings.clientRectsSpoofing === false ||
-            settings.enabled === false
-          ) {
-            return;
-          }
-          
-          methods.DOMRect(
-            metrics.DOMRect.sort(() =>
-              settings.randomRectsSpoofing
-                ? 0.5 - Math.random()
-                : noiseLevels[settings.noiseLevel]
-            )[0]
-          );
-          methods.DOMRectReadOnly(
-            metrics.DOMRectReadOnly.sort(() =>
-              settings.randomRectsSpoofing
-                ? 0.5 - Math.random()
-                : noiseLevels[settings.noiseLevel]
-            )[0]
-          );
+        methods.DOMRect(
+          metrics.DOMRect.sort(() =>
+            settings.randomRectsSpoofing
+              ? 0.5 - Math.random()
+              : noiseLevels[settings.noiseLevel]
+          )[0]
+        );
+        methods.DOMRectReadOnly(
+          metrics.DOMRectReadOnly.sort(() =>
+            settings.randomRectsSpoofing
+              ? 0.5 - Math.random()
+              : noiseLevels[settings.noiseLevel]
+          )[0]
+        );
 
-          //
-          try {
-            if (e.source.DOMRect) {
-              const metrics = ["x", "y", "width", "height"];
-              for (let i = 0; i < metrics.length; i++) {
-                Object.defineProperty(e.source.DOMRect.prototype, metrics[i], {
-                  get: Object.getOwnPropertyDescriptor(
-                    DOMRect.prototype,
-                    metrics[i]
-                  ).get,
-                });
+        //
+        if (e.source.DOMRect) {
+          for (let i = 0; i < metrics.DOMRect.length; i++) {
+            Object.defineProperty(
+              e.source.DOMRect.prototype,
+              metrics.DOMRect[i],
+              {
+                get: Object.getOwnPropertyDescriptor(
+                  DOMRect.prototype,
+                  metrics.DOMRect[i]
+                ).get,
               }
-            }
-          } catch (e) {
-            console.error(e);
-          }
-          //
-          try {
-            if (e.source.DOMRectReadOnly) {
-              const metrics = ["top", "right", "bottom", "left"];
-              for (let i = 0; i < metrics.length; i++) {
-                Object.defineProperty(e.source.DOMRectReadOnly.prototype, metrics[i], {
-                    get: Object.getOwnPropertyDescriptor(
-                      DOMRectReadOnly.prototype,
-                      metrics[i]
-                    ).get,
-                  }
-                );
-              }
-            }
-          } catch (e) {
-            console.error(e);
+            );
           }
         }
-      },
-      false
-    );
-  }
+        //
+        if (e.source.DOMRectReadOnly) {
+          for (let i = 0; i < metrics.DOMRectReadOnly.length; i++) {
+            Object.defineProperty(
+              e.source.DOMRectReadOnly.prototype,
+              metrics.DOMRectReadOnly[i],
+              {
+                get: Object.getOwnPropertyDescriptor(
+                  DOMRectReadOnly.prototype,
+                  metrics.DOMRectReadOnly[i]
+                ).get,
+              }
+            );
+          }
+        }
+      }
+    },
+    false
+  );
 }
-// {
-//   const metrics = clientRects.metrics.DOMRect;
-//   for (let i = 0; i < metrics.length; i++) {
-//     clientRects.method.DOMRect(metrics[i]);
-//   }
-// }
-// // Spoofing of DOMRectReadOnly
-// {
-//   const metrics = clientRects.metrics.DOMRectReadOnly;
-//   for (let i = 0; i < metrics.length; i++) {
-//     clientRects.method.DOMRectReadOnly(metrics[i]);
-//   }
-// }
-// Element.prototype.getClientRects = function () {
-//   return {
-//     item: function (index) {
-//       return clientRects.method.DOMRect.prototype[index] || null;
-//     },
-//     length: clientRects.method.DOMRect.prototype.length,
-//     [Symbol.iterator]: function* () {
-//       for (let rect of clientRects.method.DOMRect.prototype) yield rect;
-//     },
-//   };
-// };
-
-// /*        Override getBoundingClientRect*/
-// Element.prototype.getBoundingClientRect = function () {
-//   const rects = this.getClientRects();
-//   if (rects.length === 0) {
-//     return new DOMRect(0, 0, 0, 0);
-//   }
-
-//   let minX = Infinity,
-//     minY = Infinity,
-//     maxX = -Infinity,
-//     maxY = -Infinity;
-//   for (const rect of rects) {
-//     if (rect.width !== 0 && rect.height !== 0) {
-//       minX = Math.min(minX, rect.x);
-//       minY = Math.min(minY, rect.y);
-//       maxX = Math.max(maxX, rect.x + rect.width);
-//       maxY = Math.max(maxY, rect.y + rect.height);
-//     }
-//   }
-
-//   if (
-//     minX === Infinity ||
-//     minY === Infinity ||
-//     maxX === -Infinity ||
-//     maxY === -Infinity
-//   ) {
-//     return rects.item(0); // Return the first if all are zero-sized
-//   }
-
-//   return new DOMRect(minX, minY, maxX - minX, maxY - minY);
-// };

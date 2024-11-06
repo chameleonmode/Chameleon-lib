@@ -1,4 +1,6 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
+
 using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Interfaces.Sys;
@@ -115,13 +117,14 @@ public class SysBrowserService
 					&& (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
 					? starturl
 					: "https://" + starturl;
+
 				var launchOptions = new SysBrowserSettings(options, emulations, starturl, Netil.NextFreePort(9613));
+				//
 				browser = Create(options.BrowserType, launchOptions);
 				browser.OnEvent += Browser_OnEvent;
 
 				Instances[options] = browser;
-
-				var initTask = browser.InitializeAsync();
+			  var initTask = browser.InitializeAsync();
 
 				if (await browser.LoadedTCS.Task) {
 					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);

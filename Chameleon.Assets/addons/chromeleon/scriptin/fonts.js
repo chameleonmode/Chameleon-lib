@@ -9,41 +9,25 @@
     ultra: 0.7,
     super: 0.8,
     max: 0.9,
-  }
-  
-  const storageCache = {
-    enabled: true,
-    fontsSpoofing: true,
-    randomFontsSpoofing: false,
-    Fontsnoise: 1,
-    Fontssign: 1,
   };
 
   const noisify = function (size) {
-    // const valid = size && storageCache.Fontssign === 1;
-    const result = size ? size + storageCache.Fontsnoise : size;
+    const result = size ? size + settings.Fontsnoise : size;
     return result;
   };
 
-  {
-    const loadPromise = new Promise((resolve) => {
-      window.addEventListener(
-        "cffjcbnflngjpnjenjogeaojacooflng-settings",
-        (event) => {
-          Object.assign(storageCache, event.detail);
-          if(storageCache.randomFontsSpoofing){
-            const SIGN = Math.random() < Math.random() ? -1 : 1;
-            storageCache.Fontsnoise = Math.floor(Math.random() + SIGN * Math.random()) * noiseLevels[storageCache.noiseLevel];
-            
-            const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
-            const index = Math.floor(Math.random() * tmp.length);
-            storageCache.Fontssign = tmp[index];
-          }
-          resolve();
-        }
-      );
-    });
+  if (settings.randomFontsSpoofing) {
+    const SIGN = Math.random() < Math.random() ? -1 : 1;
+    settings.Fontsnoise =
+      Math.floor(Math.random() + SIGN * Math.random()) *
+      noiseLevels[settings.noiseLevel];
 
+    const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
+    const index = Math.floor(Math.random() * tmp.length);
+    settings.Fontssign = tmp[index];
+  }
+
+  {
     const mkey = "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-fonts";
     document.documentElement.setAttribute(mkey, "");
     //
@@ -53,75 +37,69 @@
         if (e.data && e.data.key === mkey) {
           e.preventDefault();
           e.stopPropagation();
-          await loadPromise;
           if (
-            storageCache.fontsSpoofing === false ||
-            storageCache.enabled === false
+            settings.fontsSpoofing === false ||
+            settings.enabled === false
           ) {
             return;
           }
           //
-          try {
-            //
-            Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
-              get: new Proxy(
-                Object.getOwnPropertyDescriptor(
-                  HTMLElement.prototype,
-                  "offsetHeight"
-                ).get,
-                {
-                  apply(target, self, args) {
-                    return noisify(
-                      Math.floor(self.getBoundingClientRect().height)
-                    );
-                  },
-                }
-              ),
-            });
-            //
-            Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
-              get: new Proxy(
-                Object.getOwnPropertyDescriptor(
-                  HTMLElement.prototype,
-                  "offsetWidth"
-                ).get,
-                {
-                  apply(target, self, args) {
-                    return noisify(
-                      Math.floor(self.getBoundingClientRect().width)
-                    );
-                  },
-                }
-              ),
-            });
-            //
-            if (e.source) {
-              if (e.source.HTMLElement) {
-                Object.defineProperty(
-                  e.source.HTMLElement.prototype,
-                  "offsetWidth",
-                  {
-                    get: Object.getOwnPropertyDescriptor(
-                      HTMLElement.prototype,
-                      "offsetWidth"
-                    ).get,
-                  }
-                );
-                //
-                Object.defineProperty(
-                  e.source.HTMLElement.prototype,
-                  "offsetHeight",
-                  {
-                    get: Object.getOwnPropertyDescriptor(
-                      HTMLElement.prototype,
-                      "offsetHeight"
-                    ).get,
-                  }
-                );
+          Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+            get: new Proxy(
+              Object.getOwnPropertyDescriptor(
+                HTMLElement.prototype,
+                "offsetHeight"
+              ).get,
+              {
+                apply(target, self, args) {
+                  return noisify(
+                    Math.floor(self.getBoundingClientRect().height)
+                  );
+                },
               }
+            ),
+          });
+          //
+          Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+            get: new Proxy(
+              Object.getOwnPropertyDescriptor(
+                HTMLElement.prototype,
+                "offsetWidth"
+              ).get,
+              {
+                apply(target, self, args) {
+                  return noisify(
+                    Math.floor(self.getBoundingClientRect().width)
+                  );
+                },
+              }
+            ),
+          });
+          //
+          if (e.source) {
+            if (e.source.HTMLElement) {
+              Object.defineProperty(
+                e.source.HTMLElement.prototype,
+                "offsetWidth",
+                {
+                  get: Object.getOwnPropertyDescriptor(
+                    HTMLElement.prototype,
+                    "offsetWidth"
+                  ).get,
+                }
+              );
+              //
+              Object.defineProperty(
+                e.source.HTMLElement.prototype,
+                "offsetHeight",
+                {
+                  get: Object.getOwnPropertyDescriptor(
+                    HTMLElement.prototype,
+                    "offsetHeight"
+                  ).get,
+                }
+              );
             }
-          } catch (e) {
-            console.error(e);
           }
         }
       },

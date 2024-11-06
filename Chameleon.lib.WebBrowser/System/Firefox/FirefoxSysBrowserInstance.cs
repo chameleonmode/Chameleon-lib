@@ -12,6 +12,7 @@ using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
 
 using static System.Net.Mime.MediaTypeNames;
+using static Chameleon.lib.Common.Constants.Consts;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
@@ -111,7 +112,10 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	private async Task InitializePrefsJs()
 	{
 		//"https://arkenfox.github.io/TZP/tzp.html"
-		var prefs = new List<string>(SysBrowserInfoUtil.FirefoxUserPrefs.Where(p => !SysBrowserInfoUtil.FirefoxDepricatedPrefs.Contains(p.Key)).Select(p => p.Value).ToList());
+		var prefs = new List<string>(SysBrowserInfoUtil.FirefoxUserPrefs
+			.Where(p => !SysBrowserInfoUtil.FirefoxDepricatedPrefs.Contains(p.Key))
+			.Select(p => p.Value)
+			.ToList());
 		foreach (var p in new Dictionary<string, object>() {
 			// =================================================================
 			// THESE ARE THE PROPERTIES FROM https://mullvad.net/en/browser/hard-facts
@@ -388,20 +392,19 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			prefs.Add(up);
 		}
 
-		var prefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
-		if (!File.Exists(prefsFile)) {
-			await File.WriteAllLinesAsync(prefsFile, prefs);
-			var bs = IoC.GetService<ISysBrowserService>();
-			if (bs != null) {
-				var bi = await bs.Open(new SysBrowserOpenOptions(SystemBrowserType.Firefox, new Common.Models.SysBrowserProfile() 
-				{ Id = Settings.Profile.Id }));
-				await Task.Delay(613);
-				await ProUtil.TryKillProcess(bi?.Settings.Brocess);
+		if (!File.Exists(Settings.PrefsFile)) {
+			await File.WriteAllLinesAsync(Settings.PrefsFile, prefs);
+			var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
+			_ = p.Start();
+			do {
+				await Task.Delay(256);
 			}
+			while (p.ProcessName != "firefox");
+			await ProUtil.TryKillProcess(p);
 		} else {
-			var lines = await File.ReadAllLinesAsync(prefsFile);
+			var lines = await File.ReadAllLinesAsync(Settings.PrefsFile);
 			if (lines.Any(l=> l.Is() && !l.StartsWith("user_pref(\"") && !l.StartsWith("//"))) {
-				await File.WriteAllLinesAsync(prefsFile, prefs);
+				await File.WriteAllLinesAsync(Settings.PrefsFile, prefs);
 			}
 			var userprefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
 			await File.WriteAllLinesAsync(userprefsFile, prefs);

@@ -28,9 +28,15 @@ public record SysBrowserOpenOptions(Enums.SystemBrowserType BrowserType, SysBrow
 public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOptions Emulation, string StartUrl, int Port) {
 	public Enums.SystemBrowserType BrowserType => OpenOptions.BrowserType;
 	public SysBrowserProfile Profile => OpenOptions.Profile;
-	public string SysBrowseUserExtDir => Path.Combine(Consts.Addons.DefaultExtensionsFolderPath, BrowserType.GetDescription());
-	public string ExePath => BrowserType == Enums.SystemBrowserType.Firefox ? Consts.Browser.LocalFirefoxExePath : SysBrowserInfoUtil.FindByType(BrowserType).Path;
-	public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(Path.Combine(Consts.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()));
+	public string SysBrowseUserExtDir => Path.Combine(
+		Consts.Addons.DefaultExtensionsFolderPath, BrowserType.GetDescription()
+		);
+	public string ExePath => BrowserType == Enums.SystemBrowserType.Firefox 
+		? Consts.Browser.LocalFirefoxExePath 
+		: SysBrowserInfoUtil.FindByType(BrowserType).Path;
+	public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(
+		Path.Combine(Consts.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString())
+		);
 
 	private string? destextPath;
 	public string DestExtentionsDir {
@@ -50,6 +56,10 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 			return cachedExtentionsDir;
 		}
 	}
+
+	public string PrefsFile => BrowserType == Enums.SystemBrowserType.Firefox 
+		? Path.Combine(SysBrowserProfileCachePath, "prefs.js")
+		: Path.Combine(SysBrowserProfileCachePath, "Default", "Preferences");
 
 	public HashSet<KeyValuePair<string, string>> EmulationOptions =>
 	[

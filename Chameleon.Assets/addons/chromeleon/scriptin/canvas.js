@@ -1,24 +1,14 @@
 {
   //https://privacycheck.sec.lrz.de/active/fp_c/fp_canvas.html
-  const storageCache = {
-    enabled: true,
-    canvasProtection: true,
-    randomCanvasSpoofing: false,
-    canvasR: 1,
-    canvasG: 1,
-    canvasB: 1,
-    canvasA: 1,
-  };
-
   const getImageData = CanvasRenderingContext2D.prototype.getImageData;
   //
   const noisify = function (canvas, context) {
     if (context) {
       const shift = {
-        r: storageCache.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : storageCache.canvasR,
-        g: storageCache.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : storageCache.canvasG,
-        b: storageCache.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : storageCache.canvasB,
-        a: storageCache.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : storageCache.canvasA,
+        r: settings.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : settings.canvasR,
+        g: settings.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : settings.canvasG,
+        b: settings.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : settings.canvasB,
+        a: settings.randomCanvasSpoofing ? Math.floor(Math.random() * 10) - 5 : settings.canvasA,
       };
       //
       const width = canvas.width;
@@ -42,16 +32,6 @@
   };
 
   {
-    const loadPromise = new Promise((resolve) => {
-      window.addEventListener(
-        "cffjcbnflngjpnjenjogeaojacooflng-settings",
-        (event) => {
-          Object.assign(storageCache, event.detail);
-          resolve();
-        }
-      );
-    });
-
     const mkey = "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-canvas";
     document.documentElement.setAttribute(mkey, "");
     //
@@ -61,10 +41,9 @@
         if (e.data && e.data.key === mkey) {
           e.preventDefault();
           e.stopPropagation();
-          await loadPromise;
           if (
-            storageCache.canvasProtection === false ||
-            storageCache.enabled === false
+            settings.canvasProtection === false ||
+            settings.enabled === false
           ) {
             return;
           }

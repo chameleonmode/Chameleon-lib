@@ -1,7 +1,15 @@
-﻿using Chameleon.lib.Common.Constants;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
+
+using Chameleon.lib.Common;
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
+using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
+
+using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
@@ -108,34 +116,68 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		return string.Join(" ", args);
 	}
 
-	protected override async Task InitializeExtensionPath()
-	{
-		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleon, (
-		//	null,
-		//	Guid.NewGuid().ToString(), 
-		//	Settings.CachedExtentionsDir)
-		//);
-		//_ = await Settings.BuildMeleonExtSettings(
-		//	GetTimezone,
-		//	Path.Combine(Settings.CachedExtentionsDir, Enums.ExtensionType.chromeleon.ToString())
-		//);
-		
-		var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-		_ = await Settings.BuildMeleonExtSettings(GetTimezone, extDir);
+  // ...
 
-		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.chromeleorectsresister, (
-		//"",
-		//Guid.NewGuid().ToString(),
-		//Settings.DestExtentionsDir));
-
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
-			Settings.BuildProxyExtSettings(),
-			Guid.NewGuid().ToString(), 
-			Settings.DestExtentionsDir)
-		);
-
-		foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
-			_ = await ExtensionLoaderService.LoadExtension(ext, destDir, setting);
+  protected override async Task InitializeExtensionPath()
+  {
+    if (!File.Exists(Settings.PrefsFile))
+    {
+      var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
+      _ = p.Start();
+			do {
+				await Task.Delay(256);
+			}
+			while (p.ProcessName != "chrome");
+      await ProUtil.TryKillProcess(p);
+			await InitializeExtensionPath();
+			return;
 		}
-	}
+    using (var stream = new FileStream(Settings.PrefsFile, FileMode.Open, FileAccess.ReadWrite))
+    {
+      var document = await JsonDocument.ParseAsync(stream);
+      var root = document.RootElement.Clone();
+
+			// Convert the root element to a JsonObject
+			var mutableRoot = JsonNode.Parse(root.GetRawText())?.AsObject();
+			if (mutableRoot != null) {
+				if (mutableRoot["extensions"] is JsonObject extensions) {
+					if (extensions["ui"] is JsonObject ui) {
+						ui["developer_mode"] = true;
+					} else {
+						extensions["ui"] = new JsonObject {
+							["developer_mode"] = true
+						};
+					}
+				} else {
+					mutableRoot["extensions"] = new JsonObject {
+						["ui"] = new JsonObject {
+							["developer_mode"] = true
+						}
+					};
+				}
+			}
+
+			// Serialize the modified JsonObject back to JSON
+			var modifiedJson = JsonSerializer.Serialize(mutableRoot);
+
+			// Write the modified JSON back to the stream
+			stream.SetLength(0); // Clear the stream
+			stream.Position = 0; // Reset the position to the beginning
+			using var writer = new StreamWriter(stream);
+			await writer.WriteAsync(modifiedJson);
+		}
+
+    var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+    _ = await Settings.BuildMeleonExtSettings(GetTimezone, extDir);
+
+    Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
+      Settings.BuildProxyExtSettings(),
+      Guid.NewGuid().ToString(),
+      Settings.DestExtentionsDir)
+    );
+
+    foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
+      _ = await ExtensionLoaderService.LoadExtension(ext, destDir, setting);
+    }
+  }
 }

@@ -10,13 +10,6 @@
     ultra: 0.007,
     super: 0.08,
     max: 0.09,
-  }
-  const storageCache = {
-    enabled: true,
-    webglSpoofing: true,
-    randomWebGLSpoofing: false,
-    WebGLnoise: 1,
-    WebGLnoiseAmplitude: 1,
   };
 
   const config = {
@@ -40,7 +33,10 @@
               const dataView = new DataView(srcData.buffer || srcData);
               for (let i = 0; i < length; i += 4) {
                 const value = dataView.getFloat32(i, true);
-                const noise = storageCache.WebGLnoiseAmplitude * (storageCache.WebGLnoise * 2 - 1) * value;
+                const noise =
+                  settings.WebGLnoiseAmplitude *
+                  (settings.WebGLnoise * 2 - 1) *
+                  value;
                 dataView.setFloat32(i, value + noise, true);
               }
             }
@@ -53,22 +49,13 @@
     },
   };
 
-  {
-    const loadPromise = new Promise((resolve) => {
-      window.addEventListener(
-        "cffjcbnflngjpnjenjogeaojacooflng-settings",
-        (event) => {
-          Object.assign(storageCache, event.detail);
-          if(storageCache.randomWebGLSpoofing){
-            // Update WebGL noise levels
-            storageCache.WebGLnoise = config.randvalue();
-            storageCache.WebGLnoiseAmplitude = noiseLevels[storageCache.noiseLevel];
-          }
-          resolve();
-        }
-      );
-    });
+  if (settings.randomWebGLSpoofing) {
+    // Update WebGL noise levels
+    settings.WebGLnoise = config.randvalue();
+    settings.WebGLnoiseAmplitude = noiseLevels[settings.noiseLevel];
+  }
 
+  {
     const mkey = "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-gl";
     document.documentElement.setAttribute(mkey, "");
     //
@@ -78,33 +65,23 @@
         if (e.data && e.data.key === mkey) {
           e.preventDefault();
           e.stopPropagation();
-          await loadPromise;
-          if (
-            storageCache.webglSpoofing === false ||
-            storageCache.enabled === false
-          ) {
+          if (settings.webglSpoofing === false || settings.enabled === false) {
             return;
           }
           //
-          try {
-            [WebGLRenderingContext, WebGL2RenderingContext].forEach(
-              (context) => {
-                config.buffer(context);
-              }
-            );
-            if (e.source) {
-              if (e.source.WebGLRenderingContext) {
-                e.source.WebGLRenderingContext.prototype.bufferData =
-                  WebGLRenderingContext.prototype.bufferData;
-              }
-              //
-              if (e.source.WebGL2RenderingContext) {
-                e.source.WebGL2RenderingContext.prototype.bufferData =
-                  WebGL2RenderingContext.prototype.bufferData;
-              }
+          [WebGLRenderingContext, WebGL2RenderingContext].forEach((context) => {
+            config.buffer(context);
+          });
+          if (e.source) {
+            if (e.source.WebGLRenderingContext) {
+              e.source.WebGLRenderingContext.prototype.bufferData =
+                WebGLRenderingContext.prototype.bufferData;
             }
-          } catch (e) {
-            console.error(e);
+            //
+            if (e.source.WebGL2RenderingContext) {
+              e.source.WebGL2RenderingContext.prototype.bufferData =
+                WebGL2RenderingContext.prototype.bufferData;
+            }
           }
         }
       },

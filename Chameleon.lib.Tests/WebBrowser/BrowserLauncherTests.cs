@@ -24,9 +24,9 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
 				SystemBrowserType.Chrome, 
-				new Common.Models.UserProfileModel() { 
-					Id = 123, 
-					Proxy = new Common.Models.ProxySettingsModel()
+				new Common.Models.SysBrowserProfile() { 
+					Id = 102, 
+					Proxy = new Common.Models.SysBrowserProxy()
 				})
 			);
 		Assert.NotNull(bi);
@@ -38,7 +38,14 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
-		var bi = await SysBrowserServiceBase.Open(new SysBrowserOpenOptions(SystemBrowserType.Brave, new Common.Models.UserProfileModel() { Id = 123, Proxy = new Common.Models.ProxySettingsModel() }));
+		var bi = await SysBrowserServiceBase.Open(
+			new SysBrowserOpenOptions(
+				SystemBrowserType.Brave, new Common.Models.SysBrowserProfile()
+				{ 
+					Id = 123, 
+					Proxy = new Common.Models.SysBrowserProxy() 
+				})
+			);
 		Assert.NotNull(bi);
 	}
 
@@ -69,8 +76,8 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
 				SystemBrowserType.Firefox,
-				new Common.Models.UserProfileModel() {
-					Id = 111
+				new Common.Models.SysBrowserProfile() {
+					Id = 2
 				})
 			);
 		//Assert.NotNull(bi);

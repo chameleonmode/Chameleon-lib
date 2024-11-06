@@ -143,7 +143,7 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
     settings[key] = newValue;
   }
   applyTabOverrides();
-  // await setInjectionScript();
+  await setInjectionScript();
   updateLocationRules(genUULE(settings.latitude, settings.longitude));
   return true;
 });
@@ -206,50 +206,44 @@ async function setInjectionScript() {
   // );
 
   //https://developer.chrome.com/docs/extensions/reference/api/userScripts
-  // const USER_SCRIPT_ID = "chromeleonairz";
-  // const USER_SCRIPT_CODE = `
-  //           if (!window.__myAddonInjected__) {
-  //             window.__myAddonInjected__ = true;
-  //             window.__myAddonSettings__ = JSON.parse(\`${JSON.stringify(
-  //               settings
-  //             )}\`);
-  //           }
-  //       `;
-  // const existingScripts = await chrome.userScripts.getScripts({
-  //   ids: [USER_SCRIPT_ID],
-  // });
+  const USER_SCRIPT_ID = "chromeleonairz";
+  const __myAddonRandObjName__ = `${
+    String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
+    Math.random()
+      .toString(36)
+      .substring(Math.floor(Math.random() * 5) + 5)
+  }`;
+  const USER_SCRIPT_CODE = `
+  if(!window.${__myAddonRandObjName__}) {
+    window.${__myAddonRandObjName__} = ${Math.random() * 0.00000001};
+    settings = JSON.parse(\`${JSON.stringify(settings)}\`);
+    console.log(settings);
+  }`;
+  const existingScripts = await chrome.userScripts.getScripts({
+    ids: [USER_SCRIPT_ID],
+  });
+  const userscripts = [
+    {
+      id: USER_SCRIPT_ID,
+      allFrames: true,
+      world: "MAIN",
+      runAt: "document_start",
+      matches: ["*://*/*"],
+      js: [
+        { code: USER_SCRIPT_CODE }, 
+        { file: "scriptin/clientrects.js" }, 
+        { file: "scriptin/canvas.js" },
+        { file: "scriptin/webgl.js" },
+        { file: "scriptin/fonts.js" },
+      ],
+    },
+  ];
 
-  // if (existingScripts.length > 0) {
-  //   // Update existing script.
-  //   await chrome.userScripts.update([
-  //     {
-  //       id: USER_SCRIPT_ID,
-  //       allFrames: true,
-  //       world: "MAIN",
-  //       runAt: "document_start",
-  //       matches: ["*://*/*"],
-  //       js: [
-  //         { code: USER_SCRIPT_CODE },
-  //         { file: "scriptin/clientrects.js" },
-  //       ],
-  //     },
-  //   ]);
-  // } else {
-  //   // Register new script.
-  //   await chrome.userScripts.register([
-  //     {
-  //       id: USER_SCRIPT_ID,
-  //       allFrames: true,
-  //       world: "MAIN",
-  //       runAt: "document_start",
-  //       matches: ["*://*/*"],
-  //       js: [
-  //         { code: USER_SCRIPT_CODE },
-  //         { file: "scriptin/clientrects.js" },
-  //       ],
-  //     },
-  //   ]);
-  // }
+  if (existingScripts.length > 0) {
+    await chrome.userScripts.update(userscripts);
+  } else {
+    await chrome.userScripts.register(userscripts);
+  }
 }
 
 // chrome.webNavigation.onDOMContentLoaded.addListener(async ({ tabId, url }) => {

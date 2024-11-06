@@ -178,7 +178,6 @@ export async function updateSettings(built) {
       settings.WebGLnoiseAmplitude = noises.noiseLevel[settings.noiseLevel];
     }
     // Update canvas noise levels
-    const noiseAmplitude = noises.noiseLevel[settings.noiseLevel];
     if (
       settings.canvasR === 1 ||
       settings.canvasG === 1 ||
@@ -187,14 +186,14 @@ export async function updateSettings(built) {
       settings.randomCanvasSpoofing
     ) {
         
-      settings.canvasR = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
-      settings.canvasG = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
-      settings.canvasB = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
-      settings.canvasA = Math.floor(Math.random() * 10) - 5 * noiseAmplitude;
+      settings.canvasR = Math.floor(Math.random() * 10) - 5;
+      settings.canvasG = Math.floor(Math.random() * 10) - 5;
+      settings.canvasB = Math.floor(Math.random() * 10) - 5;
+      settings.canvasA = Math.floor(Math.random() * 10) - 5;
     }
     if (settings.Fontsnoise === 1 || settings.randomFontsSpoofing) {
       const SIGN = Math.random() < Math.random() ? -1 : 1;
-      settings.Fontsnoise = Math.floor(Math.random() + SIGN * Math.random()) * noiseAmplitude;
+      settings.Fontsnoise = Math.floor(Math.random() + SIGN * Math.random());
     }
     if (settings.Fontssign === 1 || settings.randomFontsSpoofing) {
       const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
