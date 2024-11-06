@@ -24,10 +24,10 @@ public record class SysBrowserRecord(string Name, string Path) {
 		return Name ?? Path;
 	}
 }
-public record SysBrowserOpenOptions(Enums.SystemBrowserType BrowserType, UserProfileModel Profile);
+public record SysBrowserOpenOptions(Enums.SystemBrowserType BrowserType, SysBrowserProfile Profile);
 public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOptions Emulation, string StartUrl, int Port) {
 	public Enums.SystemBrowserType BrowserType => OpenOptions.BrowserType;
-	public UserProfileModel Profile => OpenOptions.Profile;
+	public SysBrowserProfile Profile => OpenOptions.Profile;
 	public string SysBrowseUserExtDir => Path.Combine(Consts.Addons.DefaultExtensionsFolderPath, BrowserType.GetDescription());
 	public string ExePath => BrowserType == Enums.SystemBrowserType.Firefox ? Consts.Browser.LocalFirefoxExePath : SysBrowserInfoUtil.FindByType(BrowserType).Path;
 	public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(Path.Combine(Consts.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()));
@@ -102,7 +102,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 				TaskCompletionSource<Process?> thisTcs = new();
 				new Thread(() => {
 					for (var i = 0; i < 18; i++) {
-						ExUtil.TryCatch(() => {
+						_ = ExUtil.TryCatch(() => {
 							var currentProcesses = Process.GetProcessesByName("firefox");
 							foreach (var p in currentProcesses) {
 								if (Brocess != null && p.ParentProcessId() == Brocess.Id) {
@@ -116,6 +116,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 									}
 								}
 							}
+							return true;
 						});
 						if (Brocess?.MainWindowHandle != IntPtr.Zero)
 							break;

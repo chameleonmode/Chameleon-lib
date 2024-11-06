@@ -1,14 +1,17 @@
-﻿namespace Chameleon.lib.Common.Util;
+﻿using Chameleon.lib.Common.ServiceManagers;
+
+namespace Chameleon.lib.Common.Util;
 
 public static class ExUtil {
-	public static void TryCatch(Action action, Action? caught = null)
+	public static bool TryCatch(Func<bool> action, Action? caught = null)
 	{
 		try {
-			action();
+			return action();
 		} catch (Exception ex) {
 			caught?.Invoke();
-			Console.WriteLine(ex.ToString());
+			PrintException(ex);
 		}
+		return false;
 	}
 
 	public static async Task AsyncTryCatch(Func<Task> action, Action<Exception>? caught = null)
@@ -17,12 +20,9 @@ public static class ExUtil {
 			await action();
 		} catch (Exception ex) {
 			caught?.Invoke(ex);
-			Console.WriteLine(ex.ToString());
+			PrintException(ex);
 		}
 	}
-
-	private static void OnError(object sender, ErrorEventArgs e) =>
-			PrintException(e.GetException());
 
 	private static void PrintException(Exception? ex)
 	{

@@ -393,7 +393,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			await File.WriteAllLinesAsync(prefsFile, prefs);
 			var bs = IoC.GetService<ISysBrowserService>();
 			if (bs != null) {
-				var bi = await bs.Open(new SysBrowserOpenOptions(SystemBrowserType.Firefox, new Common.Models.UserProfileModel() 
+				var bi = await bs.Open(new SysBrowserOpenOptions(SystemBrowserType.Firefox, new Common.Models.SysBrowserProfile() 
 				{ Id = Settings.Profile.Id }));
 				await Task.Delay(613);
 				await ProUtil.TryKillProcess(bi?.Settings.Brocess);

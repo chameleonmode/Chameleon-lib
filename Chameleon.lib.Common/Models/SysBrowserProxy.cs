@@ -2,8 +2,10 @@
 
 namespace Chameleon.lib.Common.Models;
 
-public class ProxySettingsModel {
-	public string? HostForRequest => Host?.Contains(Consts.Http.ChameleonModeHost) == true ? Consts.Http.PacketStreamHost : Host;
+public class SysBrowserProxy {
+	public string? HostForRequest => Host?.Contains(Consts.Http.ChameleonModeHost) == true 
+		? Consts.Http.PacketStreamHost
+		: Host;
 	public string? Server => CanUse ? $"{HostForRequest}:{Port}" : string.Empty;
 	public string? ServerForRequest => CanUse ? $"http://{Server}" : string.Empty;
 

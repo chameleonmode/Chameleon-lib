@@ -1,6 +1,6 @@
 ﻿namespace Chameleon.lib.Common.Models;
 
-public class UserProfileModel {
+public class SysBrowserProfile {
 	private int _id;
 	public int Id {
 		get => _id;
@@ -12,9 +12,9 @@ public class UserProfileModel {
 		}
 	}
 
-	private ProxySettingsModel _proxy = new();
-	public ProxySettingsModel Proxy {
+	private SysBrowserProxy _proxy = new();
+	public SysBrowserProxy Proxy {
 		get => _proxy;
-		set => _proxy = value ?? new ProxySettingsModel();
+		set => _proxy = value ?? new SysBrowserProxy();
 	}
 }

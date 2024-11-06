@@ -183,34 +183,6 @@ public static class IOtil {
 		return path;
 	}
 
-	//public static async Task CopyFromStream(Stream inputStream, string targetDir, string relativePath, string? header = null)
-	//{
-	//	ArgumentNullException.ThrowIfNull(inputStream);
-
-	//	var desPath = Path.Combine(targetDir, relativePath);
-	//	var destDir = Path.GetDirectoryName(desPath);
-	//	ArgumentNullException.ThrowIfNull(destDir);
-
-	//	await CreateDirectoryAsync(destDir);
-
-	//	var tempFilePath = Path.GetTempFileName();
-	//	try {
-	//		using (var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
-	//			if (!string.IsNullOrEmpty(header)) {
-	//				var headerBytes = System.Text.Encoding.UTF8.GetBytes(header);
-	//				await tempFileStream.WriteAsync(headerBytes);
-	//			}
-
-	//			await inputStream.CopyToAsync(tempFileStream);
-	//		}
-
-	//		if(desPath.Contains("manifest.json"))
-	//		File.Copy(tempFilePath, desPath, true);
-	//	} finally {
-	//		File.Delete(tempFilePath);
-	//	}
-	//}
-
 	public static async Task CopyFromStream(Stream inputStream, string targetDir, string relativePath, string? header = null, string? version = null)
 	{
 		ArgumentNullException.ThrowIfNull(inputStream);

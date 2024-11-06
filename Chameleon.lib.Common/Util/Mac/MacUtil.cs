@@ -56,13 +56,10 @@ internal enum NSApplicationActivateOptions : uint {
 public static class MacOSUtil {
 	public static bool SetForegroundWindow(int pid)
 	{
-		try {
+		return ExUtil.TryCatch(() => {
 			var windowId = FindWindowByPID(pid);
 			return windowId.HasValue && BringWindowToForeground(pid);
-		} catch (Exception ex) {
-			Console.WriteLine($"Failed to set foreground window: {ex.Message}");
-			return false;
-		}
+		});
 	}
 
 	private static IntPtr GetWindowList()

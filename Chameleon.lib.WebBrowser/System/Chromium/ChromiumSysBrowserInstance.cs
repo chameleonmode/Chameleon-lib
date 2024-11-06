@@ -7,10 +7,15 @@ namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	protected override string GetCommandLineArguments()
 	{
+		//https://niek.github.io/chrome-features/
 		//https://github.com/GoogleChrome/chrome-launcher/blob/main/src/flags.ts
 		List<string> args =
 		[
-			"--disable-features=OptimizationHints,GlobalMediaControls,AvoidUnnecessaryBeforeUnloadCheckSync,MediaRouter,DialMediaRouteProvider,CalculateNativeWinOcclusion,InterestFeedContentSuggestions,CertificateTransparencyComponentUpdater,PrivacySandboxSettings4",
+			//BackgroundFetch
+
+			"--enable-features=NetworkServiceInProcess2,WebContentsDiscard,SkiaGraphite,CooperativeScheduling,DeferSpeculativeRFHCreation",
+			//
+			"--disable-features=InstalledApp,InstalledAppProvider,FedCm,DIPS,OptimizationHints,GlobalMediaControls,AvoidUnnecessaryBeforeUnloadCheckSync,MediaRouter,DialMediaRouteProvider,CalculateNativeWinOcclusion,InterestFeedContentSuggestions,CertificateTransparencyComponentUpdater,PrivacySandboxSettings4",
 			// Disable all chrome extensions
 			//'--disable-extensions',
 			// Disable some extensions that aren't affected by --disable-extensions
@@ -57,7 +62,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			// Disable the in-product Help (IPH) system.
 			"--propagate-iph-for-testing",
 			//
-			"--enable-extensions",
+			"--bypass-app-banner-engagement-checks",
+			//
 			"--disable-field-trial-config",
 			"--disable-session-crashed-bubble",
 			"--disable-hyperlink-auditing",
