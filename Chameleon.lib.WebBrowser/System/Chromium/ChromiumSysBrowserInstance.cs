@@ -137,7 +137,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
     }
 
 		if (!File.Exists(Settings.PrefsFile)) {
-			Toaster.ShowInf("Creating Prefs file for new browser instance");
+			Toaster.ShowInf("Creating Prefs file for new profile cache wait for the browser window to relaunch a second time");
 			TaskCompletionSource tcs = new();
 			new Thread(new ThreadStart(() => {
 				try {
@@ -154,11 +154,16 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 						_ = p.Start();
 						var tries = 0;
 						do {
+							if(File.Exists(Settings.PrefsFile))
+								break;
 							Thread.Sleep(256);
 							// Attempt to close the browser gracefully
 							_ = p.CloseMainWindow();
 							p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited
-						} while (!p.HasExited && tries++ < 36);
+						} while (
+							!p.HasExited 
+							&& !File.Exists(Settings.PrefsFile)
+							&& tries++ < 18);
 						if (!p.HasExited) {
 							// Kill the process if it hasn't exited after 2 seconds
 							p.Kill();
