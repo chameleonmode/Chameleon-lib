@@ -154,12 +154,13 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 						_ = p.Start();
 						var tries = 0;
 						do {
-							if(File.Exists(Settings.PrefsFile))
-								break;
 							Thread.Sleep(256);
 							// Attempt to close the browser gracefully
 							_ = p.CloseMainWindow();
 							p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited
+
+							if(File.Exists(Settings.PrefsFile))
+								break;
 						} while (
 							!p.HasExited 
 							&& !File.Exists(Settings.PrefsFile)
