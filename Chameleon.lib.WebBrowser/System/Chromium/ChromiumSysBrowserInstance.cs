@@ -125,8 +125,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		if (!File.Exists(Settings.PrefsFile)) {
 			Toaster.ShowInf("Creating Prefs file for new browser instance");
 			TaskCompletionSource tcs = new();
-			new Thread(async () =>
-			{
+			new Thread(() => {
 				try {
 					using (var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments())) {
 						p.EnableRaisingEvents = true;
@@ -136,18 +135,20 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 						_ = p.Start();
 						do {
-							await Task.Delay(256);
-							var tryCount = 0;
-							while (OperatingSystem.IsMacOS()
-								&& p?.HasExited == false  
-								&& !File.Exists(Settings.PrefsFile)
-								&& tryCount++ < 36) {
-									await Task.Delay(512);
-								}
+							Thread.Sleep(256);
 						} while (p.ProcessName is not "chrome" and not "Google Chrome");
 
-						await ProUtil.TryKillProcess(p);
-						p.WaitForExit(); // Ensure the process has fully exited
+						try {
+							// Attempt to close the browser gracefully
+							_ = p.CloseMainWindow();
+							p.WaitForExit(TimeSpan.FromSeconds(2)); // Ensure the process has fully exited
+						} catch {
+							if (!p.HasExited) {
+								// Kill the process if it hasn't exited after 2 seconds
+								p.Kill();
+							}
+						}
+						
 					}
 				} catch (Exception ex) {
 					// Handle or log the exception as needed
