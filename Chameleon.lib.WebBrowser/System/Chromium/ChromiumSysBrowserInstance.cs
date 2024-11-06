@@ -7,6 +7,7 @@ using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
 
@@ -136,6 +137,13 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 						_ = p.Start();
 						do {
 							await Task.Delay(256);
+							var tryCount = 0;
+							while (OperatingSystem.IsMacOS()
+								&& p?.HasExited == false  
+								&& !File.Exists(Settings.PrefsFile)
+								&& tryCount++ < 36) {
+									await Task.Delay(512);
+								}
 						} while (p.ProcessName is not "chrome" and not "Google Chrome");
 
 						await ProUtil.TryKillProcess(p);
