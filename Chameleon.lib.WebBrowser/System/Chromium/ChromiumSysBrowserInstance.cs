@@ -117,34 +117,33 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		return string.Join(" ", args);
 	}
 
-  // ...
+	// ...
 
-  protected override async Task InitializeExtensionPath()
-  {
-    if (!File.Exists(Settings.PrefsFile))
-    {
-		Toaster.ShowInf("Creating Prefs file for new browser instance");
-		TaskCompletionSource tcs = new();
-		new Thread(async () => {
-		  var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
-          _ = p.Start();
-	      do {
-	    	await Task.Delay(256);
-	      }while (p.ProcessName != "chrome" && p.ProcessName != "Google Chrome");
-	      if(OperatingSystem.IsMacOS()){
-	    	while(!File.Exists(Settings.PrefsFile)){
-	    		await Task.Delay(256);
-	    	}
-	      }
-          await ProUtil.TryKillProcess(p);
-	      p.Dispose();
-	      p = null;
-		  _ = tcs.TrySetResult();
-		}).Start();
+	protected override async Task InitializeExtensionPath()
+	{
+		if (!File.Exists(Settings.PrefsFile)) {
+			Toaster.ShowInf("Creating Prefs file for new browser instance");
+			TaskCompletionSource tcs = new();
+			new Thread(async () => {
+				try {
+					using var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
+					_ = p.Start();
+					do {
+						await Task.Delay(256);
+					} while (p.ProcessName is not "chrome" and not "Google Chrome");
 
-	  await tcs.Task;
-	} 
-	if (!File.Exists(Settings.PrefsFile))
+					await ProUtil.TryKillProcess(p);
+				} catch (Exception ex) {
+					// Handle or log the exception as needed
+					Console.WriteLine($"An error occurred: {ex.Message}");
+				} finally {
+					_ = tcs.TrySetResult();
+				}
+			}).Start();
+
+			await tcs.Task;
+		}
+		if (!File.Exists(Settings.PrefsFile))
 	 return;
 
       var document = JsonDocument.Parse(await File.ReadAllTextAsync(Settings.PrefsFile));
