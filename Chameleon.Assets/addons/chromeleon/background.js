@@ -30,65 +30,13 @@ fetch(chrome.runtime.getURL("settings.json"))
   .then(async (data) => {
     await updateSettings(data);
     setLogLevel(settings.debug);
-    await handleWebRTCSettings();
-    const uule = genUULE(settings.latitude, settings.longitude);
-    updateLocationRules(uule);
-    applyTabOverrides();
-    setInjectionScript();
+    await applyAllOverrides();
     createWebRTCContextMenus();
     createGeoContextMenus();
     createTimezoneContextMenus();
     log.info("Received: ", data);
   })
   .catch((error) => console.error("Error loading settings:", error));
-
-//chrome.runtime.onConnectExternal.addListener((port) => {
-//  console.assert(port.name === "communication");
-
-//  // Listen for messages from the sender extension
-//    port.onMessage.addListener(async (msg) => {
-//      if(msg.message === "reload")
-//        chrome.runtime.reload();
-//  });
-//});
-
-//chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//    if (request.action === 'getSettings') {
-//        chrome.storage.sync.get(SETTINGS_ARRAY, (settings) => {
-//            sendResponse({ settings });
-//        });
-//        // Return true to indicate you want to send a response asynchronously
-//        return true;
-//    }
-//});
-
-// chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-//   if (changeInfo.status === "loading" && /^http/.test(tab.url)) {
-//     chrome.scripting.executeScript(
-//       {
-//         target: { tabId: tabId, allFrames: true },
-//         args: [settings],
-//         injectImmediately: true,
-//         world: "MAIN",
-//         func: (settings) => {
-//           window._extensionSettings = settings;
-//         },
-//       },
-//       (results) => {
-//         if (chrome.runtime.lastError) {
-//           console.error("Injection error:", chrome.runtime.lastError);
-//         } else {
-//           results.forEach((result, index) => {
-//             console.log(
-//               `Settings successfully injected in frame ${index}`,
-//               result
-//             );
-//           });
-//         }
-//       }
-//     );
-//   }
-// });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "rtc-test") {
@@ -142,69 +90,21 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
     );
     settings[key] = newValue;
   }
-  applyTabOverrides();
-  await setInjectionScript();
-  updateLocationRules(genUULE(settings.latitude, settings.longitude));
+  await applyAllOverrides();
   return true;
 });
-
-function applyTabOverrides() {
-  try {
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach((tab) => {
-        applyOverrides(tab);
-      });
-    });
-  } catch (e) {
-    log.error("Failed to apply tab overrides", e);
-  }
-}
 setupTabListeners();
 
-async function setInjectionScript() {
-  // try {
-  //   const scripts = await chrome.scripting.getRegisteredContentScripts({
-  //     ids: ["chromeleonairz"],
-  //   });
-  //   if(scripts.length > 0){
-  //     const scriptIds = scripts.map((script) => script.id);
-  //     await chrome.scripting.unregisterContentScripts(scriptIds);
-  //   }
-  // } catch (error) {
-  //   const message = [
-  //     "An unexpected error occurred while",
-  //     "unregistering dynamic content scripts.",
-  //   ].join(" ");
-  //   log.error(message, { cause: error });
-  // }
+async function applyAllOverrides() {
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      applyOverrides(tab);
+    });
+  });
 
-  // await chrome.scripting.registerContentScripts(
-  //   [
-  //     {
-  //       id: "chromeleonairz",
-  //       allFrames: true,
-  //       matchOriginAsFallback: true,
-  //       world: "MAIN",
-  //       runAt: "document_start",
-  //       matches: ["*://*/*"],
-  //       js: [
-  //         "scriptin/inject-settings.js",
-  //         "scriptin/clientrects.js"
-  //       ],
-  //     },
-  //   ],
-  //   () => {
-  //     if (chrome.runtime.lastError) {
-  //       log.error(
-  //         "Error registering content script:",
-  //         chrome.runtime.lastError
-  //       );
-  //     } else {
-  //       log.log("Content script registered successfully");
-  //     }
-  //   }
-  // );
-
+  await handleWebRTCSettings();
+  updateLocationRules(genUULE(settings.latitude, settings.longitude));
+  
   //https://developer.chrome.com/docs/extensions/reference/api/userScripts
   const USER_SCRIPT_ID = "chromeleonairz";
   const __myAddonRandObjName__ = `${
@@ -213,15 +113,6 @@ async function setInjectionScript() {
       .toString(36)
       .substring(Math.floor(Math.random() * 5) + 5)
   }`;
-  const USER_SCRIPT_CODE = `
-  if(!window.${__myAddonRandObjName__}) {
-    window.${__myAddonRandObjName__} = ${Math.random() * 0.00000001};
-    settings = JSON.parse(\`${JSON.stringify(settings)}\`);
-    console.log(settings);
-  }`;
-  const existingScripts = await chrome.userScripts.getScripts({
-    ids: [USER_SCRIPT_ID],
-  });
   const userscripts = [
     {
       id: USER_SCRIPT_ID,
@@ -230,8 +121,14 @@ async function setInjectionScript() {
       runAt: "document_start",
       matches: ["*://*/*"],
       js: [
-        { code: USER_SCRIPT_CODE }, 
-        { file: "scriptin/clientrects.js" }, 
+        {
+          code: `
+          if(!window.${__myAddonRandObjName__}) {
+            window.${__myAddonRandObjName__} = ${Math.random() * 0.00000001};
+            settings = JSON.parse(\`${JSON.stringify(settings)}\`);
+          }`,
+        },
+        { file: "scriptin/clientrects.js" },
         { file: "scriptin/canvas.js" },
         { file: "scriptin/webgl.js" },
         { file: "scriptin/fonts.js" },
@@ -239,6 +136,9 @@ async function setInjectionScript() {
     },
   ];
 
+  const existingScripts = await chrome.userScripts.getScripts({
+    ids: [USER_SCRIPT_ID],
+  });
   if (existingScripts.length > 0) {
     await chrome.userScripts.update(userscripts);
   } else {

@@ -68,7 +68,7 @@ export let settings = {
   longitude: -118.243683,
   locale: "en-US",
   debug: 4,
-  accuracy: 69.96,
+  accuracy: 64.0999,
   bypass: [],
   history: [],
   randomWebGLSpoofing: false,
@@ -152,6 +152,8 @@ export async function updateSettings(built) {
       settings.myIP = true;
     }
     settings.geoSpoofing = built.geoSpoofing;
+    if(settings.accuracy === 69.96)
+      settings.accuracy = 64.0999;
     if(settings.geoSpoofing) {
       settings.latitude = built.latitude;
       settings.longitude = built.longitude;

@@ -11,9 +11,7 @@ export async function applyOverrides(tab) {
         log.error(`Failed to attach debugger to tab ${tab.id}:`, error);
       }
       if (tab && tab.url) {
-        if (settings.timezoneSpoofing) {
           await applyTimezoneOverride(tab);
-        }
         if (settings.geoSpoofing) {
           await applyGeoOverride(tab);
         }

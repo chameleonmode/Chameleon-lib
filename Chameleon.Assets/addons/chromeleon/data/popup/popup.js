@@ -1,4 +1,5 @@
 import { noises, SETTINGS_ARRAY } from "../../modules/settings.js";
+import { offsets } from "../../modules/offsets.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
   let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
@@ -14,6 +15,27 @@ document.addEventListener("DOMContentLoaded", async function () {
   const noiseLevel = document.getElementById("noise-level");
   const statusText = document.getElementById("status-text");
   const blockedCount = document.getElementById("blocked-count");
+  const timezoneSpoofing = document.getElementById("timezone-spoofing");
+  const randomizeTimezone = document.getElementById("randomize-timezone");
+  const timezoneSelect = document.getElementById("timezone-select");
+  const timezoneOptions = document.getElementById("timezone-options");
+  
+  // Geolocation elements
+  const geoSpoofing = document.getElementById("geo-spoofing");
+  const randomizeGeo = document.getElementById("randomize-geo");
+  const geoAccuracy = document.getElementById("geo-accuracy");
+  const latitude = document.getElementById("latitude");
+  const longitude = document.getElementById("longitude");
+
+  // Populate timezone datalist options
+  Object.keys(offsets).forEach((zone) => {
+    const offset = offsets[zone].offset;
+    const offsetHours = offset / 60;
+    const option = document.createElement("option");
+    option.value = zone;
+    option.text = `${zone} (GMT${offsetHours > 0 ? "+" : ""}${offsetHours})`;
+    timezoneOptions.appendChild(option);
+  });
 
   // Load saved settings
   toggleExtension.checked = settings.enabled !== false;
@@ -27,24 +49,42 @@ document.addEventListener("DOMContentLoaded", async function () {
   randomRectsSpoofing.checked = settings.randomRectsSpoofing;
   noiseLevel.value = settings.noiseLevel || "medium";
   blockedCount.textContent = settings.blockedCount || 0;
+  timezoneSpoofing.checked = settings.timezoneSpoofing;
+  randomizeTimezone.checked = settings.randomizeTZ;
+  timezoneSelect.value = settings.timezone;
+  
+  // Load geolocation settings
+  geoSpoofing.checked = settings.geoSpoofing;
+  randomizeGeo.value = settings.randomizeGeo === false ? "false" : settings.randomizeGeo?.toString() || "false";
+  geoAccuracy.value = settings.accuracy?.toString() || "64.0999";
+  latitude.value = settings.latitude || "";
+  longitude.value = settings.longitude || "";
+  
   updateStatus();
 
   // Update status text
   function updateStatus() {
     statusText.textContent = toggleExtension.checked ? "Enabled" : "Disabled";
-    // statusText.style.color = toggleExtension.checked ? "green" : "red";
     updateChecked(clientRectsSpoofing, randomRectsSpoofing);
     updateChecked(webglSpoofing, randomWebGLSpoofing);
     updateChecked(canvasProtection, randomCanvasSpoofing);
     updateChecked(fontsSpoofing, randomFontsSpoofing);
+    updateChecked(timezoneSpoofing, randomizeTimezone);
+    updateChecked(timezoneSpoofing, timezoneSelect);
+    updateChecked(geoSpoofing, randomizeGeo);
+    updateChecked(geoSpoofing, geoAccuracy);
+    updateChecked(geoSpoofing, latitude);
+    updateChecked(geoSpoofing, longitude);
   }
 
-  function updateChecked(element, toggle){
+  function updateChecked(element, toggle) {
     const randomToggle = toggle.parentElement;
-    if(!element.checked){
+    if (!element.checked) {
       randomToggle.classList.add('disabled');
       toggle.disabled = true;
-      toggle.checked = false;
+      if (toggle.type === 'checkbox') {
+        toggle.checked = false;
+      }
     } else {
       randomToggle.classList.remove('disabled');
       toggle.disabled = false;
@@ -62,6 +102,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     settings.randomCanvasSpoofing = randomCanvasSpoofing.checked;
     settings.randomFontsSpoofing = randomFontsSpoofing.checked;
     settings.randomRectsSpoofing = randomRectsSpoofing.checked;
+    settings.timezoneSpoofing = timezoneSpoofing.checked;
+    settings.myIP = !settings.timezoneSpoofing;
+    settings.randomizeTZ = randomizeTimezone.checked;
+    
+    // Save geolocation settings
+    settings.geoSpoofing = geoSpoofing.checked;
+    settings.randomizeGeo = randomizeGeo.value === "false" ? false : parseFloat(randomizeGeo.value);
+    settings.accuracy = parseFloat(geoAccuracy.value);
+    settings.latitude = latitude.value ? parseFloat(latitude.value) : null;
+    settings.longitude = longitude.value ? parseFloat(longitude.value) : null;
+    
+    // Extract timezone value from input (remove GMT offset if present)
+    settings.timezone = timezoneSelect.value;
 
     if (settings.noiseLevel !== noiseLevel.value) {
       settings.noiseLevel = noiseLevel.value;
@@ -115,4 +168,17 @@ document.addEventListener("DOMContentLoaded", async function () {
   randomFontsSpoofing.addEventListener("change", saveSettings);
   randomRectsSpoofing.addEventListener("change", saveSettings);
   noiseLevel.addEventListener("change", saveSettings);
+  timezoneSpoofing.addEventListener("change", saveSettings);
+  randomizeTimezone.addEventListener("change", saveSettings);
+  timezoneSelect.addEventListener("change", saveSettings);
+  timezoneSelect.addEventListener("input", saveSettings);
+
+  // Geolocation event listeners
+  geoSpoofing.addEventListener("change", saveSettings);
+  randomizeGeo.addEventListener("change", saveSettings);
+  geoAccuracy.addEventListener("change", saveSettings);
+  latitude.addEventListener("change", saveSettings);
+  longitude.addEventListener("change", saveSettings);
+  latitude.addEventListener("input", saveSettings);
+  longitude.addEventListener("input", saveSettings);
 });
