@@ -4,9 +4,10 @@ using System.Text.Json;
 using Chameleon.lib.Common;
 using Chameleon.lib.Common.Records;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.ThirdParty.SMSapi.SMSPool.Models;
+using Chameleon.lib.Common.Util.ThirdParty.SMSapi;
+using Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPool.Models;
 
-namespace Chameleon.lib.ThirdParty.SMSapi.SMSPool;
+namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPool;
 public class SMSPoolAPI : PVAInstanceBase {
 	private AuthenticationHeaderValue Authorization => new("Token", ApiKey);
 

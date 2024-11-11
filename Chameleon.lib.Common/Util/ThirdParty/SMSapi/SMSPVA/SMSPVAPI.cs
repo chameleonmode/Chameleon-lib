@@ -2,11 +2,12 @@
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Records;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.ThirdParty.SMSapi.SMSPVA.Models;
+using Chameleon.lib.Common.Util.ThirdParty.SMSapi;
+using Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPVA.Models;
 
 using System.Text.Json;
 
-namespace Chameleon.lib.ThirdParty.SMSapi.SMSPVA;
+namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPVA;
 
 public class SMSPVAPI : PVAInstanceBase {
 	private List<KeyValuePair<string, string>> ApiKeyHeaders => [new("apikey", ApiKey!)];
@@ -46,7 +47,7 @@ public class SMSPVAPI : PVAInstanceBase {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
 		if (JsonSerializer.Deserialize<ApiResponse<GetNumberData>>(numberData, JSOptions)?.Data?.OrderId is int oId) {
-			var url =	$"https://api.smspva.com/activation/sms/{oId}";
+			var url = $"https://api.smspva.com/activation/sms/{oId}";
 
 			var responseBody = await HttpClientUtil.GetAsync(url, ApiKeyHeaders);
 			var responseData = JsonSerializer.Deserialize<ApiResponse<ReceiveSMSData>>(responseBody, JSOptions);

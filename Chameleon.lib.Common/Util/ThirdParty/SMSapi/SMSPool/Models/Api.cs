@@ -1,4 +1,4 @@
-﻿namespace Chameleon.lib.ThirdParty.SMSapi.SMSPool.Models;
+﻿namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPool.Models;
 public class OrderBase {
 	public int success { get; set; }
 	public string? message { get; set; }

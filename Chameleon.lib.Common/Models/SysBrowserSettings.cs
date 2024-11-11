@@ -6,6 +6,8 @@ using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Win;
 using static Chameleon.lib.Common.Constants.Enums;
 using System.Text.Json;
+using Chameleon.lib.Common.ServiceManagers;
+using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 
 namespace Chameleon.lib.Common.Models;
 public class EmulationOptions {
@@ -57,19 +59,6 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		}
 	}
 
-	public string PrefsFile => BrowserType == Enums.SystemBrowserType.Firefox 
-		? Path.Combine(SysBrowserProfileCachePath, "prefs.js")
-		: Path.Combine(SysBrowserProfileCachePath, "Default", "Preferences");
-
-	public HashSet<KeyValuePair<string, string>> EmulationOptions =>
-	[
-			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
-			new ("canvasProtection", Emulation.SpoofCanvasFingerprint.Tlwr()),
-			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
-			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
-			new ("geoSpoofing", Emulation.SpoofGeoLocation.Tlwr()),
-			new ("timezoneSpoofing", Emulation.AutoTimezone.Tlwr()),
-	];
 	public SysBrowserEvent CreateEvent(Enums.SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
 
 	public Process? Brocess { get; set; }
@@ -180,20 +169,32 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 	public Dictionary<Enums.ExtensionType, (string? settings, string guid, string destDir)> ExtentionsDirs { get; } = [];
 
-	public async Task<string> BuildMeleonExtSettings(Func<Task<Ipapi>> @getimezone, string extDir)
+	public async Task<string> BuildMeleonExtSettings(string extDir)
 	{
-		var ipapi = await @getimezone();
-		var options = EmulationOptions;
+		var options = new HashSet<KeyValuePair<string, string>>() {
+			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
+			new ("canvasProtection", Emulation.SpoofCanvasFingerprint.Tlwr()),
+			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
+			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
+			new ("geoSpoofing", Emulation.SpoofGeoLocation.Tlwr()),
+			new ("timezoneSpoofing", Emulation.AutoTimezone.Tlwr())
+		}; 
 		var settingsBuilder = new StringBuilder();
 		_ = settingsBuilder.AppendLine("{");
 		_ = settingsBuilder.AppendLine($"\"enabled\": {options.Any(o => o.Value == "true").Tlwr()},");
+		_ = settingsBuilder.AppendLine($"\"debug\":{(Debugger.IsAttached ? 5 : -1)},");
 		foreach (var o in options) {
 			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
 		}
+		var ipapi = Emulation.AutoTimezone && Profile.Proxy.CanUse 
+			&& await GeoIpApi.GetIpapi(Profile.Proxy!,e => Toaster.ShowErr(e)) is Ipapi papi 
+			? papi 
+			: new Ipapi() { 
+				timezone = "America/Los_Angeles", lat = 34.052235, lon = -118.243683 
+			};
 		_ = settingsBuilder.AppendLine($"\"timezone\": \"{ipapi.timezone}\",");
 		_ = settingsBuilder.AppendLine($"\"latitude\": {ipapi.lat},");
 		_ = settingsBuilder.AppendLine($"\"longitude\":{ipapi.lon},");
-		_ = settingsBuilder.AppendLine($"\"debug\":{(Debugger.IsAttached ? 5 : -1)},");
 		_ = settingsBuilder.AppendLine(
 """
 "myIP": false,
@@ -208,8 +209,9 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 "accuracy": 69.96,
 "bypass": [],
 "history": []
-""");
-		_ = settingsBuilder.AppendLine("}");
+}
+"""
+);
 		await File.WriteAllTextAsync(Path.Combine(extDir, "settings.json"), settingsBuilder.ToString());
 
 		return settingsBuilder.ToString();

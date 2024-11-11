@@ -1,22 +1,14 @@
-﻿using System;
-using System.Diagnostics;
-using System.Text;
+﻿using System.Diagnostics;
 
-using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
-
-using static System.Net.Mime.MediaTypeNames;
-using static Chameleon.lib.Common.Constants.Consts;
-using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
+	public string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
 	private async Task CreateChameleonFirefoxCopy()
 	{
 		var systempath = SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
@@ -40,11 +32,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	{
 		await CreateChameleonFirefoxCopy();
 		await InitializePrefsJs();
-		await InitializeExtensions();
-	}
-
-	private async Task InitializeExtensions()
-	{
+		//await InitializeExtensions();
 		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Foxameleon);
 		var versionFile = Path.Combine(inDir, "version.txt");
 		var version = "2024.1.7.2";
@@ -61,12 +49,12 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		//	Guid.NewGuid().ToString(),
 		//	Settings.CachedExtentionsDir)
 		//);
+		var geckoextDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.foxameleon, Settings.CachedExtentionsDir);
+		_ = await Settings.BuildMeleonExtSettings(geckoextDir);
 		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.CachedFoxameleon);
 		await IOtil.DC(inDirCached);
-		var geckoextDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.foxameleon, Settings.CachedExtentionsDir);
-		_ = await Settings.BuildMeleonExtSettings(GetTimezone, geckoextDir);
 		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
-		
+
 		//
 		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxyproxy, (
 			Settings.BuildProxyExtSettings(),
@@ -98,7 +86,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		//		}}
 		//	}}
 		//}}";
-
 		//-Place the `policies.json` file in the appropriate directory based on the operating system:
 		//   -**Windows:** `C:\Program Files\Mozilla Firefox\distribution\policies.json`
 		//   -**macOS:** `/ Applications / Firefox.app / Contents / Resources / distribution / policies.json`
@@ -106,6 +93,22 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		//var distributionDir = Path.Combine(Consts.Browser.LocalFirefoxDirPath, "distribution");
 		//Directory.CreateDirectory(distributionDir);
 		//File.WriteAllText(Path.Combine(distributionDir, "policies.json"), policy);
+	}
+
+	protected override string GetCommandLineArguments()
+	{
+		return Debugger.IsAttached
+			? string.Join(" ", new List<string> {
+			"-jsconsole",
+			"-no-remote",
+			"-wait-for-browser",
+			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
+		})
+			: string.Join(" ", new List<string> {
+			"-no-remote",
+			"-wait-for-browser",
+			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
+		});
 	}
 
 	// TODO:
@@ -392,8 +395,8 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			prefs.Add(up);
 		}
 
-		if (!File.Exists(Settings.PrefsFile)) {
-			await File.WriteAllLinesAsync(Settings.PrefsFile, prefs);
+		if (!File.Exists(PrefsFile)) {
+			await File.WriteAllLinesAsync(PrefsFile, prefs);
 			var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
 			_ = p.Start();
 			do {
@@ -402,28 +405,12 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			while (p.ProcessName != "firefox");
 			await ProUtil.TryKillProcess(p);
 		} else {
-			var lines = await File.ReadAllLinesAsync(Settings.PrefsFile);
+			var lines = await File.ReadAllLinesAsync(PrefsFile);
 			if (lines.Any(l=> l.Is() && !l.StartsWith("user_pref(\"") && !l.StartsWith("//"))) {
-				await File.WriteAllLinesAsync(Settings.PrefsFile, prefs);
+				await File.WriteAllLinesAsync(PrefsFile, prefs);
 			}
 			var userprefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
 			await File.WriteAllLinesAsync(userprefsFile, prefs);
 		}
-	}
-
-	protected override string GetCommandLineArguments()
-	{
-		return Debugger.IsAttached
-			? string.Join(" ", new List<string> {
-			"-jsconsole",
-			"-no-remote",
-			"-wait-for-browser",
-			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
-		})
-			: string.Join(" ", new List<string> {
-			"-no-remote",
-			"-wait-for-browser",
-			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
-		});
 	}
 }

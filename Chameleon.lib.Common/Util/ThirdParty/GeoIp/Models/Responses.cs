@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Chameleon.lib.ThirdParty.GeoIp.Models;
+﻿namespace Chameleon.lib.Common.Util.ThirdParty.GeoIp.Models;
 //https://geoip-lookup.vercel.app/api/geoip
 public class Geoiplookup {
 	public bool success { get; set; }

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Chameleon.lib.ThirdParty.SMSapi.SMSPVA.Models;
+namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPVA.Models;
 
 public class ApiResponse<T> {
 	[JsonPropertyName("statusCode")]

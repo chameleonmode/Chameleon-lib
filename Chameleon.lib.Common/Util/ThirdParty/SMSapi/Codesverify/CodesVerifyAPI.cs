@@ -1,9 +1,7 @@
-﻿using Chameleon.lib.Common;
-using Chameleon.lib.Common.Records;
-using Chameleon.lib.Common.Util;
-using Chameleon.lib.ThirdParty.SMSapi.Codesverify.Models;
+﻿using Chameleon.lib.Common.Records;
+using Chameleon.lib.Common.Util.ThirdParty.SMSapi.Codesverify.Models;
 
-namespace Chameleon.lib.ThirdParty.SMSapi.Codesverify;
+namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.Codesverify;
 
 public class CodesVerifyAPI : PVAInstanceBase {
 	public override Task Init()

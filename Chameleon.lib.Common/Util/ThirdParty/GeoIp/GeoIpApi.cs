@@ -1,24 +1,23 @@
 ﻿using System.Net;
 using System.Text.Json;
 
-using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models;
 
 using Polly;
 
-namespace Chameleon.lib.ThirdParty.GeoIp;
+namespace Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 
 public class GeoIpApi {
 	public static GeoIpApi Instance { get; } = new GeoIpApi();
 
-	public static async Task<Ipapi?> GetIpapi(string proxyUrl, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null) =>
-		JsonSerializer.Deserialize<Ipapi>(await GetIPApi(proxyUrl, onretry, proxyUsername, proxyPassword));
-	public static Task<string> GetIPApi(string proxyUrl, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null)
-					=> GetHttpResponseContent(proxyUrl, "http://ip-api.com/json", onretry, proxyUsername, proxyPassword);
+	public static async Task<Ipapi?> GetIpapi(SysBrowserProxy proxy, Action<string> onretry) =>
+		JsonSerializer.Deserialize<Ipapi>(await GetIPApi(proxy, onretry));
+	public static Task<string> GetIPApi(SysBrowserProxy proxy, Action<string> onretry)
+					=> GetHttpResponseContent(proxy, "http://ip-api.com/json", onretry);
 
-	private static async Task<string> GetHttpResponseContent(string proxyUrl, string requestUri, Action<string> onretry, string? proxyUsername = null, string? proxyPassword = null)
+	private static async Task<string> GetHttpResponseContent(SysBrowserProxy proxy, string requestUri, Action<string> onretry)
 	{
-		var handler = await InitializeHttpClientHandlerWithRetry(proxyUrl, proxyUsername, proxyPassword, onretry);
+		var handler = await InitializeHttpClientHandlerWithRetry(proxy, onretry);
 		HttpClient client = new(handler) {
 			Timeout = TimeSpan.FromSeconds(15)
 		};
@@ -46,17 +45,17 @@ public class GeoIpApi {
 		}
 	}
 
-	private static async Task<HttpClientHandler> InitializeHttpClientHandlerWithRetry(string proxyUrl, string? proxyUsername, string? proxyPassword, Action<string> onretry) =>
+	private static async Task<HttpClientHandler> InitializeHttpClientHandlerWithRetry(SysBrowserProxy proxy, Action<string> onretry) =>
 		await Policy.Handle<WebException>()
 				.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(retryAttempt), (exception, timespan, retryAttempt, context) => {
 					onretry($"Proxy initialization failed. Retry {retryAttempt}: due to {exception.Message}");
 				})
 				.ExecuteAsync(() => {
 					var handler = new HttpClientHandler {
-						Proxy = new WebProxy(proxyUrl)
+						Proxy = new WebProxy(proxy.ServerForRequest)
 					};
-					if (proxyUsername?.Is() == true && proxyPassword?.Is() == true)
-						handler.Proxy.Credentials = new NetworkCredential(proxyUsername, proxyPassword);
+					if (proxy.UserName?.Is() == true && proxy.Password?.Is() == true)
+						handler.Proxy.Credentials = new NetworkCredential(proxy.UserName, proxy.Password);
 					return Task.FromResult(handler);
 				});
 }

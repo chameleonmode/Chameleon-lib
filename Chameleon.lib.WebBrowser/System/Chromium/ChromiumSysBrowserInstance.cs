@@ -2,20 +2,15 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.ServiceManagers;
-using Chameleon.lib.Common.Util;
-using Chameleon.lib.Common.Util.Mac;
-using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
-
-using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
+	public string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "Default", "Preferences");
+
 	protected override string GetCommandLineArguments()
 	{
 		//https://niek.github.io/chrome-features/
@@ -118,13 +113,11 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 		return string.Join(" ", args);
 	}
-
 	// ...
-
 	protected override async Task InitializeExtensionPath()
 	{
     var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-    _ = await Settings.BuildMeleonExtSettings(GetTimezone, extDir);
+    _ = await Settings.BuildMeleonExtSettings(extDir);
 
     Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
       Settings.BuildProxyExtSettings(),
@@ -136,39 +129,39 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
       _ = await ExtensionLoaderService.LoadExtension(ext, destDir, setting);
     }
 
-		if (!File.Exists(Settings.PrefsFile)) {
+		if (!File.Exists(PrefsFile)) {
 			Toaster.ShowInf("Creating Prefs file for new profile cache wait for the browser window to relaunch a second time");
 			TaskCompletionSource tcs = new();
 			new Thread(new ThreadStart(() => {
 				try {
-					using (var p = Process.Start(new ProcessStartInfo {
+					using var p = Process.Start(new ProcessStartInfo {
 						FileName = Settings.ExePath,
 						Arguments = GetCommandLineArguments(),
 						UseShellExecute = false,
 						CreateNoWindow = true
-					})) {
-						p.EnableRaisingEvents = true;
-						p.Exited += (sender, e) => {
-							_ = tcs.TrySetResult();
-						};
-						_ = p.Start();
-						var tries = 0;
-						do {
-							Thread.Sleep(256);
-							// Attempt to close the browser gracefully
-							_ = p.CloseMainWindow();
-							p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited
+					}) ?? throw new Exception("Failed to start the browser process");
 
-							if(File.Exists(Settings.PrefsFile))
-								break;
-						} while (
-							!p.HasExited 
-							&& !File.Exists(Settings.PrefsFile)
-							&& tries++ < 18);
-						if (!p.HasExited) {
-							// Kill the process if it hasn't exited after 2 seconds
-							p.Kill();
-						}
+					p.EnableRaisingEvents = true;
+					p.Exited += (sender, e) => {
+						_ = tcs.TrySetResult();
+					};
+					_ = p.Start();
+					var tries = 0;
+					do {
+						Thread.Sleep(256);
+						// Attempt to close the browser gracefully
+						_ = p.CloseMainWindow();
+						_ = p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited
+
+						if (File.Exists(PrefsFile))
+							break;
+					} while (
+						!p.HasExited
+						&& !File.Exists(PrefsFile)
+						&& tries++ < 18);
+					if (!p.HasExited) {
+						// Kill the process if it hasn't exited after 2 seconds
+						p.Kill();
 					}
 				} catch (Exception ex) {
 					// Handle or log the exception as needed
@@ -183,9 +176,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 			await Task.Factory.StartNew(() => tcs.Task, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default).Unwrap();
 		}
-		if (File.Exists(Settings.PrefsFile)) {
-
-			var document = JsonDocument.Parse(await File.ReadAllTextAsync(Settings.PrefsFile));
+		if (File.Exists(PrefsFile)) {
+			var document = JsonDocument.Parse(await File.ReadAllTextAsync(PrefsFile));
 			var root = document.RootElement.Clone();
 
 			// Convert the root element to a JsonObject
@@ -210,7 +202,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 			// Serialize the modified JsonObject back to JSON
 			var modifiedJson = JsonSerializer.Serialize(mutableRoot);
-			await File.WriteAllTextAsync(Settings.PrefsFile, modifiedJson);
+			await File.WriteAllTextAsync(PrefsFile, modifiedJson);
 		}
 	}
 }

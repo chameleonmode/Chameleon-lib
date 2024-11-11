@@ -1,7 +1,7 @@
 ﻿using Chameleon.lib.Common.Interfaces.Systemics;
 using Chameleon.lib.Common.Records;
 
-namespace Chameleon.lib.ThirdParty.SMSapi.Interfaces;
+namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.Interfaces;
 public interface IPVApiModel : IAmaViewModel {
 	string? ApiKey { get; set; }
 

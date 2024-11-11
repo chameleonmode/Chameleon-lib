@@ -1,4 +1,4 @@
-﻿namespace Chameleon.lib.ThirdParty.SMSapi.Codesverify.Models;
+﻿namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.Codesverify.Models;
 public class ApiGetNumberResponse {
 	public string? Number { get; set; }
 
