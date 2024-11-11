@@ -4,6 +4,9 @@ import { offsets } from "../../modules/offsets.js";
 document.addEventListener("DOMContentLoaded", async function () {
   let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
   const toggleExtension = document.getElementById("toggle-extension");
+  const statusText = document.getElementById("status-text");
+  const noiseLevelSlider = document.getElementById("noise-level-slider");
+  const noiseLevelValue = document.getElementById("noise-level-value");
   const webglSpoofing = document.getElementById("webgl-spoofing");
   const canvasProtection = document.getElementById("canvas-protection");
   const clientRectsSpoofing = document.getElementById("client-rects-spoofing");
@@ -12,13 +15,12 @@ document.addEventListener("DOMContentLoaded", async function () {
   const randomCanvasSpoofing = document.getElementById("random-canvas-spoofing");
   const randomFontsSpoofing = document.getElementById("random-fonts-spoofing");
   const randomRectsSpoofing = document.getElementById("random-rects-spoofing");
-  const noiseLevel = document.getElementById("noise-level");
-  const statusText = document.getElementById("status-text");
   const blockedCount = document.getElementById("blocked-count");
   const timezoneSpoofing = document.getElementById("timezone-spoofing");
   const randomizeTimezone = document.getElementById("randomize-timezone");
   const timezoneSelect = document.getElementById("timezone-select");
   const timezoneOptions = document.getElementById("timezone-options");
+  const refreshButton = document.getElementById("refresh-button");
   
   // Geolocation elements
   const geoSpoofing = document.getElementById("geo-spoofing");
@@ -38,7 +40,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 
   // Load saved settings
-  toggleExtension.checked = settings.enabled !== false;
+  toggleExtension.checked = settings.enabled;
+  noiseLevelSlider.value = getNoiseLevelNumber(settings.noiseLevel);
   webglSpoofing.checked = settings.webglSpoofing;
   canvasProtection.checked = settings.canvasProtection;
   clientRectsSpoofing.checked = settings.clientRectsSpoofing;
@@ -47,11 +50,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   randomCanvasSpoofing.checked = settings.randomCanvasSpoofing;
   randomFontsSpoofing.checked = settings.randomFontsSpoofing;
   randomRectsSpoofing.checked = settings.randomRectsSpoofing;
-  noiseLevel.value = settings.noiseLevel || "medium";
   blockedCount.textContent = settings.blockedCount || 0;
   timezoneSpoofing.checked = settings.timezoneSpoofing;
   randomizeTimezone.checked = settings.randomizeTZ;
-  timezoneSelect.value = settings.timezone;
   
   // Load geolocation settings
   geoSpoofing.checked = settings.geoSpoofing;
@@ -59,12 +60,12 @@ document.addEventListener("DOMContentLoaded", async function () {
   geoAccuracy.value = settings.accuracy?.toString() || "64.0999";
   latitude.value = settings.latitude || "";
   longitude.value = settings.longitude || "";
-  
-  updateStatus();
 
   // Update status text
   function updateStatus() {
     statusText.textContent = toggleExtension.checked ? "Enabled" : "Disabled";
+    noiseLevelValue.textContent = getNoiseLevelLabel(noiseLevelSlider.value);
+    timezoneSelect.value = settings.timezone;
     updateChecked(clientRectsSpoofing, randomRectsSpoofing);
     updateChecked(webglSpoofing, randomWebGLSpoofing);
     updateChecked(canvasProtection, randomCanvasSpoofing);
@@ -88,6 +89,38 @@ document.addEventListener("DOMContentLoaded", async function () {
     } else {
       randomToggle.classList.remove('disabled');
       toggle.disabled = false;
+    }
+  }
+
+  function getNoiseLevelLabel(value) {
+    switch (value) {
+      case "1": return "Micro";
+      case "2": return "Mini";
+      case "3": return "Low";
+      case "4": return "Medium";
+      case "5": return "Bold";
+      case "6": return "High";
+      case "7": return "Heavy";
+      case "8": return "Ultra";
+      case "9": return "Super";
+      case "10": return "Max";
+      default: return "Medium";
+    }
+  }
+
+  function getNoiseLevelNumber(label) {
+    switch (label.toLowerCase()) {
+      case "micro": return 1;
+      case "mini": return 2;
+      case "low": return 3;
+      case "medium": return 4;
+      case "bold": return 5;
+      case "high": return 6;
+      case "heavy": return 7;
+      case "ultra": return 8;
+      case "super": return 9;
+      case "max": return 10;
+      default: return 4;
     }
   }
 
@@ -116,8 +149,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Extract timezone value from input (remove GMT offset if present)
     settings.timezone = timezoneSelect.value;
 
-    if (settings.noiseLevel !== noiseLevel.value) {
-      settings.noiseLevel = noiseLevel.value;
+    var noise = noiseLevelValue.textContent.toLowerCase()
+    if (settings.noiseLevel !== noise) {
+      settings.noiseLevel = noise;
       // Update rects noise levels
       settings.DOMRectnoise =
         1 +
@@ -156,9 +190,12 @@ document.addEventListener("DOMContentLoaded", async function () {
       updateStatus();
     });
   }
+  
+  updateStatus();
 
   // Event listeners
   toggleExtension.addEventListener("change", saveSettings);
+  noiseLevelSlider.addEventListener("input", saveSettings);
   webglSpoofing.addEventListener("change", saveSettings);
   canvasProtection.addEventListener("change", saveSettings);
   clientRectsSpoofing.addEventListener("change", saveSettings);
@@ -167,7 +204,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   randomCanvasSpoofing.addEventListener("change", saveSettings);
   randomFontsSpoofing.addEventListener("change", saveSettings);
   randomRectsSpoofing.addEventListener("change", saveSettings);
-  noiseLevel.addEventListener("change", saveSettings);
   timezoneSpoofing.addEventListener("change", saveSettings);
   randomizeTimezone.addEventListener("change", saveSettings);
   timezoneSelect.addEventListener("change", saveSettings);
@@ -181,4 +217,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   longitude.addEventListener("change", saveSettings);
   latitude.addEventListener("input", saveSettings);
   longitude.addEventListener("input", saveSettings);
+
+  // Refresh button event listener
+  refreshButton.addEventListener("click", saveSettings);
 });

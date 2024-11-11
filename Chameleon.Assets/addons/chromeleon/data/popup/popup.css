@@ -9,9 +9,9 @@ body {
 }
 
 .container {
-  width: 260px;
+  width: 280px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 14px;
   background-color: #ffffff;
   border-radius: 4px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -20,20 +20,22 @@ body {
 .title {
   font-size: 1.5em;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   color: #0078d4;
 }
 
 .subtitle {
   font-size: 1.25em;
   font-weight: 500;
-  margin: 20px 0 10px;
+  margin: 0px 0px 8px 0px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .setting-item {
   margin-bottom: 15px;
-  padding-left: 10px;
-  
+  padding-left: 0px;
 }
 
 .checkbox {
@@ -45,7 +47,7 @@ body {
 }
 
 .checkmark {
-  margin-right: 10px;
+  margin-right: 4px;
   width: 20px;
   height: 20px;
   accent-color: #0078d4;
@@ -58,9 +60,17 @@ body {
   position: relative;
 }
 
+.toggle.inline {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
 .toggle-switch {
-  width: 40px;
-  height: 20px;
+  width: 30px;
+  height: 16px;
   background-color: #c8c6c4;
   border-radius: 10px;
   position: relative;
@@ -72,8 +82,8 @@ body {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   background-color: #ffffff;
   border-radius: 50%;
   transition: transform 0.3s;
@@ -84,11 +94,11 @@ input[type="checkbox"]:checked + .toggle-switch {
 }
 
 input[type="checkbox"]:checked + .toggle-switch::before {
-  transform: translateX(20px);
+  transform: translateX(14px);
 }
 
 .toggle-label {
-  margin-left: 10px;
+  margin-left: 4px;
   color: #323130;
   font-weight: 400;
 }
@@ -118,8 +128,7 @@ input[type="checkbox"]:checked + .toggle-switch::before {
 
 .setting-subitem {
   margin-top: 10px;
-  padding-left: 20px;
-  
+  padding-left: 12px;
 }
 
 .disabled .toggle-switch {
@@ -168,7 +177,7 @@ label {
 }
 
 #status-text {
-  margin-left: 10px;
+  margin-left: 4px;
   font-weight: 600;
 }
 
@@ -179,4 +188,82 @@ label {
 .highlight {
   color: #0078d4;
   font-weight: 600;
+}
+
+.refresh-button {
+  margin-left: 10px;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 180px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-button:hover {
+  background-color: #ececec;
+}
+
+.refresh-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.dropdown-inline {
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-inline select {
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+/* Styling for the slider container */
+.slider-container {
+  margin-top: 10px;
+}
+
+#noise-level-slider {
+  width: 100%;
+  background: #c8c6c4;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  transition: background 0.3s;
+}
+
+#noise-level-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Remove default styling for the slider thumb */
+  width: 20px;
+  height: 20px;
+  background: #0078d4;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+#noise-level-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #0078d4;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+#noise-level-slider:hover::-webkit-slider-thumb,
+#noise-level-slider:hover::-moz-range-thumb {
+  background: #005a9e; /* Darker blue for hover effect */
+}
+
+#noise-level-value {
+  display: block;
+  margin-top: 4px;
+  font-weight: 500;
+  text-align: center;
+  color: #323130;
 }

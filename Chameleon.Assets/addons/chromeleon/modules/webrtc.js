@@ -82,7 +82,7 @@ function createWhenDisabledMenu() {
 }
 
 export async function handleWebRTCMenuClick(info) {
-  let settings = await browser.storage.sync.get(SETTINGS_ARRAY);
+  let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
   if (info.menuItemId === "webRtcEnabled") {
     settings.webRtcEnabled = info.checked;
   } else if (info.menuItemId === "dApi") {
@@ -94,6 +94,5 @@ export async function handleWebRTCMenuClick(info) {
   } else if (info.menuItemId === "rtc-test") {
     chrome.tabs.create({ url: "https://browserleaks.com/webrtc" });
   }
-    updateSettings();
-  handleWebRTCSettings();
+  await chrome.storage.sync.set(settings);
 }

@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Geckoleon Defender</title>
-  <link rel="stylesheet" href="popup.css"> 
-</head> 
+  <title>Chromeleon</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
 <body>
   <div class="container">
-  <h1 class="title">Geckoleon</h1>
+    <h1 class="title">Chromeleon</h1>
     <div class="toggle-container">
       <label class="toggle">
         <input type="checkbox" id="toggle-extension" hidden checked>
@@ -16,39 +16,113 @@
         <span class="toggle-label" id="status-text">Enabled</span>
       </label>
     </div>
+      <div class="slider-container">
+        <label for="noise-level-slider" class="dropdown-label">Noise Level:</label>
+        <input type="range" id="noise-level-slider" min="1" max="10" value="5">
+        <span id="noise-level-value">Medium</span>
+      </div>
     <div class="settings">
-        <h2 class="subtitle">Settings</h2>
-        <div class="setting-item">
-            <label for="client-rects-spoofing" class="checkbox">
-                <input type="checkbox" id="client-rects-spoofing" checked>
-                <span class="checkmark"></span>
-                Client Rects
-            </label>
-            <div class="setting-subitem">
-                <label class="toggle inline">
-                    <input type="checkbox" id="random-rects-spoofing" hidden>
-                    <span class="toggle-switch"></span>
-                    <span class="toggle-label">Random</span>
-                </label>
-            </div>
+      <h2 class="subtitle">
+        Settings
+        <button id="refresh-button" type="button" class="refresh-button">
+          <img src="refresh-icon.svg" alt="Refresh" class="refresh-icon">
+        </button>
+      </h2>
+      <div class="setting-item" hidden>
+        <label for="webgl-spoofing" class="checkbox">
+          <input class="checkmark" type="checkbox" id="webgl-spoofing">
+          WebGL Resistance
+          <label class="toggle inline" title="Random">
+            <input type="checkbox" id="random-webgl-spoofing" hidden>
+            <span class="toggle-switch"></span>
+          </label>
+        </label>
+      </div>
+      <div class="setting-item" hidden>
+        <label for="canvas-protection" class="checkbox">
+          <input class="checkmark" type="checkbox" id="canvas-protection">
+          Canvas Resistance
+          <label class="toggle inline" title="Random">
+            <input type="checkbox" id="random-canvas-spoofing" hidden>
+            <span class="toggle-switch"></span>
+          </label>
+        </label>
+      </div>
+      <div class="setting-item" hidden>
+        <label for="fonts-spoofing" class="checkbox">
+          <input class="checkmark" type="checkbox" id="fonts-spoofing">
+          Fonts Resistance
+          <label class="toggle inline" title="Random">
+            <input type="checkbox" id="random-fonts-spoofing" hidden>
+            <span class="toggle-switch"></span>
+          </label>
+        </label>
+      </div>
+      <div class="setting-item">
+        <label for="client-rects-spoofing" class="checkbox">
+          <input class="checkmark" type="checkbox" id="client-rects-spoofing" checked>
+          Client Rects
+          <label class="toggle inline" title="Random">
+            <input type="checkbox" id="random-rects-spoofing" hidden>
+            <span class="toggle-switch"></span>
+          </label>
+        </label>
+      </div>
+      <div class="setting-item">
+        <label for="timezone-spoofing" class="checkbox">
+          <input class="checkmark" type="checkbox" id="timezone-spoofing"></input>
+          Timezone
+          <label class="toggle inline" title="Random">
+            <input type="checkbox" id="randomize-timezone" hidden>
+            <span class="toggle-switch"></span>
+          </label>
+        </label>
+        <div class="setting-subitem">
+          <div class="dropdown">
+            <input type="text" id="timezone-select" list="timezone-options" class="searchable-select" autocomplete="off" placeholder="Search timezone...">
+            <datalist id="timezone-options">
+              <!-- Options will be populated dynamically -->
+            </datalist>
+          </div>
         </div>
-        <div class="setting-item">
-            <label for="noise-level" class="dropdown-label">Noise Level:</label>
-            <div class="dropdown">
-                <select id="noise-level">
-                    <option value="micro">Micro</option>
-                    <option value="mini">Mini</option>
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="bold" selected>Bold</option>
-                    <option value="high">High</option>
-                    <option value="heavy">Heavy</option>
-                    <option value="ultra">Ultra</option>
-                    <option value="super">Super</option>
-                    <option value="max">Max</option>
-                </select>
-            </div>
+      </div>
+      <div class="setting-item">
+        <label for="geo-spoofing" class="checkbox">
+          <input class="checkmark" type="checkbox" id="geo-spoofing">
+          Geolocation
+        </label>
+        <div class="setting-subitem">
+          <div class="dropdown">
+            <label for="randomize-geo">Randomization Level:</label>
+            <select id="randomize-geo" title="Geolocation Randomization Level">
+              <option value="false">Disabled</option>
+              <option value="0.1">0.1</option>
+              <option value="0.01">0.01</option>
+              <option value="0.001">0.001</option>
+              <option value="0.0001">0.0001</option>
+              <option value="0.00001">0.00001</option>
+            </select>
+          </div>
         </div>
+        <div class="setting-subitem">
+          <div class="dropdown">
+            <label for="geo-accuracy">Accuracy Level:</label>
+            <select id="geo-accuracy" title="Geolocation Accuracy Level">
+              <option value="64.0999">64.0999</option>
+              <option value="34.0999">34.0999</option>
+              <option value="10.0999">10.0999</option>
+            </select>
+          </div>
+        </div>
+        <div class="setting-subitem">
+          <label for="latitude">Latitude:</label>
+          <input type="text" id="latitude" class="searchable-select" placeholder="Latitude">
+        </div>
+        <div class="setting-subitem">
+          <label for="longitude">Longitude:</label>
+          <input type="text" id="longitude" class="searchable-select" placeholder="Longitude">
+        </div>
+      </div>
     </div>
     <div class="stats" hidden>
       <h2 class="subtitle">Statistics</h2>

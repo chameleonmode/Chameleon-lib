@@ -1,18 +1,9 @@
-import { applyOverrides, setupTabListeners } from "./modules/emulations.js";
-import {
-  createGeoContextMenus,
-  handleGeoMenuClick,
-} from "./modules/geolocation.js";
+import { applyOverrides } from "./modules/emulations.js";
 import { log, setLogLevel } from "./modules/logger.js";
 import {
-  SETTINGS_ARRAY,
   settings,
   updateSettings,
 } from "./modules/settings.js";
-import {
-  createTimezoneContextMenus,
-  handleTimezoneMenuClick,
-} from "./modules/timezone.js";
 import { genUULE, updateLocationRules } from "./modules/uule.js";
 import {
   createWebRTCContextMenus,
@@ -32,54 +23,40 @@ fetch(chrome.runtime.getURL("settings.json"))
     setLogLevel(settings.debug);
     await applyAllOverrides();
     createWebRTCContextMenus();
-    createGeoContextMenus();
-    createTimezoneContextMenus();
+    chrome.contextMenus.create({
+      title: "Exception List Editor",
+      id: "exception-editor",
+      contexts: ["action"]
+    });
     log.info("Received: ", data);
   })
   .catch((error) => console.error("Error loading settings:", error));
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === "rtc-test") {
-    chrome.tabs.create({
-      url: "https://webbrowsertools.com/ip-address/",
-      index: tab.index + 1,
-    });
-  } else if (
-    info.menuItemId.startsWith("webrtc") ||
-    [
-      "dApi",
-      "disable_non_proxied_udp",
-      "proxy_only",
-      "default_public_interface_only",
-      "default_public_and_private_interfaces",
-    ].includes(info.menuItemId)
-  ) {
-    handleWebRTCMenuClick(info);
-  } else if (
-    info.menuItemId.startsWith("geo") ||
-    info.menuItemId.startsWith("set:") ||
-    info.menuItemId.startsWith("randomizeGeo:") ||
-    info.menuItemId.startsWith("accuracy:") ||
-    ["add-exception", "remove-exception", "exception-editor"].includes(
-      info.menuItemId
-    )
-  ) {
-    await handleGeoMenuClick(info, tab);
-  } else if (
-    info.menuItemId.startsWith("timezone") ||
-    [
-      "update-timezone",
-      "set-timezone",
-      "check-timezone",
-      "randomize-timezone",
-      "timezone-",
-      "tz-enabled",
-    ].includes(info.menuItemId)
-  ) {
-    await handleTimezoneMenuClick(info, tab);
-  }
+  if (info.menuItemId === "exception-editor") {
+    const msg = `Insert one hostname per line. Press the "Save List" button to update the list.
 
-  await chrome.storage.sync.set(settings);
+    Example of valid formats:
+    
+      example.com
+      *.example.com
+      https://example.com/*
+      *://*.example.com/*`;
+      chrome.windows.getCurrent((win) => {
+        chrome.windows.create({
+          url: `data/editor/index.html?msg=${encodeURIComponent(
+            msg
+          )}&storage=bypass`,
+          width: 600,
+          height: 600,
+          left: win.left + Math.round((win.width - 600) / 2),
+          top: win.top + Math.round((win.height - 600) / 2),
+          type: "popup",
+        });
+      });
+  } else {
+    handleWebRTCMenuClick(info);
+  }
 });
 
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
@@ -93,7 +70,16 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
   await applyAllOverrides();
   return true;
 });
-setupTabListeners();
+
+chrome.tabs.onCreated.addListener((tab) => {
+  applyOverrides(tab);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "loading") {
+    applyOverrides(tab);
+  }
+});
 
 async function applyAllOverrides() {
   chrome.tabs.query({}, (tabs) => {

@@ -1,12 +1,6 @@
 import { setLogLevel, log } from "./modules/logger.js";
 import { settings, updateSettings } from "./modules/settings.js";
 import {
-  createGeoContextMenus,
-  handleGeoMenuClick,
-} from "./modules/geolocation.js";
-import {
-  createTimezoneContextMenus,
-  handleTimezoneMenuClick,
   getRandomTimezone,
   getTimezoneOffset,
 } from "./modules/timezone.js";
@@ -22,14 +16,15 @@ fetch(browser.runtime.getURL("settings.json"))
   .then(async (data) => {
     await updateSettings(data);
     setLogLevel(settings.debug);
-    const uule = genUULE(settings.latitude, settings.longitude);
-    updateLocationRules(uule);
+    updateLocationRules(genUULE(settings.latitude, settings.longitude));
     try {
-      await browser.contextMenus.removeAll();
-      createGeoContextMenus();
-      createTimezoneContextMenus();
+      chrome.contextMenus.create({
+        title: "Open Exception List in Editor",
+        id: "exception-editor",
+        contexts: ["browser_action"]
+      });
     } catch (e) {
-      log.error("Failed to create context menus", e);
+      log.error("Failed to set injection script", e);
     }
     log.info("Received: ", data);
   })
@@ -47,30 +42,6 @@ browser.webNavigation.onCommitted.addListener(
   { url: [{ schemes: ["http", "https"] }] }
 );
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (
-    info.menuItemId.startsWith("geo") ||
-    info.menuItemId.startsWith("set:") ||
-    info.menuItemId.startsWith("randomizeGeo:") ||
-    info.menuItemId.startsWith("accuracy:") ||
-    ["add-exception", "remove-exception", "exception-editor"].includes(
-      info.menuItemId
-    )
-  ) {
-    await handleGeoMenuClick(info, tab);
-  } else if (
-    info.menuItemId.startsWith("timezone") ||
-    [
-      "update-timezone",
-      "set-timezone",
-      "check-timezone",
-      "randomize-timezone",
-    ].includes(info.menuItemId)
-  ) {
-    await handleTimezoneMenuClick(info, tab);
-  }
-});
-
 browser.storage.onChanged.addListener((changes, namespace) => {
   for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
     log.info(
@@ -80,8 +51,7 @@ browser.storage.onChanged.addListener((changes, namespace) => {
     settings[key] = newValue;
   }
 
-  const uule = genUULE(settings.latitude, settings.longitude);
-  updateLocationRules(uule);
+  updateLocationRules(genUULE(settings.latitude, settings.longitude));
   setInjectionScript();
   log.info("Settings updated");
 });
@@ -93,10 +63,39 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === "exception-editor") {
+    const msg = `Insert one hostname per line. Press the "Save List" button to update the list.
+
+    Example of valid formats:
+    
+      example.com
+      *.example.com
+      https://example.com/*
+      *://*.example.com/*`;
+      chrome.windows.getCurrent((win) => {
+        chrome.windows.create({
+          url: `data/editor/index.html?msg=${encodeURIComponent(
+            msg
+          )}&storage=bypass`,
+          width: 600,
+          height: 600,
+          left: win.left + Math.round((win.width - 600) / 2),
+          top: win.top + Math.round((win.height - 600) / 2),
+          type: "popup",
+        });
+      });
+  }
+});
+
 var injectionScript;
 async function setInjectionScript() {
   if (injectionScript) {
+    try{
     await injectionScript.unregister();
+    }catch(e){
+      log.error("Failed to unregister injection script", e);
+    }
   }
   if (settings.myIP) {
     settings.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;

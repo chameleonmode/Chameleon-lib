@@ -63,7 +63,7 @@ async function applyGeoOverride(tab) {
       longitude: settings.longitude,
       accuracy: settings.accuracy,
     }
-   );
+  );
 }
 
 function randomizeGeoLocation() {
@@ -84,9 +84,9 @@ function randomizeGeoLocation() {
 }
 
 export function setupTabListeners() {
-  chrome.tabs.onRemoved.addListener((tabId) => {
-    chrome.debugger.detach({ tabId: tabId });
-  });
+  // chrome.tabs.onRemoved.addListener((tabId) => {
+  //   chrome.debugger.detach({ tabId: tabId });
+  // });
 
   chrome.tabs.onCreated.addListener((tab) => {
     applyOverrides(tab);

@@ -16,73 +16,67 @@
         <span class="toggle-label" id="status-text">Enabled</span>
       </label>
     </div>
+      <div class="slider-container">
+        <label for="noise-level-slider" class="dropdown-label">Noise Level:</label>
+        <input type="range" id="noise-level-slider" min="1" max="10" value="5">
+        <span id="noise-level-value">Medium</span>
+      </div>
     <div class="settings">
-      <h2 class="subtitle">Settings</h2>
+      <h2 class="subtitle">
+        Settings
+        <button id="refresh-button" type="button" class="refresh-button">
+          <img src="refresh-icon.svg" alt="Refresh" class="refresh-icon">
+        </button>
+      </h2>
       <div class="setting-item">
         <label for="webgl-spoofing" class="checkbox">
-          <input class="checkmark" type="checkbox" id="webgl-spoofing" checked>
+          <input class="checkmark" type="checkbox" id="webgl-spoofing">
           WebGL Resistance
-        </label>
-        <div class="setting-subitem">
-          <label class="toggle inline">
+          <label class="toggle inline" title="Random">
             <input type="checkbox" id="random-webgl-spoofing" hidden>
             <span class="toggle-switch"></span>
-            <span class="toggle-label">Random</span>
           </label>
-        </div>
+        </label>
       </div>
       <div class="setting-item">
         <label for="canvas-protection" class="checkbox">
-          <input class="checkmark" type="checkbox" id="canvas-protection" checked>
+          <input class="checkmark" type="checkbox" id="canvas-protection">
           Canvas Resistance
-        </label>
-        <div class="setting-subitem">
-          <label class="toggle inline">
+          <label class="toggle inline" title="Random">
             <input type="checkbox" id="random-canvas-spoofing" hidden>
             <span class="toggle-switch"></span>
-            <span class="toggle-label">Random</span>
           </label>
-        </div>
+        </label>
       </div>
       <div class="setting-item">
         <label for="fonts-spoofing" class="checkbox">
-          <input class="checkmark" type="checkbox" id="fonts-spoofing" checked>
-          <span></span>
+          <input class="checkmark" type="checkbox" id="fonts-spoofing">
           Fonts Resistance
-        </label>
-        <div class="setting-subitem">
-          <label class="toggle inline">
+          <label class="toggle inline" title="Random">
             <input type="checkbox" id="random-fonts-spoofing" hidden>
             <span class="toggle-switch"></span>
-            <span class="toggle-label">Random</span>
           </label>
-        </div>
+        </label>
       </div>
       <div class="setting-item">
         <label for="client-rects-spoofing" class="checkbox">
           <input class="checkmark" type="checkbox" id="client-rects-spoofing" checked>
           Client Rects
-        </label>
-        <div class="setting-subitem">
-          <label class="toggle inline">
+          <label class="toggle inline" title="Random">
             <input type="checkbox" id="random-rects-spoofing" hidden>
             <span class="toggle-switch"></span>
-            <span class="toggle-label">Random</span>
           </label>
-        </div>
+        </label>
       </div>
       <div class="setting-item">
         <label for="timezone-spoofing" class="checkbox">
           <input class="checkmark" type="checkbox" id="timezone-spoofing"></input>
           Timezone
-        </label>
-        <div class="setting-subitem">
-          <label class="toggle inline">
+          <label class="toggle inline" title="Random">
             <input type="checkbox" id="randomize-timezone" hidden>
             <span class="toggle-switch"></span>
-            <span class="toggle-label">Random</span>
           </label>
-        </div>
+        </label>
         <div class="setting-subitem">
           <div class="dropdown">
             <input type="text" id="timezone-select" list="timezone-options" class="searchable-select" autocomplete="off" placeholder="Search timezone...">
@@ -127,23 +121,6 @@
         <div class="setting-subitem">
           <label for="longitude">Longitude:</label>
           <input type="text" id="longitude" class="searchable-select" placeholder="Longitude">
-        </div>
-      </div>
-      <div class="setting-item">
-        <div class="dropdown">
-          <label for="noise-level" class="dropdown-label">Noise Level:</label>
-          <select id="noise-level">
-            <option value="micro">Micro</option>
-            <option value="mini">Mini</option>
-            <option value="low">Low</option>
-            <option value="medium" selected>Medium</option>
-            <option value="bold">Bold</option>
-            <option value="high">High</option>
-            <option value="heavy">Heavy</option>
-            <option value="ultra">Ultra</option>
-            <option value="super">Super</option>
-            <option value="max">Max</option>
-          </select>
         </div>
       </div>
     </div>
