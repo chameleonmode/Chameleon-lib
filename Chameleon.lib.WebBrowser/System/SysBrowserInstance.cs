@@ -45,25 +45,23 @@ public abstract class SysBrowserInstance
 				_ = p.Start();
 
 				_ = await TaskUtil.AwaitFor(() => {
-					Thread.Sleep(256);
-					// Attempt to close the browser gracefully
-					_ = p.CloseMainWindow();
-					_ = p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited
+					Thread.Sleep(256);		
+					if(OperatingSystem.IsMacOS()) {
+						// Use a shell command to send SIGTERM (graceful termination)
+						using var killprocess = Process.Start("kill", $"-SIGTERM {p.Id}");
+						// Wait for the process to exit
+						_ = killprocess.WaitForExit(1);
+					} else {
+						// Attempt to close the browser gracefully
+						_ = p.CloseMainWindow();
+						_ = p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited			
+					}
 					return p.HasExited || File.Exists(PrefsFile);
 				}, 18, 36);
 				
 
+			  // Kill the process if it hasn't exited
 				if (!p.HasExited) {
-					if(OperatingSystem.IsMacOS()) {
-						// Get the process ID
-						var pid = p.Id;
-						// Use a shell command to send SIGTERM (graceful termination)
-						using var killprocess = Process.Start("kill", $"-SIGTERM {pid}");
-						// Wait for the process to exit
-						_ = killprocess.WaitForExit(2000);
-					}
-					// Kill the process if it hasn't exited after 2 seconds
-					if (!p.HasExited)
 						p.Kill();
 				}
 				p.Dispose();
