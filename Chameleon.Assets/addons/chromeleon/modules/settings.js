@@ -6,6 +6,7 @@ export const SETTINGS_ARRAY = [
   "fontsSpoofing",
   "geoSpoofing",
   "timezoneSpoofing",
+  "audioSpoofing",
   "dAPI",
   "webRtcEnabled",
   "randomizeTZ",
@@ -35,10 +36,12 @@ export const SETTINGS_ARRAY = [
   "randomWebGLSpoofing",
   "randomCanvasSpoofing",
   "randomFontsSpoofing",
-  "randomRectsSpoofing"
+  "randomRectsSpoofing",
+  "randomAudioSpoofing",
 ];
 export let settings = {
   enabled: true,
+  audioSpoofing: true,
   webglSpoofing: true,
   canvasProtection: true,
   clientRectsSpoofing: true,
@@ -74,7 +77,8 @@ export let settings = {
   randomWebGLSpoofing: false,
   randomCanvasSpoofing: false,
   randomFontsSpoofing: false,
-  randomRectsSpoofing: false
+  randomRectsSpoofing: false,
+  randomAudioSpoofing: false,
 };
 export const noises = {
   noiseLevel: {
@@ -146,6 +150,7 @@ export async function updateSettings(built) {
     settings.fontsSpoofing = built.fontsSpoofing;
     settings.debug = built.debug;
     settings.timezoneSpoofing = built.timezoneSpoofing;
+    settings.audioSpoofing = built.audioSpoofing;
     if(settings.timezoneSpoofing) {
       settings.myIP = false;
       settings.timezone = built.timezone;

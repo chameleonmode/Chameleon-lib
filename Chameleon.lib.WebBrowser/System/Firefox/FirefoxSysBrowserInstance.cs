@@ -381,7 +381,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["app.update.service.enabled"] = false,
 			["browser.startup.homepage"] = Settings.StartUrl,
 			["browser.contentblocking.category"] = "strict",
-			["privacy.fingerprintingProtection.overrides"] = Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+JSDateTimeUTC" : "",
+			["privacy.fingerprintingProtection.overrides"] = Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+AllTargets,+JSDateTimeUTC" : "+AllTargets",
 			["network.http.referer.XOriginTrimmingPolicy"] = "0",
 			["browser.startup.page"] = Debugger.IsAttached ? 3 : 1,
 			//SysBrowserInfoUtil.user_pref("extensions.webextensions.uuids", ""),

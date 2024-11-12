@@ -4,6 +4,7 @@
     "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-gl",
     "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-canvas",
     "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-fonts",
+    "cffjcbnflngjpnjenjogeaojacooflng-sandboxed-audio",
   ].forEach((ikey) => {
     if (document.documentElement.getAttribute(ikey) === null) {
       parent.postMessage({ key: ikey }, "*");

@@ -38,14 +38,24 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
+		IoC.SetJsonValue(new EmulationOptions {
+			DisableWebRTC = true,
+			SpoofClientRects = true,
+			SpoofFontFingerprint = true,
+			SpoofCanvasFingerprint = true,
+			SpoofWebGLFingerprint = true,
+			SpoofGeoLocation = true,
+			AutoTimezone = true,
+		}, nameof(EmulationOptions));
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
-				SystemBrowserType.Brave, new Common.Models.SysBrowserProfile()
-				{ 
-					Id = 123, 
-					Proxy = new Common.Models.SysBrowserProxy() 
+				SystemBrowserType.Brave,
+				new Common.Models.SysBrowserProfile() {
+					Id = 1,
+					Proxy = new Common.Models.SysBrowserProxy()
 				})
 			);
+
 		Assert.NotNull(bi);
 	}
 

@@ -8,13 +8,15 @@ document.addEventListener("DOMContentLoaded", async function () {
   const noiseLevelSlider = document.getElementById("noise-level-slider");
   const noiseLevelValue = document.getElementById("noise-level-value");
   const webglSpoofing = document.getElementById("webgl-spoofing");
-  const canvasProtection = document.getElementById("canvas-protection");
-  const clientRectsSpoofing = document.getElementById("client-rects-spoofing");
-  const fontsSpoofing = document.getElementById("fonts-spoofing");
   const randomWebGLSpoofing = document.getElementById("random-webgl-spoofing");
+  const canvasProtection = document.getElementById("canvas-protection");
   const randomCanvasSpoofing = document.getElementById("random-canvas-spoofing");
-  const randomFontsSpoofing = document.getElementById("random-fonts-spoofing");
+  const clientRectsSpoofing = document.getElementById("client-rects-spoofing");
   const randomRectsSpoofing = document.getElementById("random-rects-spoofing");
+  const fontsSpoofing = document.getElementById("fonts-spoofing");
+  const randomFontsSpoofing = document.getElementById("random-fonts-spoofing");
+  const audioSpoofing = document.getElementById("audio-spoofing");
+  const randomAudioSpoofing = document.getElementById("random-audio-spoofing");
   const blockedCount = document.getElementById("blocked-count");
   const timezoneSpoofing = document.getElementById("timezone-spoofing");
   const randomizeTimezone = document.getElementById("randomize-timezone");
@@ -42,15 +44,17 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Load saved settings
   toggleExtension.checked = settings.enabled;
   noiseLevelSlider.value = getNoiseLevelNumber(settings.noiseLevel);
+  blockedCount.textContent = settings.blockedCount || 0;
   webglSpoofing.checked = settings.webglSpoofing;
   canvasProtection.checked = settings.canvasProtection;
   clientRectsSpoofing.checked = settings.clientRectsSpoofing;
   fontsSpoofing.checked = settings.fontsSpoofing;
+  audioSpoofing.checked = settings.audioSpoofing;
+  randomAudioSpoofing.checked = settings.randomAudioSpoofing;
   randomWebGLSpoofing.checked = settings.randomWebGLSpoofing;
   randomCanvasSpoofing.checked = settings.randomCanvasSpoofing;
   randomFontsSpoofing.checked = settings.randomFontsSpoofing;
   randomRectsSpoofing.checked = settings.randomRectsSpoofing;
-  blockedCount.textContent = settings.blockedCount || 0;
   timezoneSpoofing.checked = settings.timezoneSpoofing;
   randomizeTimezone.checked = settings.randomizeTZ;
   
@@ -70,6 +74,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     updateChecked(webglSpoofing, randomWebGLSpoofing);
     updateChecked(canvasProtection, randomCanvasSpoofing);
     updateChecked(fontsSpoofing, randomFontsSpoofing);
+    updateChecked(audioSpoofing, randomAudioSpoofing);
     updateChecked(timezoneSpoofing, randomizeTimezone);
     updateChecked(timezoneSpoofing, timezoneSelect);
     updateChecked(geoSpoofing, randomizeGeo);
@@ -131,6 +136,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     settings.canvasProtection = canvasProtection.checked;
     settings.clientRectsSpoofing = clientRectsSpoofing.checked;
     settings.fontsSpoofing = fontsSpoofing.checked;
+    settings.audioSpoofing = audioSpoofing.checked;
+    settings.randomAudioSpoofing = randomAudioSpoofing.checked;
     settings.randomWebGLSpoofing = randomWebGLSpoofing.checked;
     settings.randomCanvasSpoofing = randomCanvasSpoofing.checked;
     settings.randomFontsSpoofing = randomFontsSpoofing.checked;
@@ -200,6 +207,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   canvasProtection.addEventListener("change", saveSettings);
   clientRectsSpoofing.addEventListener("change", saveSettings);
   fontsSpoofing.addEventListener("change", saveSettings);
+  audioSpoofing.addEventListener("change", saveSettings);
+  randomAudioSpoofing.addEventListener("change", saveSettings);
   randomWebGLSpoofing.addEventListener("change", saveSettings);
   randomCanvasSpoofing.addEventListener("change", saveSettings);
   randomFontsSpoofing.addEventListener("change", saveSettings);

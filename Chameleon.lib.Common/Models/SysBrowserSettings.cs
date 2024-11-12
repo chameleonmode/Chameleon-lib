@@ -17,6 +17,7 @@ public class EmulationOptions {
 	public bool SpoofCanvasFingerprint { get; set; } = true;
 	public bool SpoofClientRects { get; set; } = true;
 	public bool SpoofFontFingerprint { get; set; } = true;
+	public bool SpoofAudio { get; set; } = true;
 	public bool DisableWebRTC { get; set; } = true;
 }
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
@@ -179,6 +180,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
 			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
 			new ("geoSpoofing", Emulation.SpoofGeoLocation.Tlwr()),
+			new ("audioSpoofing", Emulation.SpoofAudio.Tlwr()),
 			new ("timezoneSpoofing", tzSpoofing.Tlwr())
 		}; 
 		var settingsBuilder = new StringBuilder();

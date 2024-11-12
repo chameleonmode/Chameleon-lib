@@ -82,6 +82,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 async function applyAllOverrides() {
+  log.info("Applying all overrides");
+
   chrome.tabs.query({}, (tabs) => {
     tabs.forEach((tab) => {
       applyOverrides(tab);
@@ -118,6 +120,7 @@ async function applyAllOverrides() {
         { file: "scriptin/canvas.js" },
         { file: "scriptin/webgl.js" },
         { file: "scriptin/fonts.js" },
+        { file: "scriptin/audio.js" },
       ],
     },
   ];
@@ -128,7 +131,12 @@ async function applyAllOverrides() {
   if (existingScripts.length > 0) {
     await chrome.userScripts.update(userscripts);
   } else {
-    await chrome.userScripts.register(userscripts);
+    try {
+      await chrome.userScripts.register(userscripts);
+    } catch (error) {
+      log.error("Error registering user scripts", error);
+      await chrome.userScripts.update(userscripts);
+    }
   }
 }
 

@@ -61,7 +61,6 @@ public abstract class SysBrowserInstance
 					return p.HasExited || File.Exists(PrefsFile);
 				}, 18, 36);
 				
-
 			  // Kill the process if it hasn't exited
 				if (!p.HasExited) {
 						p.Kill();
