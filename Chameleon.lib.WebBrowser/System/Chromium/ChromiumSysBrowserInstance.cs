@@ -5,11 +5,12 @@ using System.Text.Json.Nodes;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.ServiceManagers;
+using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
-	public string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "Default", "Preferences");
+	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "Default", "Preferences");
 
 	protected override string GetCommandLineArguments()
 	{
@@ -130,51 +131,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
     }
 
 		if (!File.Exists(PrefsFile)) {
-			Toaster.ShowInf("Creating Prefs file for new profile cache wait for the browser window to relaunch a second time");
-			TaskCompletionSource tcs = new();
-			new Thread(new ThreadStart(() => {
-				try {
-					using var p = Process.Start(new ProcessStartInfo {
-						FileName = Settings.ExePath,
-						Arguments = GetCommandLineArguments(),
-						UseShellExecute = false,
-						CreateNoWindow = true
-					}) ?? throw new Exception("Failed to start the browser process");
-
-					p.EnableRaisingEvents = true;
-					p.Exited += (sender, e) => {
-						_ = tcs.TrySetResult();
-					};
-					_ = p.Start();
-					var tries = 0;
-					do {
-						Thread.Sleep(256);
-						// Attempt to close the browser gracefully
-						_ = p.CloseMainWindow();
-						_ = p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited
-
-						if (File.Exists(PrefsFile))
-							break;
-					} while (
-						!p.HasExited
-						&& !File.Exists(PrefsFile)
-						&& tries++ < 18);
-					if (!p.HasExited) {
-						// Kill the process if it hasn't exited after 2 seconds
-						p.Kill();
-					}
-				} catch (Exception ex) {
-					// Handle or log the exception as needed
-					Console.WriteLine($"An error occurred: {ex.Message}");
-					_ = tcs.TrySetException(ex);
-				} finally {
-					_ = tcs.TrySetResult();
-				}
-			})) {
-				IsBackground = true,
-			}.Start();
-
-			await Task.Factory.StartNew(() => tcs.Task, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default).Unwrap();
+			await Task.Factory.StartNew(InitializePrefsFile, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default).Unwrap();
 		}
 		if (File.Exists(PrefsFile)) {
 			var document = JsonDocument.Parse(await File.ReadAllTextAsync(PrefsFile));

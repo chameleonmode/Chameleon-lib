@@ -171,13 +171,15 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 	public async Task<string> BuildMeleonExtSettings(string extDir)
 	{
+		var tzSpoofing = Emulation.AutoTimezone && Profile.Proxy.CanUse;
+
 		var options = new HashSet<KeyValuePair<string, string>>() {
 			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
 			new ("canvasProtection", Emulation.SpoofCanvasFingerprint.Tlwr()),
 			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
 			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
 			new ("geoSpoofing", Emulation.SpoofGeoLocation.Tlwr()),
-			new ("timezoneSpoofing", Emulation.AutoTimezone.Tlwr())
+			new ("timezoneSpoofing", tzSpoofing.Tlwr())
 		}; 
 		var settingsBuilder = new StringBuilder();
 		_ = settingsBuilder.AppendLine("{");
@@ -186,8 +188,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		foreach (var o in options) {
 			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
 		}
-		var ipapi = Emulation.AutoTimezone && Profile.Proxy.CanUse 
-			&& await GeoIpApi.GetIpapi(Profile.Proxy!,e => Toaster.ShowErr(e)) is Ipapi papi 
+		var ipapi = tzSpoofing && await GeoIpApi.GetIpapi(Profile.Proxy!,e => Toaster.ShowErr(e)) is Ipapi papi 
 			? papi 
 			: new Ipapi() { 
 				timezone = "America/Los_Angeles", lat = 34.052235, lon = -118.243683 

@@ -10,6 +10,7 @@ using Chameleon.lib.Common.Models;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System;
 using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
+using System.Diagnostics;
 
 namespace Chameleon.lib.WebBrowser.System;
 public abstract class SysBrowserInstance
@@ -17,7 +18,6 @@ public abstract class SysBrowserInstance
 
 	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
-
 	public required SysBrowserSettings Settings { get; init; }
 
 	public async Task InitializeAsync(object? param = null)
@@ -31,6 +31,53 @@ public abstract class SysBrowserInstance
 			else
 				Close();
 		}
+	}
+	public async Task InitializePrefsFile()
+	{
+		Toaster.ShowInf("Creating Prefs file for new profile cache wait for the browser window to relaunch a second time");
+		TaskCompletionSource tcs = new();
+		new Thread(async () => {
+			try {
+				using var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
+				p.Exited += (sender, e) => {
+					_ = tcs.TrySetResult();
+				};
+				_ = p.Start();
+
+				_ = await TaskUtil.AwaitFor(() => {
+					Thread.Sleep(256);
+					// Attempt to close the browser gracefully
+					_ = p.CloseMainWindow();
+					_ = p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited
+					return p.HasExited || File.Exists(PrefsFile);
+				}, 18, 36);
+				
+
+				if (!p.HasExited) {
+					if(OperatingSystem.IsMacOS()) {
+						// Get the process ID
+						var pid = p.Id;
+						// Use a shell command to send SIGTERM (graceful termination)
+						using var killprocess = Process.Start("kill", $"-SIGTERM {pid}");
+						// Wait for the process to exit
+						_ = killprocess.WaitForExit(2000);
+					}
+					// Kill the process if it hasn't exited after 2 seconds
+					if (!p.HasExited)
+						p.Kill();
+				}
+				p.Dispose();
+			} catch (Exception ex) {
+				// Handle or log the exception as needed
+				_ = tcs.TrySetException(ex);
+			} finally {
+				_ = tcs.TrySetResult();
+			}
+		}) {
+			IsBackground = true,
+		}.Start();
+
+		await tcs.Task;
 	}
 
 	public void InvokeEvent(SysBrowserEventType eventType)
@@ -54,6 +101,7 @@ public abstract class SysBrowserInstance
 		InvokeEvent(Enums.SysBrowserEventType.Closed);
 	}
 
+	public abstract string PrefsFile { get; }
 	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments();
 }

@@ -69,9 +69,8 @@ public static class ProUtil {
 				StartInfo = new ProcessStartInfo {
 					FileName = fileName,
 					Arguments = arguments,
-					UseShellExecute = true,
+					UseShellExecute = false,
 					ErrorDialog = true,
-					//RedirectStandardOutput = true,
 					CreateNoWindow = true,
 				},
 				EnableRaisingEvents = true,

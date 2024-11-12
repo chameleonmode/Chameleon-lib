@@ -27,8 +27,19 @@ public class HttpApiClient {
 	public AsyncPolicyWrap<HttpResponseMessage> AsyncPolicyWrap { get; } = Policy.WrapAsync([
 		Policy.HandleResult<HttpResponseMessage>(r => r.StatusCode >= HttpStatusCode.InternalServerError)
 			.Or<HttpRequestException>()
-			.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (outcome, timespan, retryAttempt, context) => {
-				Instance.OnRetry?.Invoke($"Request Failed: Retry {retryAttempt}: {outcome.Result?.StatusCode}");
+			.WaitAndRetryAsync(1, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), async (outcome, timespan, retryAttempt, context) => {
+				var responseString = await outcome.Result.Content.ReadAsStringAsync();
+				var res = JsonSerializer.Deserialize<RootResult>(responseString);
+				if (res == null || res.error == null){
+					res = new RootResult(){
+						error = new Error(){
+							code = (int)outcome.Result.StatusCode,
+							message = outcome.Result.ReasonPhrase
+						}
+					};
+				}
+
+				Instance.OnRetry?.Invoke($"Request Failed: {retryAttempt}: {res.error.code} - {res.error.message}");
 			}),
 		Policy.HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
 			.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), async (outcome, timespan, retryAttempt, context) => {
@@ -37,8 +48,8 @@ public class HttpApiClient {
 		Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
 			.Or<HttpRequestException>()
 			.CircuitBreakerAsync(
-					handledEventsAllowedBeforeBreaking: 2,
-					durationOfBreak: TimeSpan.FromSeconds(5),
+					handledEventsAllowedBeforeBreaking: 3,
+					durationOfBreak: TimeSpan.FromSeconds(2),
 					onBreak: (outcome, breakDelay) => Instance.OnCircuitBreaker?.Invoke($"Circuit breaker opened due to: {outcome.Exception?.Message ?? outcome.Result.ReasonPhrase}"),
 					onReset: () => Instance.OnCircuitBreaker?.Invoke("Circuit breaker reset."),
 					onHalfOpen: () => Instance.OnCircuitBreaker?.Invoke("Circuit breaker is half-open.")

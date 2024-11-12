@@ -8,7 +8,7 @@ using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
-	public string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
+	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
 	private async Task CreateChameleonFirefoxCopy()
 	{
 		var systempath = SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
@@ -397,13 +397,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 
 		if (!File.Exists(PrefsFile)) {
 			await File.WriteAllLinesAsync(PrefsFile, prefs);
-			var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
-			_ = p.Start();
-			do {
-				await Task.Delay(256);
-			}
-			while (p.ProcessName != "firefox");
-			await ProUtil.TryKillProcess(p);
+			await InitializePrefsFile();
 		} else {
 			var lines = await File.ReadAllLinesAsync(PrefsFile);
 			if (lines.Any(l=> l.Is() && !l.StartsWith("user_pref(\"") && !l.StartsWith("//"))) {
