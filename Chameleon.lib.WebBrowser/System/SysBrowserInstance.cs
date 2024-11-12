@@ -47,6 +47,8 @@ public abstract class SysBrowserInstance
 				_ = await TaskUtil.AwaitFor(() => {
 					Thread.Sleep(256);		
 					if(OperatingSystem.IsMacOS()) {
+						if(MacOSUtil.FindWindowByPID(p.Id) == null)
+							return false;
 						// Use a shell command to send SIGTERM (graceful termination)
 						using var killprocess = Process.Start("kill", $"-SIGTERM {p.Id}");
 						// Wait for the process to exit
