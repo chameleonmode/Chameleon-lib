@@ -1,15 +1,10 @@
-﻿using System.Text;
-using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Util;
+﻿using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Constants;
 using static Chameleon.lib.Common.Constants.Enums;
 using Chameleon.lib.Common.Interfaces.Sys;
 using Chameleon.lib.Common.Models;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System;
-using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 using System.Diagnostics;
 
 namespace Chameleon.lib.WebBrowser.System;
@@ -18,15 +13,16 @@ public abstract class SysBrowserInstance
 
 	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
+	public Process? Brocess { get; set; }
 	public required SysBrowserSettings Settings { get; init; }
 
 	public async Task InitializeAsync(object? param = null)
 	{
-		if (Settings.Brocess is null) {
+		if (Brocess is null) {
 			await InitializeExtensionPath();
 			if (LoadedTCS.Task.IsCompleted)
 				return;
-			if (await Settings.StartProcess(GetCommandLineArguments(), Close))
+			if (await StartProcess(GetCommandLineArguments()))
 				_ = LoadedTCS.TrySetResult(true);
 			else
 				Close();
@@ -38,7 +34,7 @@ public abstract class SysBrowserInstance
 		TaskCompletionSource tcs = new();
 		new Thread(async () => {
 			try {
-				using var p = ProUtil.Createa(Settings.ExePath, GetCommandLineArguments());
+				using var p = ProUtil.Createa(ExePath, GetCommandLineArguments());
 				p.Exited += (sender, e) => {
 					_ = tcs.TrySetResult();
 				};
@@ -82,7 +78,7 @@ public abstract class SysBrowserInstance
 	public void InvokeEvent(SysBrowserEventType eventType)
 	{
 		if (eventType == SysBrowserEventType.Foreground)
-			_ = ProUtil.TrySetForeground(Settings.Brocess);
+			_ = ProUtil.TrySetForeground(Brocess);
 
 		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
 	}
@@ -90,17 +86,19 @@ public abstract class SysBrowserInstance
 	public void Close()
 	{
 		if (OperatingSystem.IsMacOS()) {
-			if (Settings.Brocess?.Id is int id)
+			if (Brocess?.Id is int id)
 				MacOSWindowListener.Instance.RemPid(id);
 		}
 
 		_ = LoadedTCS.TrySetResult(false);
-		Settings.Brocess?.Dispose();
-		Settings.Brocess = null;
+		Brocess?.Dispose();
+		Brocess = null;
 		InvokeEvent(Enums.SysBrowserEventType.Closed);
 	}
 
 	public abstract string PrefsFile { get; }
+	public abstract string ExePath { get; }
 	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments();
+	protected abstract Task<bool> StartProcess(string args);
 }

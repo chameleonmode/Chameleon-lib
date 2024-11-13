@@ -1,9 +1,6 @@
 import { setLogLevel, log } from "./modules/logger.js";
 import { settings, updateSettings } from "./modules/settings.js";
-import {
-  getRandomTimezone,
-  getTimezoneOffset,
-} from "./modules/timezone.js";
+import { offsets } from "./modules/offsets.js";
 import { genUULE, updateLocationRules } from "./modules/uule.js";
 
 fetch(browser.runtime.getURL("settings.json"))
@@ -88,6 +85,23 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
+function getTimezoneOffset(timezone) {
+  let date = new Date();
+  const value =
+    "GMT" +
+    date
+      .toLocaleString("en", {
+        timeZone: timezone,
+        timeZoneName: "longOffset",
+      })
+      .split("GMT")[1];
+  if (value === "GMT") {
+    return 0;
+  }
+  const o = /(?<hh>[-+]\d{2}):(?<mm>\d{2})/.exec(value);
+  return Number(o.groups.hh) * 60 + Number(o.groups.mm);
+}
+
 var injectionScript;
 async function setInjectionScript() {
   if (injectionScript) {
@@ -100,7 +114,8 @@ async function setInjectionScript() {
   if (settings.myIP) {
     settings.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   } else if (settings.randomizeTZ) {
-    settings.timezone = getRandomTimezone();
+    const timeZoneKeys = Object.keys(offsets);
+    settings.timezone = timeZoneKeys[Math.floor(Math.random() * timeZoneKeys.length)];
   }
 
   settings.tzOffset = getTimezoneOffset(settings.timezone);

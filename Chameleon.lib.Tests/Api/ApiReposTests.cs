@@ -178,7 +178,8 @@ public class ApiReposTests : ApiTestsBase {
 	private readonly SortExpressionComparer<Dto> _descendingComparer = SortExpressionComparer<Dto>.Descending(p => p.title ?? "xxx");
 	private readonly SortExpressionComparer<Dto> _ascendingComparer = SortExpressionComparer<Dto>.Ascending(p => p.title ?? "xxx");
 
-	public class UserProfileVim(UserProfileDto dto): Vim<UserProfileDto> {
+	public class UserProfileVim(UserProfileDto dto) : Vim<UserProfileDto> {
+		public UserProfileDto tDto { get; } = dto;
 	}
 
 	public class FolderVim(UPFolderDto dto) 

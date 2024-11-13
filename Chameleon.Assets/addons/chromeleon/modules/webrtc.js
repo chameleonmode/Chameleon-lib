@@ -1,5 +1,4 @@
-import { SETTINGS_ARRAY, settings, updateSettings } from './settings.js';
-import { log } from './logger.js';
+import { SETTINGS_ARRAY, settings } from './settings.js';
 
 const IS_FIREFOX = /Firefox/.test(navigator.userAgent) || typeof InstallTrigger !== "undefined";
 
@@ -9,21 +8,7 @@ export async function handleWebRTCSettings() {
   chrome.privacy.network.webRTCIPHandlingPolicy.clear({}, () => {
     chrome.privacy.network.webRTCIPHandlingPolicy.set({ value }, () => {
       chrome.privacy.network.webRTCIPHandlingPolicy.get({}, (s) => {
-        //let path = "/data/icons/";
-        //let title = "WebRTC Protection is On";
-
-        //if (s.value !== value) {
-        //  path += "red/";
-        //  title = "WebRTC access cannot be changed. It is controlled by another extension";
-        //} else if (settings.webRtcEnabled === false) {
-        //  path += "disabled/";
-        //  title = "WebRTC Protection is Off";
-        //}
-
-        //chrome.action.setIcon({
-        //  path: { 16: path + "16.png", 32: path + "32.png" },
-        //});
-        //chrome.action.setTitle({ title });
+        //
       });
     });
   });

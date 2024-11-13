@@ -1,17 +1,16 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "Default", "Preferences");
-
+	public override string ExePath => SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
 	protected override string GetCommandLineArguments()
 	{
 		//https://niek.github.io/chrome-features/
@@ -160,6 +159,60 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			// Serialize the modified JsonObject back to JSON
 			var modifiedJson = JsonSerializer.Serialize(mutableRoot);
 			await File.WriteAllTextAsync(PrefsFile, modifiedJson);
+		}
+	}
+
+	protected override async Task<bool> StartProcess(string args)
+	{
+		Brocess = ProUtil.Createa(ExePath, args);
+		_ = Brocess.Start();
+		await Task.Delay(1800);
+
+		if (OperatingSystem.IsMacOS()) {
+			Brocess.Exited += (s, e) => { Close(); };
+			if(await TaskUtil.AwaitFor(() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null, 36, 1000)) {
+				MacOSWindowListener.Instance.AddPid(Brocess.Id);
+			}
+		} else {
+			_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
+		}
+
+		return Brocess?.HasExited == false;
+	}
+
+	private async Task<string?> GetWebSocketDebuggerUrlAsync()
+	{
+		var url = $"http://localhost:{Settings.Port}/json";
+		using var client = new HttpClient {
+			Timeout = TimeSpan.FromSeconds(5) // Set a timeout of 5 seconds
+		};
+
+		try {
+			var jsonResponse = await client.GetStringAsync(url);
+			using var document = JsonDocument.Parse(jsonResponse);
+			var root = document.RootElement;
+
+			foreach (var target in root.EnumerateArray()) {
+				if (target.TryGetProperty("type", out var typeProperty) && typeProperty.GetString() == "page") {
+					if (target.TryGetProperty("webSocketDebuggerUrl", out var webSocketDebuggerUrlProperty)) {
+						return webSocketDebuggerUrlProperty.GetString();
+					}
+				}
+			}
+
+			return null; // No suitable debugger URL found
+		} catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException) {
+			// Handle timeout
+			Console.WriteLine("The request timed out.");
+			return null;
+		} catch (HttpRequestException ex) {
+			// Handle other HTTP request exceptions
+			Console.WriteLine($"HttpRequestException: {ex.Message}");
+			return null;
+		} catch (Exception ex) {
+			// Handle any other exceptions
+			Console.WriteLine($"Exception: {ex.Message}");
+			return null;
 		}
 	}
 }

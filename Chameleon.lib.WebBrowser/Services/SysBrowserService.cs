@@ -31,8 +31,7 @@ public class SysBrowserService
 	private long _isBusy;
 	public bool IsBusy => Interlocked.Read(ref _isBusy) > 0;
 
-	private TaskCompletionSource<ISysBrowserInstance?>? otc;
-	public TaskCompletionSource<ISysBrowserInstance?>? OpenTaskCompletionSource => otc;
+	public TaskCompletionSource<ISysBrowserInstance?>? OpenTaskCompletionSource { get; private set; }
 
 	public SysBrowserService()
 	{
@@ -54,12 +53,12 @@ public class SysBrowserService
 				_ = await browser.LoadedTCS.Task;
 
 
-				if (browser.Settings.Brocess?.HasExited != true && browser.Settings.Profile.Id == obj) {
+				if (browser.Brocess?.HasExited != true && browser.Settings.Profile.Id == obj) {
 					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 					continue;
 				}
 
-				if(browser.Settings.Brocess?.HasExited != true)
+				if(browser.Brocess?.HasExited != true)
 					browser.InvokeEvent(Enums.SysBrowserEventType.Background);
 			}
 		}
@@ -70,7 +69,7 @@ public class SysBrowserService
 		try {
 			for (var i = Instances.Count - 1; i >= 0; i--) {
 				var uid = Instances.Keys.ElementAt(i);
-				if (Instances.TryGetValue(uid, out var browser) && browser.Settings.Brocess?.HasExited == true) {
+				if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.HasExited == true) {
 						browser.Close();
 				}
 			}
@@ -87,7 +86,7 @@ public class SysBrowserService
 				if (Instances.TryGetValue(uid, out var browser)) {
 					_ = await browser.LoadedTCS.Task;
 
-					if (browser.Settings.Brocess?.HasExited != true && browser.Settings.Brocess?.MainWindowHandle == obj) {
+					if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle == obj) {
 						browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 						continue;
 					}
@@ -103,7 +102,7 @@ public class SysBrowserService
 	public async Task<ISysBrowserInstance?> Open(SysBrowserOpenOptions options)
 	{
 		if (!Instances.TryGetValue(options, out var browser)) {
-			otc = new TaskCompletionSource<ISysBrowserInstance?>();
+			OpenTaskCompletionSource = new TaskCompletionSource<ISysBrowserInstance?>();
 			_ = await TaskUtil.AwaitFor(() => !IsBusy, 18, 256);
 			_ = Interlocked.Increment(ref _isBusy);
 			try {
@@ -144,7 +143,7 @@ public class SysBrowserService
 				_ = Interlocked.Exchange(ref _isBusy, 0);
 			}
 		} else {
-			if (browser.Settings.Brocess?.HasExited == true) {
+			if (browser.Brocess?.HasExited == true) {
 				browser.Close();
 				await Task.Delay(250);
 				_ = Open(options);

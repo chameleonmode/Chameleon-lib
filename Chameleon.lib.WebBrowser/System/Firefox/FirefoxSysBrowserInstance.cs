@@ -4,11 +4,15 @@ using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.Common.Util.Mac;
+using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
+	public override string ExePath { get; } = Consts.Browser.LocalFirefoxExePath;
+
 	private async Task CreateChameleonFirefoxCopy()
 	{
 		var systempath = SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
@@ -27,7 +31,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 
 		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
 	}
-
 	protected override async Task InitializeExtensionPath()
 	{
 		await CreateChameleonFirefoxCopy();
@@ -94,7 +97,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		//Directory.CreateDirectory(distributionDir);
 		//File.WriteAllText(Path.Combine(distributionDir, "policies.json"), policy);
 	}
-
 	protected override string GetCommandLineArguments()
 	{
 		return Debugger.IsAttached
@@ -109,6 +111,51 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			"-wait-for-browser",
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
 		});
+	}
+	protected override async Task<bool> StartProcess(string args)
+	{
+		Brocess = ProUtil.Createa(ExePath, args);
+		_ = Brocess.Start();
+		await Task.Delay(1800);
+
+		if (OperatingSystem.IsMacOS()) {
+			Brocess.Exited += (s, e) => { Close(); };
+			if (await TaskUtil.AwaitFor(() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null, 36, 1000)) {
+				MacOSWindowListener.Instance.AddPid(Brocess.Id);
+			}
+		} else {
+#pragma warning disable CA1416 // Validate platform compatibility
+			TaskCompletionSource<Process?> thisTcs = new();
+			new Thread(() => {
+				for (var i = 0; i < 18; i++) {
+					_ = ExUtil.TryCatch(() => {
+						var currentProcesses = Process.GetProcessesByName("firefox");
+						foreach (var p in currentProcesses) {
+							if (Brocess != null && p.ParentProcessId() == Brocess.Id) {
+								var childProcess = Process.GetProcessById(p.Id);
+								if (childProcess?.HasExited == false) {
+									var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
+									if (U32.IsWindow(thishandle)) {
+										_ = thisTcs.TrySetResult(childProcess);
+										break;
+									}
+								}
+							}
+						}
+						return true;
+					});
+					if (Brocess?.MainWindowHandle != IntPtr.Zero)
+						break;
+					Thread.Sleep(100);
+				}
+				if (Brocess?.MainWindowHandle == IntPtr.Zero)
+					_ = thisTcs.TrySetResult(null);
+			}).Start();
+			Brocess = await thisTcs.Task;
+#pragma warning restore CA1416 // Validate platform compatibility
+		}
+
+		return Brocess?.HasExited == false;
 	}
 
 	// TODO:

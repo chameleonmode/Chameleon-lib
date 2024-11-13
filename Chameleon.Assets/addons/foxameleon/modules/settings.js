@@ -150,49 +150,64 @@ export async function updateSettings(built) {
       settings.latitude = built.latitude;
       settings.longitude = built.longitude;
     }
-    if (settings.DOMRectnoise === 1 || settings.DOMRectReadOnlynoise === 1) {
-      setDomRectsNoises(settings);
-    }
-    if (settings.WebGLnoise === 1) {
-      settings.WebGLnoise = noises.random.randvalue();
-    }
-    if (settings.WebGLnoiseAmplitude === 1) {
-      settings.WebGLnoiseAmplitude =
-        settings.noiseLevel === "high"
-          ? 0.01
-          : settings.noiseLevel === "medium"
-          ? 0.001
-          : 0.0001;
-    }
-    const noiseAmplitude =
-      settings.noiseLevel === "high"
-        ? 2
-        : settings.noiseLevel === "medium"
-        ? 1
-        : 0.5;
     if (
+      settings.DOMRectnoise === 1 ||
+      settings.DOMRectReadOnlynoise === 1 ||
+      settings.WebGLnoise === 1 ||
+      settings.WebGLnoiseAmplitude === 1 ||
       settings.canvasR === 1 ||
       settings.canvasG === 1 ||
       settings.canvasB === 1 ||
-      settings.canvasA === 1
+      settings.canvasA === 1 ||
+      settings.Fontsnoise === 1 ||
+      settings.Fontssign === 1
     ) {
-      settings.canvasR = Math.floor(noiseAmplitude * 10) - 5;
-      settings.canvasG = Math.floor(noiseAmplitude * 10) - 5;
-      settings.canvasB = Math.floor(noiseAmplitude * 10) - 5;
-      settings.canvasA = Math.floor(noiseAmplitude * 10) - 5;
-    }
-    if (settings.Fontsnoise === 1) {
-      const SIGN = Math.random() < Math.random() ? -1 : 1;
-      settings.Fontsnoise = Math.floor(SIGN * noiseAmplitude);
-    }
-    if (settings.Fontssign === 1) {
-      const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
-      const index = Math.floor(Math.random() * tmp.length);
-      settings.Fontssign = tmp[index];
+      resetSettings(settings);  
     }
   }
   await browser.storage.sync.set(settings);
   settings = await browser.storage.sync.get(SETTINGS_ARRAY);
+}
+
+export async function resetSettings(thesettings) {
+  // Update rects noise levels
+  thesettings.DOMRectnoise =
+    1 +
+    (Math.random() < 0.5 ? -1 : +1) *
+      (noises.DOMRect * noises.noiseLevel[thesettings.noiseLevel]);
+  thesettings.DOMRectReadOnlynoise =
+    1 +
+    (Math.random() < 0.5 ? -1 : +1) *
+      (noises.DOMRectReadOnly * noises.noiseLevel[thesettings.noiseLevel]);
+
+  // Update WebGL noise levels
+  thesettings.WebGLnoise = noises.random.randvalue();
+  thesettings.WebGLnoiseAmplitude =
+    noises.webglNoiseLevels[thesettings.noiseLevel];
+
+  // Update canvas noise levels
+  thesettings.canvasR =
+    Math.floor(Math.random() * 10) -
+    5 * noises.canvasNoiseLevels[thesettings.noiseLevel];
+  thesettings.canvasG =
+    Math.floor(Math.random() * 10) -
+    5 * noises.canvasNoiseLevels[thesettings.noiseLevel];
+  thesettings.canvasB =
+    Math.floor(Math.random() * 10) -
+    5 * noises.canvasNoiseLevels[thesettings.noiseLevel];
+  thesettings.canvasA =
+    Math.floor(Math.random() * 10) -
+    5 * noises.canvasNoiseLevels[thesettings.noiseLevel];
+
+  // Update fonts noise levels
+  const SIGN = Math.random() < Math.random() ? -1 : 1;
+  thesettings.Fontsnoise =
+    Math.floor(Math.random() + SIGN * Math.random()) *
+    noises.canvasNoiseLevels[thesettings.noiseLevel];
+
+  const tmp = [-1, -1, -1, -1, -1, -1, +1, -1, -1, -1];
+  const index = Math.floor(Math.random() * tmp.length);
+  thesettings.Fontssign = tmp[index];
 }
 
 export function setDomRectsNoises(current) {

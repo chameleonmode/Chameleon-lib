@@ -1,6 +1,6 @@
 //https://gist.github.com/abrahamjuliot/7baf3be8c451d23f7a8693d7e28a35e2
 {
-  const noiseLevels = {
+  const webglNoiseLevels = {
     micro: 0.0001,
     mini: 0.0002,
     low: 0.0003,
@@ -52,7 +52,7 @@
   if (settings.randomWebGLSpoofing) {
     // Update WebGL noise levels
     settings.WebGLnoise = config.randvalue();
-    settings.WebGLnoiseAmplitude = noiseLevels[settings.noiseLevel];
+    settings.WebGLnoiseAmplitude = webglNoiseLevels[settings.noiseLevel];
   }
 
   {

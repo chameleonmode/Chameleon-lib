@@ -16,11 +16,6 @@
         <span class="toggle-label" id="status-text">Enabled</span>
       </label>
     </div>
-      <div class="slider-container">
-        <label for="noise-level-slider" class="dropdown-label">Noise Level:</label>
-        <input type="range" id="noise-level-slider" min="1" max="10" value="5">
-        <span id="noise-level-value">Medium</span>
-      </div>
     <div class="settings">
       <h2 class="subtitle">
         Settings
@@ -28,6 +23,10 @@
           <img src="refresh-icon.svg" alt="Refresh" class="refresh-icon">
         </button>
       </h2>
+      <div class="slider-container">
+        <label for="noise-level-slider" class="dropdown-label">Noise Level:</label>
+        <input type="range" id="noise-level-slider" min="1" max="10" value="5">
+      </div>
       <div class="setting-item" hidden>
         <label for="webgl-spoofing" class="checkbox">
           <input class="checkmark" type="checkbox" id="webgl-spoofing">
@@ -68,6 +67,16 @@
           </label>
         </label>
       </div>
+      <div class="setting-item" hidden>
+        <label for="audio-spoofing" class="checkbox">
+          <input class="checkmark" type="checkbox" id="audio-spoofing" checked>
+          Audio
+          <label class="toggle inline" title="Random">
+            <input type="checkbox" id="random-audio-spoofing" hidden>
+            <span class="toggle-switch"></span>
+          </label>
+        </label>
+      </div>
       <div class="setting-item">
         <label for="timezone-spoofing" class="checkbox">
           <input class="checkmark" type="checkbox" id="timezone-spoofing"></input>
@@ -92,35 +101,26 @@
           Geolocation
         </label>
         <div class="setting-subitem">
-          <div class="dropdown">
-            <label for="randomize-geo">Randomization Level:</label>
-            <select id="randomize-geo" title="Geolocation Randomization Level">
-              <option value="false">Disabled</option>
-              <option value="0.1">0.1</option>
-              <option value="0.01">0.01</option>
-              <option value="0.001">0.001</option>
-              <option value="0.0001">0.0001</option>
-              <option value="0.00001">0.00001</option>
-            </select>
-          </div>
-        </div>
-        <div class="setting-subitem">
-          <div class="dropdown">
-            <label for="geo-accuracy">Accuracy Level:</label>
-            <select id="geo-accuracy" title="Geolocation Accuracy Level">
-              <option value="64.0999">64.0999</option>
-              <option value="34.0999">34.0999</option>
-              <option value="10.0999">10.0999</option>
-            </select>
-          </div>
-        </div>
-        <div class="setting-subitem">
           <label for="latitude">Latitude:</label>
           <input type="text" id="latitude" class="searchable-select" placeholder="Latitude">
         </div>
         <div class="setting-subitem">
           <label for="longitude">Longitude:</label>
           <input type="text" id="longitude" class="searchable-select" placeholder="Longitude">
+        </div>
+        <div class="setting-subitem">
+          <div class="slider-container">
+            <label for="randomize-geo">Randomization Level:</label>
+            <input type="range" id="randomize-geo" min="0" max="5" step="1" value="0" title="Geolocation Randomization Level">
+            <span class="slider-value" id="randomize-geo-value">Disabled</span>
+          </div>
+        </div>
+        <div class="setting-subitem">
+          <div class="slider-container">
+            <label for="geo-accuracy">Accuracy Level:</label>
+            <input type="range" id="geo-accuracy" min="10" max="64" step="27" value="64" title="Geolocation Accuracy Level">
+            <span class="slider-value" id="geo-accuracy-value">64.0999</span>
+          </div>
         </div>
       </div>
     </div>
