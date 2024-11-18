@@ -31,8 +31,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const randomizeGeoValue = document.getElementById("randomize-geo-value");
   const geoAccuracy = document.getElementById("geo-accuracy");
   const geoAccuracyValue = document.getElementById("geo-accuracy-value");
-  const latitude = document.getElementById("latitude");
-  const longitude = document.getElementById("longitude");
+  const coordinates = document.getElementById("coordinates");
 
   // Populate timezone datalist options
   Object.keys(offsets).forEach((zone) => {
@@ -80,8 +79,12 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Convert saved accuracy value to slider value
   geoAccuracy.value = settings.accuracy || 64.0999;
-  latitude.value = settings.latitude || "";
-  longitude.value = settings.longitude || "";
+  
+  // Set coordinates value if both latitude and longitude exist
+  if (settings.latitude !== null && settings.longitude !== null) {
+    coordinates.value = `${settings.latitude},${settings.longitude}`;
+  }
+
   // Set timezone value
   timezoneSelect.value = settings.timezone;
 
@@ -111,8 +114,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     updateChecked(timezoneSpoofing, timezoneSelect);
     updateChecked(geoSpoofing, randomizeGeo);
     updateChecked(geoSpoofing, geoAccuracy);
-    updateChecked(geoSpoofing, latitude);
-    updateChecked(geoSpoofing, longitude);
+    updateChecked(geoSpoofing, coordinates);
   }
 
   function getNoiseLevelLabel(value) {
@@ -185,6 +187,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     return value.toFixed(4);
   }
 
+  // Helper function to parse coordinates string
+  function parseCoordinates(coordStr) {
+    if (!coordStr) return { lat: null, lng: null };
+    const [lat, lng] = coordStr.split(',').map(str => {
+      const num = parseFloat(str.trim());
+      return isNaN(num) ? null : num;
+    });
+    return { lat, lng };
+  }
+
   // Update slider display values
   function updateSliderDisplays() {
     randomizeGeoValue.textContent = getRandomizeGeoDisplayValue(
@@ -218,8 +230,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     settings.randomizeGeo =
       randomizeGeoVal === "false" ? false : parseFloat(randomizeGeoVal);
     settings.accuracy = parseFloat(geoAccuracy.value);
-    settings.latitude = latitude.value ? parseFloat(latitude.value) : null;
-    settings.longitude = longitude.value ? parseFloat(longitude.value) : null;
+    
+    // Parse and save coordinates
+    const { lat, lng } = parseCoordinates(coordinates.value);
+    settings.latitude = lat;
+    settings.longitude = lng;
 
     // Extract timezone value from input (remove GMT offset if present)
     settings.timezone = timezoneSelect.value;
@@ -260,10 +275,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   geoSpoofing.addEventListener("change", saveSettings);
   randomizeGeo.addEventListener("input", saveSettings);
   geoAccuracy.addEventListener("input", saveSettings);
-  latitude.addEventListener("change", saveSettings);
-  longitude.addEventListener("change", saveSettings);
-  latitude.addEventListener("input", saveSettings);
-  longitude.addEventListener("input", saveSettings);
+  coordinates.addEventListener("change", saveSettings);
+  coordinates.addEventListener("input", saveSettings);
 
   // Refresh button event listener
   refreshButton.addEventListener("click", saveSettings);
