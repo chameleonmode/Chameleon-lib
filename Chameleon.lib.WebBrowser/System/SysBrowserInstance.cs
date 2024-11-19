@@ -35,10 +35,11 @@ public abstract class SysBrowserInstance
 		new Thread(async () => {
 			try {
 				using var p = ProUtil.Createa(ExePath, GetCommandLineArguments());
+				_ = p.Start();
+				await Task.Delay(1800);
 				p.Exited += (sender, e) => {
 					_ = tcs.TrySetResult();
 				};
-				_ = p.Start();
 
 				_ = await TaskUtil.AwaitFor(() => {
 					Thread.Sleep(256);		

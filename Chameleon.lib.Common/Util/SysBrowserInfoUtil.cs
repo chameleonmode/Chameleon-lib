@@ -1489,7 +1489,6 @@ async function installAddon(filePath) {{
 				// Get the install object for the specified file
         let install = await AddonManager.getInstallForFile(file, null, {{allowRemoteInstall: true }});
 
-
         if (install.error) {{
             reportError(`Error: ${{install.error}}`);
             return;
@@ -1670,7 +1669,29 @@ async function installExtensions() {{
     }} catch (ex) {{
         reportError(`Error: ${{ex.message}}`);
     }}
-}}
+        await setPermission(""foxproxameleon@chameleonmode.com"");
+        await setPermission(""geckomeleon@chameleonmode.com"");
+ }}
+
+ async function setPermission(addonId) {{
+     const PRIVATE_BROWSING_PERMS = {{
+         permissions: [""internal:privateBrowsingAllowed""],
+         origins: [],
+     }};
+
+     const {{ExtensionPermissions}} = ChromeUtils.import(""resource://gre/modules/ExtensionPermissions.jsm"");
+
+     const myaddons = await AddonManager.getAddonsByTypes([""extension""]);
+     for(let addon of myaddons){{
+         if (addon.id !== addonId){{
+             continue;
+         }}
+
+         await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
+         if (addon.isActive)
+             addon.reload();
+     }}
+ }}
 
 try {{
     let {{ classes: Cc, interfaces: Ci, manager: Cm }} = Components;

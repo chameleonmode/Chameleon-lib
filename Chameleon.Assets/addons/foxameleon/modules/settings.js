@@ -71,61 +71,84 @@ export let settings = {
   history: [],
 };
 export const noises = {
-  noiseLevel: {
-    micro: 0.1,
-    mini: 0.2,
-    low: 0.3,
-    medium: 0.4,
-    bold: 0.5,
-    high: 0.6,
-    ultra: 0.7,
-    super: 0.8,
-    max: 0.9,
-  },
-  DOMRect: 0.00000001,
-  DOMRectReadOnly: 0.000001,
-  random: {
-    seed: Math.floor(Math.random() * 1000000),
-    noise: {
-      DOMRect: 0.00000001,
-      DOMRectReadOnly: 0.000001,
+    noiseLevel: {
+        micro: 0.1,
+        mini: 0.2,
+        low: 0.3,
+        medium: 0.4,
+        bold: 0.5,
+        high: 0.6,
+        heavy: 0.7,
+        ultra: 0.8,
+        super: 0.9,
+        max: 1.5,
     },
-    metrics: {
-      DOMRect: ["x", "y", "width", "height"],
-      DOMRectReadOnly: ["top", "right", "bottom", "left"],
+    canvasNoiseLevels: {
+        micro: 0.1,
+        mini: 0.4,
+        low: 0.8,
+        medium: 1.4,
+        bold: 1.8,
+        high: 2.4,
+        ultra: 2.5,
+        super: 3.4,
+        max: 3.8,
     },
-    randvalue: function () {
-      let thisseed = (this.seed * 9301 + 49297) % 233280;
-      return thisseed / 233280;
+    webglNoiseLevels: {
+        micro: 0.0001,
+        mini: 0.0002,
+        low: 0.0003,
+        medium: 0.0004,
+        bold: 0.0005,
+        high: 0.006,
+        ultra: 0.007,
+        super: 0.08,
+        max: 0.09,
     },
-    item: function (e) {
-      let rand = e.length * this.randvalue();
-      return e[Math.floor(rand)];
+    DOMRect: 0.00000001,
+    DOMRectReadOnly: 0.000001,
+    random: {
+        seed: Math.floor(Math.random() * 1000000),
+        noise: {
+            DOMRect: 0.00000001,
+            DOMRectReadOnly: 0.000001,
+        },
+        metrics: {
+            DOMRect: ["x", "y", "width", "height"],
+            DOMRectReadOnly: ["top", "right", "bottom", "left"],
+        },
+        randvalue: function () {
+            let thisseed = (this.seed * 9301 + 49297) % 233280;
+            return thisseed / 233280;
+        },
+        item: function (e) {
+            let rand = e.length * this.randvalue();
+            return e[Math.floor(rand)];
+        },
+        number: function (power) {
+            let tmp = [];
+            for (let i = 0; i < power.length; i++) {
+                tmp.push(Math.pow(2, power[i]));
+            }
+            return this.item(tmp);
+        },
+        int: function (power) {
+            let tmp = [];
+            for (let i = 0; i < power.length; i++) {
+                let n = Math.pow(2, power[i]);
+                tmp.push(new Int32Array([n, n]));
+            }
+            return this.item(tmp);
+        },
+        float: function (power) {
+            let tmp = [];
+            for (let i = 0; i < power.length; i++) {
+                let n = Math.pow(2, power[i]);
+                tmp.push(new Float32Array([1, n]));
+            }
+            return this.item(tmp);
+        },
     },
-    number: function (power) {
-      let tmp = [];
-      for (let i = 0; i < power.length; i++) {
-        tmp.push(Math.pow(2, power[i]));
-      }
-      return this.item(tmp);
-    },
-    int: function (power) {
-      let tmp = [];
-      for (let i = 0; i < power.length; i++) {
-        let n = Math.pow(2, power[i]);
-        tmp.push(new Int32Array([n, n]));
-      }
-      return this.item(tmp);
-    },
-    float: function (power) {
-      let tmp = [];
-      for (let i = 0; i < power.length; i++) {
-        let n = Math.pow(2, power[i]);
-        tmp.push(new Float32Array([1, n]));
-      }
-      return this.item(tmp);
-    },
-  },
 };
 
 export async function updateSettings(built) {

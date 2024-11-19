@@ -445,13 +445,13 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		if (!File.Exists(PrefsFile)) {
 			await File.WriteAllLinesAsync(PrefsFile, prefs);
 			await InitializePrefsFile();
-		} else {
-			var lines = await File.ReadAllLinesAsync(PrefsFile);
-			if (lines.Any(l=> l.Is() && !l.StartsWith("user_pref(\"") && !l.StartsWith("//"))) {
-				await File.WriteAllLinesAsync(PrefsFile, prefs);
-			}
-			var userprefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
-			await File.WriteAllLinesAsync(userprefsFile, prefs);
 		}
+
+		var lines = await File.ReadAllLinesAsync(PrefsFile);
+		if (lines.Any(l => l.Is() && !l.StartsWith("user_pref(\"") && !l.StartsWith("//"))) {
+			await File.WriteAllLinesAsync(PrefsFile, prefs);
+		}
+		var userprefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
+		await File.WriteAllLinesAsync(userprefsFile, prefs);
 	}
 }

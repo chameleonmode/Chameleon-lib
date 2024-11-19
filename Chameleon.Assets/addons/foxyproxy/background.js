@@ -26,15 +26,7 @@ async function updateProxyConfig() {
 }
 // Listen for the onInstalled event
 browser.runtime.onInstalled.addListener(async (details) => {
-   await updateProxyConfig();
-
-    // Connecting to the shared channel
-    //const port = browser.runtime.connect("geckomeleon@chameleonmode.com",
-    //    { name: "shared-channel" });
-    //port.postMessage({ text: BuildExtSettings });
-
-    // In Add-on A
-    //browser.storage.local.set({ BuildExtSettings: BuildExtSettings }).then(() => {
-    //    console.log("Preference set by Add-on A");
-    //});
+    await updateProxyConfig();
+    await browser.tabs.reload({ bypassCache: true });
+    return true;
 });
