@@ -13,6 +13,7 @@ public abstract class SysBrowserInstance
 
 	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
+	public TaskCompletionSource<bool> PreLoadedTCS { get; } = new();
 	public Process? Brocess { get; set; }
 	public required SysBrowserSettings Settings { get; init; }
 

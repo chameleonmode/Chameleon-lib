@@ -116,7 +116,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	// ...
 	protected override async Task InitializeExtensionPath()
 	{
-    var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+		_ = PreLoadedTCS.TrySetResult(true);
+		var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
     _ = await Settings.BuildMeleonExtSettings(extDir);
 
     Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (

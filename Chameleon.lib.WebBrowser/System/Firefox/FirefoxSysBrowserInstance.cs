@@ -35,6 +35,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	{
 		await CreateChameleonFirefoxCopy();
 		await InitializePrefsJs();
+		_ = PreLoadedTCS.TrySetResult(true);
 		//await InitializeExtensions();
 		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Foxameleon);
 		var versionFile = Path.Combine(inDir, "version.txt");
@@ -426,9 +427,9 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["extensions.blocklist.enabled"] = false,
 			//
 			["app.update.service.enabled"] = false,
-			["browser.startup.homepage"] = Settings.StartUrl,
+			["browser.startup.homepage"] = !File.Exists(PrefsFile) ? "https://example.com/" : Settings.StartUrl,
 			["browser.contentblocking.category"] = "strict",
-			["privacy.fingerprintingProtection.overrides"] = Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+AllTargets,+JSDateTimeUTC" : "+AllTargets",
+			["privacy.fingerprintingProtection.overrides"] = Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+JSDateTimeUTC" : "",
 			["network.http.referer.XOriginTrimmingPolicy"] = "0",
 			["browser.startup.page"] = Debugger.IsAttached ? 3 : 1,
 			//SysBrowserInfoUtil.user_pref("extensions.webextensions.uuids", ""),

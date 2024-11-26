@@ -103,8 +103,10 @@ public class SysBrowserService
 	{
 		if (!Instances.TryGetValue(options, out var browser)) {
 			OpenTaskCompletionSource = new TaskCompletionSource<ISysBrowserInstance?>();
-			_ = await TaskUtil.AwaitFor(() => !IsBusy, 18, 256);
-			_ = Interlocked.Increment(ref _isBusy);
+			//if (options.BrowserType == Enums.SystemBrowserType.Firefox) {
+			//	_ = await TaskUtil.AwaitFor(() => !IsBusy, 18, 128);
+			//	_ = Interlocked.Increment(ref _isBusy);
+			//}
 			try {
 				var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 				var urls = IoC.GetJsonValue<string[]>("DefaultHomePageSettings");
@@ -124,7 +126,7 @@ public class SysBrowserService
 
 				Instances[options] = browser;
 			  var initTask = browser.InitializeAsync();
-
+				_ = await browser.PreLoadedTCS.Task;
 				if (await browser.LoadedTCS.Task) {
 					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 					browser.InvokeEvent(Enums.SysBrowserEventType.Opened);

@@ -68,6 +68,16 @@ public enum ShowWindowCommands : int {
 	SW_FORCEMINIMIZE = 11
 }
 
+[StructLayout(LayoutKind.Sequential)]
+public struct WINDOWPLACEMENT {
+	public int length;
+	public int flags;
+	public ShowWindowCommands showCmd;
+	public POINT ptMinPosition;
+	public POINT ptMaxPosition;
+	public RECT rcNormalPosition;
+}
+
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1401:P/Invokes should not be visible", Justification = "<Pending>")]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "SYSLIB1054:Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time", Justification = "<Pending>")]
 [SupportedOSPlatform("windows")]
@@ -143,6 +153,9 @@ public static partial class U32 {
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static partial bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
 
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
 }
 
 [SupportedOSPlatform("windows")]
@@ -225,7 +238,7 @@ public static class U32til {
 	{
 		_ = U32.GetWindowThreadProcessId(mainWindowHandle, out var processId);
 		return processId == 0
-			?     throw new InvalidOperationException("Unable to get process ID from window handle.")
+			? throw new InvalidOperationException("Unable to get process ID from window handle.")
 			: Process.GetProcessById((int)processId);
 	}
 
@@ -247,8 +260,19 @@ public static class U32til {
 		}
 
 		try {
-			// Restore the window if it's minimized
-			_ = U32.ShowWindow(hWnd, (int)ShowWindowCommands.SW_RESTORE);
+			// Check if the window is maximized
+			var placement = new WINDOWPLACEMENT();
+			placement.length = Marshal.SizeOf(placement);
+			if (!U32.GetWindowPlacement(hWnd, ref placement)) {
+				return false;
+			}
+
+			var wasMinimized = placement.showCmd == ShowWindowCommands.SW_SHOWMINIMIZED;
+
+			if (wasMinimized) {
+				// Restore the window if it's minimized
+				_ = U32.ShowWindow(hWnd, (int)ShowWindowCommands.SW_RESTORE);
+			}	
 
 			// Set the window as the foreground window
 			var result = U32.SetForegroundWindow(hWnd);
@@ -258,6 +282,11 @@ public static class U32til {
 				Thread.Sleep(100);
 				result = U32.SetForegroundWindow(hWnd);
 			}
+
+			// Maximize the window if it was maximized before
+			//if (wasMaximized) {
+			//	_ = U32.ShowWindow(hWnd, (int)ShowWindowCommands.SW_MAXIMIZE);
+			//}
 
 			return result;
 		} finally {
