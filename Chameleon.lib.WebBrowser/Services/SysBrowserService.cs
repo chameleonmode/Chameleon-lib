@@ -73,8 +73,8 @@ public class SysBrowserService
 						browser.Close();
 				}
 			}
-		} catch (Exception e) {
-			Toaster.ShowErr(e.Message);
+		} catch{
+			//Toaster.ShowErr(e.Message);
 		}
 	}
 
@@ -84,9 +84,9 @@ public class SysBrowserService
 			for (var i = Instances.Count - 1; i >= 0; i--) {
 				var uid = Instances.Keys.ElementAt(i);
 				if (Instances.TryGetValue(uid, out var browser)) {
-					_ = await browser.LoadedTCS.Task;
+					var loaded = await browser.LoadedTCS.Task;
 
-					if (browser.Brocess?.HasExited != true && browser.Brocess?.MainWindowHandle == obj) {
+					if (loaded && browser.Brocess?.HasExited == false && browser.Brocess?.MainWindowHandle == obj) {
 						browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 						continue;
 					}
@@ -94,8 +94,8 @@ public class SysBrowserService
 					browser.InvokeEvent(Enums.SysBrowserEventType.Background);
 				}
 			}
-		} catch (Exception e) {
-			Toaster.ShowErr(e.Message);
+		} catch {
+			//Toaster.ShowErr(e.Message);
 		}
 	}
 
@@ -103,10 +103,21 @@ public class SysBrowserService
 	{
 		if (!Instances.TryGetValue(options, out var browser)) {
 			OpenTaskCompletionSource = new TaskCompletionSource<ISysBrowserInstance?>();
-			//if (options.BrowserType == Enums.SystemBrowserType.Firefox) {
-			//	_ = await TaskUtil.AwaitFor(() => !IsBusy, 18, 128);
-			//	_ = Interlocked.Increment(ref _isBusy);
-			//}
+			if (options.BrowserType == Enums.SystemBrowserType.Firefox) {
+				var systempath = SysBrowserInfoUtil.FindByType(Enums.SystemBrowserType.Firefox).Path;
+				if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath)) {
+					Toaster.ShowInf("Updating Firefox browser. Please wait...");
+
+					await IOtil.DeleteDExistsAsync(Consts.Browser.LocalFirefoxDirPath);
+
+					await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS()
+						? "Applications/firefox.app"
+						: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
+
+					await Task.Delay(1000);
+					Toaster.ShowSuccess("Firefox browser updated successfully.");
+				}
+			}
 			try {
 				var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 				var urls = IoC.GetJsonValue<string[]>("DefaultHomePageSettings");
@@ -126,7 +137,7 @@ public class SysBrowserService
 
 				Instances[options] = browser;
 			  var initTask = browser.InitializeAsync();
-				_ = await browser.PreLoadedTCS.Task;
+				_ = await browser.PreLoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(8));
 				if (await browser.LoadedTCS.Task) {
 					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 					browser.InvokeEvent(Enums.SysBrowserEventType.Opened);

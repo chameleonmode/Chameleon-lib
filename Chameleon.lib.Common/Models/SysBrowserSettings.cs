@@ -64,15 +64,15 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 	public async Task<string> BuildMeleonExtSettings(string extDir)
 	{
-		var tzSpoofing = Emulation.AutoTimezone && Profile.Proxy.CanUse;
+		var tzSpoofing = (Emulation.AutoTimezone || Emulation.SpoofGeoLocation) && Profile.Proxy.CanUse;
 
 		var options = new HashSet<KeyValuePair<string, string>>() {
 			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
 			new ("canvasProtection", Emulation.SpoofCanvasFingerprint.Tlwr()),
 			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
 			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
-			new ("geoSpoofing", Emulation.SpoofGeoLocation.Tlwr()),
 			new ("audioSpoofing", Emulation.SpoofAudio.Tlwr()),
+			new ("geoSpoofing", tzSpoofing.Tlwr()),
 			new ("timezoneSpoofing", tzSpoofing.Tlwr())
 		}; 
 		var settingsBuilder = new StringBuilder();
@@ -82,6 +82,8 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		foreach (var o in options) {
 			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
 		}
+		if(tzSpoofing)
+			Toaster.ShowInf($"Requesting timezone/geo data for {Profile.Proxy!}");
 		var ipapi = tzSpoofing && await GeoIpApi.GetIpapi(Profile.Proxy!,e => Toaster.ShowErr(e)) is Ipapi papi 
 			? papi 
 			: new Ipapi() { 

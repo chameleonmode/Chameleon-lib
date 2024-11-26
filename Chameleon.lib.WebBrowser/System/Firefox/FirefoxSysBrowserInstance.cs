@@ -13,29 +13,10 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
 	public override string ExePath { get; } = Consts.Browser.LocalFirefoxExePath;
 
-	private async Task CreateChameleonFirefoxCopy()
-	{
-		var systempath = SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
-		if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath)) {
-			Toaster.ShowInf("Updating Firefox browser. Please wait...");
-
-			await IOtil.DeleteDExistsAsync(Consts.Browser.LocalFirefoxDirPath);
-
-			await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS()
-				? "Applications/firefox.app"
-				: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
-
-			await Task.Delay(1000);
-			Toaster.ShowSuccess("Firefox browser updated successfully.");
-		}
-
-		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
-	}
 	protected override async Task InitializeExtensionPath()
 	{
-		await CreateChameleonFirefoxCopy();
+		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
 		await InitializePrefsJs();
-		_ = PreLoadedTCS.TrySetResult(true);
 		//await InitializeExtensions();
 		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Foxameleon);
 		var versionFile = Path.Combine(inDir, "version.txt");
@@ -58,6 +39,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.CachedFoxameleon);
 		await IOtil.DC(inDirCached);
 		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
+		_ = PreLoadedTCS.TrySetResult(true);
 
 		//
 		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxyproxy, (
@@ -152,7 +134,11 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 				if (Brocess?.MainWindowHandle == IntPtr.Zero)
 					_ = thisTcs.TrySetResult(null);
 			}).Start();
-			Brocess = await thisTcs.Task;
+			try {
+				Brocess = await thisTcs.Task.WaitAsync(TimeSpan.FromSeconds(8));
+			} catch {
+				Close();
+			}
 #pragma warning restore CA1416 // Validate platform compatibility
 		}
 
