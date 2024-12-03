@@ -64,7 +64,8 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 	public async Task<string> BuildMeleonExtSettings(string extDir)
 	{
-		var tzSpoofing = (Emulation.AutoTimezone || Emulation.SpoofGeoLocation) && Profile.Proxy.CanUse;
+		var proxy = Profile.Proxy;
+		var tzSpoofing = Profile.Proxy != null && Profile.Proxy.CanUse && (Emulation.AutoTimezone || Emulation.SpoofGeoLocation);
 
 		var options = new HashSet<KeyValuePair<string, string>>() {
 			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
@@ -83,8 +84,8 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
 		}
 		if(tzSpoofing)
-			Toaster.ShowInf($"Requesting timezone/geo data for {Profile.Proxy!}");
-		var ipapi = tzSpoofing && await GeoIpApi.GetIpapi(Profile.Proxy!,e => Toaster.ShowErr(e)) is Ipapi papi 
+			Toaster.ShowInf($"Requesting timezone/geo data for {proxy.Host}");
+		var ipapi = tzSpoofing && await GeoIpApi.GetIpapi(proxy, e => Toaster.ShowErr(e)) is Ipapi papi 
 			? papi 
 			: new Ipapi() { 
 				timezone = "America/Los_Angeles", lat = 34.052235, lon = -118.243683 

@@ -146,9 +146,10 @@ public class SysBrowserService
 			} catch (Exception e) {
 				browser?.InvokeEvent(Enums.SysBrowserEventType.Error);
 				Toaster.ShowErr(e.Message);
-				if(e is InvalidDataException) {
+				if(e is InvalidDataException or TimeoutException) {
 					_ = Instances.TryRemove(options, out _);
 					_ = (OpenTaskCompletionSource?.TrySetResult(null));
+					_ = (browser?.LoadedTCS.TrySetResult(false));
 					return null;
 				}
 			} finally {
