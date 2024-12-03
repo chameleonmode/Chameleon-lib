@@ -52,7 +52,6 @@ public class SysBrowserService
 			if (Instances.TryGetValue(uid, out var browser)) {
 				_ = await browser.LoadedTCS.Task;
 
-
 				if (browser.Brocess?.HasExited != true && browser.Settings.Profile.Id == obj) {
 					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 					continue;
@@ -138,11 +137,11 @@ public class SysBrowserService
 				Instances[options] = browser;
 			  var initTask = browser.InitializeAsync();
 				_ = await browser.PreLoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(8));
-				if (await browser.LoadedTCS.Task) {
+				if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(16))) {
 					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 					browser.InvokeEvent(Enums.SysBrowserEventType.Opened);
 				} else {
-					await initTask;
+					throw new Exception("Browser Load Failed");
 				}
 			} catch (Exception e) {
 				browser?.InvokeEvent(Enums.SysBrowserEventType.Error);

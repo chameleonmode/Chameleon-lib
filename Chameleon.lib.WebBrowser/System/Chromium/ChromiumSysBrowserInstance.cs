@@ -116,7 +116,6 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	// ...
 	protected override async Task InitializeExtensionPath()
 	{
-		_ = PreLoadedTCS.TrySetResult(true);
 		var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
     _ = await Settings.BuildMeleonExtSettings(extDir);
 
@@ -133,6 +132,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		if (!File.Exists(PrefsFile)) {
 			await Task.Factory.StartNew(InitializePrefsFile, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default).Unwrap();
 		}
+
+		_ = PreLoadedTCS.TrySetResult(true);
 		if (File.Exists(PrefsFile)) {
 			var document = JsonDocument.Parse(await File.ReadAllTextAsync(PrefsFile));
 			var root = document.RootElement.Clone();
