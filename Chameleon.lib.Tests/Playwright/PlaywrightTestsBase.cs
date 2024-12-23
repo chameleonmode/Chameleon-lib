@@ -11,7 +11,7 @@ namespace Chameleon.lib.Tests.Playwright;
 public abstract class PlaywrightTestsBase {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 
-	public string CachePath { get; } = @"C:\Users\eli\AppData\Local\Temp\4a26dbc2-32e3-4c3d-8ee3-3c9b853313ef";// Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+	public string CachePath { get; } = @"C:\Users\eli\AppData\Local\Chameleon\Brave\25541";// Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
 	public Process? BrowserProcess { get; set; }
 	public int Port { get; set; }

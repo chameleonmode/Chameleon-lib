@@ -4,6 +4,7 @@ namespace Chameleon.lib.Api;
 public record LoginResponse(string? AccessToken, string? EncryptedAccessToken, long ExpireInSeconds, string? RefreshToken, long UserId, long? CreatorUserId, string[] Permissions, Limits LicenseLimits, bool TookGuidedTour, bool CanCreateProfiles) {
 	public RefreshTokenResponse? RefreshedToken { get; set; }
 	public string? UserName { get; set; }
+	public string? LicenseKey { get; set; }
 }
 public record RefreshTokenResponse(string? NewAccessToken, string? NewRefreshToken, long ExpireInSeconds);
 public record IsActiveResponse(bool isActive);
@@ -19,6 +20,7 @@ public static class Auther {
 		ArgumentNullException.ThrowIfNull(response.AccessToken, "Response not contain token");
 		AuthSession = response;
 		AuthSession.UserName = user;
+		AuthSession.LicenseKey = pass;
 	}
 
 	public static async Task RefreshTokenAsync()

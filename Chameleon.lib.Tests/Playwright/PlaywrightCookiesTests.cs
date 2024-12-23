@@ -15,18 +15,57 @@ using Newtonsoft.Json.Linq;
 using System.Xml.Linq;
 using Microsoft.Playwright;
 using static Chameleon.lib.Common.Constants.Consts;
+using Chameleon.lib.Api;
+using Microsoft.Extensions.Options;
+using static Chameleon.lib.Tests.Playwright.PlaywrightCookiesTests;
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
-	public class CookieRequest {
-		public string? userId { get; set; }
-		public IReadOnlyList<BrowserContextCookiesResult> cookies { get; set; } = [];
+	private readonly string clientBase = "http://localhost:3001";
+
+	public class Rootobject<T> {
+		public Datum<T>[] data { get; set; }
 	}
+
+	public class Datum<T> {
+		public string? type { get; set; }
+		public T? data { get; set; }
+		public string? _id { get; set; }
+	}
+
+	public class CookiesData {
+		public BrowserContextCookiesResult[] cookies { get; set; }
+		public int project { get; set; }
+	}
+
+	public class Root<T> {
+		public Data<T>? data { get; set; }
+	}
+
+	public class Data<T> {
+		public string? userId { get; set; }
+		public Object<T>[]? objects { get; set; }
+		public DateTime createdAt { get; set; }
+		public DateTime updatedAt { get; set; }
+		public string? id { get; set; }
+	}
+
+	public class Object<T> {
+		public string? type { get; set; }
+		public T? data { get; set; }
+		public string? _id { get; set; }
+	}
+
+	public class TokenData {
+		public string? token { get; set; }
+	}
+
 	public PlaywrightCookiesTests() : base()
 	{
-		void setup(bool init)
+		async void setup(bool init)
 		{
 			// Setup code
 			Port = Netil.NextFreePort(Port);
+			await Auther.LoginAsync(Chameleon.lib.Tests.Api.Environment.email, Chameleon.lib.Tests.Api.Environment.lkey);
 			//_ = new Process {
 			//	StartInfo = new ProcessStartInfo {
 			//		FileName = "chrome.exe",
@@ -73,68 +112,70 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 	[Fact]
 	public async Task TestPostCookies()
 	{
-		try {
-			_ = await _tcs.Task;
-			await Task.Delay(2000);
-			var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-			var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(CachePath, new() { Headless = true });
-			var page = await browserContext!.NewPageAsync();
-			_ = await page.GotoAsync("https://example.com");
+		_ = await _tcs.Task;
 
-			var cookies = await browserContext.CookiesAsync();
+		// 
+		var userId = Auther.AuthSession?.UserId;
+		var email = Auther.AuthSession?.UserName;
+		var license_key = Auther.AuthSession?.LicenseKey;
 
-			// Convert cookies to JSON
-			//var cookiesJson = JsonSerializer.Serialize(cookies);
+		// Prepare the HTTP client
+		using var httpClient = new HttpClient();
+		var authContent = new StringContent(JsonSerializer.Serialize(new { userId, email, license_key }), Encoding.UTF8, "application/json");
+		var authResponse = await httpClient.PostAsync($"{clientBase}/auth/license", authContent);
+		var authResponseString = await authResponse.Content.ReadAsStringAsync();
+		var authResponseContent = JsonSerializer.Deserialize<Root<TokenData>>(authResponseString);
+		Assert.NotNull(authResponseContent?.data?.objects?[0]?.data?.token);
 
-			// Assume user information is already retrieved and authenticated via Amplify
-			var userId = "authenticated-user-id"; // Replace with actual user ID retrieval logic
+		var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(CachePath, new() { Headless = true, ExecutablePath = IoC.GetValue<string>("BrowserPath") });
+		var cookies = await browserContext.CookiesAsync();
+		var data = new { cookies, project = 25541 };
 
-			// Prepare the HTTP client
-			// Prepare the HTTP client
-			using var httpClient = new HttpClient();
-			httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjU1MSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJlbGltZGFkaWFAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiZWxpbWRhZGlhQGdtYWlsLmNvbSIsIkFzcE5ldC5JZGVudGl0eS5TZWN1cml0eVN0YW1wIjoiU1g1MkpQUU9MUEpINTJWQ0Q3TkdETTJLNTRNWUxJN0siLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pbiIsImh0dHA6Ly93d3cuYXNwbmV0Ym9pbGVycGxhdGUuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRJZCI6IjIwMSIsInN1YiI6IjU1MSIsImp0aSI6IjFmZGU1YjIzLWZjMzAtNGFkNC04MDMyLTVlZDNkNzA0OTBhMSIsImlhdCI6MTcyNDA1Nzc1OSwibmJmIjoxNzI0MDU3NzU5LCJleHAiOjE3MjQxNDQxNTksImlzcyI6IkNoYW1lbGVvbiIsImF1ZCI6IkNoYW1lbGVvbiJ9.bcpzTCpInBEsmjEyWzLfFaAB5dh7_HSYx9bLMabru1I");
-			var requestContent = new StringContent(JsonSerializer.Serialize(new { userId, cookies }), Encoding.UTF8, "application/json");
+		httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponseContent?.data?.objects?[0]?.data?.token);
 
-		// Replace with your actual ASP.NET endpoint
-			var response = await httpClient.PutAsync("https://localhost:56332/api/s3", requestContent);
+		// Add request parameters
+		var requestUri = $"{clientBase}/api/objects/{userId}";
+		var requestContent = new StringContent(JsonSerializer.Serialize(new { type = "CUSTOM", data }), Encoding.UTF8, "application/json");
+		var response = await httpClient.PutAsync(requestUri, requestContent);
+		_ = response.EnsureSuccessStatusCode();
+		var responseString = await response.Content.ReadAsStringAsync();
 
-			_ = response.EnsureSuccessStatusCode();
-
-			await browserContext.CloseAsync();
-		} catch (Exception ex) {
-			Debug.WriteLine(ex.Message);
-		} finally {
-		}
+		await browserContext.CloseAsync();
 	}
 
 	[Fact]
 	public async Task TestGetCookies()
 	{
-		try {
-			// context.Token = SimpleStringCipher.Instance.Decrypt(qsAuthToken, Environment.DefaultPassPhrase);
-			_ = await _tcs.Task;
-			await Task.Delay(2000);
-			var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-			var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(CachePath, new() { Headless = true });
+		_ = await _tcs.Task;
 
-			// Assume user information is already retrieved and authenticated via Amplify
-			//var userId = "authenticated-user-id"; // Replace with actual user ID retrieval logic
+		// 
+		var userId = Auther.AuthSession?.UserId;
+		var email = Auther.AuthSession?.UserName;
+		var license_key = Auther.AuthSession?.LicenseKey;
 
-			// Prepare the HTTP client
-			using var httpClient = new HttpClient();
-			httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjU1MSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJlbGltZGFkaWFAZ21haWwuY29tIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiZWxpbWRhZGlhQGdtYWlsLmNvbSIsIkFzcE5ldC5JZGVudGl0eS5TZWN1cml0eVN0YW1wIjoiU1g1MkpQUU9MUEpINTJWQ0Q3TkdETTJLNTRNWUxJN0siLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pbiIsImh0dHA6Ly93d3cuYXNwbmV0Ym9pbGVycGxhdGUuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRJZCI6IjIwMSIsInN1YiI6IjU1MSIsImp0aSI6IjFmZGU1YjIzLWZjMzAtNGFkNC04MDMyLTVlZDNkNzA0OTBhMSIsImlhdCI6MTcyNDA1Nzc1OSwibmJmIjoxNzI0MDU3NzU5LCJleHAiOjE3MjQxNDQxNTksImlzcyI6IkNoYW1lbGVvbiIsImF1ZCI6IkNoYW1lbGVvbiJ9.bcpzTCpInBEsmjEyWzLfFaAB5dh7_HSYx9bLMabru1I");
-			//var requestContent = new StringContent(JsonSerializer.Serialize(new CookieRequestBody() { UserId = userId }), System.Text.Encoding.UTF8, "application/json");
+		// Prepare the HTTP client
+		using var httpClient = new HttpClient();
+		var authContent = new StringContent(JsonSerializer.Serialize(new { userId, email, license_key }), Encoding.UTF8, "application/json");
+		var authResponse = await httpClient.PostAsync($"{clientBase}/auth/license", authContent);
+		var authResponseString = await authResponse.Content.ReadAsStringAsync();
+		var authResponseContent = JsonSerializer.Deserialize<Root<TokenData>>(authResponseString);
+		Assert.NotNull(authResponseContent?.data?.objects?[0]?.data?.token);
 
-			// Replace with your actual Lambda endpoint
-			var response = await httpClient.GetAsync($"https://localhost:56332/api/s3/cookies");
-			response.EnsureSuccessStatusCode();
+		// 
+		httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponseContent?.data?.objects?[0]?.data?.token);
+		var requestUri = $"{clientBase}/api/objects/{userId}?type=CUSTOM";
+		var requestContent = new StringContent(JsonSerializer.Serialize(new { type = "CUSTOM" }), Encoding.UTF8, "application/json");
+		var response = await httpClient.GetAsync(requestUri);
+		_ = response.EnsureSuccessStatusCode();
 
-			var cookiesJson = await response.Content.ReadAsStringAsync();
-      var cookies = JsonSerializer.Deserialize<CookieRequest>(cookiesJson);
+		var cookiesJson = await response.Content.ReadAsStringAsync();
+		var cookies = JsonSerializer.Deserialize<Rootobject<CookiesData>>(cookiesJson);
 
-			//add loop to add cookies to playwright context
-			var pcookies = new List<Microsoft.Playwright.Cookie>();
-			foreach (var cookie in cookies?.cookies!) {
+		//add loop to add cookies to playwright context
+		var pcookies = new List<Microsoft.Playwright.Cookie>();
+		foreach (var item in cookies?.data!) {
+			foreach (var cookie in item.data!.cookies) {
 				pcookies.Add(new Microsoft.Playwright.Cookie {
 					Domain = cookie.Domain,
 					Expires = cookie.Expires,
@@ -143,15 +184,15 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 					Path = cookie.Path,
 					SameSite = cookie.SameSite,
 					Secure = cookie.Secure,
-					Value = cookie.Value
+					Value = cookie.Value // Fix: Ensure that 'Value' is a property, not a method
 				});
 			}
-			await browserContext.AddCookiesAsync(pcookies);
-			await browserContext.CloseAsync();
-		} catch (Exception ex) {
-			Debug.WriteLine(ex.Message);
-		} finally {
 		}
+
+		var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(CachePath, new() { Headless = true, ExecutablePath = IoC.GetValue<string>("BrowserPath") });
+		await browserContext.AddCookiesAsync(pcookies);
+		await browserContext.CloseAsync();
 	}
 
 	public void Dispose()
