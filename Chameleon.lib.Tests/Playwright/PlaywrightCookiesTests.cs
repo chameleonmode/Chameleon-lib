@@ -18,47 +18,9 @@ using static Chameleon.lib.Common.Constants.Consts;
 using Chameleon.lib.Api;
 using Microsoft.Extensions.Options;
 using static Chameleon.lib.Tests.Playwright.PlaywrightCookiesTests;
+using Chameleon.lib.Abs;
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
-	private readonly string clientBase = "http://localhost:3001";
-
-	public class Rootobject<T> {
-		public Datum<T>[] data { get; set; }
-	}
-
-	public class Datum<T> {
-		public string? type { get; set; }
-		public T? data { get; set; }
-		public string? _id { get; set; }
-	}
-
-	public class CookiesData {
-		public BrowserContextCookiesResult[] cookies { get; set; }
-		public int project { get; set; }
-	}
-
-	public class Root<T> {
-		public Data<T>? data { get; set; }
-	}
-
-	public class Data<T> {
-		public string? userId { get; set; }
-		public Object<T>[]? objects { get; set; }
-		public DateTime createdAt { get; set; }
-		public DateTime updatedAt { get; set; }
-		public string? id { get; set; }
-	}
-
-	public class Object<T> {
-		public string? type { get; set; }
-		public T? data { get; set; }
-		public string? _id { get; set; }
-	}
-
-	public class TokenData {
-		public string? token { get; set; }
-	}
-
 	public PlaywrightCookiesTests() : base()
 	{
 		async void setup(bool init)
@@ -114,34 +76,16 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 	{
 		_ = await _tcs.Task;
 
-		// 
-		var userId = Auther.AuthSession?.UserId;
-		var email = Auther.AuthSession?.UserName;
-		var license_key = Auther.AuthSession?.LicenseKey;
-
-		// Prepare the HTTP client
-		using var httpClient = new HttpClient();
-		var authContent = new StringContent(JsonSerializer.Serialize(new { userId, email, license_key }), Encoding.UTF8, "application/json");
-		var authResponse = await httpClient.PostAsync($"{clientBase}/auth/license", authContent);
-		var authResponseString = await authResponse.Content.ReadAsStringAsync();
-		var authResponseContent = JsonSerializer.Deserialize<Root<TokenData>>(authResponseString);
-		Assert.NotNull(authResponseContent?.data?.objects?[0]?.data?.token);
-
 		var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 		var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(CachePath, new() { Headless = true, ExecutablePath = IoC.GetValue<string>("BrowserPath") });
 		var cookies = await browserContext.CookiesAsync();
-		var data = new { cookies, project = 25541 };
-
-		httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponseContent?.data?.objects?[0]?.data?.token);
-
-		// Add request parameters
-		var requestUri = $"{clientBase}/api/objects/{userId}";
-		var requestContent = new StringContent(JsonSerializer.Serialize(new { type = "CUSTOM", data }), Encoding.UTF8, "application/json");
-		var response = await httpClient.PutAsync(requestUri, requestContent);
-		_ = response.EnsureSuccessStatusCode();
-		var responseString = await response.Content.ReadAsStringAsync();
-
 		await browserContext.CloseAsync();
+
+		var data = new { profileId = "25541", cookies };
+		var jsonRequestContent = JsonSerializer.Serialize(new { type = Abs.ObjectTypes.OBJECT.GetObjectType(ObjectType.COOKIE), data });
+
+		Assert.NotEmpty(cookies);
+		Assert.NotNull(jsonRequestContent);
 	}
 
 	[Fact]
@@ -149,33 +93,167 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 	{
 		_ = await _tcs.Task;
 
-		// 
-		var userId = Auther.AuthSession?.UserId;
-		var email = Auther.AuthSession?.UserName;
-		var license_key = Auther.AuthSession?.LicenseKey;
-
-		// Prepare the HTTP client
-		using var httpClient = new HttpClient();
-		var authContent = new StringContent(JsonSerializer.Serialize(new { userId, email, license_key }), Encoding.UTF8, "application/json");
-		var authResponse = await httpClient.PostAsync($"{clientBase}/auth/license", authContent);
-		var authResponseString = await authResponse.Content.ReadAsStringAsync();
-		var authResponseContent = JsonSerializer.Deserialize<Root<TokenData>>(authResponseString);
-		Assert.NotNull(authResponseContent?.data?.objects?[0]?.data?.token);
-
-		// 
-		httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponseContent?.data?.objects?[0]?.data?.token);
-		var requestUri = $"{clientBase}/api/objects/{userId}?type=CUSTOM";
-		var requestContent = new StringContent(JsonSerializer.Serialize(new { type = "CUSTOM" }), Encoding.UTF8, "application/json");
-		var response = await httpClient.GetAsync(requestUri);
-		_ = response.EnsureSuccessStatusCode();
-
-		var cookiesJson = await response.Content.ReadAsStringAsync();
-		var cookies = JsonSerializer.Deserialize<Rootobject<CookiesData>>(cookiesJson);
+    var responseString = """
+    {
+      "data": [
+        {
+          "type": "COOKIE",
+          "data": {
+            "profileId": "25541",
+            "cookies": [
+              {
+                "name": "AEC",
+                "value": "AZ6Zc-W5_FI_3j5WV2tP_CZSoj4fFBducKDnHTZtX9ZG1Goeh7JRHx_w8g",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 1
+              },
+              {
+                "name": "NID",
+                "value": "519=Z04BHLYc2hfg6z8t-v7KZv6R9qQZ7Ws8OMsLgFD9zPTNYoHg2aghqwJz8OWsVPjFiRprrNCGq9avlNIK4bge3PwJKSI1AIQbH5ZG6M2mC3BBmTkPcUlVwle_BHqCmR67DKLd_7ocN9XXKsBxpyIw7I8QrMNKehuiWxLnCtOL1nF_aMO2KYHmv0ENpZASl0bTKMCFYYe0UT542PDYbTcHZG0FFLug",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 2
+              }
+            ]
+          },
+          "_id": "676a94f6c8434c0ca0ed640c"
+        },
+        {
+          "type": "COOKIE",
+          "data": {
+            "profileId": "25541",
+            "cookies": [
+              {
+                "name": "AEC",
+                "value": "AZ6Zc-W5_FI_3j5WV2tP_CZSoj4fFBducKDnHTZtX9ZG1Goeh7JRHx_w8g",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 1
+              },
+              {
+                "name": "NID",
+                "value": "519=Z04BHLYc2hfg6z8t-v7KZv6R9qQZ7Ws8OMsLgFD9zPTNYoHg2aghqwJz8OWsVPjFiRprrNCGq9avlNIK4bge3PwJKSI1AIQbH5ZG6M2mC3BBmTkPcUlVwle_BHqCmR67DKLd_7ocN9XXKsBxpyIw7I8QrMNKehuiWxLnCtOL1nF_aMO2KYHmv0ENpZASl0bTKMCFYYe0UT542PDYbTcHZG0FFLug",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 2
+              }
+            ]
+          },
+          "_id": "676a9511c8434c0ca0ed6416"
+        },
+        {
+          "type": "COOKIE",
+          "data": {
+            "profileId": "25541",
+            "cookies": [
+              {
+                "name": "AEC",
+                "value": "AZ6Zc-W5_FI_3j5WV2tP_CZSoj4fFBducKDnHTZtX9ZG1Goeh7JRHx_w8g",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 1
+              },
+              {
+                "name": "NID",
+                "value": "519=Z04BHLYc2hfg6z8t-v7KZv6R9qQZ7Ws8OMsLgFD9zPTNYoHg2aghqwJz8OWsVPjFiRprrNCGq9avlNIK4bge3PwJKSI1AIQbH5ZG6M2mC3BBmTkPcUlVwle_BHqCmR67DKLd_7ocN9XXKsBxpyIw7I8QrMNKehuiWxLnCtOL1nF_aMO2KYHmv0ENpZASl0bTKMCFYYe0UT542PDYbTcHZG0FFLug",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 2
+              }
+            ]
+          },
+          "_id": "676aa57d339c13619e72465a"
+        },
+        {
+          "type": "COOKIE",
+          "data": {
+            "profileId": "25541",
+            "cookies": [
+              {
+                "name": "AEC",
+                "value": "AZ6Zc-W5_FI_3j5WV2tP_CZSoj4fFBducKDnHTZtX9ZG1Goeh7JRHx_w8g",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 1
+              },
+              {
+                "name": "NID",
+                "value": "519=Z04BHLYc2hfg6z8t-v7KZv6R9qQZ7Ws8OMsLgFD9zPTNYoHg2aghqwJz8OWsVPjFiRprrNCGq9avlNIK4bge3PwJKSI1AIQbH5ZG6M2mC3BBmTkPcUlVwle_BHqCmR67DKLd_7ocN9XXKsBxpyIw7I8QrMNKehuiWxLnCtOL1nF_aMO2KYHmv0ENpZASl0bTKMCFYYe0UT542PDYbTcHZG0FFLug",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 2
+              }
+            ]
+          },
+          "_id": "676aa585339c13619e72468f"
+        },
+        {
+          "type": "COOKIE",
+          "data": {
+            "profileId": "25541",
+            "cookies": [
+              {
+                "name": "AEC",
+                "value": "AZ6Zc-W5_FI_3j5WV2tP_CZSoj4fFBducKDnHTZtX9ZG1Goeh7JRHx_w8g",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 1
+              },
+              {
+                "name": "NID",
+                "value": "519=Z04BHLYc2hfg6z8t-v7KZv6R9qQZ7Ws8OMsLgFD9zPTNYoHg2aghqwJz8OWsVPjFiRprrNCGq9avlNIK4bge3PwJKSI1AIQbH5ZG6M2mC3BBmTkPcUlVwle_BHqCmR67DKLd_7ocN9XXKsBxpyIw7I8QrMNKehuiWxLnCtOL1nF_aMO2KYHmv0ENpZASl0bTKMCFYYe0UT542PDYbTcHZG0FFLug",
+                "domain": ".google.com",
+                "path": "/",
+                "expires": 1748788700,
+                "httpOnly": true,
+                "secure": true,
+                "sameSite": 2
+              }
+            ]
+          },
+          "_id": "676aa6fb6d953f476a670dac"
+        }
+      ]
+    }
+    """;
+		var cookiesResponse = JsonSerializer.Deserialize<Abs.ApiSuccessResponse<List<BaseObject<CookieObject<BrowserContextCookiesResult>>>>>(responseString, new JsonSerializerOptions() {
+			PropertyNameCaseInsensitive = true,
+			PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+		});
+		Assert.NotNull(cookiesResponse?.Data);
 
 		//add loop to add cookies to playwright context
-		var pcookies = new List<Microsoft.Playwright.Cookie>();
-		foreach (var item in cookies?.data!) {
-			foreach (var cookie in item.data!.cookies) {
+		foreach (var cookies in cookiesResponse!.Data!) {
+			var pcookies = new List<Microsoft.Playwright.Cookie>();
+			foreach (var cookie in cookies.Data.Cookies!) {
 				pcookies.Add(new Microsoft.Playwright.Cookie {
 					Domain = cookie.Domain,
 					Expires = cookie.Expires,
@@ -184,15 +262,17 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 					Path = cookie.Path,
 					SameSite = cookie.SameSite,
 					Secure = cookie.Secure,
-					Value = cookie.Value // Fix: Ensure that 'Value' is a property, not a method
+					Value = cookie.Value
 				});
 			}
+			var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+			var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
+				@"C:\Users\eli\AppData\Local\Chameleon\Brave\" + cookies.Data.ProfileId, 
+				new() { Headless = true, ExecutablePath = IoC.GetValue<string>("BrowserPath") }
+			);
+			await browserContext.AddCookiesAsync(pcookies);
+			await browserContext.CloseAsync();
 		}
-
-		var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(CachePath, new() { Headless = true, ExecutablePath = IoC.GetValue<string>("BrowserPath") });
-		await browserContext.AddCookiesAsync(pcookies);
-		await browserContext.CloseAsync();
 	}
 
 	public void Dispose()

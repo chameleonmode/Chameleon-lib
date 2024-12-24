@@ -41,6 +41,7 @@
 		<ProjectReference Include="..\Chameleon.lib.CommunityToolkit\Chameleon.lib.CommunityToolkit.csproj" />
 		<ProjectReference Include="..\Chameleon.lib.Playwright\Chameleon.lib.Playwright.csproj" />
 		<ProjectReference Include="..\Chameleon.lib.WebBrowser\Chameleon.lib.WebBrowser.csproj" />
+		<ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
