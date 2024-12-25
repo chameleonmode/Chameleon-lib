@@ -84,7 +84,7 @@ public class PlaywrightCookiesRepo {
 		return CookiesCache.Count > 0;
 	}
 
-	public async Task SyncChromiumCookies(Enums.SystemBrowserType browserType, bool delete = true)
+	public async Task SyncCookies(Enums.SystemBrowserType browserType, bool delete = true)
 	{
 		//check if there are cookies to load from response
 		if (!await HasCookies()) {
