@@ -70,7 +70,7 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 	{
 		_ = await _tcs.Task;
 
-		await _playwrightCookiesRepo.SyncCookies(Enums.SystemBrowserType.Brave, false);
+		await _playwrightCookiesRepo.SyncCookies(Enums.SystemBrowserType.Brave);
 	}
 
 	[Fact]
@@ -78,7 +78,7 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 	{
 		_ = await _tcs.Task;
 
-		await _playwrightCookiesRepo.SyncCookies(Enums.SystemBrowserType.Chrome, false);
+		await _playwrightCookiesRepo.SyncCookies(Enums.SystemBrowserType.Chrome);
 	}
 
 	[Fact]
@@ -86,7 +86,7 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 	{
 		_ = await _tcs.Task;
 	//C:\repos\Chameleon\Chameleon.Avalonia\src\Chameleon.Avalonia.Desktop\obj\outwin\.playwright\node\win32_x64\node.exe C:\repos\Chameleon\Chameleon.Avalonia\src\Chameleon.Avalonia.Desktop\obj\outwin\.playwright\package\cli.js install firefox
-		await _playwrightCookiesRepo.SyncCookies(Enums.SystemBrowserType.Firefox, false);
+		await _playwrightCookiesRepo.SyncCookies(Enums.SystemBrowserType.Firefox);
 	}
 	[Fact]
 	public async Task TestPostCookies()

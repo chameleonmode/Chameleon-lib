@@ -84,7 +84,26 @@ public class PlaywrightCookiesRepo {
 		return CookiesCache.Count > 0;
 	}
 
-	public async Task SyncCookies(Enums.SystemBrowserType browserType, bool delete = true)
+	public async Task SyncCookiesClear()
+	{
+		//check if there are cookies to load from response
+		if (!await HasCookies()) {
+			return;
+		}
+		//add loop to add cookies to playwright context
+		for (var i = CookiesCache.Count - 1; i >= 0; i--) {
+			var cookies = CookiesCache[i];
+
+			// show toaster for starting sync out of items left to sync
+			Toaster.ShowInf($"Clearing ... {i + 1} left");
+			var deleted = await _abService.DeleteCookieAsync(cookies.Id);
+			if (deleted) {
+				CookiesCache.RemoveAt(i);
+			}
+		}
+	}
+
+	public async Task SyncCookies(Enums.SystemBrowserType browserType)
 	{
 		//check if there are cookies to load from response
 		if (!await HasCookies()) {
@@ -123,7 +142,7 @@ public class PlaywrightCookiesRepo {
 			}
 
 			// show toaster for starting sync out of items left to sync
-			Toaster.ShowInf($"Syncing ... {i} left");
+			Toaster.ShowInf($"Syncing ... {i + 1} left");
 
 			// sync cookies
 			try {
@@ -142,13 +161,6 @@ public class PlaywrightCookiesRepo {
 				Console.WriteLine(e.Message);
 				anyEx = e;
 				continue;
-			} finally {
-				if (delete) {
-					var deleted = await _abService.DeleteCookieAsync(cookies.Id);
-					if (deleted) {
-						CookiesCache.RemoveAt(i);
-					}
-				}
 			}
 		}
 
@@ -157,7 +169,7 @@ public class PlaywrightCookiesRepo {
 		}
 	}
 
-	public async Task<string?> InstallPlaywrightsFirefoxIfNecessary()
+	public static async Task<string?> InstallPlaywrightsFirefoxIfNecessary()
 	{
 		var dirpath = IsPlaywrightFirefoxInstalled();
 		try {
