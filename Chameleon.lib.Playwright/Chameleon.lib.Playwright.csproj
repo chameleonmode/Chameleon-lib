@@ -15,9 +15,11 @@
 		<PackageReference Include="Microsoft.Playwright" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Common" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+		<PackageReference Include="DynamicData" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\Chameleon.lib.Api\Chameleon.lib.Api.csproj" />
 	  <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
 	  <ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
 	</ItemGroup>

@@ -10,4 +10,8 @@
     <None Include="Abs\Abs.classes.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="DynamicData" />
+  </ItemGroup>
+
 </Project>

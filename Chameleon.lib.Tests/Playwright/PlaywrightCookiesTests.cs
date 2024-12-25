@@ -1,56 +1,33 @@
 ﻿using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Playwright.Scripts;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common;
-using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Common.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text;
 using System.Text.Json;
-using Newtonsoft.Json.Linq;
-using System.Xml.Linq;
 using Microsoft.Playwright;
-using static Chameleon.lib.Common.Constants.Consts;
 using Chameleon.lib.Api;
-using Microsoft.Extensions.Options;
-using static Chameleon.lib.Tests.Playwright.PlaywrightCookiesTests;
 using Chameleon.lib.Abs;
+using Chameleon.lib.Common.Constants;
+using static Chameleon.lib.Abs.ObjectTypes;
+using DynamicData;
+
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
+	private readonly PlaywrightCookiesRepo _playwrightCookiesRepo = PlaywrightCookiesRepo.Instance;
+
 	public PlaywrightCookiesTests() : base()
 	{
 		async void setup(bool init)
 		{
 			// Setup code
 			Port = Netil.NextFreePort(Port);
-			await Auther.LoginAsync(Chameleon.lib.Tests.Api.Environment.email, Chameleon.lib.Tests.Api.Environment.lkey);
-			//_ = new Process {
-			//	StartInfo = new ProcessStartInfo {
-			//		FileName = "chrome.exe",
-			//		Arguments = string.Join(" ", new List<string> {
-			//				"--disable-session-crashed-bubble",
-			//				"--hide-crash-restore-bubble",
-			//				"--restore-last-session",
-			//				"--profile-directory=Default",
-			//				"--ash-no-nudges",
-			//				"--disable-domain-reliability",
-			//				"--no-default-browser-check",
-			//				"--no-first-run",
-			//				"--disable-field-trial-config",
-			//				$"--remote-debugging-port={Port}",
-			//				"--disable-hyperlink-auditing",
-			//				$"--user-data-dir=\"{CachePath}\""
-			//		}),
-			//		UseShellExecute = true,
-			//		ErrorDialog = true,
-			//		CreateNoWindow = true,
-			//	},
-			//	EnableRaisingEvents = true,
-			//}.Start();
+			await Auther.LoginAsync(lib.Tests.Api.Environment.email, lib.Tests.Api.Environment.lkey);
+
+			_ = Assert.NotNull(Auther.AuthSession?.UserId);
+			Assert.NotNull(Auther.AuthSession?.UserName);
+			Assert.NotNull(Auther.AuthSession?.LicenseKey);
 			_tcs.SetResult(true);
 		}
 		IoC.Instance.Configure(() => {
@@ -71,6 +48,46 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 		IoC.Instance.Init(action: setup);
 	}
 
+	[Fact]
+	public async Task Test_CookiesRepo_PutCookies()
+	{
+		_ = await _tcs.Task;
+
+		await _playwrightCookiesRepo.PutChromiumCookies(
+			Auther.AuthSession!.UserId!.ToString(),
+			"25541",
+			Enums.SystemBrowserType.Chrome
+		);
+		await _playwrightCookiesRepo.PutChromiumCookies(
+			Auther.AuthSession!.UserId!.ToString(),
+			"25542",
+			Enums.SystemBrowserType.Chrome
+		);
+	}
+
+	[Fact]
+	public async Task Test_CookiesRepo_GetCookies_intoBrave()
+	{
+		_ = await _tcs.Task;
+
+		await _playwrightCookiesRepo.SyncChromiumCookies(Enums.SystemBrowserType.Brave, false);
+	}
+
+	[Fact]
+	public async Task Test_CookiesRepo_GetCookies_intoChrome()
+	{
+		_ = await _tcs.Task;
+
+		await _playwrightCookiesRepo.SyncChromiumCookies(Enums.SystemBrowserType.Chrome, false);
+	}
+
+	[Fact]
+	public async Task Test_CookiesRepo_GetCookies_intoFirefox()
+	{
+		_ = await _tcs.Task;
+	//C:\repos\Chameleon\Chameleon.Avalonia\src\Chameleon.Avalonia.Desktop\obj\outwin\.playwright\node\win32_x64\node.exe C:\repos\Chameleon\Chameleon.Avalonia\src\Chameleon.Avalonia.Desktop\obj\outwin\.playwright\package\cli.js install firefox
+		await _playwrightCookiesRepo.SyncChromiumCookies(Enums.SystemBrowserType.Firefox, false);
+	}
 	[Fact]
 	public async Task TestPostCookies()
 	{

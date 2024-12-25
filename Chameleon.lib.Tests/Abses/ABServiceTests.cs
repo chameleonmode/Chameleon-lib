@@ -1,7 +1,10 @@
-﻿using Chameleon.lib.Abs;
+﻿using System.Text.Json;
+
+using Chameleon.lib.Abs;
 using Chameleon.lib.Api;
 using Chameleon.lib.Common;
 using Chameleon.lib.Common.Types;
+using Chameleon.lib.Playwright.Services;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Playwright;
@@ -11,6 +14,22 @@ namespace Chameleon.Tests;
 /// <summary>
 /// Tests for ABService using xUnit.
 /// Adjust namespaces to match your solution.
+/// 
+/// 1@1 1 KEYF-QSKF-H2W5-LPE2
+/// 
+/// {
+//  "Login": { "LoginName": "elimdadia@gmail.com", "LicenseKey": "HHTQ-QJYS-ZMWX-CO5U" },
+//  "Settings": {
+//	"CurrentAppTheme": "Dark",
+//    "CustomAccentColor": null,
+//    "UseCustomAccentColor": false,
+//    "AutoLogin": true,
+//    "CodesverifyApiKey": "11025f84122066b887645",
+//    "UserScriptsDirectory": "C:/repos/scripts",
+//    "SMSPoolApiKey": "Rbv5Lt9KTERxuQREjvU8i4ugcwXwNZOT"
+
+//	}
+//}
 /// </summary>
 public class ABServiceTests {
 		// Typically, you would inject a mock or real HttpClient here, but for simplicity,
@@ -21,8 +40,9 @@ public class ABServiceTests {
 		private long userId;
 		private string email = string.Empty;
 		private string license_key = string.Empty;
+		private long? creatorId;
 
-		public ABServiceTests()
+	public ABServiceTests()
 	{
 		IoC.Instance.Configure(() => {
 			return new WritableConfiguration(new ConfigurationBuilder()
@@ -44,14 +64,29 @@ public class ABServiceTests {
 			userId = Auther.AuthSession.UserId;
 			email = Auther.AuthSession.UserName;
 			license_key = Auther.AuthSession.LicenseKey;
+			creatorId = Auther.AuthSession.CreatorUserId;
 
-			_abService.SetLoaders(() => {
-				return IoC.GetValue(IoCKeys.TokenObject)!;
-			}
-			, () => Auther.AuthSession.UserId);
+
+			_abService.SetLoaders(
+					() => Tuple.Create(
+							Auther.AuthSession!.UserId,
+							Auther.AuthSession!.UserName!,
+							Auther.AuthSession!.LicenseKey!,
+							Auther.AuthSession!.CreatorUserId
+					)
+			);
 
 			_ = _tcs.TrySetResult();
 		});
+	}
+
+	[Fact]
+	public async Task LoadCookiesRepo()
+	{
+	  await _tcs.Task;
+
+		var playwrightCookiesRepo = PlaywrightCookiesRepo.Instance;
+		Assert.True(await playwrightCookiesRepo.HasCookies());
 	}
 
 	[Fact]
@@ -59,17 +94,8 @@ public class ABServiceTests {
 	{
 		await _tcs.Task;
 
-		var result = await _abService.ActivateLicenseAsync(userId, email, license_key);
+		var result = await _abService.GetTokenAsync();
 		Assert.NotNull(result);
-		Assert.NotNull(result?.Data?.Objects);
-		var token = result?.Data?.Objects
-			.FindLast(o => o.Type == ObjectTypes.USER.GetUserType(UserType.TOKEN))?.Data?.Token;
-		Assert.NotNull(token);
-
-		IoC.SetValue(token, IoCKeys.TokenObject);
-		var savedToken = IoC.GetValue(IoCKeys.TokenObject);
-		Assert.NotNull(savedToken);
-		Assert.Equal(token, savedToken);
 	}
 
 	[Fact]
@@ -128,49 +154,49 @@ public class ABServiceTests {
 			exception = ex;
 		}
 
-		// Assert
+		// Assert 1@1 1 KEYF-QSKF-H2W5-LPE2
 		Assert.Null(exception);
 		// For real integration:
 		Assert.NotNull(result);
 		Assert.NotNull(result?.Data);
 	}
 
-	[Fact]
-	public async Task AddCookiesAsync_AddsCookies_Successfully()
-	{
-		await _tcs.Task;
-		// JSON string must match your API’s expected structure
-		var cookiesJson = """
-        {
-          "type": "COOKIE",
-          "data": {
-            "profileId": "12345",
-            "cookies": [
-              {
-                "name": "AEC",
-                "value": "someTestCookieValue",
-                "domain": ".example.com"
-              }
-            ]
-          }
-        }
-        """;
+	//[Fact]
+	//public async Task AddCookiesAsync_AddsCookies_Successfully()
+	//{
+	//	await _tcs.Task;
+	//	// JSON string must match your API’s expected structure
+	//	var cookiesJson = """
+	//       {
+	//         "type": "COOKIE",
+	//         "data": {
+	//           "profileId": "12345",
+	//           "cookies": [
+	//             {
+	//               "name": "AEC",
+	//               "value": "someTestCookieValue",
+	//               "domain": ".example.com"
+	//             }
+	//           ]
+	//         }
+	//       }
+	//       """;
 
-		// Act
-		ApiSuccessResponse<Doc<object>>? result = null;
-		Exception? exception = null;
-		try {
-			result = await _abService.AddCookiesAsync(cookiesJson);
-		} catch (Exception ex) {
-			exception = ex;
-		}
+	//	// Act
+	//	ApiSuccessResponse<Doc<object>>? result = null;
+	//	Exception? exception = null;
+	//	try {
+	//		result = await _abService.AddCookiesAsync(JsonSerializer.Deserialize<object>(cookiesJson));
+	//	} catch (Exception ex) {
+	//		exception = ex;
+	//	}
 
-		// Assert
-		Assert.Null(exception);
-		// For real integration:
-		Assert.NotNull(result);
-		Assert.NotEmpty(result?.Data?.Objects!);
-	}
+	//	// Assert
+	//	Assert.Null(exception);
+	//	// For real integration:
+	//	Assert.NotNull(result);
+	//	Assert.NotEmpty(result?.Data?.Objects!);
+	//}
 
 	[Fact]
 	public async Task GetCookiesAsync_Returns_Cookies()

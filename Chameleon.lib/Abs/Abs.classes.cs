@@ -35,7 +35,6 @@ public static class IoCKeys {
 	public static string TokenObject => nameof(Abs) + nameof(Abs.TokenObject);
 }
 
-
 public class ApiErrorResponse {
 	public string? Error { get; set; }
 	public string? Code { get; set; }

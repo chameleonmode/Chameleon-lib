@@ -4,15 +4,22 @@ using System.Text;
 
 namespace Chameleon.lib.Abs;
 public class ABService {
-	// Lazy-loaded singleton for demonstration
+	// Lazy-loaded singleton
 	private static readonly Lazy<ABService> _instance = new(() => new ABService("http://localhost:3001"));
 	public static ABService Instance => _instance.Value;
+	// ------------------------
 
 	private readonly HttpClient _httpClient;
 	private readonly JsonSerializerOptions _jsonOptions;
 
-	private Func<string>? token;
-	private Func<long>? @userId;
+	private string? token;
+	//Auther.AuthSession!.UserId, Auther.AuthSession!.UserName!, Auther.AuthSession!.LicenseKey!, Auther.AuthSession!.CreatorUserId!
+	private Func<Tuple<long,string,string,long?>>? credLoader;
+
+	public bool IsAuthenticated => !string.IsNullOrWhiteSpace(token);
+	public long UserId => credLoader!().Item1;
+	public string UserName => credLoader!().Item2;
+	public string LicenseKey => credLoader!().Item3;
 
 	// Private constructor to enforce singleton usage
 	private ABService(string baseUrl)
@@ -26,29 +33,32 @@ public class ABService {
 			PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 		};
 	}
+	//
 
-	public void SetLoaders(Func<string> @token, Func<long> @userId)
+	public void SetLoaders(Func<Tuple<long,string,string,long?>> credz)
 	{
-		this.token = token;
-		this.userId = userId;
+		this.credLoader = credz;
 	}
 
 	#region Public API Methods
 
-	public async Task<ApiSuccessResponse<Doc<TokenObject>>?> ActivateLicenseAsync(
-			long userId,
-			string email,
-			string licenseKey
-	)
+	public async Task<string?> GetTokenAsync()
 	{
-		var body = new { userId, email, license_key = licenseKey };
-		var response = await PostAsync<ApiSuccessResponse<Doc<TokenObject>>>("/auth/license", body);
-		return response;
+		var (userId, email, license_key, creatorId) = credLoader!();
+		var data = new { userId, email, license_key, creatorId };
+		var response = await PostAsync<ApiSuccessResponse<Doc<TokenObject>>>(
+			"/auth/license"
+			, data
+		);
+		var token = response?.Data?.Objects
+			.FindLast(o => o.Type == ObjectTypes.USER.GetUserType(UserType.TOKEN))?.Data?.Token;
+		this.token = token;
+
+		return this.token;
 	}
 
 	public async Task<ApiSuccessResponse<Doc<TokenObject>>?> LoginAsync()
 	{
-		var token = this.token!();
 		var body = new { token };
 		var response = await PostAsync<ApiSuccessResponse<Doc<TokenObject>>>("/auth/login", body);
 		return response;
@@ -59,7 +69,6 @@ public class ABService {
 			object data
 	)
 	{
-		// e.g., PUT /api/objects/{userId}  with body { type = objectType, data = { ... } }
 		SetBearerToken();
 
 		var body = new
@@ -68,7 +77,7 @@ public class ABService {
 			data
 		};
 
-		var endpoint = $"/api/objects/{userId!()}";
+		var endpoint = $"/api/objects/{UserId}";
 		var response = await PutAsync<ApiSuccessResponse<Doc<object>>>(endpoint, body);
 		return response;
 	}
@@ -79,20 +88,23 @@ public class ABService {
 	{
 		SetBearerToken();
 
-		var endpoint = $"/api/objects/{userId!()}?type={ObjectTypes.OBJECT.GetObjectType(objectType)}";
+		var endpoint = $"/api/objects/{UserId}?type={ObjectTypes.OBJECT.GetObjectType(objectType)}";
 		var response = await GetAsync<ApiSuccessResponse<List<BaseObject<object>>>>(endpoint);
 		return response;
 	}
 
 	public async Task<ApiSuccessResponse<Doc<object>>?> AddCookiesAsync(
-			string cookiesJson
+		string userId,
+		object data
 	)
 	{
 		SetBearerToken();
 
-		// Because we already have a JSON string, we can pass it directly as StringContent
-		var endpoint = $"/api/objects/{userId!()}";
-		var response = await PutRawJsonAsync<ApiSuccessResponse<Doc<object>>>(endpoint, cookiesJson);
+		var endpoint = $"/api/objects/{userId}";
+		var response = await PutRawJsonAsync<ApiSuccessResponse<Doc<object>>>(
+			endpoint, 
+			JsonSerializer.Serialize(new { type = ObjectTypes.OBJECT.GetObjectType(ObjectType.COOKIE), data }, _jsonOptions)
+		);
 		return response;
 	}
 
@@ -105,7 +117,7 @@ public class ABService {
 	{
 		SetBearerToken();
 
-		var endpoint = $"/api/objects/{userId!()}?type={ObjectTypes.OBJECT.GetObjectType(ObjectType.COOKIE)}";
+		var endpoint = $"/api/objects/{UserId}?type={ObjectTypes.OBJECT.GetObjectType(ObjectType.COOKIE)}";
 		var response = await GetAsync<ApiSuccessResponse<List<BaseObject<CookieObject<T>>>>>(endpoint);
 		return response;
 	}
@@ -116,7 +128,7 @@ public class ABService {
 	{
 		SetBearerToken();
 
-		var endpoint = $"/api/objects/{userId!()}?type={ObjectTypes.OBJECT.GetObjectType(ObjectType.COOKIE)}&_id={cookieId}";
+		var endpoint = $"/api/objects/{UserId}?type={ObjectTypes.OBJECT.GetObjectType(ObjectType.COOKIE)}&_id={cookieId}";
 		await DeleteAsync(endpoint);
 		return true;
 	}
@@ -127,7 +139,6 @@ public class ABService {
 
 	private void SetBearerToken()
 	{
-		var token = this.token!();
 		_httpClient.DefaultRequestHeaders.Authorization = !string.IsNullOrWhiteSpace(token)
 			? new AuthenticationHeaderValue("Bearer", token) 
 			: null;
