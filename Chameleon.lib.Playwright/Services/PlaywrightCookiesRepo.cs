@@ -1,342 +1,288 @@
-﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
-
-using Chameleon.lib.Abs;
+﻿using Chameleon.lib.Abs;
 using Chameleon.lib.Api;
-using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
 
 using Microsoft.Playwright;
 
-namespace Chameleon.lib.Playwright.Services;
-public class PlaywrightCookiesRepo {
-	// Lazy-loaded singleton
-	private static readonly Lazy<PlaywrightCookiesRepo> _instance = new(() => new PlaywrightCookiesRepo());
-	public static PlaywrightCookiesRepo Instance => _instance.Value;
-	// ------------------------
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
+namespace Chameleon.lib.Playwright.Services;
+
+public sealed class PlaywrightCookiesRepo {
 	private readonly ABService _abService = ABService.Instance;
-	public List<BaseObject<CookieObject<BrowserContextCookiesResult>>> CookiesCache { get; } = [];
+	private readonly List<BaseObject<CookieObject<BrowserContextCookiesResult>>> _cookiesCache = [];
 
 	private PlaywrightCookiesRepo()
 	{
-		_abService.SetLoaders(
-				() => Tuple.Create(
-						Auther.AuthSession!.UserId,
-						Auther.AuthSession!.UserName!,
-						Auther.AuthSession!.LicenseKey!,
-						Auther.AuthSession!.CreatorUserId
-				)
-		);
+		// Set authentication loaders
+		_abService.SetLoaders(() => new (
+				Auther.AuthSession!.UserId,
+				Auther.AuthSession!.UserName!,
+				Auther.AuthSession!.LicenseKey!,
+				Auther.AuthSession!.CreatorUserId
+		));
 	}
-	public async Task CheckAuthenticated()
-	{
-		if(!_abService.IsAuthenticated) {
-			var token = await _abService.GetTokenAsync() 
-				?? throw new Exception("Failed to activate permissions for cookies sync");
 
-			//IoC.SetValue(token, IoCKeys.TokenObject);
+	// Checks and ensures authentication
+	private async Task EnsureAuthenticated()
+	{
+		if (!_abService.IsAuthenticated) {
+			var token = await _abService.GetTokenAsync()
+					?? throw new InvalidOperationException("Failed to activate permissions for cookies sync");
 		}
 	}
 
+	// Uploads Chromium cookies to server
 	public async Task PutChromiumCookies(string userId, string profileId, Enums.SystemBrowserType browserType)
 	{
-		await CheckAuthenticated();
+		await EnsureAuthenticated();
+
+		var browserPath = SysBrowserInfoUtil.FindByType(browserType).Path;
+		var profilePath = Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId);
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
-			Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId)
-			, new() {
-				Headless = true,
-				ExecutablePath = SysBrowserInfoUtil.FindByType(browserType).Path
-			}
+		await using var context = await playwright.Chromium.LaunchPersistentContextAsync(
+				profilePath,
+				new() { Headless = true, ExecutablePath = browserPath }
 		);
-		var cookies = await browserContext.CookiesAsync();
-		await browserContext.CloseAsync();
+
+		var cookies = await context.CookiesAsync();
+		await context.CloseAsync();
+
 		if (cookies.Any()) {
-			_ = await _abService.AddCookiesAsync(
-				userId
-				, new { profileId, cookies }
-			);
-			Toaster.ShowSuccess("Sent");
-		} else {
-			Toaster.ShowInf("No cookies found to upload");
+			_ = await _abService.AddCookiesAsync(userId, new { profileId, cookies });
 		}
 	}
 
-	public async Task GetCookiesAsync()
+	// Retrieves cookies from server
+	public async Task<bool> GetCookies()
 	{
-		await CheckAuthenticated();
+		await EnsureAuthenticated();
 
-		var results = (await _abService.GetCookiesAsync<BrowserContextCookiesResult>())?.Data;
-		ArgumentNullException.ThrowIfNull(results, "Response is unreadable");
+		var results = (await _abService.GetCookiesAsync<BrowserContextCookiesResult>())?.Data
+				?? throw new InvalidOperationException("Response is unreadable");
 
-		CookiesCache.Clear();
-		CookiesCache.AddRange(results);
+		_cookiesCache.Clear();
+		_cookiesCache.AddRange(results);
+		return _cookiesCache.Count > 0;
 	}
 
-	public async Task<bool> HasCookies()
-	{
-		await GetCookiesAsync();
-		return CookiesCache.Count > 0;
-	}
-
-	public async Task SyncCookiesClear()
-	{
-		//check if there are cookies to load from response
-		if (!await HasCookies()) {
-			return;
-		}
-		//add loop to add cookies to playwright context
-		for (var i = CookiesCache.Count - 1; i >= 0; i--) {
-			var cookies = CookiesCache[i];
-
-			// show toaster for starting sync out of items left to sync
-			Toaster.ShowInf($"Clearing ... {i + 1} left");
-			var deleted = await _abService.DeleteCookieAsync(cookies.Id);
-			if (deleted) {
-				CookiesCache.RemoveAt(i);
-			}
-		}
-	}
-
+	// Syncs cookies to browser
 	public async Task SyncCookies(Enums.SystemBrowserType browserType)
 	{
-		//check if there are cookies to load from response
-		if (!await HasCookies()) {
-			return;
-		}
+		if (!await GetCookies()) return;
 
-		//
-		Exception? anyEx = null;
+		// Retrieve path to the browser executable
+		var exePath = browserType == Enums.SystemBrowserType.Firefox
+				? await InstallPlaywrightsFirefoxIfNecessary()
+				: SysBrowserInfoUtil.FindByType(browserType).Path;
 
-		// get actual exe path incase gecko type is used 
-		var exePath = SysBrowserInfoUtil.FindByType(browserType).Path;
-		if (browserType == Enums.SystemBrowserType.Firefox) {
-			//C:\repos\Chameleon\Chameleon.Avalonia\src\Chameleon.Avalonia.Desktop\obj\outwin\.playwright\node\win32_x64\node.exe C:\repos\Chameleon\Chameleon.Avalonia\src\Chameleon.Avalonia.Desktop\obj\outwin\.playwright\package\cli.js install firefox
-			exePath = await InstallPlaywrightsFirefoxIfNecessary();
-			ArgumentNullException.ThrowIfNull(exePath, "Failed to install playwrights firefox");
-		}
+		if (string.IsNullOrEmpty(exePath))
+			throw new InvalidOperationException("Browser executable path not found");
 
-		//add loop to add cookies to playwright context
-		for (var i = CookiesCache.Count - 1; i >= 0; i--) {
-			var cookies = CookiesCache[i];
-			var pcookies = new List<Microsoft.Playwright.Cookie>();
-			foreach (var cookie in cookies.Data.Cookies!) {
-				pcookies.Add(new Microsoft.Playwright.Cookie {
-					Domain = cookie.Domain,
-					Expires = cookie.Expires,
-					HttpOnly = cookie.HttpOnly,
-					Name = cookie.Name,
-					Path = cookie.Path,
-					SameSite = cookie.SameSite,
-					Secure = cookie.Secure,
-					Value = cookie.Value
-				});
-			}
-			if (cookies.Data.ProfileId is null || !cookies.Data.ProfileId.Is()) {
-				continue;
-			}
+		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
+				? playwright.Firefox
+				: playwright.Chromium;
 
-			// show toaster for starting sync out of items left to sync
-			Toaster.ShowInf($"Syncing ... {i + 1} left");
+		// We only want cookie entries that have a non-empty ProfileId
+		var cookiesToSync = _cookiesCache.Where(c => !string.IsNullOrEmpty(c.Data.ProfileId));
 
-			// sync cookies
-			try {
-				using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-				var playwrightType = browserType == Enums.SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
-				var browserContext = await playwrightType.LaunchPersistentContextAsync(
-					Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), cookies.Data.ProfileId!)
-					, new() {
+		var cookieSyncIndex = 0;
+		var cookieSyncTotal = cookiesToSync.Count();
+		foreach (var cookieData in cookiesToSync) {
+			// Log: starting sync for this profile
+			Toaster.ShowInf($"[Cookies/Sync] Starting cookie sync: {++cookieSyncIndex} out of {cookieSyncTotal}");
+
+			var profilePath = Path.Combine(
+					Consts.AppDataLocalDir,
+					browserType.ToString(),
+					cookieData.Data.ProfileId!
+			);
+
+			await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
+					profilePath,
+					new() {
 						Headless = true,
 						ExecutablePath = exePath
 					}
-				);
-				await browserContext.AddCookiesAsync(pcookies);
-				await browserContext.CloseAsync();
-			} catch (Exception e) {
-				Console.WriteLine(e.Message);
-				anyEx = e;
+			);
+
+			// Prepare cookies to add
+			var cookies = cookieData.Data.Cookies!.Select(c => new Cookie {
+				Domain = c.Domain,
+				Expires = c.Expires,
+				HttpOnly = c.HttpOnly,
+				Name = c.Name,
+				Path = c.Path,
+				SameSite = c.SameSite,
+				Secure = c.Secure,
+				Value = c.Value
+			}).ToList();
+
+			// Log: how many cookies we are adding
+			Console.WriteLine($"[Cookies/Sync] Adding {cookies.Count} cookies for Profile: {cookieData.Data.ProfileId}");
+
+			// Add the cookies to the context
+			await context.AddCookiesAsync(cookies);
+
+			// Close the context
+			await context.CloseAsync();
+
+			// Log: done syncing
+			Console.WriteLine($"[Cookies/Sync] Finished cookie sync for Profile: {cookieData.Data.ProfileId}\n");
+		}
+	}
+
+	//Clears synchronized cookies from both the cache and server
+	public async Task SyncCookiesClear()
+	{
+		// Exit if no cookies are available
+		if (!await GetCookies()) {
+			return;
+		}
+
+		// Process deletion from end to start to avoid index shifting issues
+		for (var i = _cookiesCache.Count - 1; i >= 0; i--) {
+			try {
+				var cookie = _cookiesCache[i];
+				Toaster.ShowInf($"Clearing ... {i + 1} remaining");
+
+				if (await _abService.DeleteCookieAsync(cookie.Id)) {
+					_cookiesCache.RemoveAt(i);
+				} else {
+					// Log or handle failed deletion
+					Debug.WriteLine($"Failed to delete cookie with ID: {cookie.Id}");
+				}
+			} catch (Exception ex) {
+				// Log error but continue with remaining cookies
+				Debug.WriteLine($"Error clearing cookie at index {i}: {ex.Message}");
 				continue;
 			}
 		}
 
-		if (anyEx != null) {
-			throw anyEx;
+		// Optional: Notify when all cookies are cleared
+		if (_cookiesCache.Count == 0) {
+			Toaster.ShowSuccess("All cookies cleared successfully");
 		}
 	}
 
-	public static async Task<string?> InstallPlaywrightsFirefoxIfNecessary()
+	// Installs Playwright's Firefox if not already installed
+	private static async Task<string?> InstallPlaywrightsFirefoxIfNecessary()
 	{
-		var dirpath = IsPlaywrightFirefoxInstalled();
+		// 1) Check if it is already installed
+		var existingPath = FindPlaywrightFirefox();
+		if (existingPath != null) {
+			return existingPath;
+		}
+
 		try {
-			// 1) Check if Firefox is already installed in the Playwright cache.
-			if (dirpath != null) {
-				Console.WriteLine("Playwright Firefox is already installed.");
-				return dirpath;
-			}
+			Toaster.ShowInf("Installing Firefox Sync Update...");
 
-			Console.WriteLine("Playwright Firefox not found; proceeding to install...");
+			// 1.5) Install Firefox if not found
+			var (nodePath, cliPath) = GetPlaywrightPaths();
 
-			// 2) Dynamically set up our base path (where .playwright is located).
-			//    On macOS: ../Resources/.playwright
-			//    On Windows: .playwright (relative to the current directory).
-			var basePath = AppDomain.CurrentDomain.BaseDirectory;
-			basePath = Path.Combine(basePath, OperatingSystem.IsMacOS()
-					? "../Resources/.playwright"
-					: ".playwright");
-
-			// 3) Construct the node binary path for macOS vs. Windows.
-			//    - macOS => node/darwin-x64/node
-			//    - Windows => node\win32_x64\node.exe
-			//    Then optionally wrap it in quotes on Windows.
-			var nodePath = Path.Combine(
-					basePath,
-					OperatingSystem.IsMacOS()
-							? "node/darwin-x64/node"
-							: "node\\win32_x64\\node.exe"
-			);
-
-			if (!OperatingSystem.IsMacOS())
-				nodePath = @$"""{nodePath}""";
-
-			// 4) Build the path to the Playwright CLI script: package\cli.js
-			//    Then optionally wrap it in quotes on Windows.
-			var playwrightCliPath = Path.Combine(
-					basePath,
-					OperatingSystem.IsMacOS()
-							? "package/cli.js"
-							: "package\\cli.js"
-			);
-
-			if (!OperatingSystem.IsMacOS())
-				playwrightCliPath = @$"""{playwrightCliPath}""";
-
-			// 5) We want to run: node <index.js> install firefox
-			//    So the arguments will be something like: "<path-to-index.js> install firefox"
-			var arguments = $"{playwrightCliPath} install firefox";
-
-			// 6) Create our process start info. We’ll capture stdout/stderr for logging.
-			var startInfo = new ProcessStartInfo {
-				FileName = nodePath,
-				Arguments = arguments,
-				RedirectStandardInput = true,
-				RedirectStandardOutput = true,
-				RedirectStandardError = true,
-				UseShellExecute = false,
-				CreateNoWindow = true
-				// WorkingDirectory = Path.GetDirectoryName(nodePath) // optional
+			using var process = new Process {
+				StartInfo = new ProcessStartInfo {
+					FileName = nodePath,
+					Arguments = $"{cliPath} install firefox",
+					RedirectStandardOutput = true,
+					RedirectStandardError = true,
+					UseShellExecute = false,
+					CreateNoWindow = true
+				}
 			};
 
-			var _nodeProcess = new Process { StartInfo = startInfo };
-			_nodeProcess.Start();
+			// 2) Subscribe to output/error events
+			process.OutputDataReceived += (sender, e) => {
+				if (!string.IsNullOrEmpty(e.Data) && !e.Data.Contains("playwright")) {
+					Toaster.ShowInf($"[Installing Firefox Sync Update...]: {Regex.Replace(e.Data.Replace("â–", ""), @"\s+", " ").Trim()}");
+				}
+			};
+			process.ErrorDataReceived += (sender, e) => {
+				if (!string.IsNullOrEmpty(e.Data)) {
+					Toaster.ShowErr($"[Firefox Sync Update Install/Error]: {e.Data}");
+				}
+			};
 
-			// 7) (Optional) read output or just wait:
-			//var stdout = _nodeProcess.StandardOutput.ReadToEnd();
-			//var stderr = _nodeProcess.StandardError.ReadToEnd();
+			// 3) Start process, then begin reading from redirected streams
+			process.Start();
+			process.BeginOutputReadLine();
+			process.BeginErrorReadLine();
 
-			// 8) Check results
-			//if (!string.IsNullOrEmpty(stdout)) Console.WriteLine("STDOUT:\n" + stdout);
-			//if (!string.IsNullOrEmpty(stderr)) Console.WriteLine("STDERR:\n" + stderr);
+			// 4) Wait for the process to exit
+			await process.WaitForExitAsync();
 
-			await _nodeProcess.WaitForExitAsync();
-			if (_nodeProcess.ExitCode == 0) {
-				Console.WriteLine("Playwright Firefox installation succeeded.");
-			} else {
-				Console.WriteLine($"Playwright Firefox installation failed with ExitCode={_nodeProcess.ExitCode}.");
+			// 5) Check exit code
+			if (process.ExitCode != 0) {
+				throw new InvalidOperationException(
+						$"Firefox installation failed with exit code: {process.ExitCode}"
+				);
 			}
-		} catch (Exception ex) {
-			Console.WriteLine("Exception: " + ex);
-		}
 
-		return IsPlaywrightFirefoxInstalled();
+			// If successful, re-check and return path
+			return FindPlaywrightFirefox();
+		} catch (Exception ex) {
+			throw new InvalidOperationException("Failed to install Firefox Sync Update", ex);
+		}
 	}
 
-	/// <summary>
-	/// Checks if a folder named "firefox-XXXXXX" is present in the default
-	/// Playwright cache directory (indicating Firefox is installed).
-	/// </summary>
-	private static string? IsPlaywrightFirefoxInstalled()
+	// Finds existing Playwright Firefox installation
+	private static string? FindPlaywrightFirefox()
 	{
 		var cacheDir = GetPlaywrightCacheDir();
-		if (!Directory.Exists(cacheDir))
+		if (!Directory.Exists(cacheDir)) {
 			return null;
-
-    // Look for the latest directory that starts with "firefox-"
-    var firefoxDirs = Directory.GetDirectories(cacheDir, "firefox-*", SearchOption.TopDirectoryOnly);
-		return firefoxDirs.Length == 0 || firefoxDirs.OrderByDescending(d => d).FirstOrDefault() is not string directory
-			? null
-			: Path.Combine(directory, "firefox", "firefox.exe");
-	}
-
-	/// <summary>
-	/// Returns the OS-specific default Playwright cache path.
-	/// </summary>
-	private static string GetPlaywrightCacheDir()
-	{
-		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-			// e.g. C:\Users\USER\AppData\Local\ms-playwright
-			var localAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
-			return Path.Combine(localAppData ?? "", "ms-playwright");
-		} else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-			// e.g. /Users/USER/Library/Caches/ms-playwright
-			var home = Environment.GetEnvironmentVariable("HOME") ?? "~";
-			return Path.Combine(home, "Library", "Caches", "ms-playwright");
-		} else {
-			// e.g. /home/USER/.cache/ms-playwright
-			var home = Environment.GetEnvironmentVariable("HOME") ?? "~";
-			return Path.Combine(home, ".cache", "ms-playwright");
 		}
+
+		var firefoxDir = Directory
+				.GetDirectories(cacheDir, "firefox-*", SearchOption.TopDirectoryOnly)
+				.OrderByDescending(d => d)
+				.FirstOrDefault();
+
+		return firefoxDir == null ? null : Path.Combine(firefoxDir, "firefox", "firefox.exe");
 	}
 
-	/// <summary>
-	/// Returns a base path for your application. You can implement it as:
-	///   Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)
-	/// or you may have a different approach depending on your runtime.
-	/// </summary>
-	private static string GetBaseAppPath()
+	// Gets Playwright paths based on OS
+	private static (string NodePath, string CliPath) GetPlaywrightPaths()
 	{
-		// Example: get the directory of the current executable.
-		// Adjust as needed for your environment.
-		return Path.GetDirectoryName(
-				System.Reflection.Assembly.GetExecutingAssembly().Location
-		) ?? Environment.CurrentDirectory;
+		var basePath = Path.Combine(
+				AppDomain.CurrentDomain.BaseDirectory,
+				OperatingSystem.IsMacOS() ? "../Resources/.playwright" : ".playwright"
+		);
+
+		var nodePath = Path.Combine(
+				basePath,
+				"node",
+				OperatingSystem.IsMacOS() ? "darwin-x64/node" : "win32_x64/node.exe"
+		);
+
+		var cliPath = Path.Combine(basePath, "package", "cli.js");
+
+		// Add quotes for Windows paths
+		if (!OperatingSystem.IsMacOS()) {
+			nodePath = $"\"{nodePath}\"";
+			cliPath = $"\"{cliPath}\"";
+		}
+
+		return (nodePath, cliPath);
 	}
 
-	/// <summary>
-	/// Returns the full path to the correct Node binary for the current OS in
-	/// the .playwright\node\ subfolder. On Windows, node.exe; on other OS, node.
-	/// If your directory structure differs, adjust accordingly.
-	/// 
-	/// Example structure:
-	///  .playwright
-	///     └─ node
-	///        ├─ win32_x64
-	///        │   └─ node.exe
-	///        ├─ macos_x64
-	///        │   └─ node
-	///        ├─ linux_x64
-	///        │   └─ node
-	/// </summary>
-	private static string GetNodeBinaryPath(string baseAppPath)
-	{
-		// Simple example mapping (you may need to handle ARM, etc.)
-		string osSubfolder;
-		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-			osSubfolder = "win32_x64";
-		else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-			osSubfolder = "macos_x64";
-		else
-			osSubfolder = "linux_x64";
+	// Helper method to get Playwright cache directory
+	private static string GetPlaywrightCacheDir() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+			? Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA") ?? "", "ms-playwright")
+			: Path.Combine(
+					Environment.GetEnvironmentVariable("HOME") ?? "~",
+					RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "Library/Caches" : ".cache",
+					"ms-playwright"
+			);
 
-		var nodeFilename = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-				? "node.exe"
-				: "node";
-
-		return Path.Combine(baseAppPath, ".playwright", "node", osSubfolder, nodeFilename);
-	}
+	// Thread-safe singleton implementation
+	private static readonly Lazy<PlaywrightCookiesRepo> _instance = new(() => new PlaywrightCookiesRepo(), LazyThreadSafetyMode.ExecutionAndPublication);
+	public static PlaywrightCookiesRepo Instance => _instance.Value;
+	// ----------------------------
 }
-
