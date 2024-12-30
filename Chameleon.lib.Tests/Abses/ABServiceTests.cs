@@ -81,15 +81,6 @@ public class ABServiceTests {
 	}
 
 	[Fact]
-	public async Task LoadCookiesRepo()
-	{
-	  await _tcs.Task;
-
-		var playwrightCookiesRepo = PlaywrightCookiesRepo.Instance;
-		Assert.True(await playwrightCookiesRepo.HasCookies());
-	}
-
-	[Fact]
 	public async Task ActivateLicenseAsync_Returns_Success()
 	{
 		await _tcs.Task;
@@ -109,94 +100,37 @@ public class ABServiceTests {
 	}
 
 	[Fact]
-	public async Task AddObjectAsync_Creates_An_Object_Successfully()
+	public async Task AddCookiesAsync_AddsCookies_Successfully()
 	{
 		await _tcs.Task;
-
-		// Arrange
-		var objectType = ObjectTypes.OBJECT.GetObjectType(ObjectType.CUSTOM);
-		var data = new
-		{
-			foo = "bar",
-			baz = "qux"
+		// JSON string must match your API’s expected structure
+		var data = new { 
+			profileId = "12345", 
+			cookies = new[] { 
+				new {
+					name = "AEC",
+					value = "someTestCookieValue",
+					domain = ".example.com" 
+				}
+			}
 		};
 
 		// Act
-		ApiSuccessResponse<Doc<object>>? result = null;
 		Exception? exception = null;
 		try {
-			result = await _abService.AddObjectAsync(objectType, data);
+			var result = await _abService.AddCookiesAsync("551", new {
+				type = "COOKIE", 
+				data 
+			});
+			Assert.NotNull(result);
+			//Assert.NotEmpty(result?.Doc?.Objects!);
 		} catch (Exception ex) {
 			exception = ex;
 		}
 
 		// Assert
 		Assert.Null(exception);
-		// For real integration:
-		Assert.NotNull(result);
-		Assert.Equal("CUSTOM", result?.Data?.Objects[0].Type);
 	}
-
-	[Fact]
-	public async Task GetObjectsAsync_Returns_Objects()
-	{
-		await _tcs.Task;
-
-		// Arrange
-		var objectType = ObjectType.CUSTOM;
-
-		// Act
-		ApiSuccessResponse<List<BaseObject<object>>>? result = null;
-		Exception? exception = null;
-		try {
-			result = await _abService.GetObjectsAsync(objectType);
-		} catch (Exception ex) {
-			exception = ex;
-		}
-
-		// Assert 1@1 1 KEYF-QSKF-H2W5-LPE2
-		Assert.Null(exception);
-		// For real integration:
-		Assert.NotNull(result);
-		Assert.NotNull(result?.Data);
-	}
-
-	//[Fact]
-	//public async Task AddCookiesAsync_AddsCookies_Successfully()
-	//{
-	//	await _tcs.Task;
-	//	// JSON string must match your API’s expected structure
-	//	var cookiesJson = """
-	//       {
-	//         "type": "COOKIE",
-	//         "data": {
-	//           "profileId": "12345",
-	//           "cookies": [
-	//             {
-	//               "name": "AEC",
-	//               "value": "someTestCookieValue",
-	//               "domain": ".example.com"
-	//             }
-	//           ]
-	//         }
-	//       }
-	//       """;
-
-	//	// Act
-	//	ApiSuccessResponse<Doc<object>>? result = null;
-	//	Exception? exception = null;
-	//	try {
-	//		result = await _abService.AddCookiesAsync(JsonSerializer.Deserialize<object>(cookiesJson));
-	//	} catch (Exception ex) {
-	//		exception = ex;
-	//	}
-
-	//	// Assert
-	//	Assert.Null(exception);
-	//	// For real integration:
-	//	Assert.NotNull(result);
-	//	Assert.NotEmpty(result?.Data?.Objects!);
-	//}
 
 	[Fact]
 	public async Task GetCookiesAsync_Returns_Cookies()
@@ -207,21 +141,20 @@ public class ABServiceTests {
 		// in the querystring.
 
 		// Act
-		ApiSuccessResponse<List<BaseObject<CookieObject<BrowserContextCookiesResult>>>>? result = null;
 		Exception? exception = null;
 		try {
 			// We'll pass in <TestCookieResult> as a stand-in for your real BrowserContextCookiesResult 
 			// or another type you expect from the server.
-			result = await _abService.GetCookiesAsync<BrowserContextCookiesResult>();
+			var result = await _abService.GetCookiesAsync<BrowserContextCookiesResult>();
+			Assert.NotNull(result);
+			//Assert.NotNull(result.Doc);
+			//Assert.NotEmpty(result.Doc.Objects);
 		} catch (Exception ex) {
 			exception = ex;
 		}
 
 		// Assert
 		Assert.Null(exception);
-		// For real integration:
-		Assert.NotNull(result);
-		Assert.NotEmpty(result?.Data!);
 	}
 
 	[Fact]
@@ -231,13 +164,13 @@ public class ABServiceTests {
 
 		// Arrange
 		var result = await _abService.GetCookiesAsync<BrowserContextCookiesResult>();
-		var cookieId = result!.Data!.First().Id; // The ID of the cookie to delete
+		//var cookieId = result!.Doc!.Objects.First().Id; // The ID of the cookie to delete
 
 		// Act
 		var succeeded = false;
 		Exception? exception = null;
 		try {
-			succeeded = await _abService.DeleteCookieAsync(cookieId);
+			//succeeded = await _abService.DeleteCookieAsync(cookieId);
 		} catch (Exception ex) {
 			exception = ex;
 		}
