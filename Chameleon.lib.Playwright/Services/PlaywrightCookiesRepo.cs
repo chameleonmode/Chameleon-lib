@@ -19,19 +19,18 @@ public sealed class PlaywrightCookiesRepo {
 	private PlaywrightCookiesRepo()
 	{
 		// Set authentication loaders
-		_abService.SetLoaders(() => new (
+		_ = Task.Delay(512).ContinueWith(_ => {
+			_abService.SetLoaders(() => new(
 				Auther.AuthSession!.UserId,
 				Auther.AuthSession!.UserName!,
 				Auther.AuthSession!.LicenseKey!,
-				Auther.AuthSession!.CreatorUserId
-		));
+				Auther.AuthSession!.CreatorUserId));
+		});
 	}
 
 	// Uploads Chromium cookies to server
 	public async Task PutChromiumCookies(string userId, string profileId, Enums.SystemBrowserType browserType)
 	{
-		Toaster.ShowInf("Sending cookies...");
-
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
 		? playwright.Firefox
@@ -51,8 +50,6 @@ public sealed class PlaywrightCookiesRepo {
 		if (cookies.Any()) {
 			_ = await _abService.AddCookiesAsync(userId, new { profileId, cookies });
 		}
-
-		Toaster.ShowSuccess("Cookies sent successfully");
 	}
 
 	// Retrieves cookies from server

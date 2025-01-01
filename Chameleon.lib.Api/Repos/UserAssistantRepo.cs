@@ -5,18 +5,18 @@ namespace Chameleon.lib.Api.Repos;
 public class UserAssistantRepo : ApiBase<AssistDto> {
 	private UserAssistantRepo() : base(Consts.Api.Endpoints.AssistantUser) { }
 
-	public static Task<RootResult> UpdateProfilePermission(AssisProfilePermissionDto permissionDto)
-	{
-		ArgumentNullException.ThrowIfNull(permissionDto);
+	//public static Task<RootResult> UpdateProfilePermission(AssisProfilePermissionDto permissionDto)
+	//{
+	//	ArgumentNullException.ThrowIfNull(permissionDto);
+	//	return permissionDto.IsGranted
+	//		? Instance.Post("InsertProfilePermission", permissionDto)
+	//		: HttpApiClient.Instance.Delete<RootResult>($"DeleteProfilePermission?profileAssistantId={permissionDto.ProfileAssistantId}&profilePermissionId={permissionDto.id}");
+	//}
 
-		return permissionDto.IsGranted
-			? Instance.Post("InsertProfilePermission", permissionDto)
-			: HttpApiClient.Instance.Delete<RootResult>($"DeleteProfilePermission?profileAssistantId={permissionDto.ProfileAssistantId}&profilePermissionId={permissionDto.id}");
-	}
-	public static Task<AssisProfilePermissionDto[]> GetAllProfilePermissions(long assistantId, int profileId)
-	{
-		return Instance.Get<AssisProfilePermissionDto[]>($"GetAllProfilePermissions?assistantId={assistantId}&profileId={profileId}");
-	}
+	//public static Task<AssisProfilePermissionDto[]> GetAllProfilePermissions(long assistantId, int profileId)
+	//{
+	//	return Instance.Get<AssisProfilePermissionDto[]>($"GetAllProfilePermissions?assistantId={assistantId}&profileId={profileId}");
+	//}
 
 	//public void InsertProfilePermission(IAssistantProfilePermission assistantProfilePermission)
 	//{
@@ -27,55 +27,51 @@ public class UserAssistantRepo : ApiBase<AssistDto> {
 	//{
 	//	_apiClient.Delete(GetEndpointUrl($"DeleteProfilePermission?profileAssistantId={profileAssistantId}&profilePermissionId={profilePermissionId}"));
 	//}
-
-	public static Task<RootResult> DeleteAssistantProfile(long assistantId, int profileId)
-	{
-		return HttpApiClient.Instance.Delete<RootResult>($"{Instance.Endpoint}DeleteAssistantProfile?assistantId={assistantId}&profileId={profileId}");
-	}
-
-	public static Task<AssisProfileDto[]> GetAllAssistantProfilesById(long assistantId)
-	{
-		return Instance.Get<AssisProfileDto[]>($"GetAllAssistantProfilesById?assistantId={assistantId}");
-	}
-
 	//public void ShareUserProfile(CreateAssistantProfileDto input)
 	//{
 	//	_apiClient.Post(GetEndpointUrl("ShareUserProfile"), input);
 	//}
 
-	public static Task<RootResult> AddProfiles(long assistantId, IList<int> profileIds, IList<int> profilePermissions) => Instance
-		.Post<RootResult>("AddProfiles", new {
+	public static Task<RootResult> DeleteAssistantProfile(long assistantId, int profileId) =>
+		HttpApiClient.Instance.Delete<RootResult>($"{Instance.Endpoint}DeleteAssistantProfile?assistantId={assistantId}&profileId={profileId}");
+	
+	public static Task<AssisProfileDto[]> GetAllAssistantProfilesById(long assistantId) =>
+		 Instance.Get<AssisProfileDto[]>($"GetAllAssistantProfilesById?assistantId={assistantId}");
+
+	public static Task<RootResult> AddProfiles(long assistantId, IList<int> profileIds, IList<int> profilePermissions) =>
+		Instance.Post<RootResult>("AddProfiles", new {
 			Id = assistantId,
 			ProfileIds = profileIds,
 			ProfilePermissionIds = profilePermissions
 		});
 	
-	public static Task SetCanCreateProfiles(long assistantId, bool canCreateProfiles) => Instance
-		.Post($"SetCanCreateProfiles?assistantId={assistantId}&canCreateProfiles={canCreateProfiles}");
+	public static Task SetCanCreateProfiles(long assistantId, bool canCreateProfiles) => 
+		Instance.Post($"SetCanCreateProfiles?assistantId={assistantId}&canCreateProfiles={canCreateProfiles}");
 
 	public static UserAssistantRepo Instance { get; } = new UserAssistantRepo();
 }
 
 public class ShareFoldersRepo : ApiBase<AssisShareFolderDto> {
 	private ShareFoldersRepo() : base(Consts.Api.Endpoints.ShareFolders) { }
-	//public void DeleteFolder(int id)
+
+	//public string[] GetAllProfilePermissionNames(long userId, int profileId, int? folderId)
 	//{
-	//	_apiClient.Delete(GetEndpointUrl($"Delete?id={id}"));
+	//	return _apiClient.Get<string[]>(GetEndpointUrl($"GetAllProfilePermissionNames?userId={userId}&profileId={profileId}&folderId={folderId}"));
 	//}
 
-	public static Task AddPermission(int userFolderId, int permissionId)
-	{
-		return Instance.Post("AddPermission", new
-		{
-			UserFolderId = userFolderId,
-			PermissionId = permissionId
-		});
-	}
+	//public static Task AddPermission(int userFolderId, int permissionId)
+	//{
+	//	return Instance.Post("AddPermission", new
+	//	{
+	//		UserFolderId = userFolderId,
+	//		PermissionId = permissionId
+	//	});
+	//}
 
-	public static Task DeletePermission(int userFolderId, int permissionId)
-	{
-		return HttpApiClient.Instance.Delete<RootResult>($"DeletePermission?userFolderId={userFolderId}&permissionId={permissionId}");
-	}
+	//public static Task DeletePermission(int userFolderId, int permissionId)
+	//{
+	//	return HttpApiClient.Instance.Delete<RootResult>($"DeletePermission?userFolderId={userFolderId}&permissionId={permissionId}");
+	//}
 
 	public static Task<AssisShareFolderDto[]> GetAll(long userId)
 	{
@@ -96,9 +92,5 @@ public class ShareFoldersRepo : ApiBase<AssisShareFolderDto> {
 		});
 	}
 
-	//public string[] GetAllProfilePermissionNames(long userId, int profileId, int? folderId)
-	//{
-	//	return _apiClient.Get<string[]>(GetEndpointUrl($"GetAllProfilePermissionNames?userId={userId}&profileId={profileId}&folderId={folderId}"));
-	//}
 	public static ShareFoldersRepo Instance { get; } = new ShareFoldersRepo();
 }
