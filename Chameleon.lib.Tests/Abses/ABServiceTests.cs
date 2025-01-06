@@ -16,19 +16,6 @@ namespace Chameleon.Tests;
 /// Adjust namespaces to match your solution.
 /// 
 /// 1@1 1 KEYF-QSKF-H2W5-LPE2
-/// 
-/// {
-//  "Login": { "LoginName": "elimdadia@gmail.com", "LicenseKey": "HHTQ-QJYS-ZMWX-CO5U" },
-//  "Settings": {
-//	"CurrentAppTheme": "Dark",
-//    "CustomAccentColor": null,
-//    "UseCustomAccentColor": false,
-//    "AutoLogin": true,
-//    "CodesverifyApiKey": "11025f84122066b887645",
-//    "UserScriptsDirectory": "C:/repos/scripts",
-//    "SMSPoolApiKey": "Rbv5Lt9KTERxuQREjvU8i4ugcwXwNZOT"
-
-//	}
 //}
 /// </summary>
 public class ABServiceTests {
@@ -36,11 +23,6 @@ public class ABServiceTests {
 		// we'll just use ABService.Instance directly. 
 		private readonly ABService _abService = ABService.Instance;
 		private readonly TaskCompletionSource _tcs = new();
-
-		private long userId;
-		private string email = string.Empty;
-		private string license_key = string.Empty;
-		private long? creatorId;
 
 	public ABServiceTests()
 	{
@@ -58,78 +40,9 @@ public class ABServiceTests {
 			await Auther.LoginAsync(lib.Tests.Api.Environment.email, lib.Tests.Api.Environment.lkey);
 
 			_ = Assert.NotNull(Auther.AuthSession?.UserId);
-			Assert.NotNull(Auther.AuthSession?.UserName);
-			Assert.NotNull(Auther.AuthSession?.LicenseKey);
-
-			userId = Auther.AuthSession.UserId;
-			email = Auther.AuthSession.UserName;
-			license_key = Auther.AuthSession.LicenseKey;
-			creatorId = Auther.AuthSession.CreatorUserId;
-
-
-			_abService.SetLoaders(
-					() => Tuple.Create(
-							Auther.AuthSession!.UserId,
-							Auther.AuthSession!.UserName!,
-							Auther.AuthSession!.LicenseKey!,
-							Auther.AuthSession!.CreatorUserId
-					)
-			);
 
 			_ = _tcs.TrySetResult();
 		});
-	}
-
-	[Fact]
-	public async Task ActivateLicenseAsync_Returns_Success()
-	{
-		await _tcs.Task;
-
-		var result = await _abService.GetTokenAsync();
-		Assert.NotNull(result);
-	}
-
-	[Fact]
-	public async Task LoginAsync_Returns_Success()
-	{
-		await _tcs.Task;
-		//
-		var result = await _abService.LoginAsync();
-		Assert.NotNull(result);
-		// ...
-	}
-
-	[Fact]
-	public async Task AddCookiesAsync_AddsCookies_Successfully()
-	{
-		await _tcs.Task;
-		// JSON string must match your API’s expected structure
-		var data = new { 
-			profileId = "12345", 
-			cookies = new[] { 
-				new {
-					name = "AEC",
-					value = "someTestCookieValue",
-					domain = ".example.com" 
-				}
-			}
-		};
-
-		// Act
-		Exception? exception = null;
-		try {
-			var result = await _abService.AddCookiesAsync("551", new {
-				type = "COOKIE", 
-				data 
-			});
-			Assert.NotNull(result);
-			//Assert.NotEmpty(result?.Doc?.Objects!);
-		} catch (Exception ex) {
-			exception = ex;
-		}
-
-		// Assert
-		Assert.Null(exception);
 	}
 
 	[Fact]

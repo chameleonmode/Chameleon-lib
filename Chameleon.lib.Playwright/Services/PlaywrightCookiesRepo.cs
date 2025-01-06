@@ -14,22 +14,14 @@ namespace Chameleon.lib.Playwright.Services;
 
 public sealed class PlaywrightCookiesRepo {
 	private readonly ABService _abService = ABService.Instance;
-	private readonly List<ApiObject<ObjectsCookies<BrowserContextCookiesResult>>> _cookiesCache = [];
+	private readonly List<CookiesRecord<BrowserContextCookiesResult>> _cookiesCache = [];
 
 	private PlaywrightCookiesRepo()
 	{
-		// Set authentication loaders
-		_ = Task.Delay(512).ContinueWith(_ => {
-			_abService.SetLoaders(() => new(
-				Auther.AuthSession!.UserId,
-				Auther.AuthSession!.UserName!,
-				Auther.AuthSession!.LicenseKey!,
-				Auther.AuthSession!.CreatorUserId));
-		});
 	}
 
 	// Uploads Chromium cookies to server
-	public async Task PutChromiumCookies(string userId, string profileId, Enums.SystemBrowserType browserType)
+	public async Task PutCookies(string userId, string? email, string profileId, Enums.SystemBrowserType browserType)
 	{
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
@@ -48,7 +40,7 @@ public sealed class PlaywrightCookiesRepo {
 		await context.CloseAsync();
 
 		if (cookies.Any()) {
-			_ = await _abService.AddCookiesAsync(userId, new { profileId, cookies });
+			await _abService.AddCookiesAsync(userId, email,  profileId, cookies);
 		}
 	}
 
@@ -60,7 +52,7 @@ public sealed class PlaywrightCookiesRepo {
 		try {
 			var result = (await _abService.GetCookiesAsync<BrowserContextCookiesResult>())
 					?? throw new InvalidOperationException("Response is unreadable");
-			_cookiesCache.AddRange(result.Objects);
+			_cookiesCache.AddRange(result);
 		} catch {
 			Console.WriteLine("Failed to get cookies");
 		}
@@ -82,17 +74,17 @@ public sealed class PlaywrightCookiesRepo {
 				: playwright.Chromium;
 
 		// We only want cookie entries that have a non-empty ProfileId
-		var cookiesToSync = _cookiesCache.Where(c => !string.IsNullOrEmpty(c.Data.ProfileId));
+		var cookiesToSync = _cookiesCache;
 
 		var cookieSyncIndex = 0;
-		var cookieSyncTotal = cookiesToSync.Count();
+		var cookieSyncTotal = cookiesToSync.Count;
 		foreach (var cookieData in cookiesToSync) {
 			// Log: starting sync for this profile
-			Toaster.ShowInf($"[Cookies/Sync] Starting cookie sync: {++cookieSyncIndex} out of {cookieSyncTotal}");
+			Toaster.Info($"[Cookies/Sync] Starting cookie sync: {++cookieSyncIndex} out of {cookieSyncTotal}");
 
 			// Add the cookies to the context
 			await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-					IOtil.EnsureDirectoryExists(Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), cookieData.Data.ProfileId!)),
+					IOtil.EnsureDirectoryExists(Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), cookieData.ProfileId!)),
 					new() {
 						Headless = true,
 						ExecutablePath = exePath,
@@ -100,7 +92,7 @@ public sealed class PlaywrightCookiesRepo {
 					}
 			);
 			await context.AddCookiesAsync(
-				cookieData.Data.Cookies!.Select(c => 
+				cookieData.Cookies!.Select(c => 
 					new Cookie {
 						Domain = c.Domain,
 						Expires = c.Expires,
@@ -117,39 +109,46 @@ public sealed class PlaywrightCookiesRepo {
 			await context.CloseAsync();
 
 			// Log: done syncing
-			Console.WriteLine($"[Cookies/Sync] Finished cookie sync for Profile: {cookieData.Data.ProfileId}\n");
+			Console.WriteLine($"[Cookies/Sync] Finished cookie sync for Profile: {cookieData.ProfileId}\n");
 		}
 	}
 
 	//Clears synchronized cookies from both the cache and server
-	public async Task SyncCookiesClear()
+	public async Task ClearCookies()
 	{
-		// Exit if no cookies are available
-		if (!await GetCookies()) {
-			return;
-		}
+		await _abService.DeleteCookiesAsync();
+		//// Exit if no cookies are available
+		//if (!await GetCookies()) {
+		//	return;
+		//}
 
-		// Process deletion from end to start to avoid index shifting issues
-		for (var i = _cookiesCache.Count - 1; i >= 0; i--) {
-			try {
-				var cookie = _cookiesCache[i];
-				Toaster.ShowInf($"Clearing ... {i + 1} remaining");
+		//// Process deletion from end to start to avoid index shifting issues
+		//for (var i = _cookiesCache.Count - 1; i >= 0; i--) {
+		//	try {
+		//		var cookie = _cookiesCache[i];
+		//		Toaster.Info($"Clearing ... {i + 1} remaining");
 
-				await _abService.DeleteCookieAsync(cookie.Id);
-				_cookiesCache.RemoveAt(i);
-			} catch (Exception ex) {
-				// Log error but continue with remaining cookies
-				Debug.WriteLine($"Error clearing cookie at index {i}: {ex.Message}");
-				continue;
-			}
-		}
+		//		await _abService.DeleteCookieAsync(cookie.Id);
+		//		_cookiesCache.RemoveAt(i);
+		//	} catch (Exception ex) {
+		//		// Log error but continue with remaining cookies
+		//		Debug.WriteLine($"Error clearing cookie at index {i}: {ex.Message}");
+		//		continue;
+		//	}
+		//}
 
-		// Optional: Notify when all cookies are cleared
-		if (_cookiesCache.Count == 0) {
-			Toaster.ShowSuccess("All cookies cleared successfully");
-		}
+		//// Optional: Notify when all cookies are cleared
+		//if (_cookiesCache.Count == 0) {
+		//	Toaster.Success("All cookies cleared successfully");
+		//}
 	}
 
+	// Thread-safe singleton implementation
+	private static readonly Lazy<PlaywrightCookiesRepo> _instance = new(() => new PlaywrightCookiesRepo(), LazyThreadSafetyMode.ExecutionAndPublication);
+	public static PlaywrightCookiesRepo Instance => _instance.Value;
+	// ----------------------------
+
+	// Helper methods
 	private static async Task<string> GetExecutable(Enums.SystemBrowserType browserType)
 	{
 		return browserType == Enums.SystemBrowserType.Firefox
@@ -167,7 +166,7 @@ public sealed class PlaywrightCookiesRepo {
 		}
 
 		try {
-			Toaster.ShowInf("Installing Firefox Sync Update...");
+			Toaster.Info("Installing Firefox Sync Update...");
 
 			// 1.5) Install Firefox if not found
 			var (nodePath, cliPath) = GetPlaywrightPaths();
@@ -186,12 +185,12 @@ public sealed class PlaywrightCookiesRepo {
 			// 2) Subscribe to output/error events
 			process.OutputDataReceived += (sender, e) => {
 				if (!string.IsNullOrEmpty(e.Data) && !e.Data.Contains("playwright")) {
-					Toaster.ShowInf($"[Installing Firefox Sync Update...]: {Regex.Replace(e.Data.Replace("â–", ""), @"\s+", " ").Trim()}");
+					Toaster.Info($"[Installing Firefox Sync Update...]: {Regex.Replace(e.Data.Replace("â–", ""), @"\s+", " ").Trim()}");
 				}
 			};
 			process.ErrorDataReceived += (sender, e) => {
 				if (!string.IsNullOrEmpty(e.Data)) {
-					Toaster.ShowErr($"[Firefox Sync Update Install/Error]: {e.Data}");
+					Toaster.Error($"[Firefox Sync Update Install/Error]: {e.Data}");
 				}
 			};
 
@@ -267,8 +266,4 @@ public sealed class PlaywrightCookiesRepo {
 					"ms-playwright"
 			);
 
-	// Thread-safe singleton implementation
-	private static readonly Lazy<PlaywrightCookiesRepo> _instance = new(() => new PlaywrightCookiesRepo(), LazyThreadSafetyMode.ExecutionAndPublication);
-	public static PlaywrightCookiesRepo Instance => _instance.Value;
-	// ----------------------------
 }

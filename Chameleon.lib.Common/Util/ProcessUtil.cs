@@ -47,7 +47,7 @@ public static class ProUtil {
 				if (ex.GetType() == typeof(InvalidOperationException) && ex.Message.Contains("No process is associated with this object."))
 					return;
 				// Log or handle the exception if closing the process fails
-				Toaster.ShowErr($"Failed to close the browser process: {ex.Message}");
+				Toaster.Error($"Failed to close the browser process: {ex.Message}");
 			}
 		}
 	}

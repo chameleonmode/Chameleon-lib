@@ -2,32 +2,66 @@
 
 namespace Chameleon.lib.Abs;
 public class ABService {
-	// Private fields
+	// Private
 	private readonly AbsClient _absClient = AbsClient.Instance;
-	private string? token;
+	//
+	private AuthRecord? authRecord;
+
+	private Action<string?>? onMessage;
+	private Action<(string key, string? value)>? onSave;
+	private Func<string, string?>? onLoad;
+	private Func<(long user_id, string username, string license_key, long? owner_id)>? credz;
 
 	// Public properties
-	private Func<Tuple<long, string, string, long?>>? credLoader;
-	public long UserId => credLoader!()!.Item1;
-	public string UserName => credLoader!()!.Item2;
-	public string LicenseKey => credLoader!()!.Item3;
+	public long UserId => credz!()!.user_id;
+	public string UserName => credz!()!.username;
+	public string LicenseKey => credz!()!.license_key;
 
 	// Private constructor to enforce singleton usage
-	private ABService() {
-		_absClient.TokenProvider = async () => {
-			if (string.IsNullOrWhiteSpace(this.token)) {
-				_ = await GetTokenAsync();
+	private ABService()
+	{
+		var load = new Func<Task<AuthRecord?>>(async () =>
+		{
+			if (authRecord == null) {
+				var refreshToken = onLoad?.Invoke(Constas.IoCKeys.IAuth);
+				if (!string.IsNullOrEmpty(refreshToken)) {
+					try {
+						return await Refresh(refreshToken);
+					} catch {
+						return await Login();
+					}
+				} else {
+					try {
+						return await Login();
+					} catch {
+						return await Register();
+					}
+				}
 			}
-			return this.token;
+			return null;
+		});
+
+		_absClient.TokenProvider = async() => {
+			authRecord = await load();
+			onSave?.Invoke((Constas.IoCKeys.IAuth, authRecord?.Auth?.RefreshToken));
+			return authRecord?.Auth;
 		};
 	}
 
-	public void SetLoaders(Func<Tuple<long, string, string, long?>> credz)
+	public void Use(
+		Func<(long user_id, string username, string license_key, long? owner_id)> credz, 
+		Action<string?> onMessage,
+		Action<(string key, string? value)> onSave,
+		Func<string, string?> onLoad
+		)
 	{
-		credLoader = credz;
+		this.credz = credz;
+		this.onMessage = onMessage;
+		this.onSave = onSave;
+		this.onLoad = onLoad;
 	}
 
-	private static async Task<T?> RetryWithPolicyAsync<T>(Func<Task<T?>> operation, int maxRetries = 3)
+	private static async Task<T> RetryWithPolicyAsync<T>(Func<Task<T>> operation, int maxRetries = 3)
 	{
 		for (var i = 1; i <= maxRetries; i++) {
 			try {
@@ -41,59 +75,94 @@ public class ABService {
 
 	#region Public API Methods
 
-	public async Task<string?> GetTokenAsync()
+	#region auth
+	public async Task<AuthRecord?> Register()
 	{
-		_absClient.TokenProvider = () => Task.FromResult<string?>(null);
-
-		var (userId, email, license_key, creatorId) = credLoader!();
-		//
-		var endpoint = $"/auth/license";
-		var body = new { userId, email, license_key, creatorId };
-		return await RetryWithPolicyAsync(async () => {
-			var response = await _absClient.PostAsync<string>(endpoint, body);
-			this.token = response?.Data;
-			_absClient.TokenProvider = () => Task.FromResult(this.token);
-			return await _absClient.TokenProvider();
-		});
+		// 
+		var (userId, email, license_key, creatorId) = credz!();
+		var endpoint = $"/auth/register";
+		var body = new { user_id = userId, email, license_key, creatorId };
+		// Register
+		return (await RetryWithPolicyAsync(async () =>
+			await _absClient.PostAsync<AuthRecord>(endpoint, body, false)
+		))?.Data;
 	}
 
-	public async Task<string?> LoginAsync()
+	public async Task<AuthRecord?> Login()
 	{
 		//
+		var email = credz!()!.username;
 		var endpoint = $"/auth/login";
-		var body = new { token };
+		var body = new { email };
+		// Login
+		return (await RetryWithPolicyAsync(async () =>
+			await _absClient.PostAsync<AuthRecord>(endpoint, body, false)
+		, 1))?.Data;
+	}
+
+	public async Task<AuthRecord?> Refresh(string refreshToken)
+	{
+		// 
+		var endpoint = $"/auth/refresh";
+		var body = new { refreshToken };
+		// Refresh
+		return (await RetryWithPolicyAsync(async () =>
+			await _absClient.PostAsync<AuthRecord>(endpoint, body, false)
+		, 1))?.Data;
+	}
+
+	public async Task Logout(string refreshToken)
+	{
+		// 
+		var endpoint = $"/auth/logout";
+		var body = new { refreshToken };
+		// Logout
+		var response = await RetryWithPolicyAsync(async () =>
+			await _absClient.PostAsync<object>(endpoint, body, false)
+		);
+
+		//
+		authRecord = null;
+		onSave?.Invoke((Constas.IoCKeys.IAuth, ""));
+		onMessage?.Invoke(response?.Meta?.Message);
+	}
+	#endregion
+
+	public async Task<List<CookiesRecord<T>>?> GetCookiesAsync<T>()
+	{
+		var endpoint = $"/api/objects/cookies";
+		//
 		return await RetryWithPolicyAsync(async () => {
-			return (await _absClient.PostAsync<string?>(endpoint, body))?.Data;
+			return (await _absClient.GetAsync<List<CookiesRecord<T>>>(endpoint))?.Data;
 		});
 	}
 
-	public async Task<Doc<object>?> AddCookiesAsync(
+	public async Task AddCookiesAsync(
 			string userId,
-			object data)
+			string? email,
+			string profileId,
+			object cookies)
 	{
-		var endpoint = $"/api/objects/{userId}";
-		var body = new { 
-			type = ObjectType.COOKIE.ToString(), 
-			data
+		var endpoint = $"/api/objects/cookies";
+		//const { userId, tenantId, profileId, cookies } = req.body;
+
+		var body = new
+		{
+			userId,
+			email,
+			profileId,
+			cookies
 		};
 		//
-		return await RetryWithPolicyAsync(async () => {
-			return (await _absClient.PutAsync<Doc<object>>(endpoint, body))?.Data;
+		_ = await RetryWithPolicyAsync(async () => {
+			return (await _absClient.PutAsync<object>(endpoint, body))?.Data;
 		});
 	}
 
-	public async Task<Doc<ObjectsCookies<T>>?> GetCookiesAsync<T>()
-	{
-		var endpoint = $"/api/objects/{UserId}?type={ObjectType.COOKIE}";
-		//
-		return await RetryWithPolicyAsync(async () => {
-			return (await _absClient.GetAsync<Doc<ObjectsCookies<T>>>(endpoint))?.Data;
-		});
-	}
 
-	public async Task DeleteCookieAsync(string cookieId)
+	public async Task DeleteCookiesAsync()
 	{
-		var endpoint = $"/api/objects/{UserId}?type={ObjectType.COOKIE}&_id={cookieId}";
+		var endpoint = $"/api/objects/cookies";
 		//
 		_ = await RetryWithPolicyAsync(async () => {
 			return await _absClient.DeleteAsync(endpoint);

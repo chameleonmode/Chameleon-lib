@@ -1,4 +1,8 @@
-﻿using Chameleon.lib.Common.Interfaces.Sys;
+﻿using Chameleon.lib.Abs;
+using Chameleon.lib.Common;
+using Chameleon.lib.Common.Extensions;
+using Chameleon.lib.Common.Interfaces.Sys;
+using Chameleon.lib.Common.ServiceManagers;
 
 namespace Chameleon.lib.Api;
 public record LoginResponse(string? AccessToken, string? EncryptedAccessToken, long ExpireInSeconds, string? RefreshToken, long UserId, long? CreatorUserId, string[] Permissions, Limits LicenseLimits, bool TookGuidedTour, bool CanCreateProfiles) {
@@ -21,6 +25,21 @@ public static class Auther {
 		AuthSession = response;
 		AuthSession.UserName = user;
 		AuthSession.LicenseKey = pass;
+
+		ABService.Instance.Use(() => (
+			AuthSession.UserId,
+			AuthSession.UserName,
+			AuthSession.LicenseKey,
+			AuthSession.CreatorUserId),
+			(msg) => {
+				if (msg.Is())
+					Toaster.Info(msg!);
+			},
+			(keyValue) => {
+				IoC.SetValue(keyValue.value, keyValue.key);
+			},
+			(key) => IoC.GetValue(key)
+		);
 	}
 
 	public static async Task RefreshTokenAsync()

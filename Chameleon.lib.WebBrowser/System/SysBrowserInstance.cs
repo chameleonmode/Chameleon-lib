@@ -31,7 +31,7 @@ public abstract class SysBrowserInstance
 	}
 	public async Task InitializePrefsFile()
 	{
-		Toaster.ShowInf("Creating Prefs file for new profile cache wait for the browser window to relaunch a second time");
+		Toaster.Info("Creating Prefs file for new profile cache wait for the browser window to relaunch a second time");
 		TaskCompletionSource tcs = new();
 		new Thread(async () => {
 			try {

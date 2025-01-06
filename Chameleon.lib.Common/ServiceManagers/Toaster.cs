@@ -2,23 +2,18 @@
 
 namespace Chameleon.lib.Common.ServiceManagers;
 public class Toaster {
-	private readonly IToasterService? ToastNotificationService;
+	//
+	public IToasterService? ToastNotificationService { get; } = IoC.GetService<IToasterService>();
 
-	private Toaster()
-	{
-		ToastNotificationService = IoC.GetService<IToasterService>();
-	}
-	public static Toaster Current { get; } = new Toaster();
-
-	public static void ShowErr(params string[] err)
-	{
-		//Chameleon.Common.Helpers.ToasterHelper.ShowErr(string.Join(": ", err));
+	//
+	public static void Error(params string[] err)	=>
 		Current.ToastNotificationService?.ShowError(string.Join(": ", err));
-	}
-
-	public static void ShowSuccess(string err) =>
+	public static void Success(string err) =>
 		Current.ToastNotificationService?.ShowSuccess(string.Join(": ", err));
+	public static void Info(string msg) =>
+		Current.ToastNotificationService?.ShowInformation(string.Join(": ", msg));
 
-	public static void ShowInf(string err) =>
-	Current.ToastNotificationService?.ShowInformation(string.Join(": ", err));
+	// Singleton
+	private Toaster() { }
+	public static Toaster Current { get; } = new Toaster();
 }

@@ -21,6 +21,7 @@ public static class Constas {
 	;
 
 	public static class IoCKeys {
-		public static string UserToken => $"{nameof(Abs)}{nameof(UserType)}{UserType.TOKEN}";
+		public const string IAuth = $"{nameof(ABService)}{nameof(IAuth)}";
+		public const string ITennant = $"{nameof(ABService)}{nameof(ITennant)}";
 	}
 }

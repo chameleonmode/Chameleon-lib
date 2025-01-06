@@ -84,8 +84,8 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
 		}
 		if(tzSpoofing)
-			Toaster.ShowInf($"Requesting timezone/geo data for {proxy.Host}");
-		var ipapi = tzSpoofing && await GeoIpApi.GetIpapi(proxy, e => Toaster.ShowErr(e)) is Ipapi papi 
+			Toaster.Info($"Requesting timezone/geo data for {proxy.Host}");
+		var ipapi = tzSpoofing && await GeoIpApi.GetIpapi(proxy, e => Toaster.Error(e)) is Ipapi papi 
 			? papi 
 			: new Ipapi() { 
 				timezone = "America/Los_Angeles", lat = 34.052235, lon = -118.243683 

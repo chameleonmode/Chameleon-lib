@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
+    <ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
   </ItemGroup>
 
 </Project>

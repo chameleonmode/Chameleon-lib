@@ -29,15 +29,15 @@ public class AbsClient {
 	};
 
 	// Public properties
-	public Func<Task<string?>> TokenProvider { get; set; } = () => Task.FromResult<string?>(null);
+	public Func<Task<IAuth?>> TokenProvider { get; set; } = () => Task.FromResult<IAuth?>(null);
 
 	// Public methods
 	public async Task<ApiSuccessResponse<T?>> GetAsync<T>(string requestUri) =>
-		await SendRequestAsync<T>(HttpMethod.Get, requestUri, null, false);
+		await SendRequestAsync<T>(HttpMethod.Get, requestUri, ensureSuccess: false);
 
 
-	public async Task<ApiSuccessResponse<T?>> PostAsync<T>(string requestUri, object body) =>
-		await SendRequestAsync<T>(HttpMethod.Post, requestUri, body);
+	public async Task<ApiSuccessResponse<T?>> PostAsync<T>(string requestUri, object body, bool authentication = true) =>
+		await SendRequestAsync<T>(HttpMethod.Post, requestUri, body, authentication);
 
 
 	public async Task<ApiSuccessResponse<T?>> PutAsync<T>(string requestUri, object body) =>
@@ -51,12 +51,16 @@ public class AbsClient {
 			HttpMethod method,
 			string requestUri,
 			object? body = null,
+			bool authentication = true,
 			bool ensureSuccess = true)
 	{
-		var token = await TokenProvider();
-		_httpClient.DefaultRequestHeaders.Authorization = !string.IsNullOrWhiteSpace(token)
-				? new AuthenticationHeaderValue("Bearer", token)
-				: null;
+		if (authentication) {
+			var token = (await TokenProvider())?.AccessToken;
+			_httpClient.DefaultRequestHeaders.Authorization = !string.IsNullOrWhiteSpace(token)
+					? new AuthenticationHeaderValue("Bearer", token)
+					: null;
+
+		}
 
 		using var request = new HttpRequestMessage(method, requestUri);
 		if (body != null) {

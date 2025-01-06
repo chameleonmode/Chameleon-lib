@@ -24,7 +24,7 @@ public static class ExtensionLoaderService {
 						relativePath.EndsWith("manifest.json") ? version : null);
 			}
 		} catch (Exception ex) {
-			Toaster.ShowErr("Failed to load extension", ex.Message);
+			Toaster.Error("Failed to load extension", ex.Message);
 			throw;
 		}
 

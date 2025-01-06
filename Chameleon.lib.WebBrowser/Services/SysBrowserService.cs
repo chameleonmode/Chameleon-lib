@@ -105,7 +105,7 @@ public class SysBrowserService
 			if (options.BrowserType == Enums.SystemBrowserType.Firefox) {
 				var systempath = SysBrowserInfoUtil.FindByType(Enums.SystemBrowserType.Firefox).Path;
 				if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath)) {
-					Toaster.ShowInf("Updating Firefox browser. Please wait...");
+					Toaster.Info("Updating Firefox browser. Please wait...");
 
 					await IOtil.DeleteDExistsAsync(Consts.Browser.LocalFirefoxDirPath);
 
@@ -114,7 +114,7 @@ public class SysBrowserService
 						: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
 
 					await Task.Delay(1000);
-					Toaster.ShowSuccess("Firefox browser updated successfully.");
+					Toaster.Success("Firefox browser updated successfully.");
 				}
 			}
 			try {
@@ -145,7 +145,7 @@ public class SysBrowserService
 				}
 			} catch (Exception e) {
 				browser?.InvokeEvent(Enums.SysBrowserEventType.Error);
-				Toaster.ShowErr(e.Message);
+				Toaster.Error(e.Message);
 				if(e is InvalidDataException or TimeoutException) {
 					_ = Instances.TryRemove(options, out _);
 					_ = (OpenTaskCompletionSource?.TrySetResult(null));

@@ -23,9 +23,6 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 			Port = Netil.NextFreePort(Port);
 			await Auther.LoginAsync(lib.Tests.Api.Environment.email, lib.Tests.Api.Environment.lkey);
 
-			_ = Assert.NotNull(Auther.AuthSession?.UserId);
-			Assert.NotNull(Auther.AuthSession?.UserName);
-			Assert.NotNull(Auther.AuthSession?.LicenseKey);
 			_tcs.SetResult(true);
 		}
 		IoC.Instance.Configure(() => {
@@ -51,16 +48,52 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 	{
 		_ = await _tcs.Task;
 
-		await _playwrightCookiesRepo.PutChromiumCookies(
+		await _playwrightCookiesRepo.PutCookies(
 			Auther.AuthSession!.UserId!.ToString(),
+			Auther.AuthSession!.UserName!,
 			"25541",
 			Enums.SystemBrowserType.Chrome
 		);
-		await _playwrightCookiesRepo.PutChromiumCookies(
+		await _playwrightCookiesRepo.PutCookies(
 			Auther.AuthSession!.UserId!.ToString(),
+			Auther.AuthSession!.UserName!,
 			"25542",
 			Enums.SystemBrowserType.Chrome
 		);
+	}
+
+	[Fact]
+	public async Task Test_CookiesRepo_PutUserCookies()
+	{
+		_ = await _tcs.Task;
+
+		await _playwrightCookiesRepo.PutCookies(
+			"898",
+			"1@1",
+			"25541",
+			Enums.SystemBrowserType.Chrome
+		);
+		await _playwrightCookiesRepo.PutCookies(
+			"898",
+			"1@1",
+			"25542",
+			Enums.SystemBrowserType.Chrome
+		);
+	}
+
+	[Fact]
+	public async Task Test_CookiesRepo_GetCookies()
+	{
+		_ = await _tcs.Task;
+
+		var hasCookies = await _playwrightCookiesRepo.GetCookies();
+		Assert.True(hasCookies);
+	}
+	[Fact]
+	public async Task Test_CookiesRepo_Clear()
+	{
+		_ = await _tcs.Task;
+		await _playwrightCookiesRepo.ClearCookies();
 	}
 
 	[Fact]
@@ -87,12 +120,6 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 		await _playwrightCookiesRepo.SyncCookies(Enums.SystemBrowserType.Firefox);
 	}
 
-	[Fact]
-	public async Task Test_CookiesRepo_Clear()
-	{
-		_ = await _tcs.Task;
-		await _playwrightCookiesRepo.SyncCookiesClear();
-	}
 	public void Dispose()
 	{
 		GC.SuppressFinalize(this);

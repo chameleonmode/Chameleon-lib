@@ -90,12 +90,12 @@ public class IoC {
 	public static void SetValue<T>(T value, params string[] keys)
 	{
 		Instance.Config?.SetValue(string.Join('_', keys).Replace(' ', '_'), value);
-		Toaster.ShowSuccess("Settings saved");
+		Toaster.Success("Settings saved");
 	}
 	public static void SetJsonValue<T>(T value, params string[] keys)
 	{
 		Instance.Config?.SetValue(string.Join('_', keys).Replace(' ', '_'), JsonSerializer.Serialize(value));
-		Toaster.ShowSuccess("Settings saved");
+		Toaster.Success("Settings saved");
 	}
 	public static T? GetJsonValue<T>(params string[] keys) => GetValue<string>(string.Join('_', keys)) is string val ? JsonSerializer.Deserialize<T>(val) : default;
 	public static Task SetValueAsync<T>(T value, params string[] keys) => Task.Run(() => SetValue(value, keys));

@@ -64,11 +64,11 @@ public class AbsClientTests {
 		var data = new { userId, email, license_key, creatorId };
 
 		// Act
-		var response = await _absClient.PostAsync<string>(
+		var response = await _absClient.PostAsync<AuthRecord>(
 				"/auth/license",
-				data
+				data,
+				false
 		);
-		_absClient.TokenProvider = () => Task.FromResult(response?.Data);
 		var token = await _absClient.TokenProvider();
 
 		// Assert
@@ -90,15 +90,14 @@ public class AbsClientTests {
 		var data = new { userId, email, license_key, creatorId };
 		var response = await _absClient.PostAsync<string>(
 				"/auth/license",
-				data
+				data,
+				false
 		);
-		_absClient.TokenProvider = () => Task.FromResult(response?.Data);
 
 		// Act
 		var token = await _absClient.TokenProvider();
 		var body = new { token };	
 		var result = await _absClient.PostAsync<string>("/auth/login", body);
-		_absClient.TokenProvider = () => Task.FromResult(result?.Data);
 
 		// Assert
 		Assert.NotNull(result);
