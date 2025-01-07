@@ -3,7 +3,9 @@
 namespace Chameleon.lib.Abs;
 
 //
-public record IUser(string? _id, string? Email, string? PasswordHash, string? License_Key, string? TenantId, string? User_Id);
+public record IUser(
+	string? _id, string? Email, string? PasswordHash, string? License_Key, string? TenantId, string? UserId
+);
 public record IAdmin(string _id, string? User, string[]? Users);
 public record IAuth(string? AccessToken, string? RefreshToken);
 

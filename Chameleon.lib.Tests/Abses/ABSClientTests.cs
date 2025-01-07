@@ -44,7 +44,7 @@ public class AbsClientTests {
 		});
 		// Setup IoC
 		IoC.Instance.Init(async (on) => {
-			await Auther.LoginAsync(lib.Tests.Api.Environment.email, lib.Tests.Api.Environment.lkey);
+			await Auther.LoginAsync(lib.Tests.Api.Environment.Directory[1].email, lib.Tests.Api.Environment.Directory[1].license);
 
 			_ = _tcs.TrySetResult();
 		});

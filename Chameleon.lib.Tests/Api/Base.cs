@@ -19,7 +19,7 @@ public class ApiTestsBase {
 
 	private async void Login()
 	{
-		await Auther.LoginAsync(Environment.email, Environment.lkey);
+		await Auther.LoginAsync(lib.Tests.Api.Environment.Directory[1].email, lib.Tests.Api.Environment.Directory[1].license);
 		LoginResponse = Auther.AuthSession;
 		_ = tcs.TrySetResult();
 	}

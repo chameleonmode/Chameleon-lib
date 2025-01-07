@@ -20,6 +20,11 @@ public static class Constas {
 #endif
 	;
 
+	public static class Endpoints {
+		public const string Auth = "/auth";
+		public const string Cookies = "/api/cookies";
+	}
+
 	public static class IoCKeys {
 		public const string IAuth = $"{nameof(ABService)}{nameof(IAuth)}";
 		public const string ITennant = $"{nameof(ABService)}{nameof(ITennant)}";

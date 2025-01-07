@@ -8,7 +8,7 @@ public class AuthTests : ApiTestsBase {
 	public async Task LoginAsync_ValidCredentials_NeedsRefresh()
 	{
 		await tcs.Task;
-		var isin = await Auther.IsLicenseActiveAsync(Api.Environment.lkey);
+		var isin = await Auther.IsLicenseActiveAsync(lib.Tests.Api.Environment.Directory[1].license);
 		Assert.NotNull(LoginResponse);
 		Assert.NotNull(LoginResponse.AccessToken);
 		Assert.NotNull(LoginResponse.RefreshToken);

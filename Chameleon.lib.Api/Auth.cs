@@ -26,17 +26,18 @@ public static class Auther {
 		AuthSession.UserName = user;
 		AuthSession.LicenseKey = pass;
 
-		ABService.Instance.Use(() => (
+		AbsAuth.Instance.Use(() => (
 			AuthSession.UserId,
 			AuthSession.UserName,
 			AuthSession.LicenseKey,
 			AuthSession.CreatorUserId),
-			(msg) => {
-				if (msg.Is())
-					Toaster.Info(msg!);
-			},
+			//(msg) => {
+			//	if (msg.Is())
+			//		Toaster.Info(msg!);
+			//},
 			(keyValue) => {
-				IoC.SetValue(keyValue.value, keyValue.key);
+				if(keyValue.value != null)
+					IoC.SetValue(keyValue.value, keyValue.key);
 			},
 			(key) => IoC.GetValue(key)
 		);

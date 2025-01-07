@@ -13,7 +13,7 @@ using Chameleon.lib.Common.Constants;
 
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
-	private readonly PlaywrightCookiesRepo _playwrightCookiesRepo = PlaywrightCookiesRepo.Instance;
+	private readonly PlaywrightCookiesSyncService _playwrightCookiesRepo = PlaywrightCookiesSyncService.Instance;
 
 	public PlaywrightCookiesTests() : base()
 	{
@@ -21,7 +21,7 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 		{
 			// Setup code
 			Port = Netil.NextFreePort(Port);
-			await Auther.LoginAsync(lib.Tests.Api.Environment.email, lib.Tests.Api.Environment.lkey);
+			await Auther.LoginAsync(Tests.Api.Environment.Directory[1].email, Tests.Api.Environment.Directory[1].license);
 
 			_tcs.SetResult(true);
 		}
@@ -86,7 +86,7 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 	{
 		_ = await _tcs.Task;
 
-		var hasCookies = await _playwrightCookiesRepo.GetCookies();
+		var hasCookies = await _playwrightCookiesRepo.HasCookies;
 		Assert.True(hasCookies);
 	}
 	[Fact]

@@ -37,7 +37,7 @@ public class ABServiceTests {
 		});
 		// Setup IoC
 		IoC.Instance.Init(async (on) => {
-			await Auther.LoginAsync(lib.Tests.Api.Environment.email, lib.Tests.Api.Environment.lkey);
+			await Auther.LoginAsync(lib.Tests.Api.Environment.Directory[1].email, lib.Tests.Api.Environment.Directory[1].license);
 
 			_ = Assert.NotNull(Auther.AuthSession?.UserId);
 
@@ -58,7 +58,7 @@ public class ABServiceTests {
 		try {
 			// We'll pass in <TestCookieResult> as a stand-in for your real BrowserContextCookiesResult 
 			// or another type you expect from the server.
-			var result = await _abService.GetCookiesAsync<BrowserContextCookiesResult>();
+			var result = await _abService.GetCookies<BrowserContextCookiesResult>();
 			Assert.NotNull(result);
 			//Assert.NotNull(result.Doc);
 			//Assert.NotEmpty(result.Doc.Objects);
@@ -76,7 +76,7 @@ public class ABServiceTests {
 		await _tcs.Task;
 
 		// Arrange
-		var result = await _abService.GetCookiesAsync<BrowserContextCookiesResult>();
+		var result = await _abService.GetCookies<BrowserContextCookiesResult>();
 		//var cookieId = result!.Doc!.Objects.First().Id; // The ID of the cookie to delete
 
 		// Act
