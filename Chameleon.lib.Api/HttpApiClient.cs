@@ -2,11 +2,7 @@
 using System.Text;
 using System.Text.Json;
 
-using Chameleon.lib.Common.Interfaces.Sys;
 using Chameleon.lib.Common.Models.Dto;
-
-using Polly;
-using Polly.Wrap;
 
 namespace Chameleon.lib.Api;
 public class HttpApiClient {
@@ -24,36 +20,19 @@ public class HttpApiClient {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 	};
 
-	public AsyncPolicyWrap<HttpResponseMessage> AsyncPolicyWrap { get; } = Policy.WrapAsync([
-		Policy.HandleResult<HttpResponseMessage>(r => r.StatusCode >= HttpStatusCode.InternalServerError)
-			.Or<HttpRequestException>()
-			.WaitAndRetryAsync(1, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), async (outcome, timespan, retryAttempt, context) => {
-				var responseString = await outcome.Result.Content.ReadAsStringAsync();
-				var res = JsonSerializer.Deserialize<RootResult>(responseString);
-				if (res == null || res.error == null){
-					res = new RootResult(){
-						error = new Error(){
-							code = (int)outcome.Result.StatusCode,
-							message = outcome.Result.ReasonPhrase
-						}
-					};
-				}
+	//
+	private static async Task<T> RetryWithPolicyAsync<T>(Func<Task<T>> operation, int maxRetries = 3)
+	{
+		for (var i = 1; i <= maxRetries; i++) {
+			try {
+				return await operation();
+			} catch (Exception) when (i < maxRetries) {
+				await Task.Delay(256 * i); // Exponential backoff
 
-				Instance.OnRetry?.Invoke($"Request Failed: {retryAttempt}: {res.error.code} - {res.error.message}");
-			}),
-		Policy.HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
-			.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), async (outcome, timespan, retryAttempt, context) => {
-				if(Instance.OnAuthError != null) await Instance.OnAuthError.Invoke();
-			}),
-		Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
-			.Or<HttpRequestException>()
-			.CircuitBreakerAsync(
-					handledEventsAllowedBeforeBreaking: 3,
-					durationOfBreak: TimeSpan.FromSeconds(2),
-					onBreak: (outcome, breakDelay) => Instance.OnCircuitBreaker?.Invoke($"Circuit breaker opened due to: {outcome.Exception?.Message ?? outcome.Result.ReasonPhrase}"),
-					onReset: () => Instance.OnCircuitBreaker?.Invoke("Circuit breaker reset."),
-					onHalfOpen: () => Instance.OnCircuitBreaker?.Invoke("Circuit breaker is half-open.")
-			)]);
+			}
+		}
+		return await operation(); // Last try
+	}
 
 	public Task<T> Put<T>(string path, object? body = default) => Send<T>(HttpMethod.Put, path, body);
 	public Task<T> Get<T>(string path, object? body = default) => Send<T>(HttpMethod.Get, path, body);
@@ -62,7 +41,7 @@ public class HttpApiClient {
 
 	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default)
 	{
-		var response = await AsyncPolicyWrap.ExecuteAsync(() => {
+		var response = await RetryWithPolicyAsync(() => {
 			var request = new HttpRequestMessage(method, Common.Constants.Consts.Api.ApiBaseUrl + path);
 			request.Headers.Authorization = new("Bearer", Auther.AuthToken);
 			if (body != null) {

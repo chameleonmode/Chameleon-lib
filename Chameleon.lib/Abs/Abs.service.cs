@@ -1,6 +1,4 @@
-﻿using static System.Runtime.InteropServices.JavaScript.JSType;
-
-namespace Chameleon.lib.Abs;
+﻿namespace Chameleon.lib.Abs;
 
 public class ABService {
 	// Private
@@ -33,11 +31,11 @@ public class ABService {
 		});
 	}
 
-	public async Task AddCookies(
+	public async Task AddCookies<T>(
 			string userId,
 			string? email,
 			string profileId,
-			object cookies)
+			IReadOnlyList<T> cookies)
 	{
 		_ = await RetryWithPolicyAsync(async () => {
 			return (await absClient.PutAsync<object>(

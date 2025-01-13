@@ -1,6 +1,10 @@
 ﻿using System.Text.Json.Serialization;
 
 namespace Chameleon.lib.Common.Models;
+[JsonSerializable(typeof(List<FontIconInfo>))]
+public partial class Jsonz : JsonSerializerContext {
+}
+
 public class FontIconInfo {
 	[JsonConstructor]
 	public FontIconInfo(string name, string codepoint)

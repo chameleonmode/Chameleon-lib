@@ -1,12 +1,8 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using Chameleon.lib.Common.Models;
-
 namespace Chameleon.lib.Common.Constants;
-[JsonSerializable(typeof(List<FontIconInfo>))]
-public partial class Jsonz : JsonSerializerContext {
-}
+
 public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
 	public override T2? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 	{
