@@ -1,16 +1,20 @@
-﻿using System.Text.Json;
+﻿using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
+using Chameleon.lib.Playwright;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "Default", "Preferences");
 	public override string ExePath => SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
+
+	// ...
 	protected override string GetCommandLineArguments()
 	{
 		//https://niek.github.io/chrome-features/
@@ -113,9 +117,14 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 		return string.Join(" ", args);
 	}
+
 	// ...
 	protected override async Task InitializeExtensionPath()
 	{
+		if (!File.Exists(PrefsFile)) {
+			await PlaywrightUtil.CreateDevmodePrefs(Settings.BrowserType, $"{Settings.Profile.Id}");
+		}
+
 		var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
     _ = await Settings.BuildMeleonExtSettings(extDir);
 
@@ -128,42 +137,9 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
     foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
       _ = await ExtensionLoaderService.LoadExtension(ext, destDir, setting);
     }
-
-		if (!File.Exists(PrefsFile)) {
-			await Task.Factory.StartNew(InitializePrefsFile, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default).Unwrap();
-		}
-
-		_ = PreLoadedTCS.TrySetResult(true);
-		if (File.Exists(PrefsFile)) {
-			var document = JsonDocument.Parse(await File.ReadAllTextAsync(PrefsFile));
-			var root = document.RootElement.Clone();
-
-			// Convert the root element to a JsonObject
-			var mutableRoot = JsonNode.Parse(root.GetRawText())?.AsObject();
-			if (mutableRoot != null) {
-				if (mutableRoot["extensions"] is JsonObject extensions) {
-					if (extensions["ui"] is JsonObject ui) {
-						ui["developer_mode"] = true;
-					} else {
-						extensions["ui"] = new JsonObject {
-							["developer_mode"] = true
-						};
-					}
-				} else {
-					mutableRoot["extensions"] = new JsonObject {
-						["ui"] = new JsonObject {
-							["developer_mode"] = true
-						}
-					};
-				}
-			}
-
-			// Serialize the modified JsonObject back to JSON
-			var modifiedJson = JsonSerializer.Serialize(mutableRoot);
-			await File.WriteAllTextAsync(PrefsFile, modifiedJson);
-		}
 	}
 
+	// ...
 	protected override async Task<bool> StartProcess(string args)
 	{
 		Brocess = ProUtil.Createa(ExePath, args);
@@ -172,7 +148,10 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 		if (OperatingSystem.IsMacOS()) {
 			Brocess.Exited += (s, e) => { Close(); };
-			if(await TaskUtil.AwaitFor(() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null, 36, 1000)) {
+			if(
+				await TaskUtil.AwaitFor(() => 
+					Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null, 36, 1000)
+				) {
 				MacOSWindowListener.Instance.AddPid(Brocess.Id);
 			}
 		} else {
@@ -180,41 +159,5 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		}
 
 		return Brocess?.HasExited == false;
-	}
-
-	private async Task<string?> GetWebSocketDebuggerUrlAsync()
-	{
-		var url = $"http://localhost:{Settings.Port}/json";
-		using var client = new HttpClient {
-			Timeout = TimeSpan.FromSeconds(5) // Set a timeout of 5 seconds
-		};
-
-		try {
-			var jsonResponse = await client.GetStringAsync(url);
-			using var document = JsonDocument.Parse(jsonResponse);
-			var root = document.RootElement;
-
-			foreach (var target in root.EnumerateArray()) {
-				if (target.TryGetProperty("type", out var typeProperty) && typeProperty.GetString() == "page") {
-					if (target.TryGetProperty("webSocketDebuggerUrl", out var webSocketDebuggerUrlProperty)) {
-						return webSocketDebuggerUrlProperty.GetString();
-					}
-				}
-			}
-
-			return null; // No suitable debugger URL found
-		} catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException) {
-			// Handle timeout
-			Console.WriteLine("The request timed out.");
-			return null;
-		} catch (HttpRequestException ex) {
-			// Handle other HTTP request exceptions
-			Console.WriteLine($"HttpRequestException: {ex.Message}");
-			return null;
-		} catch (Exception ex) {
-			// Handle any other exceptions
-			Console.WriteLine($"Exception: {ex.Message}");
-			return null;
-		}
 	}
 }

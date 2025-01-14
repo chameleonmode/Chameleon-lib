@@ -29,17 +29,11 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await File.WriteAllTextAsync(versionFile, version);
 
 		//
-		//Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxameleon, (
-		//	"", 
-		//	Guid.NewGuid().ToString(),
-		//	Settings.CachedExtentionsDir)
-		//);
 		var geckoextDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.foxameleon, Settings.CachedExtentionsDir);
 		_ = await Settings.BuildMeleonExtSettings(geckoextDir);
 		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.CachedFoxameleon);
 		await IOtil.DC(inDirCached);
 		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
-		_ = PreLoadedTCS.TrySetResult(true);
 
 		//
 		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxyproxy, (

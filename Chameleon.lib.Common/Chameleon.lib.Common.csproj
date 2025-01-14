@@ -29,4 +29,8 @@
 	  <Folder Include="Services\" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
+	</ItemGroup>
+
 </Project>

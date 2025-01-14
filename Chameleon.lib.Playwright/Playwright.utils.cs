@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using Chameleon.lib.Common.Constants;
@@ -14,6 +16,69 @@ namespace Chameleon.lib.Playwright;
 /// Helper/Util class for static Playwright operations
 /// </summary>
 public static class PlaywrightUtil {
+	public static async Task CreateDevmodePrefs(Enums.SystemBrowserType browserType, string profileId)
+	{
+		var cachePath = Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId);
+    var prefsFile = Path.Combine(cachePath, "Default", "Preferences");
+
+		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		await using var context = await playwright.Chromium.LaunchPersistentContextAsync(
+      cachePath,
+			new() {
+				Headless = false,
+				ExecutablePath = await PlaywrightUtil.GetExecutable(browserType),
+				Args = ["--allow-downgrade"]
+			}
+		);
+		var page = await context.NewPageAsync();
+
+    //_ = await page.GotoAsync("example.com");
+    await page.CloseAsync();
+    await context.CloseAsync();
+
+    while (!File.Exists(prefsFile))
+      await Task.Delay(1000);
+
+    if (File.Exists(prefsFile))
+    {
+      var document = JsonDocument.Parse(await File.ReadAllTextAsync(prefsFile));
+      var root = document.RootElement.Clone();
+
+      // Convert the root element to a JsonObject
+      var mutableRoot = JsonNode.Parse(root.GetRawText())?.AsObject();
+      if (mutableRoot != null)
+      {
+        if (mutableRoot["extensions"] is JsonObject extensions)
+        {
+          if (extensions["ui"] is JsonObject ui)
+          {
+            ui["developer_mode"] = true;
+          }
+          else
+          {
+            extensions["ui"] = new JsonObject
+            {
+              ["developer_mode"] = true
+            };
+          }
+        }
+        else
+        {
+          mutableRoot["extensions"] = new JsonObject
+          {
+            ["ui"] = new JsonObject
+            {
+              ["developer_mode"] = true
+            }
+          };
+        }
+      }
+
+      // Serialize the modified JsonObject back to JSON
+      var modifiedJson = JsonSerializer.Serialize(mutableRoot);
+      await File.WriteAllTextAsync(prefsFile, modifiedJson);
+    }
+  }
 
 	public static async Task<string> GetExecutable(Enums.SystemBrowserType browserType)
 	{

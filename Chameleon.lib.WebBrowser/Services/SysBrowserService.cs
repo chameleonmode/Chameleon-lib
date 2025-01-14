@@ -17,6 +17,7 @@ using Chameleon.lib.WebBrowser.System.Firefox;
 namespace Chameleon.lib.WebBrowser.Services;
 public class SysBrowserService
 	: ISysBrowserService {
+	public int TimeOut { get; } = 26;
 	public static ISysBrowserInstance Create(Enums.SystemBrowserType browserType, SysBrowserSettings launchOptions) => browserType switch {
 		Enums.SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = launchOptions },
 		Enums.SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = launchOptions },
@@ -136,8 +137,7 @@ public class SysBrowserService
 
 				Instances[options] = browser;
 			  var initTask = browser.InitializeAsync();
-				_ = await browser.PreLoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(8));
-				if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(16))) {
+				if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
 					browser.InvokeEvent(Enums.SysBrowserEventType.Foreground);
 					browser.InvokeEvent(Enums.SysBrowserEventType.Opened);
 				} else {

@@ -78,14 +78,18 @@ public class AbsAuth {
 
 	public async Task<AuthRecord?> Refresh(string? refreshToken = null)
 	{
-		refreshToken ??= onLoad?.Invoke(Constas.IoCKeys.IAuth);
-		// Refresh
-		return (
-			await absClient.PostAsync<AuthRecord>(
-				$"{endpoint}/refresh", 
-				new { refreshToken }, 
-				false)
-			)?.Data;
+		try {
+			refreshToken ??= onLoad?.Invoke(Constas.IoCKeys.IAuth);
+			// Refresh
+			return (
+				await absClient.PostAsync<AuthRecord>(
+					$"{endpoint}/refresh",
+					new { refreshToken },
+					false)
+				)?.Data;
+		} catch {
+			return null;
+		}
 	}
 
 	public async Task Logout(string refreshToken)

@@ -11,7 +11,8 @@ namespace Chameleon.lib.Tests.Playwright;
 public abstract class PlaywrightTestsBase {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 
-	public string CachePath { get; } = @"C:\Users\eli\AppData\Local\Chameleon\Brave\25541";// Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+	public string CachePath { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+	//public string CachePath { get; } = @"C:\Users\eli\AppData\Local\Chameleon\Brave\25541";// Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
 	public Process? BrowserProcess { get; set; }
 	public int Port { get; set; }
@@ -20,7 +21,7 @@ public abstract class PlaywrightTestsBase {
 		StartInfo = new ProcessStartInfo {
 			FileName = IoC.GetValue<string>("BrowserPath"),
 			Arguments = string.Join(" ", new List<string>(args) {
-						"example.com",
+						"chrome://extensions/",
 						"--restore-last-session",
 						"--disable-session-crashed-bubble",
 						"--hide-crash-restore-bubble",
@@ -39,14 +40,14 @@ public abstract class PlaywrightTestsBase {
 		EnableRaisingEvents = true,
 	};
 
-	public async Task LaunchBrowser()
+	public async Task LaunchBrowser(string? path = null)
 	{
-		//CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 		Port = Netil.NextFreePort(Port);
-		BrowserProcess = GrowserProcess(CachePath, [$"--remote-debugging-port={Port}"]);
+		BrowserProcess = GrowserProcess(path ?? CachePath, [$"--remote-debugging-port={Port}"]);
 		_ = BrowserProcess!.Start();
 		await Task.Delay(2000);
 	}
+
 	public Task DisposeBrowser()
 	{
 		if (BrowserProcess != null) {

@@ -5,6 +5,7 @@ using Chameleon.lib.Common.Models;
 
 namespace Chameleon.lib.WebBrowser.Interfaces;
 public interface ISysBrowserService {
+	int TimeOut { get; }
 	TaskCompletionSource<ISysBrowserInstance?>? OpenTaskCompletionSource { get; }
 	ConcurrentDictionary<SysBrowserOpenOptions, ISysBrowserInstance> Instances { get; }
 	Task<ISysBrowserInstance?> Open(SysBrowserOpenOptions options);
