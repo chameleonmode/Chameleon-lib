@@ -26,6 +26,7 @@ namespace Chameleon.Tests;
 //}
 /// </summary>
 public class AbsClientTests {
+	 public const string endpoint = Constas.Endpoints.Auth;
 	// Typically, you would inject a mock or real HttpClient here, but for simplicity,
 	// we'll just use ABService.Instance directly. 
 	private readonly AbsClient _absClient = AbsClient.Instance;
@@ -51,6 +52,27 @@ public class AbsClientTests {
 	}
 
 	[Fact]
+	public async Task Register_Success()
+	{
+		await _tcs.Task;
+		Assert.NotNull(Auther.AuthSession);
+
+		// Arrange
+		var userId = Auther.AuthSession.UserId;
+		//var email = Auther.AuthSession.UserName;
+		var email = "brian@chameleonmode.com";
+		//var license_key = Auther.AuthSession.LicenseKey;
+		var license_key = "NO3K-AWXX-LO8M-DCOX";
+		var creatorId = Auther.AuthSession.CreatorUserId;
+
+		var response = await _absClient.PostAsync<AuthRecord>(
+				$"{endpoint}/register",
+				new { userId, email, license_key, creatorId },
+				false
+			);
+	}
+
+	[Fact]
 	public async Task ActivateLicenseAsync_Returns_Success()
 	{
 		await _tcs.Task;
@@ -58,8 +80,10 @@ public class AbsClientTests {
 
 		// Arrange
 		var userId = Auther.AuthSession.UserId;
-		var email = Auther.AuthSession.UserName;
-		var license_key = Auther.AuthSession.LicenseKey;
+		//var email = Auther.AuthSession.UserName;
+		var email = "brian@chameleonmode.com";
+		//var license_key = Auther.AuthSession.LicenseKey;
+		var license_key = "KEY3-31CU-LVFG-GVW1";
 		var creatorId = Auther.AuthSession.CreatorUserId;
 		var data = new { userId, email, license_key, creatorId };
 

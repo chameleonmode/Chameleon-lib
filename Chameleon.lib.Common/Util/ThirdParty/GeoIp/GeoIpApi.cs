@@ -24,7 +24,7 @@ public class GeoIpApi {
 				: CredentialCache.DefaultNetworkCredentials
 			}
 		}) {
-			Timeout = TimeSpan.FromSeconds(15)
+			Timeout = TimeSpan.FromSeconds(3)
 		};
 
 		try {
@@ -36,11 +36,10 @@ public class GeoIpApi {
 				} else {
 					throw new HttpRequestException($"Request failed with status code {response.StatusCode}");
 				}
-			}, 
+			},
 			OnError: (e, i) => {
 				onretry($"Timezone Request from proxy failed. Retrying {i}");
 			});
-
 		} finally {
 			client.Dispose();
 		}

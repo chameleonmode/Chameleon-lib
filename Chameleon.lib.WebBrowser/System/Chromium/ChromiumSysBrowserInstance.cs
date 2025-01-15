@@ -1,12 +1,10 @@
-﻿using System.Security.Cryptography;
+﻿using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.Common.Util.Mac;
-using Chameleon.lib.Playwright;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
@@ -122,7 +120,21 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	protected override async Task InitializeExtensionPath()
 	{
 		if (!File.Exists(PrefsFile)) {
-			await PlaywrightUtil.CreateDevmodePrefs(Settings.BrowserType, $"{Settings.Profile.Id}");
+			_ = Directory.CreateDirectory(Path.GetDirectoryName(PrefsFile)!);
+			await File.AppendAllTextAsync(PrefsFile, "{\"extensions\": { \"ui\": { \"developer_mode\": true } }}");
+		} else {
+			var root = JsonNode.Parse(
+				JsonDocument.Parse(await File.ReadAllTextAsync(PrefsFile)).RootElement.Clone().GetRawText()
+			)?.AsObject();
+
+			// Convert the root element to a JsonObject
+			if (root is JsonObject) {
+				var extensions = root["extensions"] ??= new JsonObject();
+				var ui = extensions["ui"] ??= new JsonObject();
+				ui["developer_mode"] = true;
+
+				await File.WriteAllTextAsync(PrefsFile, JsonSerializer.Serialize(root));
+			}
 		}
 
 		var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
@@ -139,25 +151,9 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
     }
 	}
 
-	// ...
-	protected override async Task<bool> StartProcess(string args)
+	[SupportedOSPlatform("windows")]
+	protected override async Task WaitForWinHandle()
 	{
-		Brocess = ProUtil.Createa(ExePath, args);
-		_ = Brocess.Start();
-		await Task.Delay(1800);
-
-		if (OperatingSystem.IsMacOS()) {
-			Brocess.Exited += (s, e) => { Close(); };
-			if(
-				await TaskUtil.AwaitFor(() => 
-					Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null, 36, 1000)
-				) {
-				MacOSWindowListener.Instance.AddPid(Brocess.Id);
-			}
-		} else {
-			_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
-		}
-
-		return Brocess?.HasExited == false;
+		_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
 	}
 }

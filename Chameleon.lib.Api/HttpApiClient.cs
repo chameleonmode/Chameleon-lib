@@ -2,7 +2,9 @@
 using System.Text;
 using System.Text.Json;
 
+using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models.Dto;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Api;
 public class HttpApiClient {
@@ -21,19 +23,6 @@ public class HttpApiClient {
 	};
 
 	//
-	private static async Task<T> RetryWithPolicyAsync<T>(Func<Task<T>> operation, int maxRetries = 3)
-	{
-		for (var i = 1; i <= maxRetries; i++) {
-			try {
-				return await operation();
-			} catch (Exception) when (i < maxRetries) {
-				await Task.Delay(256 * i); // Exponential backoff
-
-			}
-		}
-		return await operation(); // Last try
-	}
-
 	public Task<T> Put<T>(string path, object? body = default) => Send<T>(HttpMethod.Put, path, body);
 	public Task<T> Get<T>(string path, object? body = default) => Send<T>(HttpMethod.Get, path, body);
 	public Task<T> Post<T>(string path, object? body = default) => Send<T>(HttpMethod.Post, path, body);
@@ -41,13 +30,22 @@ public class HttpApiClient {
 
 	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default)
 	{
-		var response = await RetryWithPolicyAsync(() => {
+		var response = await PolyUtil.RetryWithPolicyAsync(async () => {
 			var request = new HttpRequestMessage(method, Common.Constants.Consts.Api.ApiBaseUrl + path);
-			request.Headers.Authorization = new("Bearer", Auther.AuthToken);
+			if(Auther.AuthToken.Is())
+				request.Headers.Authorization = new("Bearer", Auther.AuthToken);
+
 			if (body != null) {
 				request.Content = new StringContent(JsonSerializer.Serialize(body, options), Encoding.UTF8, "application/json");
 			}
-			return _httpClient.SendAsync(request);
+			return await _httpClient.SendAsync(request);
+		}, OnError: (e, i) => 
+		{
+			OnRetry?.Invoke(e.Message);
+			if (e.Message.Contains("401"))
+				_ = (OnAuthError?.Invoke());
+			//if (e.Message.Contains("429"))
+			//	OnCircuitBreaker?.Invoke();
 		});
 
 		if (typeof(T) == typeof(RootResult))

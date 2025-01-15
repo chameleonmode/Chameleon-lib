@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.Versioning;
 
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
@@ -89,54 +90,40 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
 		});
 	}
-	protected override async Task<bool> StartProcess(string args)
-	{
-		Brocess = ProUtil.Createa(ExePath, args);
-		_ = Brocess.Start();
-		await Task.Delay(1800);
 
-		if (OperatingSystem.IsMacOS()) {
-			Brocess.Exited += (s, e) => { Close(); };
-			if (await TaskUtil.AwaitFor(() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null, 36, 1000)) {
-				MacOSWindowListener.Instance.AddPid(Brocess.Id);
-			}
-		} else {
-#pragma warning disable CA1416 // Validate platform compatibility
-			TaskCompletionSource<Process?> thisTcs = new();
-			new Thread(() => {
-				for (var i = 0; i < 18; i++) {
-					_ = ExUtil.TryCatch(() => {
-						var currentProcesses = Process.GetProcessesByName("firefox");
-						foreach (var p in currentProcesses) {
-							if (Brocess != null && p.ParentProcessId() == Brocess.Id) {
-								var childProcess = Process.GetProcessById(p.Id);
-								if (childProcess?.HasExited == false) {
-									var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
-									if (U32.IsWindow(thishandle)) {
-										_ = thisTcs.TrySetResult(childProcess);
-										break;
-									}
+	[SupportedOSPlatform("windows")]
+	protected override async Task WaitForWinHandle() {
+		TaskCompletionSource<Process?> thisTcs = new();
+		new Thread(() => {
+			for (var i = 0; i < 18; i++) {
+				_ = ExUtil.TryCatch(() => {
+					var currentProcesses = Process.GetProcessesByName("firefox");
+					foreach (var p in currentProcesses) {
+						if (Brocess != null && p.ParentProcessId() == Brocess.Id) {
+							var childProcess = Process.GetProcessById(p.Id);
+							if (childProcess?.HasExited == false) {
+								var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
+								if (U32.IsWindow(thishandle)) {
+									_ = thisTcs.TrySetResult(childProcess);
+									break;
 								}
 							}
 						}
-						return true;
-					});
-					if (Brocess?.MainWindowHandle != IntPtr.Zero)
-						break;
-					Thread.Sleep(100);
-				}
-				if (Brocess?.MainWindowHandle == IntPtr.Zero)
-					_ = thisTcs.TrySetResult(null);
-			}).Start();
-			try {
-				Brocess = await thisTcs.Task.WaitAsync(TimeSpan.FromSeconds(8));
-			} catch {
-				Close();
+					}
+					return true;
+				});
+				if (Brocess?.MainWindowHandle != IntPtr.Zero)
+					break;
+				Thread.Sleep(100);
 			}
-#pragma warning restore CA1416 // Validate platform compatibility
+			if (Brocess?.MainWindowHandle == IntPtr.Zero)
+				_ = thisTcs.TrySetResult(null);
+		}).Start();
+		try {
+			Brocess = await thisTcs.Task.WaitAsync(TimeSpan.FromSeconds(8));
+		} catch {
+			Close();
 		}
-
-		return Brocess?.HasExited == false;
 	}
 
 	// TODO:
@@ -434,5 +421,52 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		}
 		var userprefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
 		await File.WriteAllLinesAsync(userprefsFile, prefs);
+	}
+	
+	public async Task InitializePrefsFile() {
+		Toaster.Info("Creating Prefs file for new profile cache wait for the browser window to relaunch a second time");
+		TaskCompletionSource tcs = new();
+		new Thread(async () => {
+			try {
+				using var p = ProUtil.Createa(ExePath, GetCommandLineArguments());
+				_ = p.Start();
+				await Task.Delay(1800);
+				p.Exited += (sender, e) => {
+					_ = tcs.TrySetResult();
+				};
+
+				_ = await TaskUtil.AwaitFor(() => {
+					Thread.Sleep(256);
+					if (OperatingSystem.IsMacOS()) {
+						if (MacOSUtil.FindWindowByPID(p.Id) == null)
+							return false;
+						// Use a shell command to send SIGTERM (graceful termination)
+						using var killprocess = Process.Start("kill", $"-SIGTERM {p.Id}");
+						// Wait for the process to exit
+						_ = killprocess.WaitForExit(1);
+					} else {
+						// Attempt to close the browser gracefully
+						_ = p.CloseMainWindow();
+						_ = p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited			
+					}
+					return p.HasExited || File.Exists(PrefsFile);
+				}, 18, 36);
+
+				// Kill the process if it hasn't exited
+				if (!p.HasExited) {
+					p.Kill();
+				}
+				p.Dispose();
+			} catch (Exception ex) {
+				// Handle or log the exception as needed
+				_ = tcs.TrySetException(ex);
+			} finally {
+				_ = tcs.TrySetResult();
+			}
+		}) {
+			IsBackground = true,
+		}.Start();
+
+		await tcs.Task;
 	}
 }
