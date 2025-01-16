@@ -26,7 +26,7 @@ public static class Constas {
 	}
 
 	public static class IoCKeys {
-		public const string IAuth = $"{nameof(ABService)}{nameof(IAuth)}v2";
+		public const string IAuth = $"{nameof(ABService)}{nameof(IAuth)}v3";
 		public const string ITennant = $"{nameof(ABService)}{nameof(ITennant)}";
 	}
 }

@@ -60,9 +60,11 @@ public class AbsClientTests {
 		// Arrange
 		var userId = Auther.AuthSession.UserId;
 		//var email = Auther.AuthSession.UserName;
-		var email = "brian@chameleonmode.com";
 		//var license_key = Auther.AuthSession.LicenseKey;
-		var license_key = "NO3K-AWXX-LO8M-DCOX";
+		//var email = "brian@chameleonmode.com";
+		//var license_key = "NO3K-AWXX-LO8M-DCOX";
+		var email = "adsnorthcarolina@gmail.com";
+		var license_key = "FIXK-BYNV-JMSU-WMXS";
 		var creatorId = Auther.AuthSession.CreatorUserId;
 
 		var response = await _absClient.PostAsync<AuthRecord>(
