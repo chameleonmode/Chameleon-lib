@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 using System.Text.Json;
+
+using Chameleon.lib.Common.Extensions;
 
 namespace Chameleon.lib.Common.Util;
 public static class IOtil {

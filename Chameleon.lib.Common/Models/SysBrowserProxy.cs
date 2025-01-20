@@ -1,4 +1,5 @@
 ﻿using Chameleon.lib.Common.Constants;
+using Chameleon.lib.Common.Extensions;
 
 namespace Chameleon.lib.Common.Models;
 

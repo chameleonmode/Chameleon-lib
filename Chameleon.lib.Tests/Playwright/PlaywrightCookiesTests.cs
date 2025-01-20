@@ -1,8 +1,6 @@
 ﻿using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.Common;
 using Chameleon.lib.Playwright.Services;
-using Chameleon.lib.Common.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
@@ -10,6 +8,7 @@ using Microsoft.Playwright;
 using Chameleon.lib.Api;
 using Chameleon.lib.Abs;
 using Chameleon.lib.Common.Constants;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Tests.Playwright;
 public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
@@ -20,7 +19,7 @@ public class PlaywrightCookiesTests : PlaywrightTestsBase, IDisposable {
 		async void setup(bool init)
 		{
 			// Setup code
-			Port = Netil.NextFreePort(Port);
+			Port = TcpUtil.NextFreePort(Port);
 			await Auther.LoginAsync(Tests.Api.Environment.Directory[1].email, Tests.Api.Environment.Directory[1].license);
 
 			_tcs.SetResult(true);

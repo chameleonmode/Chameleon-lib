@@ -1,7 +1,5 @@
 ﻿using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Common;
 using Chameleon.lib.Playwright.Services;
-using Chameleon.lib.Common.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Chameleon.lib.Common.Constants;

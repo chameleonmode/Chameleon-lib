@@ -1,7 +1,5 @@
-﻿using Chameleon.lib.Common.Interfaces.Systemics;
-
-namespace Chameleon.lib.Common.Interfaces.Services;
-public interface IToasterService : ISingletonDependency {
+﻿namespace Chameleon.lib.Interfaces.Services;
+public interface IToasterService {
 	void SetHostWindow(object? hostWindow);
 	void ShowInformation(string message);
 	void ShowError(string message);

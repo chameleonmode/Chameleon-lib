@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 
+using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models;
 using Chameleon.lib.Util;
 

@@ -1,5 +1,4 @@
-﻿using Chameleon.lib.Common;
-using Chameleon.lib.Common.Models;
+﻿using Chameleon.lib.Common.Models;
 
 using static Chameleon.lib.Common.Constants.Enums;
 

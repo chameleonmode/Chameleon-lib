@@ -1,10 +1,9 @@
 ﻿using System.Net;
 using System.Text.Json;
 
+using Chameleon.lib;
 using Chameleon.lib.Abs;
 using Chameleon.lib.Api;
-using Chameleon.lib.Common;
-using Chameleon.lib.Common.Types;
 using Chameleon.lib.Playwright.Services;
 
 using Microsoft.Extensions.Configuration;

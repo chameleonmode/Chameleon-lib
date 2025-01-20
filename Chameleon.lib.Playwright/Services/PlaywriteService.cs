@@ -1,7 +1,6 @@
 ﻿using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts;
-using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
 
 namespace Chameleon.lib.Playwright.Services;
