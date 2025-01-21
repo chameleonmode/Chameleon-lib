@@ -7,13 +7,13 @@ public class Toaster {
 
 	//
 	public static void Error(params string[] err) =>
-		Current.ToastNotificationService?.ShowError(string.Join(": ", err));
+		Instance.ToastNotificationService?.ShowError(string.Join(": ", err));
 	public static void Success(string err) =>
-		Current.ToastNotificationService?.ShowSuccess(string.Join(": ", err));
+		Instance.ToastNotificationService?.ShowSuccess(string.Join(": ", err));
 	public static void Info(string msg) =>
-		Current.ToastNotificationService?.ShowInformation(string.Join(": ", msg));
+		Instance.ToastNotificationService?.ShowInformation(string.Join(": ", msg));
 
 	// Singleton
 	private Toaster() { }
-	public static Toaster Current { get; } = new Toaster();
+	public static Toaster Instance { get; } = new Toaster();
 }

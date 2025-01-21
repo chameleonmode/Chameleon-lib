@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace Chameleon.lib.Abs;
+﻿namespace Chameleon.lib.Abs;
 
 public enum UserType {
 	TOKEN
@@ -23,7 +21,7 @@ public static class Constas {
 #if DEBUG
 				"http://127.0.0.1:3042"
 #else
-            "https://abswebapp.azurewebsites.net"
+        "https://abswebapp.azurewebsites.net"
 #endif
 ;
 

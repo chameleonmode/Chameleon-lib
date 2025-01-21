@@ -1,4 +1,5 @@
 ﻿namespace Chameleon.lib.Abs;
+//Abs application backend service
 public class AbsAuth {
 	// Private
 	public const string endpoint = Abs.Constas.Endpoints.Auth;
