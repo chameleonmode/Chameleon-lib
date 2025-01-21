@@ -19,6 +19,13 @@ public static class Constas {
             "https://abswebapp.azurewebsites.net"
 #endif
 	;
+	public static string ABS_PLATFORMATIC_BASE_URL =>
+#if DEBUG
+				"http://127.0.0.1:3042"
+#else
+            "https://abswebapp.azurewebsites.net"
+#endif
+;
 
 	public static class Endpoints {
 		public const string Auth = "/auth";
