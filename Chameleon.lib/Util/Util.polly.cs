@@ -11,7 +11,7 @@ public static class PolyUtil {
 				return await operation();
 			} catch (Exception ex) when (i < maxRetries) {
 				OnError?.Invoke(ex, i);
-				await Task.Delay(256 * i); // Exponential backoff
+				await Task.Delay(1000 * i); // Exponential backoff
 			}
 		}
 		return await operation(); // Last try

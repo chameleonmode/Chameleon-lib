@@ -18,18 +18,18 @@ public class GeoIpApi {
 	private static async Task<string> GetHttpResponseContent(
 		SysBrowserProxy proxy, string requestUri, Action<string> onretry)
 	{
+		var httpClientTimeoutInSeconds = 5;
 		HttpClient client = new(new HttpClientHandler {
 			Proxy = new WebProxy(proxy.ServerForRequest) {
 				Credentials = proxy.UserName?.Is() == true && proxy.Password?.Is() == true
 				? new NetworkCredential(proxy.UserName, proxy.Password)
 				: CredentialCache.DefaultNetworkCredentials
 			}
-		}) {
-			Timeout = TimeSpan.FromSeconds(3)
-		};
+		});
 
 		try {
 			return await PolyUtil.RetryWithPolicyAsync(async () => {
+				client.Timeout = TimeSpan.FromSeconds(httpClientTimeoutInSeconds);
 				var response = await client.GetAsync(requestUri);
 				if (response.IsSuccessStatusCode) {
 					var responseBody = await response.Content.ReadAsStringAsync();
@@ -39,6 +39,7 @@ public class GeoIpApi {
 				}
 			},
 			OnError: (e, i) => {
+				httpClientTimeoutInSeconds *= i + 1;
 				onretry($"Timezone Request from proxy failed. Retrying {i}");
 			});
 		} finally {
