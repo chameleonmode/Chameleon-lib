@@ -22,6 +22,7 @@
 	<PackageReference Include="Microsoft.Extensions.Logging.Configuration" />
 	<PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="DynamicData" />
+    <PackageReference Include="System.Net.Http.Json" />
   </ItemGroup>
 
 </Project>

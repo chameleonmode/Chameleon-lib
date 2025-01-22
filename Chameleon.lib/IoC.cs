@@ -58,41 +58,41 @@ public class IoC {
 	}
 
 	//
-	// Summary:
-	//     Get service of type T from the System.IServiceProvider.
-	//
-	// Parameters:
-	//   provider:
-	//     The System.IServiceProvider to retrieve the service object from.
-	//
-	// Type parameters:
-	//   T:
-	//     The type of service object to get.
-	//
-	// Returns:
-	//     A service object of type T or null if there is no such service.
 	public static T? GetService<T>() => (T?)Instance.Services?.GetService(typeof(T));
 	public static object? GetService(Type t) => Instance.Services?.GetService(t);
 
-	public static T? GetValue<T>(string key) => Instance.Config == null ? throw new ArgumentException("Configuration manager is not initialized", nameof(key)) : Instance.Config.GetValue<T>(key.Replace(' ', '_'));
+	//
+	public static T? GetValue<T>(string key) => Instance.Config!.GetValue<T>(key.Replace(' ', '_'));
 	public static string? GetValue(params string[] keys) => GetValue<string>(string.Join('_', keys));
 	public static void SetValue<T>(T value, params string[] keys) {
-		Instance.Config?.SetValue(string.Join('_', keys).Replace(' ', '_'), value);
+		Instance.Config!.SetValue(string.Join('_', keys).Replace(' ', '_'), value);
 		Toaster.Success("Settings saved");
 	}
+
+	//
 	public static void SetJsonValue<T>(T value, params string[] keys) {
-		Instance.Config?.SetValue(string.Join('_', keys).Replace(' ', '_'), JsonSerializer.Serialize(value));
+		Instance.Config!.SetValue(string.Join('_', keys).Replace(' ', '_'), JsonSerializer.Serialize(value));
 		Toaster.Success("Settings saved");
 	}
 	public static T? GetJsonValue<T>(params string[] keys) => GetValue<string>(string.Join('_', keys)) is string val ? JsonSerializer.Deserialize<T>(val) : default;
 	public static Task SetValueAsync<T>(T value, params string[] keys) => Task.Run(() => SetValue(value, keys));
+
+	//
+	public static void ClearValue(params string[] keys) {
+		var key = string.Join('_', keys).Replace(' ', '_');
+		if (Instance.Config is Chonfigurationer config) {
+			config._overrides.TryRemove(key, out _);
+			Toaster.Success("Setting cleared");
+		}
+	}
+
 	//Singleton pattern
-	public static IoC Instance { get; } = new IoC();
+	public static IoC Instance { get; } = new();
 }
 
 public class Chonfigurationer(IConfiguration configuration) {
-	private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-	private readonly ConcurrentDictionary<string, object> _overrides = new();
+	readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+	internal readonly ConcurrentDictionary<string, object> _overrides = new();
 
 	public T? GetValue<T>(string key) {
 		var returned = _overrides.TryGetValue(key, out var overriddenValue);
@@ -147,9 +147,7 @@ public class WritableConfiguration(IConfiguration baseConfiguration, string file
 						foreach (var kvp in _writeStore) {
 							data[kvp.Key] = kvp.Value;
 						}
-
-						var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-						File.WriteAllText(filePath, json);
+						File.WriteAllText(filePath, JsonSerializer.Serialize(data));
 					}
 				}
 			}

@@ -13,7 +13,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="System.Management" />
-		<PackageReference Include="Polly" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -19,10 +19,4 @@ public class Auth0Tests {
 		var tokenResult = await bauth.GetToken(codeResult);
 		Assert.NotNull(tokenResult);
 	}
-
-	[Fact]
-	public async Task OidcAuth0Client_SignIn_Success() {
-		var result = await OidcAuth0Client.SignIn();
-		Assert.NotNull(result);
-	}
 }

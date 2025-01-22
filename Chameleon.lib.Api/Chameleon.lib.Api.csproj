@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <PackageReference Include="DynamicData" />
-    <PackageReference Include="Polly" />
   </ItemGroup>
 
   <ItemGroup>

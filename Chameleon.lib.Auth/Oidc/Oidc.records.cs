@@ -2,6 +2,7 @@
 #pragma warning disable IDE1006 // Naming Styles
 public record TokenResponse(
 		string access_token,
+		string refresh_token,
 		string id_token,
 		string Scope,
 		int expires_in,
