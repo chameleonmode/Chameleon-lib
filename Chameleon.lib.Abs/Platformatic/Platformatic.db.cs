@@ -20,5 +20,20 @@ public class PlatformaticDB {
 		});
 	}
 
+	//public async Task<List<CookiesRecord<T>>?> GetCookies<T>() {
+	//	return await PolyUtil.RetryWithPolicyAsync(
+	//		async () => {
+	//			return (await absClient.GetAsync<List<CookiesRecord<T>>>(
+	//				Configs.Endpoints.Cookies)
+	//			)?.Data;
+	//		}, OnError);
+	//}
+
+	//public async Task DeleteCookies() {
+	//	_ = await PolyUtil.RetryWithPolicyAsync(async () => {
+	//		return await absClient.DeleteAsync(Configs.Endpoints.Cookies);
+	//	}, OnError);
+	//}
+
 	public static PlatformaticDB Instance { get; } = new();
 }

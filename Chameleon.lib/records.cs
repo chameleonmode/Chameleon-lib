@@ -11,17 +11,28 @@ public record TokenResponse(
 		string token_type
 );
 
-public record PlatformaticDBuser (
-	int id,
-	string userId,
-	string fullName,
-	string email,
-	string provider,
-	string providerId,
-	string tenantId,
-	string licenseKey,
-	int isSuperUser,
-	string createdAt
+public record TokenPayload(
+		string iss,
+		string sub,
+		string[] aud,
+		int iat,
+		int exp,
+		string scope,
+		string azp,
+		object[] permissions
+);
+
+public record PlatformaticDBuser(
+		string id,
+		string userId,
+		string fullName,
+		string email,
+		string provider,
+		string providerId,
+		string tenantId,
+		string licenseKey,
+		int isSuperUser,
+		DateTime createdAt
 );
 
 #pragma warning restore IDE1006 // Naming Styles

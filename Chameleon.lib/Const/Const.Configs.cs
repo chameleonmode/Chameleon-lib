@@ -1,6 +1,4 @@
-﻿using Chameleon.lib.Abs;
-
-namespace Chameleon.lib.Const;
+﻿namespace Chameleon.lib.Const;
 public static class Configs {
 	public static class Oidc {
 		public const string Domain = "dev-gcjhdlkot8s8v2vr.us.auth0.com";
@@ -26,12 +24,8 @@ public static class Configs {
 	}
 
 	public static class Endpoints {
+		public const string DB = "/db";
 		public const string Users = "/users";
 		public const string Cookies = "/cookies";
-	}
-
-	public static class IoCKeys {
-		public const string IAuth = $"{nameof(ABService)}{nameof(IAuth)}v3";
-		public const string ITennant = $"{nameof(ABService)}{nameof(ITennant)}";
 	}
 }

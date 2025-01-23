@@ -64,15 +64,15 @@ public class AbsClient(string baseUrl) {
 			var content = Encoding.UTF8.GetString(ms.ToArray());
 
 			if (ensureSuccess && !response.IsSuccessStatusCode) {
-				var apiError = DeserializeSafely<ApiErrorResponse>(content);
+				var apiError = DeserializeSafely<object>(content);
 				var exception = new HttpRequestException($"{method} {requestUri} returned {response.StatusCode}");
 				if (apiError != null) exception.Data["ApiError"] = apiError;
 				throw exception;
 			} else if (response.StatusCode == HttpStatusCode.NoContent) {
-				return new ApiSuccessResponse<T?>(default, null);
+				return default;
 			}
 
-			return DeserializeSafely<ApiSuccessResponse<T?>>(content)
+			return DeserializeSafely<T>(content)
 				?? throw new InvalidOperationException("Response is unreadable");
 		} finally {
 			BufferPool.Return(buffer);

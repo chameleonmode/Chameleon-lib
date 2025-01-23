@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Chameleon.lib.Auth\Chameleon.lib.Auth.csproj" />
     <ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
   </ItemGroup>
 

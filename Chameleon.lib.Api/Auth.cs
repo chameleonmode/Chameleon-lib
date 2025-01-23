@@ -1,9 +1,4 @@
-﻿using Chameleon.lib.Abs;
-using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Interfaces.Sys;
-using Chameleon.lib.Common.ServiceManagers;
-
-namespace Chameleon.lib.Api;
+﻿namespace Chameleon.lib.Api;
 public record LoginResponse(string? AccessToken, string? EncryptedAccessToken, long ExpireInSeconds, string? RefreshToken, long UserId, long? CreatorUserId, string[] Permissions, Limits LicenseLimits, bool TookGuidedTour, bool CanCreateProfiles) {
 	public RefreshTokenResponse? RefreshedToken { get; set; }
 	public string? UserName { get; set; }
@@ -25,21 +20,21 @@ public static class Auther {
 		AuthSession.UserName = user;
 		AuthSession.LicenseKey = pass;
 
-		AbsAuth.Instance.Use(() => (
-			AuthSession.UserId,
-			AuthSession.UserName,
-			AuthSession.LicenseKey,
-			AuthSession.CreatorUserId),
-			//(msg) => {
-			//	if (msg.Is())
-			//		Toaster.Info(msg!);
-			//},
-			(keyValue) => {
-				if(keyValue.value != null)
-					IoC.SetValue(keyValue.value, keyValue.key);
-			},
-			(key) => IoC.GetValue(key)
-		);
+		//AbsAuth.Instance.Use(() => (
+		//	AuthSession.UserId,
+		//	AuthSession.UserName,
+		//	AuthSession.LicenseKey,
+		//	AuthSession.CreatorUserId),
+		//	//(msg) => {
+		//	//	if (msg.Is())
+		//	//		Toaster.Info(msg!);
+		//	//},
+		//	(keyValue) => {
+		//		if(keyValue.value != null)
+		//			IoC.SetValue(keyValue.value, keyValue.key);
+		//	},
+		//	(key) => IoC.GetValue(key)
+		//);
 	}
 
 	public static async Task RefreshTokenAsync()
