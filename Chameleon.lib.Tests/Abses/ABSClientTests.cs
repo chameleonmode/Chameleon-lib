@@ -4,6 +4,7 @@ using System.Text.Json;
 using Chameleon.lib;
 using Chameleon.lib.Abs;
 using Chameleon.lib.Api;
+using Chameleon.lib.Const;
 using Chameleon.lib.Playwright.Services;
 
 using Microsoft.Extensions.Configuration;
@@ -25,10 +26,10 @@ namespace Chameleon.Tests;
 //}
 /// </summary>
 public class AbsClientTests {
-	 public const string endpoint = Constas.Endpoints.Auth;
+	 public const string endpoint = Configs.Endpoints.Auth;
 	// Typically, you would inject a mock or real HttpClient here, but for simplicity,
 	// we'll just use ABService.Instance directly. 
-	private readonly AbsClient _absClient = AbsClient.Instance;
+	private readonly AbsClient0 _absClient = AbsClient0.Instance;
 	private readonly TaskCompletionSource _tcs = new();
 
 	public AbsClientTests()

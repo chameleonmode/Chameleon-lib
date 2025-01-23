@@ -1,10 +1,12 @@
-﻿namespace Chameleon.lib.Abs;
+﻿using Chameleon.lib.Const;
+
+namespace Chameleon.lib.Abs;
 //Abs application backend service
 public class AbsAuth {
 	// Private
-	public const string endpoint = Abs.Constas.Endpoints.Auth;
+	public const string endpoint = Configs.Endpoints.Auth;
 	//
-	private readonly AbsClient absClient = AbsClient.Instance;
+	private readonly AbsClient0 absClient = AbsClient0.Instance;
 	//
 	private AuthRecord? authRecord;
 
@@ -17,7 +19,7 @@ public class AbsAuth {
 	{
 		var load = new Func<Task<AuthRecord?>>(async () => {
 			if (authRecord == null) {
-				var refreshToken = onLoad?.Invoke(Constas.IoCKeys.IAuth);
+				var refreshToken = onLoad?.Invoke(Configs.IoCKeys.IAuth);
 				if (!string.IsNullOrEmpty(refreshToken)) {
 					try {
 						authRecord = await Refresh(refreshToken);
@@ -31,7 +33,7 @@ public class AbsAuth {
 						authRecord = await Register();
 					}
 				}
-				onSave?.Invoke((Constas.IoCKeys.IAuth, authRecord?.Auth?.RefreshToken));
+				onSave?.Invoke((Configs.IoCKeys.IAuth, authRecord?.Auth?.RefreshToken));
 			}
 
 			return authRecord;
@@ -80,7 +82,7 @@ public class AbsAuth {
 	public async Task<AuthRecord?> Refresh(string? refreshToken = null)
 	{
 		try {
-			refreshToken ??= onLoad?.Invoke(Constas.IoCKeys.IAuth);
+			refreshToken ??= onLoad?.Invoke(Configs.IoCKeys.IAuth);
 			// Refresh
 			return (
 				await absClient.PostAsync<AuthRecord>(
@@ -98,7 +100,7 @@ public class AbsAuth {
 		// Logout
 		_ = await absClient.PostAsync<object>($"{endpoint}/logout", new { refreshToken }, false);
 		authRecord = null;
-		onSave?.Invoke((Constas.IoCKeys.IAuth, ""));
+		onSave?.Invoke((Configs.IoCKeys.IAuth, ""));
 	}
 
 

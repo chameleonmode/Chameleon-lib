@@ -1,14 +1,10 @@
 ﻿using Chameleon.lib.Abs;
-using Chameleon.lib.Api;
+using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Helpers;
 
 using Microsoft.Playwright;
-
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 
 namespace Chameleon.lib.Playwright.Services;
 
@@ -47,7 +43,7 @@ public sealed class PlaywrightCookiesSyncService {
 		await context.CloseAsync();
 
 		if (cookies.Any()) {
-			await absApiCookiesRepo.AddCookies(userId, email,  profileId, cookies);
+			await PlatformaticDB.Instance.AddCookies(userId, profileId, cookies);
 		}
 	}
 

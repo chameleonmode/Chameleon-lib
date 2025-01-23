@@ -12,6 +12,11 @@ public static class JS {
 		PropertyNameCaseInsensitive = true,
 		AllowTrailingCommas = true,
 	};
+	public static readonly JsonSerializerOptions InsensitiveCamelCaseOptions = new() {
+		PropertyNameCaseInsensitive = true,
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+	};
 
 	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
 		public override T2? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {

@@ -1,75 +1,57 @@
-﻿using System.Text;
-using System.Net;
+﻿using Chameleon.lib.Const;
 using System.Buffers;
 using System.Net.Http.Headers;
+using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Chameleon.lib.Const;
+using System.Text;
+using Chameleon.lib.Auth;
 
 namespace Chameleon.lib.Abs;
 
-public class AbsClient0 {
-	// Constants
-	private const int DEFAULT_TIMEOUT_SECONDS = 30;
-	private const int MAX_CONNECTIONS_PER_SERVER = 20;
-
+public class AbsClient(string baseUrl) {
 	// Private fields
-	private static readonly HttpClient _httpClient = new(new SocketsHttpHandler {
-		MaxConnectionsPerServer = MAX_CONNECTIONS_PER_SERVER,
+	private readonly HttpClient httpClient = new(new SocketsHttpHandler {
 		PooledConnectionLifetime = TimeSpan.FromMinutes(2),
 		KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
 		AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
 	}) {
-		BaseAddress = new Uri(Configs.Urls.ABS_BASE_URL),
-		Timeout = TimeSpan.FromSeconds(DEFAULT_TIMEOUT_SECONDS)
+		BaseAddress = new Uri(baseUrl)
 	};
-	private static readonly JsonSerializerOptions _jsonOptions = new() {
-		PropertyNameCaseInsensitive = true,
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-	};
-
-	// Public properties
-	public Func<Task<IAuth?>> TokenProvider { get; set; } = () => Task.FromResult<IAuth?>(null);
 
 	// Public methods
-	public async Task<ApiSuccessResponse<T?>> GetAsync<T>(string requestUri) =>
+	public async Task<T?> GetAsync<T>(string requestUri) =>
 		await SendRequestAsync<T>(HttpMethod.Get, requestUri, ensureSuccess: false);
 
 
-	public async Task<ApiSuccessResponse<T?>> PostAsync<T>(string requestUri, object body, bool authentication = true) =>
+	public async Task<T?> PostAsync<T>(string requestUri, object body, bool authentication = true) =>
 		await SendRequestAsync<T>(HttpMethod.Post, requestUri, body, authentication);
 
 
-	public async Task<ApiSuccessResponse<T?>> PutAsync<T>(string requestUri, object body) =>
+	public async Task<T?> PutAsync<T>(string requestUri, object body) =>
 		await SendRequestAsync<T>(HttpMethod.Put, requestUri, body);
 
 
-	public async Task<object> DeleteAsync(string requestUri) =>
+	public async Task<object?> DeleteAsync(string requestUri) =>
 		await SendRequestAsync<object>(HttpMethod.Delete, requestUri);
 
-	private async Task<ApiSuccessResponse<T?>> SendRequestAsync<T>(
+	private async Task<T?> SendRequestAsync<T>(
 			HttpMethod method,
 			string requestUri,
 			object? body = null,
 			bool authentication = true,
-			bool ensureSuccess = true)
-	{
+			bool ensureSuccess = true) {
 		if (authentication) {
-			var token = (await TokenProvider())?.AccessToken;
-			_httpClient.DefaultRequestHeaders.Authorization = !string.IsNullOrWhiteSpace(token)
-					? new AuthenticationHeaderValue("Bearer", token)
-					: null;
-
+			httpClient.DefaultRequestHeaders.Authorization =
+				new AuthenticationHeaderValue("Bearer", Session.Instance.Auth0Client.Token?.access_token);
 		}
 
 		using var request = new HttpRequestMessage(method, requestUri);
 		if (body != null) {
-			var json = JsonSerializer.Serialize(body, _jsonOptions);
+			var json = JsonSerializer.Serialize(body, JS.InsensitiveCamelCaseOptions);
 			request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 		}
 
-		using var response = await _httpClient.SendAsync(request);
+		using var response = await httpClient.SendAsync(request);
 		var buffer = BufferPool.Rent();
 		try {
 			using var stream = await response.Content.ReadAsStreamAsync();
@@ -86,7 +68,7 @@ public class AbsClient0 {
 				var exception = new HttpRequestException($"{method} {requestUri} returned {response.StatusCode}");
 				if (apiError != null) exception.Data["ApiError"] = apiError;
 				throw exception;
-			}else if(response.StatusCode == HttpStatusCode.NoContent) {
+			} else if (response.StatusCode == HttpStatusCode.NoContent) {
 				return new ApiSuccessResponse<T?>(default, null);
 			}
 
@@ -97,10 +79,9 @@ public class AbsClient0 {
 		}
 	}
 
-	private static T? DeserializeSafely<T>(string json)
-	{
+	private static T? DeserializeSafely<T>(string json) {
 		try {
-			return JsonSerializer.Deserialize<T>(json, _jsonOptions);
+			return JsonSerializer.Deserialize<T>(json, JS.InsensitiveCamelCaseOptions);
 		} catch {
 			return default;
 		}
@@ -119,17 +100,4 @@ public class AbsClient0 {
 		public static byte[] Rent(int minimumLength = DEFAULT_BUFFER_SIZE) => _arrayPool.Rent(minimumLength);
 		public static void Return(byte[] array) => _arrayPool.Return(array);
 	}
-
-	#region singleton
-	private static AbsClient0? _instance;
-	private static readonly object _lock = new();
-	private AbsClient0() { }
-	public static AbsClient0 Instance {
-		get {
-			lock (_lock) {
-				return _instance ??= new AbsClient0();
-			}
-		}
-	}
-	#endregion
 }

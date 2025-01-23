@@ -81,7 +81,8 @@ public class IoC {
 	public static void ClearValue(params string[] keys) {
 		var key = string.Join('_', keys).Replace(' ', '_');
 		if (Instance.Config is Chonfigurationer config) {
-			config._overrides.TryRemove(key, out _);
+			_ = config._overrides.TryRemove(key, out _);
+			SetValue("null", keys);
 			Toaster.Success("Setting cleared");
 		}
 	}

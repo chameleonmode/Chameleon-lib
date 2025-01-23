@@ -1,10 +1,11 @@
-﻿using Chameleon.lib.Util;
+﻿using Chameleon.lib.Const;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs;
 
 public class ABService {
 	// Private
-	private readonly AbsClient absClient = AbsClient.Instance;
+	private readonly AbsClient0 absClient = AbsClient0.Instance;
 	private readonly AbsAuth absAuth = AbsAuth.Instance;
 
 	#region Cookies API Methods
@@ -15,7 +16,7 @@ public class ABService {
 		return await PolyUtil.RetryWithPolicyAsync(
 			async () => {
 				return (await absClient.GetAsync<List<CookiesRecord<T>>>(
-					Constas.Endpoints.Cookies)
+					Configs.Endpoints.Cookies)
 				)?.Data;
 			}, OnError);
 	}
@@ -28,7 +29,7 @@ public class ABService {
 	{
 		_ = await PolyUtil.RetryWithPolicyAsync(async () => {
 			return (await absClient.PutAsync<object>(
-				Constas.Endpoints.Cookies,
+				Configs.Endpoints.Cookies,
 				new
 				{
 					userId,
@@ -43,7 +44,7 @@ public class ABService {
 	public async Task DeleteCookies()
 	{
 		_ = await PolyUtil.RetryWithPolicyAsync(async () => {
-			return await absClient.DeleteAsync(Constas.Endpoints.Cookies);
+			return await absClient.DeleteAsync(Configs.Endpoints.Cookies);
 		}, OnError);
 	}
 
