@@ -88,7 +88,7 @@ public class OidcAuth0Client {
 	/// <param name="refreshToken"></param>
 	/// <returns></returns>
 	public async Task RefreshToken() {
-		ArgumentNullException.ThrowIfNull(Token);
+		ArgumentNullException.ThrowIfNull(Token!.refresh_token);
 
 		using var client = new HttpClient();
 		var res = await client.PostAsync(

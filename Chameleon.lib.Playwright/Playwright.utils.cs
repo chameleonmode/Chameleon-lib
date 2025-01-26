@@ -8,6 +8,7 @@ using Chameleon.lib.Common.Constants;
 
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Helpers;
+using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright;
 
@@ -15,6 +16,28 @@ namespace Chameleon.lib.Playwright;
 /// Helper/Util class for static Playwright operations
 /// </summary>
 public static class PlaywrightUtil {
+	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(string profileId, Enums.SystemBrowserType browserType) {
+		// Retrieve path to the browser executable
+		var exePath = await GetExecutable(browserType);
+
+		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
+		? playwright.Firefox : playwright.Chromium;
+		await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
+				Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId),
+				new() {
+					Headless = true,
+					ExecutablePath = exePath,
+					Args = ["--allow-downgrade"]
+				}
+		);
+
+		var cookies = await context.CookiesAsync();
+		await context.CloseAsync();
+
+		return cookies;
+	}
+
 	public static async Task CreateDevmodePrefs(Enums.SystemBrowserType browserType, string profileId)
 	{
 		var cachePath = Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId);

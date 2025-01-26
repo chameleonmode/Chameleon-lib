@@ -19,22 +19,6 @@ public static class Auther {
 		AuthSession = response;
 		AuthSession.UserName = user;
 		AuthSession.LicenseKey = pass;
-
-		//AbsAuth.Instance.Use(() => (
-		//	AuthSession.UserId,
-		//	AuthSession.UserName,
-		//	AuthSession.LicenseKey,
-		//	AuthSession.CreatorUserId),
-		//	//(msg) => {
-		//	//	if (msg.Is())
-		//	//		Toaster.Info(msg!);
-		//	//},
-		//	(keyValue) => {
-		//		if(keyValue.value != null)
-		//			IoC.SetValue(keyValue.value, keyValue.key);
-		//	},
-		//	(key) => IoC.GetValue(key)
-		//);
 	}
 
 	public static async Task RefreshTokenAsync()
