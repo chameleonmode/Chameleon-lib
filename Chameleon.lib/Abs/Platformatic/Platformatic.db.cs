@@ -2,69 +2,63 @@
 
 using Chameleon.lib.Auth;
 using Chameleon.lib.Const;
-using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
 public class PlatformaticDB {
 	readonly Session session = Session.Instance;
 	readonly AbsClient absClient = new(Configs.Urls.ABS_PLATFORMATIC_BASE_URL);
 	
-	public PlatformaticDBuser? DBuser { get; private set; }
+	public PlatformaticUser? DBuser { get; private set; }
 
-	public async Task<PlatformaticDBuser?> GetDBuser() {
-		if(session.Auth0Client.Token == null) {
+	public async Task Login() {
+		if (session.Auth0Client.Token == null) {
 			await session.SignIn();
 		}
-		try {
-			return DBuser ??= await absClient.GetAsync<PlatformaticDBuser>(Configs.Endpoints.DB + "/user");
-		} catch {
-			await session.ValidateLicese();
-			return DBuser = await PolyUtil.RetryWithPolicyAsync(async () => {
-				return await absClient.GetAsync<PlatformaticDBuser>(Configs.Endpoints.DB + "/user");
-			});
-		}
+
+		DBuser = (await GetDBuser()) ?? (await ValidateLicese());
 	}
 
-	public async Task AddCookies<T>(
-			string forUserId,
+	public async Task<PlatformaticUser?> GetDBuser() {
+		return await absClient.GetAsync<PlatformaticUser>(Configs.Endpoints.DB.USER);
+	}
+
+	public async Task<PlatformaticUser?> ValidateLicese() {
+		return await absClient.PostAsync<PlatformaticUser>(
+			$"{Configs.Urls.ABS_PLATFORMATIC_BASE_URL}/license/activate",
+			new { license_key = session.Login!.LicenseKey }
+		);
+	}
+
+	public async Task<List<PlatformaticDataInteraction>?> GetDataInteractions() {
+		return await absClient.GetAsync<List<PlatformaticDataInteraction>>(Configs.Endpoints.DataInteractions);
+	}
+
+	public async Task<PlatformaticDataInteraction?> SendCookies<T>(
+			string receiverEmail,
 			string profileId,
 			IReadOnlyList<T> cookiesJs) {
-		var dbUser = await GetDBuser();
-		var body = new {
-			forUserId,
-			fromUserId = dbUser?.userId,
-			dbUser?.tenantId,
-			profileId,
-			cookiesJs = JsonSerializer.Serialize(cookiesJs, JS.InsensitiveCamelCaseOptions)
+		var payload = new {
+			receiverEmail,
+			payload = new {
+				profileId,
+				cookiesJs
+			}
 		};
-		 var res = await absClient.PostAsync<object>(Configs.Endpoints.Cookies, body);
-		//_ = await PolyUtil.RetryWithPolicyAsync(async () => {
-		//	return await absClient.PutAsync<object>(
-		//		Configs.Endpoints.Cookies,
-		//		new {
-		//			forUserId,
-		//			fromUserId = dbUser?.userId,
-		//			dbUser?.tenantId,
-		//			profileId,
-		//			cookiesJs
-		//		});
-		//});
+		return await absClient.PostAsync<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES, payload);
 	}
 
-	//public async Task<List<CookiesRecord<T>>?> GetCookies<T>() {
-	//	return await PolyUtil.RetryWithPolicyAsync(
-	//		async () => {
-	//			return (await absClient.GetAsync<List<CookiesRecord<T>>>(
-	//				Configs.Endpoints.Cookies)
-	//			)?.Data;
-	//		}, OnError);
-	//}
+	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
+		var interactions = await GetDataInteractions();
+		var payload = interactions?.Select(i => JS.DeserializeSafely<PlatformaticDataPayload<CookyPayload<T>>>(i.dataPayload));
+		return payload?.Where(p=> p != null).Select(p=> p!.payload);
+	}
 
-	//public async Task DeleteCookies() {
-	//	_ = await PolyUtil.RetryWithPolicyAsync(async () => {
-	//		return await absClient.DeleteAsync(Configs.Endpoints.Cookies);
-	//	}, OnError);
-	//}
+	public async Task DeleteDataInteractions() {
+		var interactions = await GetDataInteractions();
+		foreach (var interaction in interactions!) {
+			_ = await absClient.DeleteAsync<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
+		}
+	}
 
 	public static PlatformaticDB Instance { get; } = new();
 }

@@ -18,6 +18,14 @@ public static class JS {
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
 	};
 
+	public static T? DeserializeSafely<T>(string json) {
+		try {
+			return JsonSerializer.Deserialize<T>(json, InsensitiveCamelCaseOptions);
+		} catch {
+			return default;
+		}
+	}
+
 	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
 		public override T2? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
 			var jsonObject = JsonDocument.ParseValue(ref reader).RootElement;

@@ -24,8 +24,12 @@ public static class Configs {
 	}
 
 	public static class Endpoints {
-		public const string DB = "/db";
+		public static class DB {
+			public const string USER = "/db/user";
+			public const string COOKIES = "/db/cookies";
+		}
+		
 		public const string Users = "/users";
-		public const string Cookies = "/cookies";
+		public const string DataInteractions = "/dataInteractions";
 	}
 }

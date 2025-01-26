@@ -22,17 +22,48 @@ public record TokenPayload(
 		object[] permissions
 );
 
-public record PlatformaticDBuser(
-		string id,
+public record PlatformaticUser(
+		int id,
 		string userId,
-		string fullName,
 		string email,
+		string licenseKey,
+		string tenantId,
 		string provider,
 		string providerId,
+		DateTime createdAt,
+		DateTime updatedAt
+);
+
+public record PlatformaticDataInteraction(
+		int id,
+		string interactionId,
 		string tenantId,
-		string licenseKey,
-		int isSuperUser,
+		string senderId,
+		string receiverId,
+		string dataPayload,
 		DateTime createdAt
 );
+
+public record PlatformaticDataPayload<T>(
+	string type,
+	T payload
+);
+
+public record CookyPayload<T>(
+	string profileId,
+	T[] cookiesJs
+);
+
+//public record Cookiesj(
+//	string name,
+//	string value,
+//	string domain,
+//	string path,
+//	int expires,
+//	bool httpOnly,
+//	bool secure,
+//	int sameSite
+//);
+
 
 #pragma warning restore IDE1006 // Naming Styles

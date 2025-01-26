@@ -2,6 +2,7 @@
 using Chameleon.lib.Const;
 
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -9,6 +10,9 @@ namespace Chameleon.lib.Auth;
 public class Session {
 	public OidcAuth0Client Auth0Client { get; } = new();
 	public LoginSettings? Login => IoC.GetJsonValue<LoginSettings>(nameof(LoginSettings));
+
+	public AuthenticationHeaderValue Authorization =>
+		new("Bearer", Auth0Client.Token?.access_token);
 
 	public async Task SignIn() {
 		try {
@@ -32,25 +36,6 @@ public class Session {
 		var payload = jwtToken.Payload.SerializeToJson();
 
 		return JsonSerializer.Deserialize<TokenPayload>(payload!, JS.CaseInsensitiveOptions)!;
-	}
-
-	public async Task ValidateLicese() {
-		using var httpClient = new HttpClient();
-		httpClient.DefaultRequestHeaders.Authorization =
-				new("Bearer", Auth0Client.Token!.access_token);
-
-		var response = await httpClient.PostAsJsonAsync(
-			$"{Configs.Urls.ABS_PLATFORMATIC_BASE_URL}/license/activate",
-			new { license_key = Login!.LicenseKey }
-		);
-		var body = await response.Content.ReadAsStringAsync();
-		if (!response.IsSuccessStatusCode) {
-			throw new InvalidOperationException($"License activation error ({response.StatusCode}): " + body);
-		}
-		//Console.WriteLine("License activation success: " + body);
-		//} else {
-		//	throw new InvalidOperationException($"License activation error ({response.StatusCode}): " + body);
-		//}
 	}
 
 	// singleton

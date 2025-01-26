@@ -11,11 +11,6 @@ public class SessionTests(int dictionary = 0) : TestSetup(dictionary) {
 	}
 
 	[Fact]
-	public async Task ValidateLicese_Success() {
-		await Session.Instance.ValidateLicese();
-	}
-
-	[Fact]
 	public async Task Logout_Success() {
 		await Session.Instance.Logout();
 	}
