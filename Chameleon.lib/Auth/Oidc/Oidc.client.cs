@@ -1,6 +1,7 @@
 ﻿using Chameleon.lib.Const;
 using Chameleon.lib.Util;
 
+using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 
 namespace Chameleon.lib.Auth.Oidc;
@@ -42,7 +43,6 @@ public class OidcAuth0Client {
 		IoC.SetJsonValue(token, nameof(TokenResponse));
 		return token;
 	}
-
 	private void SaveToken(TokenResponse token) {
 		IoC.SetJsonValue(token, nameof(TokenResponse));
 	}
@@ -101,5 +101,15 @@ public class OidcAuth0Client {
 		);
 
 		SaveToken(DeserializeToken(await res.Content.ReadAsStringAsync()));
+	}
+
+	public TokenPayload GetJwtPayload() {
+		var jwtHandler = new JwtSecurityTokenHandler();
+		var jwtToken = jwtHandler.ReadJwtToken(Token!.access_token);
+
+		// Get the payload as a JSON string
+		var payload = jwtToken.Payload.SerializeToJson();
+
+		return JsonSerializer.Deserialize<TokenPayload>(payload!, JS.CaseInsensitiveOptions)!;
 	}
 }

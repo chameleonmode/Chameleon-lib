@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-using Chameleon.lib.Auth;
+﻿using Chameleon.lib.Auth;
 using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Abs.Platformatic;
@@ -10,16 +8,17 @@ public class PlatformaticDB {
 	
 	public PlatformaticUser? DBuser { get; private set; }
 
-	public async Task Login() {
-		if (session.Auth0Client.Token == null) {
-			await session.SignIn();
-		}
-
+	public async Task Ensure() {
+		await session.SignIn();
 		DBuser = (await GetDBuser()) ?? (await ValidateLicese());
 	}
 
 	public async Task<PlatformaticUser?> GetDBuser() {
-		return await absClient.GetAsync<PlatformaticUser>(Configs.Endpoints.DB.USER);
+		try {
+			return await absClient.GetAsync<PlatformaticUser>(Configs.Endpoints.DB.USER);
+		} catch {
+			return null;
+		}
 	}
 
 	public async Task<PlatformaticUser?> ValidateLicese() {
@@ -33,31 +32,30 @@ public class PlatformaticDB {
 		return await absClient.GetAsync<List<PlatformaticDataInteraction>>(Configs.Endpoints.DataInteractions);
 	}
 
-	public async Task<PlatformaticDataInteraction?> SendCookies<T>(
-			string receiverEmail,
-			string profileId,
-			IReadOnlyList<T> cookiesJs) {
-		var payload = new {
-			receiverEmail,
-			payload = new {
-				profileId,
-				cookiesJs
-			}
-		};
-		return await absClient.PostAsync<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES, payload);
-	}
-
-	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
-		var interactions = await GetDataInteractions();
-		var payload = interactions?.Select(i => JS.DeserializeSafely<PlatformaticDataPayload<CookyPayload<T>>>(i.dataPayload));
-		return payload?.Where(p=> p != null).Select(p=> p!.payload);
-	}
-
 	public async Task DeleteDataInteractions() {
 		var interactions = await GetDataInteractions();
 		foreach (var interaction in interactions!) {
 			_ = await absClient.DeleteAsync<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
 		}
+	}
+
+	public async Task<PlatformaticDataInteraction?> SendCookies<T>(
+			string receiverEmail,
+			string profileId,
+			IReadOnlyList<T> cookiesJs) {
+		return await absClient.PostAsync<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES, new {
+			receiverEmail,
+			payload = new {
+				profileId,
+				cookiesJs
+			}
+		});
+	}
+
+	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
+		var interactions = await GetDataInteractions();
+		return interactions?.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.dataPayload))
+												.Where(payload => payload != null)!;
 	}
 
 	public static PlatformaticDB Instance { get; } = new();

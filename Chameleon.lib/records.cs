@@ -23,7 +23,7 @@ public record TokenPayload(
 );
 
 public record PlatformaticUser(
-		int id,
+		object id,
 		string userId,
 		string email,
 		string licenseKey,
@@ -35,17 +35,17 @@ public record PlatformaticUser(
 );
 
 public record PlatformaticDataInteraction(
-		int id,
+		object id,
 		string interactionId,
 		string tenantId,
 		string senderId,
 		string receiverId,
+		string dataType,
 		string dataPayload,
 		DateTime createdAt
 );
 
 public record PlatformaticDataPayload<T>(
-	string type,
 	T payload
 );
 

@@ -1,10 +1,5 @@
 ﻿using Chameleon.lib.Auth.Oidc;
-using Chameleon.lib.Const;
-
-using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace Chameleon.lib.Auth;
 public class Session {
@@ -26,16 +21,6 @@ public class Session {
 		if (Login != null)
 			IoC.SetJsonValue(new LoginSettings(Login.LoginName, Login.LicenseKey, false), nameof(LoginSettings));
 		await Auth0Client.Logout();
-	}
-
-	public TokenPayload GetJwtPayload() {
-		var jwtHandler = new JwtSecurityTokenHandler();
-		var jwtToken = jwtHandler.ReadJwtToken(Auth0Client.Token!.access_token);
-
-		// Get the payload as a JSON string
-		var payload = jwtToken.Payload.SerializeToJson();
-
-		return JsonSerializer.Deserialize<TokenPayload>(payload!, JS.CaseInsensitiveOptions)!;
 	}
 
 	// singleton

@@ -1,9 +1,5 @@
 ﻿using Chameleon.lib.Const;
-using System.Buffers;
-using System.Net.Http.Headers;
 using System.Net;
-using System.Text.Json;
-using System.Text;
 using Chameleon.lib.Auth;
 using System.Net.Http.Json;
 
@@ -19,20 +15,7 @@ public class AbsClient(string baseUrl) {
 		BaseAddress = new Uri(baseUrl)
 	};
 
-
-	// Public methods
-	public async Task<T?> GetAsync<T>(string requestUri) =>
-		await SendRequestAsync<T>(HttpMethod.Get, requestUri);
-
-	public async Task<T?> PostAsync<T>(string requestUri, object body) =>
-		await SendRequestAsync<T>(HttpMethod.Post, requestUri, body);
-
-	public async Task<T?> PutAsync<T>(string requestUri, object body) =>
-		await SendRequestAsync<T>(HttpMethod.Put, requestUri, body);
-
-	public async Task<T?> DeleteAsync<T>(string requestUri) =>
-		await SendRequestAsync<T>(HttpMethod.Delete, requestUri);
-
+	// Private methods
 	private async Task<T?> SendRequestAsync<T>(
 			HttpMethod method,
 			string requestUri,
@@ -53,4 +36,17 @@ public class AbsClient(string baseUrl) {
 				: JS.DeserializeSafely<T>(content)
 								?? throw new InvalidOperationException("Response is unreadable");
 	}
+
+	// Public methods
+	public async Task<T?> GetAsync<T>(string requestUri) =>
+		await SendRequestAsync<T>(HttpMethod.Get, requestUri);
+
+	public async Task<T?> PostAsync<T>(string requestUri, object body) =>
+		await SendRequestAsync<T>(HttpMethod.Post, requestUri, body);
+
+	public async Task<T?> PutAsync<T>(string requestUri, object body) =>
+		await SendRequestAsync<T>(HttpMethod.Put, requestUri, body);
+
+	public async Task<T?> DeleteAsync<T>(string requestUri) =>
+		await SendRequestAsync<T>(HttpMethod.Delete, requestUri);
 }
