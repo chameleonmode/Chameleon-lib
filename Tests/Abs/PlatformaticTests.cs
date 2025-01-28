@@ -8,7 +8,7 @@ namespace Tests.Abs;
 public class PlatformaticTests(int dictionary = 0) : TestSetup(dictionary) {
 	readonly PlatformaticDB platformaticDB = PlatformaticDB.Instance;
 	[Fact]
-	public async Task Ensure_Success() {
+	public async Task EnsureUser_Success() {
 		await platformaticDB.EnsureUser();
 		Assert.NotNull(platformaticDB.DBuser);
 		Assert.NotEmpty(platformaticDB.DBusers);

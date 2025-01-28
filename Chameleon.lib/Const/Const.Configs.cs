@@ -14,13 +14,14 @@ public static class Configs {
             "https://abswebapp.azurewebsites.net"
 #endif
 		;
-		public static string ABS_PLATFORMATIC_BASE_URL =>
-#if DEBUG
-					"http://127.0.0.1:3000"
-#else
-        "https://abswebapp.azurewebsites.net"
-#endif
-	;
+		//		public static string ABS_PLATFORMATIC_BASE_URL =>
+		//#if DEBUG
+		//					"http://127.0.0.1:3042"
+		//#else
+		//        "https://chameleon-abs.onrender.com/"
+		//#endif
+		//	;
+		public static string ABS_PLATFORMATIC_BASE_URL => "https://chameleon-abs.onrender.com";
 	}
 
 	public static class Endpoints {
