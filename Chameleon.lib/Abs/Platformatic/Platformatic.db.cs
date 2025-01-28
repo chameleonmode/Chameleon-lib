@@ -28,7 +28,7 @@ public class PlatformaticDB {
 
 	public async Task<PlatformaticUser?> ValidateLicese() {
 		return await absClient.PostAsync<PlatformaticUser>(
-			$"{Configs.Urls.ABS_PLATFORMATIC_BASE_URL}/license/activate",
+			$"/license/activate",
 			new { license_key = session.Login!.LicenseKey }
 		);
 	}
@@ -56,8 +56,10 @@ public class PlatformaticDB {
 
 	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
 		var interactions = await GetDataInteractions();
-		return interactions?.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.dataPayload))
-												.Where(payload => payload != null)!;
+		return interactions?
+			.Where(i=>i.dataType == "cooky")
+			.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.dataPayload))
+			.Where(payload => payload != null)!;
 	}
 
 
