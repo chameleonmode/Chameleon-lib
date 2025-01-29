@@ -31,6 +31,12 @@ public class PlatformaticDB {
 			throw new InvalidOperationException("User not found");
 		}
 
+		// Double check license key if it's null
+		// TODO: Remove this after all users have migrated to auth0
+		if (DBuser.licenseKey == null) {
+			DBuser = (await ValidateLicese) ?? DBuser;
+		}
+
 		if (DBusers.Count == 0) {
 			var users = await GetDBusers;
 			DBusers.AddRange(users!);
