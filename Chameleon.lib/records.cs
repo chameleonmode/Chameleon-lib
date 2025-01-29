@@ -22,6 +22,12 @@ public record TokenPayload(
 		object[] permissions
 );
 
+public record PlatformaticReqError(
+		int statusCode,
+		string error,
+		string message
+);
+
 public record PlatformaticUser(
 		object id,
 		string userId,

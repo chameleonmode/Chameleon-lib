@@ -16,19 +16,25 @@ public static class Configs {
 		;
 		public static string ABS_PLATFORMATIC_BASE_URL =>
 #if DEBUG
-					"http://127.0.0.1:3042"
+					"http://127.0.0.1:3044"
 #else
-		      "https://chameleon-abs.onrender.com"
+		      "https://chameleon-abs-platformatic.onrender.com"
 #endif
 		;
 	}
 
 	public static class Endpoints {
 		public static class DB {
-			public const string USER = "/db/user";
+			const string BASE = "/db";
+			public const string USER = $"{BASE}/user";
 			public const string COOKIES = "/db/cookies";
 		}
-		
+
+		public static class LICENSE {
+			const string BASE = "/license";
+			public const string ACTIVATE = $"{BASE}/activate";
+		}
+
 		public const string Users = "/users";
 		public const string DataInteractions = "/dataInteractions";
 	}

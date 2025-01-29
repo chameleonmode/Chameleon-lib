@@ -23,5 +23,4 @@ public class Auth0Tests(int dictionary = 0) : TestSetup(dictionary) {
 		await auth.Logout();
 		Assert.Null(auth.Token);
 	}
-
 }

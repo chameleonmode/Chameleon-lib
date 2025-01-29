@@ -6,7 +6,7 @@ public class SessionTests(int dictionary = 0) : TestSetup(dictionary) {
 
 	[Fact]
 	public async Task SignIn_Success() {
-		await Session.Instance.SignIn();
+		await Session.Instance.Authenticate();
 		Assert.NotNull(Session.Instance.Auth0Client.Token);
 	}
 

@@ -3,66 +3,68 @@ using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Abs.Platformatic;
 public class PlatformaticDB {
-	readonly Session session = Session.Instance;
-	readonly AbsClient absClient = new(Configs.Urls.ABS_PLATFORMATIC_BASE_URL);
-	
+	readonly Session session;
+	readonly AbsClient absClient;
+
+	private PlatformaticDB() {
+		session = Session.Instance;
+		absClient = new AbsClient(Configs.Urls.ABS_PLATFORMATIC_BASE_URL, session.Authenticate);
+	}
+
+	Task<PlatformaticUser?> GetDBuser =>
+		absClient.GetAsync<PlatformaticUser>(Configs.Endpoints.DB.USER,
+			$"?email={Uri.EscapeDataString(session.Login!.LoginName)}", false);
+	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
+		absClient.GetAsync<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
+	Task<PlatformaticUser?> ValidateLicese =>
+		absClient.PostAsync<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
+			new { license_key = session.Login!.LicenseKey }
+		);
+
 	public PlatformaticUser? DBuser { get; private set; }
 	public List<PlatformaticUser> DBusers { get; } = [];
 
 	public async Task EnsureUser() {
+		DBuser ??= await GetDBuser;
+		DBuser ??= await ValidateLicese;
 		if (DBuser == null) {
-			await session.SignIn();
-			//
-			DBuser ??= await GetDBuser();
-			DBuser ??= await ValidateLicese();
-			if (DBuser == null) {
-				throw new InvalidOperationException("User not found");
-			}
+			throw new InvalidOperationException("User not found");
 		}
-		if(DBusers.Count == 0) {
-			DBusers.Clear();
-			var users = await GetDBusers();
+
+		if (DBusers.Count == 0) {
+			var users = await GetDBusers;
 			DBusers.AddRange(users!);
 		}
 	}
 
-	public async Task<PlatformaticUser?> ValidateLicese() {
-		return await absClient.PostAsync<PlatformaticUser>(
-			$"/license/activate",
-			new { license_key = session.Login!.LicenseKey }
-		);
-	}
-	public async Task<PlatformaticUser?> GetDBuser() {
-		try {
-			return await absClient.GetAsync<PlatformaticUser>(Configs.Endpoints.DB.USER);
-		} catch {
-			return null;
-		}
-	}
-	public async Task<IEnumerable<PlatformaticUser>?> GetDBusers() {
-		return await absClient.GetAsync<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
+	public async Task<PlatformaticUser?> CreateUser(string email) {
+		await EnsureUser();
+
+		if (DBusers.Any(u => u.email == email))
+			throw new InvalidOperationException("User already exists");
+
+		var newUser = await absClient.PostAsync<PlatformaticUser>(Configs.Endpoints.DB.USER, new {
+			email
+		});
+		DBusers.Add(newUser!);
+
+		return newUser;
 	}
 
+	// GET
 	public async Task<List<PlatformaticDataInteraction>?> GetDataInteractions() {
 		await EnsureUser();
 		return await absClient.GetAsync<List<PlatformaticDataInteraction>>(Configs.Endpoints.DataInteractions);
 	}
-	public async Task DeleteDataInteractions() {
-		var interactions = await GetDataInteractions();
-		foreach (var interaction in interactions!) {
-			_ = await absClient.DeleteAsync<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
-		}
-	}
-
 	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
 		var interactions = await GetDataInteractions();
 		return interactions?
-			.Where(i=>i.dataType == "cooky")
+			.Where(i => i.dataType == "cooky")
 			.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.dataPayload))
 			.Where(payload => payload != null)!;
 	}
 
-
+	// POST
 	public async Task<PlatformaticDataInteraction?> SendCookies<T>(
 			string receiverEmail,
 			string profileId,
@@ -75,6 +77,14 @@ public class PlatformaticDB {
 				cookiesJs
 			}
 		});
+	}
+
+	// DELETE
+	public async Task DeleteDataInteractions() {
+		var interactions = await GetDataInteractions();
+		foreach (var interaction in interactions!) {
+			_ = await absClient.DeleteAsync<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
+		}
 	}
 
 	public static PlatformaticDB Instance { get; } = new();
