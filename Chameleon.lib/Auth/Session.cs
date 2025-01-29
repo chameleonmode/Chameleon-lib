@@ -9,7 +9,7 @@ public class Session {
 	public LoginSettings? Login => IoC.GetJsonValue<LoginSettings>(nameof(LoginSettings));
 
 	public async Task<AuthenticationHeaderValue> Authenticate() {
-		if (authorization is null) {
+		if (authorization?.Parameter is null) {
 			try {
 				await Auth0Client.RefreshToken();
 			} catch {

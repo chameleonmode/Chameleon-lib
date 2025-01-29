@@ -6,6 +6,8 @@ public class PlatformaticDB {
 	readonly Session session;
 	readonly AbsClient absClient;
 
+	bool ranLicenseCheck = false;
+
 	private PlatformaticDB() {
 		session = Session.Instance;
 		absClient = new AbsClient(Configs.Urls.ABS_PLATFORMATIC_BASE_URL, session.Authenticate);
@@ -33,8 +35,9 @@ public class PlatformaticDB {
 
 		// Double check license key if it's null
 		// TODO: Remove this after all users have migrated to auth0
-		if (DBuser.licenseKey == null) {
+		if (!ranLicenseCheck && DBuser.licenseKey == null) {
 			DBuser = (await ValidateLicese) ?? DBuser;
+			ranLicenseCheck = true;
 		}
 
 		if (DBusers.Count == 0) {
