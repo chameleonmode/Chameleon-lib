@@ -22,8 +22,8 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task CreateUser_Success() {
-		var data = await platformaticDB.CreateUser("6@example.com");
-		Assert.NotNull(data);
+		await platformaticDB.CreateUser("6@example.com");
+		Assert.NotNull(platformaticDB.DBusers);
 	}
 
 	[Fact]
