@@ -8,25 +8,30 @@ public class PlatformaticDB {
 
 	bool ranLicenseCheck = false;
 
-	private PlatformaticDB() {
+	PlatformaticDB() {
 		session = Session.Instance;
 		absClient = new AbsClient(Configs.Urls.ABS_PLATFORMATIC_BASE_URL, session.Authenticate);
 	}
 
-	Task<PlatformaticUser?> GetDBuser =>
-		absClient.Get<PlatformaticUser>(Configs.Endpoints.DB.USER,
-			$"?email={Uri.EscapeDataString(session.Login!.LoginName)}", false);
-	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
-		absClient.Get<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
-	
-	public Task<PlatformaticUser?> ValidateLicese =>
-		absClient.Post<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
-			new { license_key = session.Login!.LicenseKey }
-		);
-
 	public PlatformaticUser? DBuser { get; private set; }
 	public List<PlatformaticUser> DBusers { get; } = [];
 
+	Task<PlatformaticUser?> GetDBuser =>
+		absClient.Get<PlatformaticUser>(Configs.Endpoints.DB.USER,
+			new(
+				Q: $"?email={Uri.EscapeDataString(session.Login!.LoginName)}", EnsureSuccess: false
+			)
+		);
+
+	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
+		absClient.Get<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
+
+	public Task<PlatformaticUser?> ValidateLicese =>
+		absClient.Post<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
+			new(
+				Body: new { license_key = session.Login!.LicenseKey }
+			)
+		);
 
 	public async Task EnsureUser() {
 		DBuser ??= await GetDBuser;
@@ -52,9 +57,9 @@ public class PlatformaticDB {
 		if (DBusers.Any(u => u.email == email))
 			throw new InvalidOperationException("User already exists");
 
-		var newUser = await absClient.Post<PlatformaticUser>(Configs.Endpoints.DB.USER, new {
-			email
-		});
+		var newUser = await absClient.Post<PlatformaticUser>(Configs.Endpoints.DB.USER,
+			new(Body: new { email })
+		);
 		DBusers.Add(newUser!);
 
 		return newUser;
@@ -79,13 +84,11 @@ public class PlatformaticDB {
 			string profileId,
 			IReadOnlyList<T> cookiesJs) {
 		await EnsureUser();
-		return await absClient.Post<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES, new {
-			receiverEmail,
-			payload = new {
-				profileId,
-				cookiesJs
-			}
-		});
+		return await absClient.Post<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES,
+			new(
+				Body: new { receiverEmail, payload = new { profileId, cookiesJs } }
+			)
+		);
 	}
 
 	// DELETE

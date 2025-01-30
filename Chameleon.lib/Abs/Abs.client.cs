@@ -5,6 +5,12 @@ using System.Net.Http.Headers;
 using Chameleon.lib.Auth.Oidc;
 
 namespace Chameleon.lib.Abs;
+
+public record Params(string? Q = null, object? Body = null, bool EnsureSuccess = true) {
+	public HttpContent? Content => Body == null ? null
+		: JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
+}
+
 public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, AuthenticationHeaderValue)>> authorization) {
 	private readonly HttpClient httpClient = new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,
@@ -14,19 +20,14 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 	};
 
 	//
-	private async Task<T?> SendRequestAsync<T>(
-			HttpMethod method,
-			string requestUri,
-			object? body = null,
-			string? q = null,
-			bool ensureSuccess = true) {
+	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Params? @params) {
 		var (auth0client, authentication) = await authorization();
 		httpClient.DefaultRequestHeaders.Authorization = authentication;
 		httpClient.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
 
-		using var response = await httpClient.SendAsync(new HttpRequestMessage(method, $"{requestUri}{q ?? ""}") {
-			Content = body == null ? null
-				: JsonContent.Create(body, mediaType: null, JS.InsensitiveCamelCaseOptions)
+		var requestUri = $"{path}{@params?.Q ?? ""}";
+		using var response = await httpClient.SendAsync(new HttpRequestMessage(method, requestUri) {
+			Content = @params?.Content
 		});
 		var content = await response.Content.ReadAsStringAsync();
 
@@ -35,7 +36,7 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 				response.StatusCode != HttpStatusCode.NoContent
 				? JS.DeserializeSafely<T>(content) ?? throw new InvalidOperationException("Response is unreadable")
 				: default
-			: ensureSuccess
+			: @params?.EnsureSuccess == true
 				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
 					(
 						JS.DeserializeSafely<PlatformaticReqError>(content) is PlatformaticReqError err
@@ -46,15 +47,12 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 	}
 
 	//
-	public Task<T?> Get<T>(string requestUri, string? query = null, bool throwsOnFail = true) =>
-		SendRequestAsync<T>(HttpMethod.Get, requestUri, ensureSuccess: throwsOnFail, q: query);
-
-	public Task<T?> Post<T>(string requestUri, object body) =>
-		SendRequestAsync<T>(HttpMethod.Post, requestUri, body);
-
-	public Task<T?> Put<T>(string requestUri, object body) =>
-		SendRequestAsync<T>(HttpMethod.Put, requestUri, body);
-
-	public Task<T?> Delete<T>(string requestUri) =>
-		SendRequestAsync<T>(HttpMethod.Delete, requestUri);
+	public Task<T?> Get<T>(string path, Params? @params = null) =>
+		SendRequestAsync<T>(HttpMethod.Get, path, @params);
+	public Task<T?> Post<T>(string path, Params @params) =>
+		SendRequestAsync<T>(HttpMethod.Post, path, @params);
+	public Task<T?> Put<T>(string path, Params @params) =>
+		SendRequestAsync<T>(HttpMethod.Put, path, @params);
+	public Task<T?> Delete<T>(string path, Params? @params = null) =>
+		SendRequestAsync<T>(HttpMethod.Delete, path, @params);
 }
