@@ -23,7 +23,6 @@ public record TokenPayload(
 );
 
 public record PlatformaticReqError(
-		int statusCode,
 		string error,
 		string message
 );

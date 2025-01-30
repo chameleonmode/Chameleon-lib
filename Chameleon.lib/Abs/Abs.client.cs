@@ -2,11 +2,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
-using System.Web;
+using Chameleon.lib.Auth.Oidc;
 
 namespace Chameleon.lib.Abs;
 
-public class AbsClient(string baseUrl, Func<Task<AuthenticationHeaderValue>> authorization) {
+public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client auth0client, AuthenticationHeaderValue authentication)>> authorization) {
 	// Private fields
 	private readonly HttpClient httpClient = new(new SocketsHttpHandler {
 		PooledConnectionLifetime = TimeSpan.FromMinutes(2),
@@ -23,7 +23,9 @@ public class AbsClient(string baseUrl, Func<Task<AuthenticationHeaderValue>> aut
 			object? body = null,
 			string? q = null,
 			bool ensureSuccess = true) {
-		httpClient.DefaultRequestHeaders.Authorization = await authorization();
+		var (auth0client, authentication) = await authorization();
+		httpClient.DefaultRequestHeaders.Authorization = authentication;
+		httpClient.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
 
 		if (q != null) {
 			requestUri += q;
@@ -39,7 +41,7 @@ public class AbsClient(string baseUrl, Func<Task<AuthenticationHeaderValue>> aut
 		return 
 			!response.IsSuccessStatusCode ? ensureSuccess
 				? JS.DeserializeSafely<PlatformaticReqError>(content) is PlatformaticReqError err 
-					? throw new Exception($"{method} {requestUri} {err.statusCode}: \n{err.error}\n{err.message}")
+					? throw new Exception($"{method} {requestUri} {response.StatusCode}: \n{err.error}\n{err.message}")
 					: throw new HttpRequestException($"{method} {requestUri} returned {response.StatusCode}: " + content)
 				: default
 			: response.StatusCode == HttpStatusCode.NoContent

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Tests;
 public abstract class TestSetup {
-	public TestSetup(int dictionary) {
+	public TestSetup(int dictionary = 3) {
 		IoC.Instance.Configure(() => {
 			return new WritableConfiguration(new ConfigurationBuilder()
 				.SetBasePath(Directory.GetCurrentDirectory())

@@ -5,7 +5,7 @@ using Chameleon.lib.Playwright;
 using Microsoft.Playwright;
 
 namespace Tests.Abs;
-public class PlatformaticTests(int dictionary = 5) : TestSetup(dictionary) {
+public class PlatformaticTests : TestSetup {
 	readonly PlatformaticDB platformaticDB = PlatformaticDB.Instance;
 	[Fact]
 	public async Task EnsureUser_Success() {
@@ -15,8 +15,14 @@ public class PlatformaticTests(int dictionary = 5) : TestSetup(dictionary) {
 	}
 
 	[Fact]
+	public async Task ValidateLicese_Success() {
+		var user = await platformaticDB.ValidateLicese;
+		Assert.NotNull(user);
+	}
+
+	[Fact]
 	public async Task CreateUser_Success() {
-		var data = await platformaticDB.CreateUser("dev@chameleonmode.com");
+		var data = await platformaticDB.CreateUser("6@example.com");
 		Assert.NotNull(data);
 	}
 

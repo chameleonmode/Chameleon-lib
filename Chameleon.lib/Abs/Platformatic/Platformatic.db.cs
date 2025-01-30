@@ -18,13 +18,15 @@ public class PlatformaticDB {
 			$"?email={Uri.EscapeDataString(session.Login!.LoginName)}", false);
 	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
 		absClient.GetAsync<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
-	Task<PlatformaticUser?> ValidateLicese =>
+	
+	public Task<PlatformaticUser?> ValidateLicese =>
 		absClient.PostAsync<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
 			new { license_key = session.Login!.LicenseKey }
 		);
 
 	public PlatformaticUser? DBuser { get; private set; }
 	public List<PlatformaticUser> DBusers { get; } = [];
+
 
 	public async Task EnsureUser() {
 		DBuser ??= await GetDBuser;

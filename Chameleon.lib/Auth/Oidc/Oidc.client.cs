@@ -2,6 +2,7 @@
 using Chameleon.lib.Util;
 
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace Chameleon.lib.Auth.Oidc;
@@ -9,6 +10,9 @@ public class OidcAuth0Client {
 	readonly string state;
 	readonly string codeVerifier;
 	readonly string codeChallenge;
+
+	AuthenticationHeaderValue? authorization;
+
 	public OidcBrowser OidcBrowser { get; } 
 	public string RedirectUri { get; }
 
@@ -79,7 +83,6 @@ public class OidcAuth0Client {
 	/// <returns>Task representing the logout operation</returns>
 	public async Task Logout() {
 		await OidcBrowser.Logout();
-		IoC.ClearValue(nameof(TokenResponse));
 	}
 
 	/// <summary>
@@ -111,5 +114,19 @@ public class OidcAuth0Client {
 		var payload = jwtToken.Payload.SerializeToJson();
 
 		return JsonSerializer.Deserialize<TokenPayload>(payload!, JS.CaseInsensitiveOptions)!;
+	}
+
+	internal async Task<AuthenticationHeaderValue> TryLogIn() {
+		if (authorization?.Parameter is null) {
+			try {
+				await RefreshToken();
+			} catch {
+				await Login();
+			} finally {
+				authorization = new("Bearer", Token?.access_token);
+			}
+		}
+
+		return authorization;
 	}
 }
