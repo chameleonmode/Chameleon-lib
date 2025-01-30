@@ -24,7 +24,7 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 		httpClient.DefaultRequestHeaders.Authorization = authentication;
 		httpClient.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
 
-		var response = await httpClient.SendAsync(new HttpRequestMessage(method, $"{requestUri}{q ?? ""}") {
+		using var response = await httpClient.SendAsync(new HttpRequestMessage(method, $"{requestUri}{q ?? ""}") {
 			Content = body == null ? null
 				: JsonContent.Create(body, mediaType: null, JS.InsensitiveCamelCaseOptions)
 		});
