@@ -14,13 +14,13 @@ public class PlatformaticDB {
 	}
 
 	Task<PlatformaticUser?> GetDBuser =>
-		absClient.GetAsync<PlatformaticUser>(Configs.Endpoints.DB.USER,
+		absClient.Get<PlatformaticUser>(Configs.Endpoints.DB.USER,
 			$"?email={Uri.EscapeDataString(session.Login!.LoginName)}", false);
 	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
-		absClient.GetAsync<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
+		absClient.Get<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
 	
 	public Task<PlatformaticUser?> ValidateLicese =>
-		absClient.PostAsync<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
+		absClient.Post<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
 			new { license_key = session.Login!.LicenseKey }
 		);
 
@@ -31,9 +31,7 @@ public class PlatformaticDB {
 	public async Task EnsureUser() {
 		DBuser ??= await GetDBuser;
 		DBuser ??= await ValidateLicese;
-		if (DBuser == null) {
-			throw new InvalidOperationException("User not found");
-		}
+		ArgumentNullException.ThrowIfNull(DBuser, "User not found");
 
 		// Double check license key if it's null
 		// TODO: Remove this after all users have migrated to auth0
@@ -54,7 +52,7 @@ public class PlatformaticDB {
 		if (DBusers.Any(u => u.email == email))
 			throw new InvalidOperationException("User already exists");
 
-		var newUser = await absClient.PostAsync<PlatformaticUser>(Configs.Endpoints.DB.USER, new {
+		var newUser = await absClient.Post<PlatformaticUser>(Configs.Endpoints.DB.USER, new {
 			email
 		});
 		DBusers.Add(newUser!);
@@ -65,7 +63,7 @@ public class PlatformaticDB {
 	// GET
 	public async Task<List<PlatformaticDataInteraction>?> GetDataInteractions() {
 		await EnsureUser();
-		return await absClient.GetAsync<List<PlatformaticDataInteraction>>(Configs.Endpoints.DataInteractions);
+		return await absClient.Get<List<PlatformaticDataInteraction>>(Configs.Endpoints.DataInteractions);
 	}
 	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
 		var interactions = await GetDataInteractions();
@@ -81,7 +79,7 @@ public class PlatformaticDB {
 			string profileId,
 			IReadOnlyList<T> cookiesJs) {
 		await EnsureUser();
-		return await absClient.PostAsync<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES, new {
+		return await absClient.Post<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES, new {
 			receiverEmail,
 			payload = new {
 				profileId,
@@ -94,7 +92,7 @@ public class PlatformaticDB {
 	public async Task DeleteDataInteractions() {
 		var interactions = await GetDataInteractions();
 		foreach (var interaction in interactions!) {
-			_ = await absClient.DeleteAsync<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
+			_ = await absClient.Delete<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
 		}
 	}
 

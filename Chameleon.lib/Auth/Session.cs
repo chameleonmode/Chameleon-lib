@@ -6,7 +6,7 @@ public class Session {
 	public OidcAuth0Client Auth0Client { get; } = new();
 	public LoginSettings? Login => IoC.GetJsonValue<LoginSettings>(nameof(LoginSettings));
 
-	public async Task<(OidcAuth0Client auth0client, AuthenticationHeaderValue authentication)> Authenticate() {
+	public async Task<(OidcAuth0Client, AuthenticationHeaderValue)> Authenticate() {
 		return (Auth0Client, await Auth0Client.TryLogIn());
 	}
 
