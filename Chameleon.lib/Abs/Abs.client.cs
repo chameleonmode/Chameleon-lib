@@ -13,6 +13,7 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 		BaseAddress = new Uri(baseUrl)
 	};
 
+	//
 	private async Task<T?> SendRequestAsync<T>(
 			HttpMethod method,
 			string requestUri,
@@ -23,10 +24,9 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 		httpClient.DefaultRequestHeaders.Authorization = authentication;
 		httpClient.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
 
-		using var response = await httpClient.SendAsync(new HttpRequestMessage(method, $"{requestUri}{q ?? ""}") {
-			Content = body != null
-				? JsonContent.Create(body, mediaType: null, JS.InsensitiveCamelCaseOptions)
-				: null
+		var response = await httpClient.SendAsync(new HttpRequestMessage(method, $"{requestUri}{q ?? ""}") {
+			Content = body == null ? null
+				: JsonContent.Create(body, mediaType: null, JS.InsensitiveCamelCaseOptions)
 		});
 		var content = await response.Content.ReadAsStringAsync();
 
@@ -45,6 +45,7 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 				: default;
 	}
 
+	//
 	public Task<T?> Get<T>(string requestUri, string? query = null, bool throwsOnFail = true) =>
 		SendRequestAsync<T>(HttpMethod.Get, requestUri, ensureSuccess: throwsOnFail, q: query);
 
