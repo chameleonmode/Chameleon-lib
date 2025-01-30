@@ -38,16 +38,19 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client auth0client, A
 		});
 		var content = await response.Content.ReadAsStringAsync();
 
-		return 
-			!response.IsSuccessStatusCode ? ensureSuccess
-				? JS.DeserializeSafely<PlatformaticReqError>(content) is PlatformaticReqError err 
-					? throw new Exception($"{method} {requestUri} {response.StatusCode}: \n{err.error}\n{err.message}")
-					: throw new HttpRequestException($"{method} {requestUri} returned {response.StatusCode}: " + content)
+		return
+			response.IsSuccessStatusCode ?
+				response.StatusCode != HttpStatusCode.NoContent
+				? JS.DeserializeSafely<T>(content) ?? throw new InvalidOperationException("Response is unreadable")
 				: default
-			: response.StatusCode == HttpStatusCode.NoContent
-				? default
-				: JS.DeserializeSafely<T>(content)
-						?? throw new InvalidOperationException("Response is unreadable");
+			: ensureSuccess
+				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
+					(
+						JS.DeserializeSafely<PlatformaticReqError>(content) is PlatformaticReqError err
+							? $"{err.error}\n{err.message}" : content
+					)
+				) 
+				: default;
 	}
 
 	// Public methods
