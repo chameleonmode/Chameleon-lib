@@ -11,6 +11,7 @@ public class PlatformaticTests : TestSetup {
 	public async Task EnsureUser_Success() {
 		await platformaticDB.EnsureUser();
 		Assert.NotNull(platformaticDB.DBuser);
+		Assert.NotNull(platformaticDB.DBusers);
 		Assert.NotEmpty(platformaticDB.DBusers);
 	}
 
@@ -22,7 +23,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task CreateUser_Success() {
-		await platformaticDB.CreateUser("6@example.com");
+		await platformaticDB.CreateUser("12@example.com");
 		Assert.NotNull(platformaticDB.DBusers);
 	}
 

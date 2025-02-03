@@ -37,6 +37,7 @@ public class PlatformaticDB {
 	public async Task EnsureUser() {
 		DBuser ??= await GetDBuser ?? await ValidateLicese;
 		ArgumentNullException.ThrowIfNull(DBuser, "User not found");
+		DBusers ??= await GetDBusers;
 
 		// Double check license key if it's null
 		// TODO: Remove this after all users have migrated to auth0
@@ -44,8 +45,6 @@ public class PlatformaticDB {
 			DBuser = (await ValidateLicese) ?? DBuser;
 			ranLicenseCheck = true;
 		}
-
-		DBusers ??= await GetDBusers;
 	}
 
 	#region GET's
