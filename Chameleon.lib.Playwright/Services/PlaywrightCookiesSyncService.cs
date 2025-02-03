@@ -7,7 +7,6 @@ using Microsoft.Playwright;
 namespace Chameleon.lib.Playwright.Services;
 
 public sealed class PlaywrightCookiesSyncService {
-	readonly PlatformaticDB platformaticDB = PlatformaticDB.Instance;
 	readonly List<CookyPayload<BrowserContextCookiesResult>> cookyPayloads = [];
 	#region Constructor
 	private PlaywrightCookiesSyncService() { }
@@ -19,7 +18,7 @@ public sealed class PlaywrightCookiesSyncService {
 
 	public async Task<bool> HasCookies() {
 		cookyPayloads.Clear();
-		var cookiesSearch = await platformaticDB.GetCookyDataInteractions<BrowserContextCookiesResult>();
+		var cookiesSearch = await PlatformaticDB.Instance.GetCookyDataInteractions<BrowserContextCookiesResult>();
 		if (cookiesSearch != null) {
 			cookyPayloads.AddRange(cookiesSearch);
 		}

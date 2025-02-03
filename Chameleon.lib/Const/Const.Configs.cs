@@ -17,8 +17,9 @@ public static class Configs {
 		public static string ABS_PLATFORMATIC_BASE_URL =>
 #if DEBUG
 					"http://127.0.0.1:3042"
+					//"https://chameleon-ws.onrender.com"
 #else
-					"https://chameleon-abs-platformatic.onrender.com"
+					"https://chameleon-ws.onrender.com"
 #endif
 		;
 	}

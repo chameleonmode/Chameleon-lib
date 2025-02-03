@@ -13,25 +13,27 @@ public class PlatformaticDB {
 		absClient = new AbsClient(Configs.Urls.ABS_PLATFORMATIC_BASE_URL, session.Authenticate);
 	}
 
+	#region Props
 	//
-	public PlatformaticUser? DBuser { get; private set; }
-	public IEnumerable<PlatformaticUser>? DBusers { get; private set; }
-
-	// 
 	Task<PlatformaticUser?> GetDBuser =>
 		absClient.Get<PlatformaticUser>(Configs.Endpoints.DB.USER,
 			new(
 				Q: $"?email={Uri.EscapeDataString(session.Login!.LoginName)}", EnsureSuccess: false
 			)
 		);
+	public PlatformaticUser? DBuser { get; private set; }
+	//
 	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
 		absClient.Get<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
+	public IEnumerable<PlatformaticUser>? DBusers { get; private set; }
+	// 
 	public Task<PlatformaticUser?> ValidateLicese =>
 		absClient.Post<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
 			new(
 				Body: new { license_key = session.Login!.LicenseKey }
 			)
 		);
+	#endregion
 
 	//Auth
 	public async Task EnsureUser() {

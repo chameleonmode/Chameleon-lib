@@ -23,14 +23,19 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task CreateUser_Success() {
-		await platformaticDB.CreateUser("12@example.com");
+		var email = "16@example.com";
+
+		await platformaticDB.CreateUser(email);
 		Assert.NotNull(platformaticDB.DBusers);
+		Assert.NotEmpty(platformaticDB.DBusers);
+		Assert.NotNull(platformaticDB.DBusers.FirstOrDefault(i=>i.email == email));
 	}
 
 	[Fact]
 	public async Task SendCookies_Success() {
 		var cookies = await PlaywrightUtil.GetCookies("25541", Enums.SystemBrowserType.Chrome);
-		var data = await platformaticDB.SendCookies("elimdadia@gmail.com", "25541", cookies);
+		var email = "ezexerael@gmail.com";//"elimdadia@gmail.com"
+		var data = await platformaticDB.SendCookies(email, "25541", cookies);
 		Assert.NotNull(data);
 	}
 
