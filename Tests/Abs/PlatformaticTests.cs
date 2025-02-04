@@ -1,4 +1,6 @@
-﻿using Chameleon.lib.Abs.Platformatic;
+﻿using System.Diagnostics;
+
+using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Playwright;
 
@@ -7,6 +9,19 @@ using Microsoft.Playwright;
 namespace Tests.Abs;
 public class PlatformaticTests : TestSetup {
 	readonly PlatformaticDB platformaticDB = PlatformaticDB.Instance;
+
+	[Fact]
+	public async Task GetLatestVersion_Success() {
+		var version = await platformaticDB.GetLatestVersion;
+		Assert.NotNull(version);
+	}
+
+	[Fact]
+	public async Task Downlaod_Success() {
+		var success = await platformaticDB.DownloadLatest(Console.WriteLine);
+		Assert.True(success);
+	}
+
 	[Fact]
 	public async Task EnsureUser_Success() {
 		await platformaticDB.EnsureUser();

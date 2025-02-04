@@ -1,5 +1,6 @@
 ﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Interfaces.Services;
+using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Common.ServiceManagers;
 public class Mbox {
@@ -15,7 +16,7 @@ public class Mbox {
 	}
 
 	public static Task<Enums.TaskDialogResult> ShowTaskDialog<TViewModel, TView>(Func<TViewModel> initialize, string header,
-		string? subHeader = null, string title = Consts.AppName, object? footer = null, 
+		string? subHeader = null, string title = Variables.AppName, object? footer = null, 
 		Enums.Symbas symbas = Enums.Symbas.Alert, Enums.MBoxButtons btns = Enums.MBoxButtons.YesNo) where TView : new()
 	{
 		return Instance.MboxService!.ShowTaskDialog(initialize, new TView(), header, subHeader, title, footer, symbas, btns);

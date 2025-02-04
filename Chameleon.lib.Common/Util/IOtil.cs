@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 
 using Chameleon.lib.Common.Extensions;
+using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Common.Util;
 public static class IOtil {
@@ -28,10 +29,7 @@ public static class IOtil {
 	});
 	public static string EnsureDirectoryExists(string path)
 	{
-		if (!Directory.Exists(path)) {
-			_ = Directory.CreateDirectory(path);
-		}
-		return path;
+		return FilePaths.EnsureDirectoryExists(path);
 	}
 
 	public static Task CreateZipAsync(string zipFilePath, string directoryPath) => Task.Run(() => {

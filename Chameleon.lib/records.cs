@@ -27,6 +27,10 @@ public record PlatformaticReqError(
 		string message
 );
 
+public record AppClientInfo(
+		string latest
+);
+
 public record PlatformaticUser(
 		object id,
 		string userId,

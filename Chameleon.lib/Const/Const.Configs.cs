@@ -16,8 +16,9 @@ public static class Configs {
 		;
 		public static string ABS_PLATFORMATIC_BASE_URL =>
 #if DEBUG
-					"http://127.0.0.1:3042"
+					//"http://127.0.0.1:3042"
 					//"https://chameleon-ws.onrender.com"
+					"https://chameleon-ws-pr-1.onrender.com"
 #else
 					"https://chameleon-ws.onrender.com"
 #endif
@@ -25,6 +26,11 @@ public static class Configs {
 	}
 
 	public static class Endpoints {
+		public static class APP {
+			const string BASE = "/app";
+			public const string LATEST = $"{BASE}/latest";
+			public const string DOWNLOAD = $"{BASE}/download";
+		}
 		public static class DB {
 			const string BASE = "/db";
 			public const string USER = $"{BASE}/user";

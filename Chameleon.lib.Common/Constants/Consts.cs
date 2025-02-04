@@ -1,8 +1,8 @@
 ﻿using Chameleon.lib.Common.Util;
+using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Common.Constants;
 public static class Consts {
-	public const string AppName = "Chameleon";
 	public const string AppSettingsFileName = "appsettings.json";
 	public const string LocalHostUrl = "http://localhost:21021/api";
 	public const string ApiBaseUrl = "https://api.chameleonmode.com/api";
@@ -16,11 +16,10 @@ public static class Consts {
 	public const string DefaultHomePage = "https://example.com/";
 	public const int PageinationPageItems = 13;
 
-	public static string AppTempDir => Path.Combine(Path.GetTempPath(), AppName);
 	public static string AppDataDir => IOtil.EnsureDirectoryExists(
-				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppName));
+				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Variables.AppName));
 	public static string AppDataLocalDir => IOtil.EnsureDirectoryExists(
-				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppName));
+				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Variables.AppName));
 
 	public static class Api {
 		public const string ApiBaseUrl = "https://api.chameleonmode.com/api/";
@@ -55,8 +54,8 @@ public static class Consts {
 
 	public static class Addons {
 		public const string AddonsEmbeddedDir = "embedded://chameleon.assets/addons";
-		public static string AddonExtentionDir => Path.Combine(AppTempDir, "Addons");
-		public static string CachedExtentionDir => Path.Combine(AppTempDir, "eleonextcache");
+		public static string AddonExtentionDir => Path.Combine(FilePaths.AppTempDir, "Addons");
+		public static string CachedExtentionDir => Path.Combine(FilePaths.AppTempDir, "eleonextcache");
 		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../Resources/BrowserExtensions")
 			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BrowserExtensions");

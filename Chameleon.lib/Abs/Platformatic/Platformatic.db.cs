@@ -1,5 +1,6 @@
 ﻿using Chameleon.lib.Auth;
 using Chameleon.lib.Const;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
 public class PlatformaticDB {
@@ -32,7 +33,12 @@ public class PlatformaticDB {
 			new(
 				Body: new { license_key = session.Login!.LicenseKey }
 			)
+		);// 
+	public Task<AppClientInfo?> GetLatestVersion =>
+		absClient.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST, 
+			new(Authorize: false)
 		);
+	public AppClientInfo? LatestVersion { get; private set; }
 	#endregion
 
 	//Auth
@@ -40,6 +46,8 @@ public class PlatformaticDB {
 		DBuser ??= await GetDBuser ?? await ValidateLicese;
 		ArgumentNullException.ThrowIfNull(DBuser, "User not found");
 		DBusers ??= await GetDBusers;
+		//
+		LatestVersion ??= await GetLatestVersion;
 
 		// Double check license key if it's null
 		// TODO: Remove this after all users have migrated to auth0
@@ -61,8 +69,63 @@ public class PlatformaticDB {
 			.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.dataPayload))
 			.Where(payload => payload != null)!;
 	}
+	public async Task<bool> DownloadLatest(Action<string> onProgress) {
+		await EnsureUser();
+
+		// Local path where the downloaded file will be saved
+		//var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+		//if (!Directory.Exists(directory))
+		//	_ = Directory.CreateDirectory(directory);
+		var outputFile = Path.Combine(FilePaths.AppDownloadDir, $"Chameleon_{LatestVersion?.latest.Replace(".", "_")}.7z");
+
+	//	using var response = await absClient.Get<HttpResponseMessage>(Configs.Endpoints.APP.DOWNLOAD,
+	//new(
+	//	CompletionOption: HttpCompletionOption.ResponseHeadersRead
+	//));
+	//	// Open a stream to write the downloaded content to a file
+	//	using var contentStream = await response!.Content.ReadAsStreamAsync();
+
+		// Send an asynchronous GET request and ensure headers are read before downloading the stream
+		using var response = await absClient.HttpClient.GetAsync(Configs.Endpoints.APP.DOWNLOAD, HttpCompletionOption.ResponseHeadersRead);
+		_ = response.EnsureSuccessStatusCode();
+
+		// Get the total number of bytes (if available)
+		var totalBytes = response.Content.Headers.ContentLength;
+		var buffer = new byte[8192];
+		double lastProgressReported = 0; // Tracks the last reported progress percentage
+		long totalBytesRead = 0;
+		int bytesRead;
+
+		// Open a stream to write the downloaded content to a file
+		using var contentStream = await response.Content.ReadAsStreamAsync();
+		using var fileStream = new FileStream(outputFile, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true);
+
+		// Read the content stream in chunks
+		while ((bytesRead = await contentStream.ReadAsync(buffer)) > 0) {
+			// Write the chunk to the file
+			await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+			totalBytesRead += bytesRead;
+
+			// Report progress only if totalBytes is available and we've passed the next 10% increment.
+			if (totalBytes.HasValue) {
+				var progressPercentage = (double)totalBytesRead / totalBytes.Value * 100;
+				if (progressPercentage - lastProgressReported >= 10 || progressPercentage >= 100) {
+					lastProgressReported = Math.Floor(progressPercentage / 10) * 10;
+					var progress = $"Downloaded {totalBytesRead} of {totalBytes.Value} bytes ({progressPercentage:0.00}%)";
+					onProgress(progress);
+				}
+			} else {
+				// If total size is unknown, report the raw byte count (or customize as needed)
+				onProgress($"Downloaded {totalBytesRead} bytes");
+			}
+		}
+
+		ProcessUtil.OpenFolder(FilePaths.AppDownloadDir);
+
+		return File.Exists(outputFile);
+	}
 	#endregion
-	
+
 	#region POST's
 	public async Task CreateUser(string email) {
 		await EnsureUser();
