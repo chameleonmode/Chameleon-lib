@@ -17,8 +17,8 @@ public abstract class TestSetup {
 
 		IoC.Instance.Init(_ => {
 			IoC.SetJsonValue(new LoginSettings(
-				Environment.Directory[dictionary].email,
-				Environment.Directory[dictionary].license
+				"",//Environment.Directory[dictionary].email,
+				""//Environment.Directory[dictionary].license
 				), nameof(LoginSettings));
 		});
 	}
