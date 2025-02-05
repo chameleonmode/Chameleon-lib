@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /Chameleon.lib.Tests/Api/Environment.cs
 /Tests/Environment.cs
+.DS_Store
