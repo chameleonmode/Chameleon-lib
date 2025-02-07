@@ -1,15 +1,36 @@
-﻿using Chameleon.lib.Common;
-using Chameleon.lib.Common.Models.Dto;
+﻿using Chameleon.lib.Common.Models.Dto;
+using DynamicData;
+using System.Reactive.Linq;
 
 namespace Chameleon.lib.Api.Repos;
 public class TagsRepo {
+
+	private static readonly Dictionary<string, TagDto> allTags = [];
+
+	private static readonly SourceCache<TagDto, string> cache = new(tag => tag.Name);
+
+	public static IObservableCache<TagDto, string> Cache => cache;
+
+	public static IObservable<IChangeSet<TagDto, string>> Connect(Func<TagDto, bool>? predicate = null, bool suppressEmptyChangeSets = true)
+	=> Cache.Connect(predicate, suppressEmptyChangeSets);
+
 	public Task<TagDto?> FindTagAsync(string tagName) {
-		var tag = IoC.GetValue<TagDto>(tagName);
+		allTags.TryGetValue(tagName, out var tag);
 		return Task.FromResult(tag);
+	}
+
+	public Task<IEnumerable<TagDto>> SearchTagAsync(string tagName) {
+		var tags = allTags.Keys.Where(key => key.Contains(tagName)).Select(key => allTags[key]);
+		return Task.FromResult(tags);
 	}
 
 	public Task<IEnumerable<string>> SetTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {
 		IoC.SetValue(tags, $"{tagItemType}-{id}");
+		var allTags = IoC.GetValue<List<string>>("tags") ?? [];
+
+		if(allTags.Any(x => x != $"{tagItemType}-{id}")) {
+			allTags.Add($"{tagItemType}-{id}");
+		}
 		return Task.FromResult(tags);
 	}
 
@@ -19,11 +40,14 @@ public class TagsRepo {
 	}
 	public Task<TagDto> SaveAsync(TagDto tag) {
 
-		var exisitingTag = IoC.GetValue<TagDto>(tag.Name) ?? tag;
-		exisitingTag = exisitingTag with { Items = tag.Items };
-		IoC.SetValue(tag, tag.Name);
+		if(allTags.TryGetValue(tag.Name, out var existingTag)) {
+			existingTag = existingTag with { Items = tag.Items };
+			return Task.FromResult(existingTag);
+		} else
+			allTags.Add(tag.Name, tag);
 
-		return Task.FromResult(exisitingTag);
+		cache.Edit(updater => updater.AddOrUpdate(tag));
+		return Task.FromResult(tag);
 	}
 	public async Task<TagDto> SaveAsync(string tagName, TagItemDto tagItem) {
 		var tag = await FindTagAsync(tagName) ?? new TagDto(tagName, []);
