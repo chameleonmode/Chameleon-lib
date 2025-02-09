@@ -44,6 +44,12 @@ public class UPAdditionalDataRepo {
 		return thang.id > 0 ? await repo.Delete(thang.id) : null;
 	}
 
+	public static async Task<RootResult?> DeleteFromCache<T, TT>(T repo, TT thang)
+	where T : UPRepo<TT>
+	where TT : UP {
+		return await repo.DeleteFromCache(thang);
+	}
+
 	public bool LoadedIniit { get; private set; }
 	public async Task LoadReload(bool force = false)
 	{
