@@ -1,14 +1,14 @@
 ﻿using System.Diagnostics;
+
 using Chameleon.lib.Api;
 
-namespace Chameleon.lib.Tests.Api;
+namespace Tests.APiv1;
 public class ApiTestsBase {
 	public TaskCompletionSource tcs = new();
-	public LoginResponse? LoginResponse { get; set; }	
-	public ApiTestsBase()
-	{
+	public LoginResponse? LoginResponse { get; set; }
+	public ApiTestsBase() {
 		Login();
-		HttpApiClient.Instance.OnAuthError +=() => {
+		HttpApiClient.Instance.OnAuthError += () => {
 			Debug.WriteLine("OnAuthError");
 			return Task.CompletedTask;
 		};
@@ -17,8 +17,7 @@ public class ApiTestsBase {
 		};
 	}
 
-	private async void Login()
-	{
+	private async void Login() {
 		await Auther.LoginAsync(Environment.Directory[1].email, Environment.Directory[1].license);
 		LoginResponse = Auther.AuthSession;
 		_ = tcs.TrySetResult();

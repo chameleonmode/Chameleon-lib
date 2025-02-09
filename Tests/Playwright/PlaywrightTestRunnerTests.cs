@@ -5,22 +5,15 @@ using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Collections.Generic;
-using System.Linq;
+using Chameleon.lib;
 
-namespace Chameleon.lib.Tests.Playwright;
+namespace Tests.Playwright;
 
 public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 	private PlaywrightTestRunner? runner;
 
-	public PlaywrightTestRunnerTests() : base()
-	{
-	  async void setup(bool init)
-		{
+	public PlaywrightTestRunnerTests() : base() {
+		async void setup(bool init) {
 			// Setup code
 			await LaunchBrowser();
 			_tcs.SetResult(true);
@@ -43,8 +36,7 @@ public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 		IoC.Instance.Init(action: setup);
 	}
 
-	private async Task RunTestsInParallelAsync(IEnumerable<(string testName, int port, object testData)> tests, int maxConcurrency = 3)
-	{
+	private async Task RunTestsInParallelAsync(IEnumerable<(string testName, int port, object testData)> tests, int maxConcurrency = 3) {
 		if (runner == null) throw new InvalidOperationException("Runner is not initialized.");
 
 		var semaphore = new SemaphoreSlim(maxConcurrency);
@@ -67,26 +59,24 @@ public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestGsite()
-	{
+	public async Task TestGsite() {
 		await LaunchBrowser();
 
 		runner = PlaywrightTestRunner.Create("gsites");
 		try {
 			runner.TestOutputReceived += (sender, output) => Debug.WriteLine($"Test output: {output}");
 			runner.TestErrorReceived += (sender, error) => Debug.WriteLine($"Test error: {error}");
-			var data = new
-			{
-			urlGsite = "https://sites.google.com/",
-			email = "testjosh11011900@gmail.com",
-			password = "testjosh11011900@1234",
-			textContent = "Anti-detect browser is capable of creating and running digital multiple identities that are not recognized by social platforms. This requires a lot of custom developer work, so such tools are generally not available for free. They are created to fight against tracking and analytics so that you can carry out your activities in private. In other words, running digital an anti-fingerprint browser enhances privacy, keeps your data and web activities anonymous, and helps your web crawling tools avoid being blocked",
-			textSearch = "What is anti detect browser",
-			location = "washington",
+			var data = new {
+				urlGsite = "https://sites.google.com/",
+				email = "testjosh11011900@gmail.com",
+				password = "testjosh11011900@1234",
+				textContent = "Anti-detect browser is capable of creating and running digital multiple identities that are not recognized by social platforms. This requires a lot of custom developer work, so such tools are generally not available for free. They are created to fight against tracking and analytics so that you can carry out your activities in private. In other words, running digital an anti-fingerprint browser enhances privacy, keeps your data and web activities anonymous, and helps your web crawling tools avoid being blocked",
+				textSearch = "What is anti detect browser",
+				location = "washington",
 				publishTitle = "anti Detect Browser",
-			gsiteTitle = "GsiteTitle",
-			link = "www.google.com",
-			textWithLink = "running digital multiple",
+				gsiteTitle = "GsiteTitle",
+				link = "www.google.com",
+				textWithLink = "running digital multiple",
 				postTitle = "Gsite",
 			};
 			await RunTestsInParallelAsync(new List<(string testName, int port, object testData)>() { new("gsites", Port, data) });
@@ -102,16 +92,14 @@ public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestStartProcess()
-	{
+	public async Task TestStartProcess() {
 		if (BrowserProcess != null) {
 			await LaunchBrowser();
 			await BrowserProcess.WaitForExitAsync();
 		}
 	}
 
-	public async void Dispose()
-	{
+	public async void Dispose() {
 		runner?.Dispose();
 		await DisposeBrowser();
 		GC.SuppressFinalize(this);

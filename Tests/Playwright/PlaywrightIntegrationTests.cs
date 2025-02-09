@@ -5,12 +5,12 @@ using Chameleon.lib.Playwright.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
-namespace Chameleon.lib.Tests.Playwright;
+using Chameleon.lib;
+
+namespace Tests.Playwright;
 public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
-	public PlaywrightIntegrationTests() : base()
-	{
-		async void setup(bool init)
-		{
+	public PlaywrightIntegrationTests() : base() {
+		async void setup(bool init) {
 			// Setup code
 			await LaunchBrowser();
 			_tcs.SetResult(true);
@@ -34,8 +34,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestBundledScripts()
-	{
+	public async Task TestBundledScripts() {
 		_ = await _tcs.Task;
 
 		var repo = IoC.GetService<IPlaywrightScriptRepository>();
@@ -100,8 +99,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestBundledGsiteJsScriptScript()
-	{
+	public async Task TestBundledGsiteJsScriptScript() {
 		_ = await _tcs.Task;
 
 		var repo = IoC.GetService<IPlaywrightScriptRepository>();
@@ -168,8 +166,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestBundledRedditCommentVoteJsScript()
-	{
+	public async Task TestBundledRedditCommentVoteJsScript() {
 		_ = await _tcs.Task;
 
 		var repo = IoC.GetService<IPlaywrightScriptRepository>();
@@ -218,8 +215,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestScriptFromFile()
-	{
+	public async Task TestScriptFromFile() {
 		_ = await _tcs.Task;
 
 		var playBrowserService = IoC.GetService<IPlaywriteService>();
@@ -234,8 +230,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestRecord()
-	{
+	public async Task TestRecord() {
 		try {
 			_ = await _tcs.Task;
 
@@ -252,8 +247,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		}
 	}
 
-	public async void Dispose()
-	{
+	public async void Dispose() {
 		if (BrowserProcess != null && !BrowserProcess.HasExited)
 			await BrowserProcess.WaitForExitAsync();
 		await DisposeBrowser();

@@ -1,17 +1,13 @@
-﻿using System;
-using System.Diagnostics;
-using Chameleon.lib.WebBrowser.Services;
+﻿using System.Diagnostics;
 
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Chameleon.lib.WebBrowser.Services;
 
 using static Chameleon.lib.Common.Constants.Enums;
 
-namespace Chameleon.lib.Tests.WebBrowser;
+namespace Tests.WebBrowser;
 public class ExtensionLoaderServiceTests : WebBroswserTestsBase {
 	[Fact]
-	public async Task LoadExtension_ValidExtension_Succeeds()
-	{
+	public async Task LoadExtension_ValidExtension_Succeeds() {
 		_ = await _tcs.Task;
 
 		// Arrange
@@ -42,9 +38,7 @@ public class ExtensionLoaderServiceTests : WebBroswserTestsBase {
 
 		} finally {
 			// Clean up
-			if (Directory.Exists(destinationPath)) {
-				Directory.Delete(destinationPath, true);
-			}
+			if (Directory.Exists(destinationPath)) Directory.Delete(destinationPath, true);
 		}
 	}
 }

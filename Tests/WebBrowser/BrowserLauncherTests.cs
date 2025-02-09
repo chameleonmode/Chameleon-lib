@@ -1,13 +1,13 @@
-﻿using Chameleon.lib.Common.Models;
+﻿using Chameleon.lib;
+using Chameleon.lib.Common.Models;
 
 using static Chameleon.lib.Common.Constants.Enums;
 
-namespace Chameleon.lib.Tests.WebBrowser;
+namespace Tests.WebBrowser;
 public class BrowserLauncherTests : WebBroswserTestsBase {
 
 	[Fact]
-	public async Task Test_LaunchBrowserInstance_Chrome()
-	{
+	public async Task Test_LaunchBrowserInstance_Chrome() {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
@@ -22,18 +22,17 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		}, nameof(EmulationOptions));
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
-				SystemBrowserType.Chrome, 
-				new Common.Models.SysBrowserProfile() { 
-					Id = 102, 
-					Proxy = new Common.Models.SysBrowserProxy()
+				SystemBrowserType.Chrome,
+				new SysBrowserProfile() {
+					Id = 102,
+					Proxy = new SysBrowserProxy()
 				})
 			);
 		Assert.NotNull(bi);
 	}
 
 	[Fact]
-	public async Task Test_LaunchBrowserInstance_Brave()
-	{
+	public async Task Test_LaunchBrowserInstance_Brave() {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
@@ -49,9 +48,9 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
 				SystemBrowserType.Brave,
-				new Common.Models.SysBrowserProfile() {
+				new SysBrowserProfile() {
 					Id = 1,
-					Proxy = new Common.Models.SysBrowserProxy()
+					Proxy = new SysBrowserProxy()
 				})
 			);
 
@@ -59,8 +58,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 	}
 
 	[Fact]
-	public async Task Test_LaunchBrowserInstance_FF()
-	{
+	public async Task Test_LaunchBrowserInstance_FF() {
 		_ = _tcs.Task;
 		Assert.NotNull(SysBrowserServiceBase);
 
@@ -85,7 +83,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 		var bi = await SysBrowserServiceBase.Open(
 			new SysBrowserOpenOptions(
 				SystemBrowserType.Firefox,
-				new Common.Models.SysBrowserProfile() {
+				new SysBrowserProfile() {
 					Id = 2
 				})
 			);

@@ -1,17 +1,15 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Chameleon.lib.Common.Models;
+using Chameleon.lib;
 
-namespace Chameleon.lib.Tests;
+namespace Tests;
 
 public class IOCTest {
 	private readonly TaskCompletionSource<bool> _tcs = new();
 
-	public IOCTest()
-	{
+	public IOCTest() {
 		// Setup
-		async void setup()
-		{
+		async void setup() {
 			await Task.Delay(2000); // 
 			_tcs.SetResult(true);
 		}
@@ -31,13 +29,8 @@ public class IOCTest {
 	}
 
 	[Fact]
-	public async Task Test_Appsettings()
-	{
+	public async Task Test_Appsettings() {
 		_ = await _tcs.Task;
-
-		// Now you can use configManager throughout your application
-		var browserPath = IoC.GetValue<string>("BrowserPath");
-		Debug.WriteLine($"Browser Path: {browserPath}");
 
 		// Set a new value
 		IoC.SetValue("NewValue", "CustomSetting");
@@ -58,7 +51,7 @@ public class IOCTest {
 		Assert.NotNull(emulations);
 
 		// Set a new arrat Type value
-		IoC.SetValue<string[]>(["duckduckgo.com", "1", "2" ], "arrr");
+		IoC.SetValue<string[]>(["duckduckgo.com", "1", "2"], "arrr");
 		var arr = IoC.GetValue<string[]>("arrr");
 		Assert.NotNull(arr);
 	}

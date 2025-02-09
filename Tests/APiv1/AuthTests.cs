@@ -1,17 +1,13 @@
-﻿using System.Diagnostics;
-using Tests;
+﻿using Chameleon.lib.Api;
 
-using Chameleon.lib.Api;
-
-namespace Chameleon.lib.Tests.Api;
+namespace Tests.APiv1;
 public class AuthTests {
 	const int dictionary = 2;
 
 	[Fact]
-	public async Task Login_success()
-	{
+	public async Task Login_success() {
 		await Auther.LoginAsync(
-			Environment.Directory[dictionary].email, 
+			Environment.Directory[dictionary].email,
 			Environment.Directory[dictionary].license
 		);
 
@@ -21,8 +17,7 @@ public class AuthTests {
 	}
 
 	[Fact]
-	public async Task IsLicenseActive_success()
-	{
+	public async Task IsLicenseActive_success() {
 		var active = await Auther.IsLicenseActiveAsync(Environment.Directory[dictionary].license);
 		Assert.True(active);
 
@@ -32,8 +27,7 @@ public class AuthTests {
 	}
 
 	[Fact]
-	public async Task RefreshToken_success()
-	{
+	public async Task RefreshToken_success() {
 		await Login_success();
 
 		await Auther.RefreshTokenAsync();
