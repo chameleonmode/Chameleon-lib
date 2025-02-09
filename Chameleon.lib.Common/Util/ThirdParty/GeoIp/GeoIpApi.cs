@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 
+using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models;
 using Chameleon.lib.Util;
 
@@ -17,7 +18,7 @@ public class GeoIpApi {
 	private static async Task<string> GetHttpResponseContent(
 		SysBrowserProxy proxy, string requestUri, Action<string> onretry)
 	{
-		var httpClientTimeoutInSeconds = 3;
+		var httpClientTimeoutInSeconds = 5;
 		HttpClient client = new(new HttpClientHandler {
 			Proxy = new WebProxy(proxy.ServerForRequest) {
 				Credentials = proxy.UserName?.Is() == true && proxy.Password?.Is() == true
@@ -38,7 +39,7 @@ public class GeoIpApi {
 				}
 			},
 			OnError: (e, i) => {
-				httpClientTimeoutInSeconds *= i;
+				httpClientTimeoutInSeconds *= i + 1;
 				onretry($"Timezone Request from proxy failed. Retrying {i}");
 			});
 		} finally {

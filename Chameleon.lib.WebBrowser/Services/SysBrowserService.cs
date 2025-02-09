@@ -1,14 +1,14 @@
 ﻿using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 
-using Chameleon.lib.Common;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Interfaces.Sys;
 using Chameleon.lib.Common.Models;
-using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
+using Chameleon.lib.Helpers;
+using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.System.Brave;
 using Chameleon.lib.WebBrowser.System.Chrome;
@@ -130,7 +130,7 @@ public class SysBrowserService
 					? starturl
 					: "https://" + starturl;
 
-				var launchOptions = new SysBrowserSettings(options, emulations, starturl, Netil.NextFreePort(9613));
+				var launchOptions = new SysBrowserSettings(options, emulations, starturl, TcpUtil.NextFreePort(9613));
 				//
 				browser = Create(options.BrowserType, launchOptions);
 				browser.OnEvent += Browser_OnEvent;

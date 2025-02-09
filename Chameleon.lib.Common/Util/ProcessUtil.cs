@@ -2,14 +2,14 @@
 using System.Management;
 using System.Runtime.InteropServices;
 
-using Chameleon.lib.Common.ServiceManagers;
+using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
+using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Common.Util;
 public static class ProUtil {
-	public static void GoToUrlDefault(string Url)
-	{
+	public static void GoToUrlDefault(string Url) {
 		try {
 			_ = Process.Start(Url);
 		} catch {

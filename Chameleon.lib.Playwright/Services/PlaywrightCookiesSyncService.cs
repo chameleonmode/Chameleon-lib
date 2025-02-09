@@ -1,24 +1,13 @@
-﻿using Chameleon.lib.Abs;
-using Chameleon.lib.Api;
+﻿using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.ServiceManagers;
-using Chameleon.lib.Common.Util;
+using Chameleon.lib.Helpers;
 
 using Microsoft.Playwright;
-
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 
 namespace Chameleon.lib.Playwright.Services;
 
 public sealed class PlaywrightCookiesSyncService {
-	// Repos
-	private readonly AbsApiCookiesRepo<BrowserContextCookiesResult> absApiCookiesRepo = new();
-
-	// Properties
-	public Task<bool> HasCookies => absApiCookiesRepo.HasCookies;
-
+	readonly List<CookyPayload<BrowserContextCookiesResult>> cookyPayloads = [];
 	#region Constructor
 	private PlaywrightCookiesSyncService() { }
 	// Thread-safe singleton implementation
@@ -27,34 +16,23 @@ public sealed class PlaywrightCookiesSyncService {
 	// ----------------------------
 	#endregion
 
-	// Uploads Chromium cookies to server
-	public async Task PutCookies(string userId, string? email, string profileId, Enums.SystemBrowserType browserType)
-	{
-		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
-		? playwright.Firefox
-		: playwright.Chromium;
-		await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-				Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId),
-				new() {
-					Headless = true,
-					ExecutablePath = await PlaywrightUtil.GetExecutable(browserType),
-					Args = ["--allow-downgrade"]
-				}
-		);
-
-		var cookies = await context.CookiesAsync();
-		await context.CloseAsync();
-
-		if (cookies.Any()) {
-			await absApiCookiesRepo.AddCookies(userId, email,  profileId, cookies);
+	public async Task<bool> HasCookies() {
+		cookyPayloads.Clear();
+		var cookiesSearch = await PlatformaticDB.Instance.GetCookyDataInteractions<BrowserContextCookiesResult>();
+		if (cookiesSearch != null) {
+			cookyPayloads.AddRange(cookiesSearch);
 		}
+		return cookyPayloads.Count != 0;
 	}
 
 	// Syncs cookies to browser
 	public async Task SyncCookies(Enums.SystemBrowserType browserType)
 	{
-		if (!await HasCookies) return;
+		// Check latest cookies on server
+		if(!await HasCookies()) {
+			Toaster.Info("No cookies to sync");
+			return;
+		}
 
 		// Retrieve path to the browser executable
 		var exePath = await PlaywrightUtil.GetExecutable(browserType);
@@ -64,26 +42,26 @@ public sealed class PlaywrightCookiesSyncService {
 				? playwright.Firefox
 				: playwright.Chromium;
 
-		// We only want cookie entries that have a non-empty ProfileId
-		var cookiesToSync = absApiCookiesRepo.CookiesCache;
+		//// We only want cookie entries that have a non-empty ProfileId
+		//var cookiesToSync = absApiCookiesRepo.CookiesCache;
 
 		var cookieSyncIndex = 0;
-		var cookieSyncTotal = cookiesToSync.Count;
-		foreach (var cookieData in cookiesToSync) {
+		var cookieSyncTotal = cookyPayloads.Count;
+		foreach (var cookieData in cookyPayloads) {
 			// Log: starting sync for this profile
 			Toaster.Info($"[Cookies/Sync] Starting cookie sync: {++cookieSyncIndex} out of {cookieSyncTotal}");
 
 			// Add the cookies to the context
 			await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-					IOtil.EnsureDirectoryExists(Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), cookieData.ProfileId!)),
+					Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), cookieData.profileId),
 					new() {
 						Headless = true,
-						ExecutablePath = exePath,
+						ExecutablePath = await PlaywrightUtil.GetExecutable(browserType),
 						Args = ["--allow-downgrade"]
 					}
 			);
 			await context.AddCookiesAsync(
-				cookieData.Cookies!.Select(c => 
+				cookieData.cookiesJs!.Select(c =>
 					new Cookie {
 						Domain = c.Domain,
 						Expires = c.Expires,
@@ -98,15 +76,6 @@ public sealed class PlaywrightCookiesSyncService {
 			);
 			// Close the context
 			await context.CloseAsync();
-
-			// Log: done syncing
-			Console.WriteLine($"[Cookies/Sync] Finished cookie sync for Profile: {cookieData.ProfileId}\n");
 		}
-	}
-
-	//Clears synchronized cookies from both the cache and server
-	public async Task ClearCookies()
-	{
-		await absApiCookiesRepo.DeleteCookies();
 	}
 }

@@ -3,10 +3,10 @@ using System.Runtime.Versioning;
 
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;

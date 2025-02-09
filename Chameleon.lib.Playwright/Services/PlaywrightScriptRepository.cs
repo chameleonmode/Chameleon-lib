@@ -1,5 +1,4 @@
-﻿using Chameleon.lib.Common;
-using Chameleon.lib.Common.Util;
+﻿using Chameleon.lib.Common.Util;
 using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts;

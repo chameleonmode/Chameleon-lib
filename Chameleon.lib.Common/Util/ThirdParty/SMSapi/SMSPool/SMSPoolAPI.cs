@@ -1,7 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
 
-using Chameleon.lib.Common;
 using Chameleon.lib.Common.Records;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.ThirdParty.SMSapi;

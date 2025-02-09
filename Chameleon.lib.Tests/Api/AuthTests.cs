@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Tests;
 
 using Chameleon.lib.Api;
 
@@ -24,11 +25,11 @@ public class AuthTests {
 	{
 		var active = await Auther.IsLicenseActiveAsync(Environment.Directory[dictionary].license);
 		Assert.True(active);
+
 		await Auther.RefreshTokenAsync();
 		Assert.NotNull(Auther.AuthSession?.RefreshedToken?.NewAccessToken);
 		Assert.NotNull(Auther.AuthSession.RefreshedToken.NewRefreshToken);
 	}
-
 
 	[Fact]
 	public async Task RefreshToken_success()

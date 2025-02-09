@@ -1,11 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-
-using chameleon.assets;
-
-using Chameleon.lib.Common;
-using Chameleon.lib.Common.Types;
-using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
 
 using Microsoft.Extensions.Configuration;

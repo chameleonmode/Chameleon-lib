@@ -1,7 +1,5 @@
 ﻿using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Common;
 using Chameleon.lib.Playwright.Services;
-using Chameleon.lib.Common.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Chameleon.lib.Common.Constants;
@@ -13,7 +11,7 @@ public class Playutilstests : PlaywrightTestsBase, IDisposable {
 	readonly string profile_brv = Path.Combine(Consts.AppDataLocalDir, Enums.SystemBrowserType.Brave.ToString(), pid);
 	public Playutilstests() : base()
 	{
-		async void setup(bool init)
+		void setup(bool init)
 		{
 			// Setup code
 			_tcs.SetResult(true);

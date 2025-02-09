@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
-using Chameleon.lib.Common;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Tests.Playwright;
 public abstract class PlaywrightTestsBase {
@@ -42,7 +42,7 @@ public abstract class PlaywrightTestsBase {
 
 	public async Task LaunchBrowser(string? path = null)
 	{
-		Port = Netil.NextFreePort(Port);
+		Port = TcpUtil.NextFreePort(Port);
 		BrowserProcess = GrowserProcess(path ?? CachePath, [$"--remote-debugging-port={Port}"]);
 		_ = BrowserProcess!.Start();
 		await Task.Delay(2000);

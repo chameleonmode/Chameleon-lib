@@ -2,6 +2,7 @@
 using System.Runtime.Versioning;
 
 using Chameleon.lib.Common.Constants;
+using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models;
 
 using Microsoft.Win32;
