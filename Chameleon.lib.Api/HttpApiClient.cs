@@ -45,7 +45,7 @@ public class HttpApiClient {
 			if (e.Message.Contains("401"))
 				_ = (OnAuthError?.Invoke());
 			//if (e.Message.Contains("429"))
-			//	OnCircuitBreaker?.Invoke();
+			OnCircuitBreaker?.Invoke(e.Message);
 		});
 
 		if (typeof(T) == typeof(RootResult))

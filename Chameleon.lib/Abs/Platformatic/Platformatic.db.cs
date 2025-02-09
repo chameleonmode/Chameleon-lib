@@ -35,8 +35,8 @@ public class PlatformaticDB {
 			)
 		);// 
 	public Task<AppClientInfo?> GetLatestVersion =>
-		absClient.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST, 
-			new(Authorize: false)
+		absClient.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST,
+			new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authorize: false)
 		);
 	public AppClientInfo? LatestVersion { get; private set; }
 	#endregion
@@ -48,7 +48,6 @@ public class PlatformaticDB {
 		DBusers ??= await GetDBusers;
 		//
 		LatestVersion ??= await GetLatestVersion;
-
 		// Double check license key if it's null
 		// TODO: Remove this after all users have migrated to auth0
 		if (!ranLicenseCheck && DBuser.licenseKey == null) {
@@ -70,24 +69,17 @@ public class PlatformaticDB {
 			.Where(payload => payload != null)!;
 	}
 	public async Task<bool> DownloadLatest(Action<string> onProgress) {
-		await EnsureUser();
+		//await EnsureUser();
 
 		// Local path where the downloaded file will be saved
-		//var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-		//if (!Directory.Exists(directory))
-		//	_ = Directory.CreateDirectory(directory);
-		var outputFile = Path.Combine(FilePaths.AppDownloadDir, $"Chameleon_{LatestVersion?.latest.Replace(".", "_")}.7z");
-
-	//	using var response = await absClient.Get<HttpResponseMessage>(Configs.Endpoints.APP.DOWNLOAD,
-	//new(
-	//	CompletionOption: HttpCompletionOption.ResponseHeadersRead
-	//));
-	//	// Open a stream to write the downloaded content to a file
-	//	using var contentStream = await response!.Content.ReadAsStreamAsync();
-
+		var ext = OperatingSystem.IsMacOS() ? "zip" : "7z";
 		// Send an asynchronous GET request and ensure headers are read before downloading the stream
-		using var response = await absClient.HttpClient.GetAsync(Configs.Endpoints.APP.DOWNLOAD, HttpCompletionOption.ResponseHeadersRead);
+		using var response = await absClient.HttpClient.GetAsync(Configs.Endpoints.APP.DOWNLOAD + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
 		_ = response.EnsureSuccessStatusCode();
+
+		// Get the file name from the Content-Disposition header
+		var fileName = response.Content.Headers.ContentDisposition?.FileName ?? "Chameleon." + ext;
+		var outputFile = Path.Combine(FilePaths.AppDownloadDir, fileName);
 
 		// Get the total number of bytes (if available)
 		var totalBytes = response.Content.Headers.ContentLength;
@@ -149,7 +141,7 @@ public class PlatformaticDB {
 
 	#region DELETE's
 	public async Task DeleteDataInteractions() {
-		var interactions = await GetDataInteractions();
+	  var interactions = await GetDataInteractions();
 		foreach (var interaction in interactions!) {
 			_ = await absClient.Delete<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
 		}
