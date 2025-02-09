@@ -9,6 +9,23 @@ using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Common.Util;
 public static class ProUtil {
+	public static void GoToUrlDefault(string Url) {
+		try {
+			_ = Process.Start(Url);
+		} catch {
+			// hack because of this: https://github.com/dotnet/corefx/issues/10361
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+				_ = Process.Start(new ProcessStartInfo("cmd", $"/c start {Url.Replace("&", "^&")}") { CreateNoWindow = true });
+			} else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+				_ = Process.Start("xdg-open", Url);
+			} else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+				_ = Process.Start("open", Url);
+			} else {
+				throw;
+			}
+		}
+	}
+
 	public static async Task TryKillProcess(Process? p)
 	{
 		if (p != null && !p.HasExited) {

@@ -18,7 +18,7 @@ public class GeoIpApi {
 	private static async Task<string> GetHttpResponseContent(
 		SysBrowserProxy proxy, string requestUri, Action<string> onretry)
 	{
-		var httpClientTimeoutInSeconds = 5;
+		var httpClientTimeoutInSeconds = 3;
 		HttpClient client = new(new HttpClientHandler {
 			Proxy = new WebProxy(proxy.ServerForRequest) {
 				Credentials = proxy.UserName?.Is() == true && proxy.Password?.Is() == true
@@ -39,7 +39,7 @@ public class GeoIpApi {
 				}
 			},
 			OnError: (e, i) => {
-				httpClientTimeoutInSeconds *= i + 1;
+				httpClientTimeoutInSeconds *= i;
 				onretry($"Timezone Request from proxy failed. Retrying {i}");
 			});
 		} finally {
