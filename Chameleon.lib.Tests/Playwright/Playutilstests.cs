@@ -11,7 +11,7 @@ public class Playutilstests : PlaywrightTestsBase, IDisposable {
 	readonly string profile_brv = Path.Combine(Consts.AppDataLocalDir, Enums.SystemBrowserType.Brave.ToString(), pid);
 	public Playutilstests() : base()
 	{
-		async void setup(bool init)
+		void setup(bool init)
 		{
 			// Setup code
 			_tcs.SetResult(true);

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Tests;
 
 using Chameleon.lib.Api;
 

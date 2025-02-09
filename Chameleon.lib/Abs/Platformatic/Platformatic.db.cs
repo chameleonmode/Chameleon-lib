@@ -35,8 +35,8 @@ public class PlatformaticDB {
 			)
 		);// 
 	public Task<AppClientInfo?> GetLatestVersion =>
-		absClient.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST, 
-			new(Authorize: false)
+		absClient.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST,
+			new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authorize: false)
 		);
 	public AppClientInfo? LatestVersion { get; private set; }
 	#endregion
@@ -48,7 +48,6 @@ public class PlatformaticDB {
 		DBusers ??= await GetDBusers;
 		//
 		LatestVersion ??= await GetLatestVersion;
-
 		// Double check license key if it's null
 		// TODO: Remove this after all users have migrated to auth0
 		if (!ranLicenseCheck && DBuser.licenseKey == null) {
@@ -81,7 +80,7 @@ public class PlatformaticDB {
 		// Get the file name from the Content-Disposition header
 		var fileName = response.Content.Headers.ContentDisposition?.FileName ?? "Chameleon." + ext;
 		var outputFile = Path.Combine(FilePaths.AppDownloadDir, fileName);
-		
+
 		// Get the total number of bytes (if available)
 		var totalBytes = response.Content.Headers.ContentLength;
 		var buffer = new byte[8192];
@@ -142,7 +141,7 @@ public class PlatformaticDB {
 
 	#region DELETE's
 	public async Task DeleteDataInteractions() {
-		var interactions = await GetDataInteractions();
+	  var interactions = await GetDataInteractions();
 		foreach (var interaction in interactions!) {
 			_ = await absClient.Delete<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
 		}
