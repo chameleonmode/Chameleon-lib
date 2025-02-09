@@ -4,15 +4,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Playwright;
-namespace Chameleon.lib.Tests.Playwright;
+using Chameleon.lib;
+
+namespace Tests.Playwright;
 public class Playutilstests : PlaywrightTestsBase, IDisposable {
 	static readonly string pid = "wawa";
 	readonly string profile = Path.Combine(Consts.AppDataLocalDir, Enums.SystemBrowserType.Chrome.ToString(), pid);
 	readonly string profile_brv = Path.Combine(Consts.AppDataLocalDir, Enums.SystemBrowserType.Brave.ToString(), pid);
-	public Playutilstests() : base()
-	{
-		void setup(bool init)
-		{
+	public Playutilstests() : base() {
+		void setup(bool init) {
 			// Setup code
 			_tcs.SetResult(true);
 		}
@@ -35,8 +35,7 @@ public class Playutilstests : PlaywrightTestsBase, IDisposable {
 	}
 
 	[Fact]
-	public async Task TestBundledScripts_chrm()
-	{
+	public async Task TestBundledScripts_chrm() {
 		_ = await _tcs.Task;
 
 		//
@@ -46,8 +45,7 @@ public class Playutilstests : PlaywrightTestsBase, IDisposable {
 
 
 	[Fact]
-	public async Task TestBundledScripts_brv()
-	{
+	public async Task TestBundledScripts_brv() {
 		_ = await _tcs.Task;
 
 		//
@@ -55,8 +53,7 @@ public class Playutilstests : PlaywrightTestsBase, IDisposable {
 		await LaunchBrowser(profile_brv);
 	}
 
-	public async void Dispose()
-	{
+	public async void Dispose() {
 		if (BrowserProcess != null && !BrowserProcess.HasExited)
 			await BrowserProcess.WaitForExitAsync();
 		await DisposeBrowser();

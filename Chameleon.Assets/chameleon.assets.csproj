@@ -11,30 +11,4 @@
 		<EmbeddedResource Include="json\**" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <None Remove="addons\chromeleon\background.js" />
-	  <None Remove="addons\chromeleon\data\scripts\content-script-settings.js" />
-	  <None Remove="addons\chromeleon\manifest.json" />
-	  <None Remove="addons\chromeleon\modules\emulations.js" />
-	  <None Remove="addons\chromeleon\modules\geolocation.js" />
-	  <None Remove="addons\chromeleon\modules\logger.js" />
-	  <None Remove="addons\chromeleon\modules\offsets.js" />
-	  <None Remove="addons\chromeleon\modules\prompter.js" />
-	  <None Remove="addons\chromeleon\modules\settings.js" />
-	  <None Remove="addons\chromeleon\modules\timezone.js" />
-	  <None Remove="addons\chromeleon\modules\uule.js" />
-	  <None Remove="addons\chromeleon\modules\webrtc.js" />
-	  <None Remove="addons\chromeleon\scriptin\canvas.js" />
-	  <None Remove="addons\chromeleon\scriptin\clientrects.js" />
-	  <None Remove="addons\chromeleon\scriptin\fonts.js" />
-	  <None Remove="addons\chromeleon\scriptin\isolated.js" />
-	  <None Remove="addons\chromeleon\scriptin\webgl.js" />
-	  <None Remove="addons\extreloader\background.js" />
-	  <None Remove="addons\extreloader\manifest.json" />
-	  <None Remove="addons\foxameleon\modules\uule.js" />
-	  <None Remove="addons\foxameleon\scripts\content-script.js" />
-	  <None Remove="addons\foxyproxy\background.js" />
-	  <None Remove="addons\foxyproxy\manifest.json" />
-	</ItemGroup>
-
 </Project>

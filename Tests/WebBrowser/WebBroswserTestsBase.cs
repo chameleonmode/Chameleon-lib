@@ -1,17 +1,16 @@
-﻿using Chameleon.lib.WebBrowser.Interfaces;
+﻿using Chameleon.lib;
+using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.WebBrowser.Services;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Chameleon.lib.Tests.WebBrowser;
+namespace Tests.WebBrowser;
 public class WebBroswserTestsBase {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 	public ISysBrowserService? SysBrowserServiceBase;
-	public WebBroswserTestsBase()
-	{
-		void setup(bool init)
-		{
+	public WebBroswserTestsBase() {
+		void setup(bool init) {
 			SysBrowserServiceBase = IoC.GetService<ISysBrowserService>();
 			_tcs.SetResult(true);
 		}
