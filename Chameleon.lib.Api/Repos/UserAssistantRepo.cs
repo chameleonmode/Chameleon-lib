@@ -73,13 +73,11 @@ public class ShareFoldersRepo : ApiBase<AssisShareFolderDto> {
 	//	return HttpApiClient.Instance.Delete<RootResult>($"DeletePermission?userFolderId={userFolderId}&permissionId={permissionId}");
 	//}
 
-	public static Task<AssisShareFolderDto[]> GetAll(long userId)
+	record GetAllResult(int TotalCount, AssisShareFolderDto[] Items);
+	public static async Task<AssisShareFolderDto[]> GetAll(long userId)
 	{
-		return HttpApiClient.Instance.Get<AssisShareFolderDto[]>($"{Instance.Endpoint}GetAll", new
-		{
-			MaxResultCount = int.MaxValue,
-			UserId = userId,
-		});
+		var response = await HttpApiClient.Instance.Get<GetAllResult>($"{Instance.Endpoint}GetAll?UserId={userId}");
+		return response.Items;
 	}
 
 	public static Task<AssisShareFolderDto[]> Share(long assistantId, IList<int> folderIds, IList<int> folderpermissionIds)

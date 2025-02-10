@@ -40,6 +40,9 @@ public static class Configs {
 		public static class LICENSE {
 			const string BASE = "/license";
 			public const string ACTIVATE = $"{BASE}/activate";
+			public const string CUSTOMER = $"{BASE}/customer";
+			public const string DATA = $"{BASE}/data";
+			public const string STATUS = $"{BASE}/status";
 		}
 
 		public const string Users = "/users";
