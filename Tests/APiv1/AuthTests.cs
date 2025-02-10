@@ -2,7 +2,7 @@
 
 namespace Tests.APiv1;
 public class AuthTests {
-	const int dictionary = 2;
+	const int dictionary = 3;
 
 	[Fact]
 	public async Task Login_success() {
