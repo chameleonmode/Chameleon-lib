@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Tests;
 public abstract class TestSetup {
-	public TestSetup(int dictionary = 0) {
+	public TestSetup(int dictionary = 1) {
 		IoC.Instance.Configure(() => {
 			return new WritableConfiguration(new ConfigurationBuilder()
 				.SetBasePath(Directory.GetCurrentDirectory())
@@ -17,8 +17,8 @@ public abstract class TestSetup {
 
 		IoC.Instance.Init(_ => {
 			IoC.SetJsonValue(new LoginSettings(
-				"",//Environment.Directory[dictionary].email,
-				""//Environment.Directory[dictionary].license
+				Environment.Directory[dictionary].email,
+				Environment.Directory[dictionary].license
 				), nameof(LoginSettings));
 		});
 	}

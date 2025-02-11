@@ -28,12 +28,24 @@ public class PlatformaticDB {
 		absClient.Get<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
 	public IEnumerable<PlatformaticUser>? DBusers { get; private set; }
 	// 
+	object LicenseBody => new { license_key = session.Login!.LicenseKey };
 	public Task<PlatformaticUser?> ValidateLicese =>
 		absClient.Post<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
-			new(
-				Body: new { license_key = session.Login!.LicenseKey }
-			)
-		);// 
+			new(Body: LicenseBody)
+		);
+	public Task<KickLicenseData?> KickLicenseData =>
+		absClient.Post<KickLicenseData>(Configs.Endpoints.LICENSE.DATA,
+			new(Body: LicenseBody)
+		);
+	public Task<KickLicenseStatus?> KickLicenseStatus =>
+		absClient.Post<KickLicenseStatus>(Configs.Endpoints.LICENSE.STATUS,
+			new(Body: LicenseBody)
+		);
+	public Task<KickCustomer?> KickCustomer =>
+		absClient.Post<KickCustomer>(Configs.Endpoints.LICENSE.CUSTOMER,
+			new(Body: new { email = session.Login!.LoginName })
+		);
+	// 
 	public Task<AppClientInfo?> GetLatestVersion =>
 		absClient.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST,
 			new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authorize: false)

@@ -31,6 +31,25 @@ public record AppClientInfo(
 		string latest
 );
 
+public record KickCustomer(
+		bool status,
+		string secret
+);
+
+public record KickLicenseData(
+		string license_key,
+		string purchase_id,
+		int product_id,
+		int status,
+		object guid
+);
+
+public record KickLicenseStatus(
+		int valid,
+		int active,
+		object guid
+);
+
 public record PlatformaticUser(
 		object id,
 		string userId,
