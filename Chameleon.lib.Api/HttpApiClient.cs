@@ -31,7 +31,7 @@ public class HttpApiClient {
 	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default)
 	{
 		var response = await PolyUtil.RetryWithPolicyAsync(async () => {
-			var request = new HttpRequestMessage(method, Common.Constants.Consts.Api.ApiBaseUrl + path);
+			var request = new HttpRequestMessage(method, "http://3.19.166.76/api/" + path);
 			if(Auther.AuthToken.Is())
 				request.Headers.Authorization = new("Bearer", Auther.AuthToken);
 
