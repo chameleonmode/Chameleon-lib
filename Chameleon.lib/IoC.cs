@@ -64,14 +64,30 @@ public class IoC {
 	//
 	public static T? GetValue<T>(string key) => Instance.Config!.GetValue<T>(key.Replace(' ', '_'));
 	public static string? GetValue(params string[] keys) => GetValue<string>(string.Join('_', keys));
+	//
 	public static void SetValue<T>(T value, params string[] keys) {
-		Instance.Config!.SetValue(string.Join('_', keys).Replace(' ', '_'), value);
+		var key = string.Join('_', keys).Replace(' ', '_');
+		var current = Instance.Config!.GetValue<T>(key);
+		if (EqualityComparer<T>.Default.Equals(current, value)
+			 || (value is Array arr && arr.Length == 0)) {
+			return; // Value is unchanged; no update required.
+		}
+
+		Instance.Config!.SetValue(key, value);
 		Toaster.Success("Settings saved");
 	}
-
 	//
 	public static void SetJsonValue<T>(T value, params string[] keys) {
-		Instance.Config!.SetValue(string.Join('_', keys).Replace(' ', '_'), JsonSerializer.Serialize(value));
+		var key = string.Join('_', keys).Replace(' ', '_');
+		var newValue = JsonSerializer.Serialize(value);
+		var currentValue = Instance.Config!.GetValue<string>(key);
+
+		if (string.Equals(newValue, currentValue, StringComparison.Ordinal)
+			 || (value is Array arr && arr.Length == 0)) {
+			return; // Serialized JSON is unchanged; no update required.
+		}
+
+		Instance.Config!.SetValue(key, newValue);
 		Toaster.Success("Settings saved");
 	}
 	public static T? GetJsonValue<T>(params string[] keys) => GetValue<string>(string.Join('_', keys)) is string val ? JsonSerializer.Deserialize<T>(val) : default;
