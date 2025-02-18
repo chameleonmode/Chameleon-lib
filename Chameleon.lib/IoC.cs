@@ -82,8 +82,7 @@ public class IoC {
 		var newValue = JsonSerializer.Serialize(value);
 		var currentValue = Instance.Config!.GetValue<string>(key);
 
-		if (string.Equals(newValue, currentValue, StringComparison.Ordinal)
-			 || (value is Array arr && arr.Length == 0)) {
+		if (string.Equals(newValue, currentValue, StringComparison.Ordinal)) {
 			return; // Serialized JSON is unchanged; no update required.
 		}
 
