@@ -5,7 +5,7 @@ namespace Chameleon.lib.Playwright.Scripts;
 public class RedditCommentVoteJsScript : IBundledJSScript {
 	public string Title => "Reddit Comment Vote";
 	public string Description => "Search for reddit thread comment vote and reply";
-	public string Name => "redditCommentVote";
+	public string Name => "reddit0comment";
 	public IDictionary<string, string> Parameters { get; } = new Dictionary<string, string>() {
 		{ "textToSearch" , "Search Key Word" },
 		{ "commenttoMainthread" , "First Comment" },
@@ -25,8 +25,8 @@ public class RedditCommentVoteJsScript : IBundledJSScript {
 			commenttoMainthread = args["commenttoMainthread"],
 			commenttoMainthread2 = args["commenttoMainthread2"],
 			replToComment = args["replToComment"],
-			reddit_username = args.ContainsKey("reddit_username") ? args["reddit_username"] : Parameters["reddit_username"],
-			test_password = args.ContainsKey("test_password") ? args["test_password"] : Parameters["test_password"],
+			reddit_username = args.TryGetValue("reddit_username", out var value) ? value : Parameters["reddit_username"],
+			test_password = args.TryGetValue("test_password", out var val) ? val : Parameters["test_password"],
 		};
 
 		using var runner = PlaywrightTestRunner.Create(Name);

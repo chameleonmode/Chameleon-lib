@@ -19,23 +19,22 @@ public class PlaywrightTestRunner : IDisposable {
 
 	public static PlaywrightTestRunner Create(string scriptName)
 	{
-		var isDebug = false;
-#if DEBUG
-		isDebug = true;
+		return new PlaywrightTestRunner(
+#if DEBUG 
+		OperatingSystem.IsMacOS() ? 
+		"/Users/dev/src/Chameleon"
+		: "C:\\repos\\Chameleon\\Chameleon.Avalonia\\src\\Chameleon.Avalonia.Desktop\\obj\\outwin"
 #endif
-		return new PlaywrightTestRunner(scriptName, isDebug 
-		? OperatingSystem.IsMacOS() 
-		? "/Users/dev/Projects/Chameleon/Chameleon.Avalonia/src/Chameleon.Avalonia.Desktop/bin/release"
-		: "C:\\repos\\Chameleon\\Chameleon.Avalonia\\src\\Chameleon.Avalonia.Desktop\\obj\\outwin" : null);
+		, scriptName);
 	}
-	private PlaywrightTestRunner(string scriptName, string? basePath = null)
+	private PlaywrightTestRunner(string? basePath, string scriptName)
 	{
 		_scriptName = scriptName;
 
-		basePath ??= AppDomain.CurrentDomain.BaseDirectory;
-		basePath = Path.Combine(basePath, OperatingSystem.IsMacOS()
-				? "../Resources/.playwright"
-				: ".playwright");
+		basePath = Path.Combine(basePath ?? AppDomain.CurrentDomain.BaseDirectory,
+		 OperatingSystem.IsMacOS() ?
+		  "../Resources/.playwright"
+			: ".playwright");
 
 		var nodePath = Path.Combine(basePath, OperatingSystem.IsMacOS()
 				? "node/darwin-x64/node"
@@ -57,7 +56,7 @@ public class PlaywrightTestRunner : IDisposable {
 			RedirectStandardError = true,
 			UseShellExecute = false,
 			CreateNoWindow = true,
-			//WorkingDirectory = Path.GetDirectoryName(scriptPath) // Set the working directory
+      WorkingDirectory = Path.GetDirectoryName(nodePath) ?? throw new InvalidOperationException("Invalid node path")
 		};
 
 		_nodeProcess = new Process { StartInfo = startInfo };

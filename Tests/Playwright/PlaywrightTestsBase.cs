@@ -8,6 +8,7 @@ public abstract class PlaywrightTestsBase {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 
 	public string CachePath { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+	//public string CachePath { get; } = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 	//public string CachePath { get; } = @"C:\Users\eli\AppData\Local\Chameleon\Brave\25541";// Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
 	public Process? BrowserProcess { get; set; }
@@ -15,7 +16,7 @@ public abstract class PlaywrightTestsBase {
 
 	public static Process GrowserProcess(string cachepath, List<string> args) => new() {
 		StartInfo = new ProcessStartInfo {
-			FileName = IoC.GetValue<string>("BrowserPath"),
+			FileName = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 			Arguments = string.Join(" ", new List<string>(args) {
 						"chrome://extensions/",
 						"--restore-last-session",
