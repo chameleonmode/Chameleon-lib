@@ -9,6 +9,7 @@ using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Helpers;
 using Microsoft.Playwright;
+using Chameleon.lib.Common.Extensions;
 
 namespace Chameleon.lib.Playwright;
 
@@ -16,21 +17,17 @@ namespace Chameleon.lib.Playwright;
 /// Helper/Util class for static Playwright operations
 /// </summary>
 public static class PlaywrightUtil {
-	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(string profileId, Enums.SystemBrowserType browserType) {
+	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(string profileId, Enums.SystemBrowserType browserType, Action<Enums.SystemBrowserType>? openBrowserProfile = null, Func<Process?>? getBrowserProfileProcess = null) {
 		// Retrieve path to the browser executable
 		var exePath = await GetExecutable(browserType);
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
 		? playwright.Firefox : playwright.Chromium;
-		await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-				Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId),
-				new() {
-					Headless = true,
-					ExecutablePath = exePath,
-					Args = ["--allow-downgrade"]
-				}
-		);
+
+		var context = await GetContextAsync(profileId, browserType, exePath, playwrightBrowser, 0, openBrowserProfile, getBrowserProfileProcess);
+
+		if (context is null) return [];
 
 		var cookies = await context.CookiesAsync();
 		await context.CloseAsync();
@@ -38,80 +35,136 @@ public static class PlaywrightUtil {
 		return cookies;
 	}
 
-	public static async Task CreateDevmodePrefs(Enums.SystemBrowserType browserType, string profileId)
-	{
+	private static async Task<IBrowserContext> GetContextAsync(string profileId, Enums.SystemBrowserType browserType, string exePath, IBrowserType playwrightBrowser, int tries, Action<Enums.SystemBrowserType>? openBrowserProfile = null, Func<Process?>? getBrowserProfileProcess = null) {
+		try {
+			var context = tries switch {
+				0 => await GetNewContextAsync(profileId, browserType, exePath, playwrightBrowser),
+				1 => await ConnectToProfileContextAsync(profileId, browserType, exePath, playwrightBrowser, getBrowserProfileProcess),
+				_ => await CloseChromeAndOpenAsync(profileId, browserType, exePath, playwrightBrowser)
+			};
+
+			if (tries > 1 &&  openBrowserProfile is not null) {
+				openBrowserProfile(browserType);
+			}
+			return context;
+		} catch (Exception ex) when (ex.Message.Contains("Target page, context or browser has been closed") && tries < 3) {
+			return await GetContextAsync(profileId, browserType, exePath, playwrightBrowser, ++tries, openBrowserProfile, getBrowserProfileProcess);
+		}
+	}
+
+	private static async Task<IBrowserContext> GetNewContextAsync(string profileId, Enums.SystemBrowserType browserType, string exePath, IBrowserType playwrightBrowser) {
+		var context = await playwrightBrowser.LaunchPersistentContextAsync(
+						Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId),
+						new() {
+							Headless = true,
+							ExecutablePath = exePath,
+							Args = ["--allow-downgrade"]
+						}
+				);
+		return context;
+	}
+
+	private static async Task<IBrowserContext> ConnectToProfileContextAsync(string profileId, Enums.SystemBrowserType browserType, string exePath, IBrowserType playwrightBrowser, Func<Process?>? getBrowserProfileProcess = null) {
+
+		if (getBrowserProfileProcess is null)
+			return await GetNewContextAsync(profileId, browserType, exePath, playwrightBrowser);
+
+		var process = getBrowserProfileProcess();
+		if (process is null)
+			return await GetNewContextAsync(profileId, browserType, exePath, playwrightBrowser);
+
+		var commandLineArguments = process.GetProcessCommandLine();
+		if (!string.IsNullOrEmpty(commandLineArguments)) {
+
+			var argPrefix = "--remote-debugging-port=";
+			var index = commandLineArguments.IndexOf(argPrefix, StringComparison.OrdinalIgnoreCase);
+			if (index < 0)
+				return await GetNewContextAsync(profileId, browserType, exePath, playwrightBrowser);
+
+			var start = index + argPrefix.Length;
+			var end = commandLineArguments.IndexOf(' ', start);
+			if (end < 0) end = commandLineArguments.Length;
+
+			var portStr = commandLineArguments[start..end];
+			if (int.TryParse(portStr, out var port)) {
+				var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{port}");
+				return browser.Contexts[0];
+			}
+		}
+
+		return await GetNewContextAsync(profileId, browserType, exePath, playwrightBrowser);
+	}
+
+	private static async Task<IBrowserContext> CloseChromeAndOpenAsync(string profileId, Enums.SystemBrowserType browserType, string exePath, IBrowserType playwrightBrowser) {
+		ChromeProcessExtensions.CloseAllChrome();
+		return await GetNewContextAsync(profileId, browserType, exePath, playwrightBrowser);
+	}
+
+	public static async Task CreateDevmodePrefs(Enums.SystemBrowserType browserType, string profileId) {
 		var cachePath = Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId);
-    var prefsFile = Path.Combine(cachePath, "Default", "Preferences");
+		var prefsFile = Path.Combine(cachePath, "Default", "Preferences");
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		await using var context = await playwright.Chromium.LaunchPersistentContextAsync(
-      cachePath,
-			new() {
-				Headless = false,
-				ExecutablePath = await PlaywrightUtil.GetExecutable(browserType),
-				Args = ["--allow-downgrade"]
+
+		try {
+			await using var context = await playwright.Chromium.LaunchPersistentContextAsync(
+								cachePath,
+								new() {
+									Headless = false,
+									ExecutablePath = await PlaywrightUtil.GetExecutable(browserType),
+									Args = ["--allow-downgrade"]
+								}
+				);
+			var page = await context.NewPageAsync();
+
+			//_ = await page.GotoAsync("example.com");
+			await page.CloseAsync();
+			await context.CloseAsync();
+		} catch (Exception ex) {
+
+		}
+
+		while (!File.Exists(prefsFile))
+			await Task.Delay(1000);
+
+		if (File.Exists(prefsFile)) {
+			var document = JsonDocument.Parse(await File.ReadAllTextAsync(prefsFile));
+			var root = document.RootElement.Clone();
+
+			// Convert the root element to a JsonObject
+			var mutableRoot = JsonNode.Parse(root.GetRawText())?.AsObject();
+			if (mutableRoot != null) {
+				if (mutableRoot["extensions"] is JsonObject extensions) {
+					if (extensions["ui"] is JsonObject ui) {
+						ui["developer_mode"] = true;
+					} else {
+						extensions["ui"] = new JsonObject {
+							["developer_mode"] = true
+						};
+					}
+				} else {
+					mutableRoot["extensions"] = new JsonObject {
+						["ui"] = new JsonObject {
+							["developer_mode"] = true
+						}
+					};
+				}
 			}
-		);
-		var page = await context.NewPageAsync();
 
-    //_ = await page.GotoAsync("example.com");
-    await page.CloseAsync();
-    await context.CloseAsync();
+			// Serialize the modified JsonObject back to JSON
+			var modifiedJson = JsonSerializer.Serialize(mutableRoot);
+			await File.WriteAllTextAsync(prefsFile, modifiedJson);
+		}
+	}
 
-    while (!File.Exists(prefsFile))
-      await Task.Delay(1000);
-
-    if (File.Exists(prefsFile))
-    {
-      var document = JsonDocument.Parse(await File.ReadAllTextAsync(prefsFile));
-      var root = document.RootElement.Clone();
-
-      // Convert the root element to a JsonObject
-      var mutableRoot = JsonNode.Parse(root.GetRawText())?.AsObject();
-      if (mutableRoot != null)
-      {
-        if (mutableRoot["extensions"] is JsonObject extensions)
-        {
-          if (extensions["ui"] is JsonObject ui)
-          {
-            ui["developer_mode"] = true;
-          }
-          else
-          {
-            extensions["ui"] = new JsonObject
-            {
-              ["developer_mode"] = true
-            };
-          }
-        }
-        else
-        {
-          mutableRoot["extensions"] = new JsonObject
-          {
-            ["ui"] = new JsonObject
-            {
-              ["developer_mode"] = true
-            }
-          };
-        }
-      }
-
-      // Serialize the modified JsonObject back to JSON
-      var modifiedJson = JsonSerializer.Serialize(mutableRoot);
-      await File.WriteAllTextAsync(prefsFile, modifiedJson);
-    }
-  }
-
-	public static async Task<string> GetExecutable(Enums.SystemBrowserType browserType)
-	{
+	public static async Task<string> GetExecutable(Enums.SystemBrowserType browserType) {
 		return browserType == Enums.SystemBrowserType.Firefox
 				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Playwright's Firefox")
 				: SysBrowserInfoUtil.FindByType(browserType).Path;
 	}
 
 	// Installs Playwright's Firefox if not already installed
-	public static async Task<string?> InstallPlaywrightsFirefoxIfNecessary()
-	{
+	public static async Task<string?> InstallPlaywrightsFirefoxIfNecessary() {
 		// 1) Check if it is already installed
 		var existingPath = FindPlaywrightFirefox();
 		if (existingPath != null) {
@@ -171,8 +224,7 @@ public static class PlaywrightUtil {
 	}
 
 	// Finds existing Playwright Firefox installation
-	public static string? FindPlaywrightFirefox()
-	{
+	public static string? FindPlaywrightFirefox() {
 		var cacheDir = GetPlaywrightCacheDir();
 		if (!Directory.Exists(cacheDir)) {
 			return null;
@@ -187,8 +239,7 @@ public static class PlaywrightUtil {
 	}
 
 	// Gets Playwright paths based on OS
-	public static (string NodePath, string CliPath) GetPlaywrightPaths()
-	{
+	public static (string NodePath, string CliPath) GetPlaywrightPaths() {
 		var basePath = Path.Combine(
 				AppDomain.CurrentDomain.BaseDirectory,
 				OperatingSystem.IsMacOS() ? "../Resources/.playwright" : ".playwright"

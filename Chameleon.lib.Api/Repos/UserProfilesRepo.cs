@@ -11,6 +11,10 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 
 	public static Task<UserProfileDto[]> GetAllByUserId(long userId) => Instance.Get<UserProfileDto[]>($"GetAllByUserId?Id={userId}");
 
+	public static Task<UserProfileDto> GetProfileById(int profileId) {
+		return Instance.Get<UserProfileDto>($"Get?Id={profileId}");
+	}
+
 	public static async Task<RootResult> MoveUserProfileToFolder(List<int> profileIds, int? foldeId)
 	{
 		var o = await Instance.Post("MoveUserProfileToFolder", new
