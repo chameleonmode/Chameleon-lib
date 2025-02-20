@@ -32,13 +32,14 @@ public class PlaywrightTestRunner : IDisposable {
 			);
 
 		var nodePath = Path.Combine(basePath,
-			OperatingSystem.IsWindows() ? "node\\win32_x64\\node.exe" : "node/darwin-x64/node");
+			OperatingSystem.IsWindows() ? @"node\win32_x64\node.exe" : "node/darwin-x64/node");
 		if (OperatingSystem.IsWindows())
 			nodePath = @$"""{nodePath}""";
 
 		var args =
 #if DEBUG
-		OperatingSystem.IsWindows() ? @"scripts\dist\index.js"
+		OperatingSystem.IsWindows() ?
+		@"C:\repos\chameleon-playwright\dist\index.js"
 		: "/Users/dev/src/chameleon-playwright/dist/index.js"
 #else
 		Path.Combine(basePath, OperatingSystem.IsWindows() ? @"scripts\dist\index.js" : "scripts/dist/index.js")
