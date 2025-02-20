@@ -17,7 +17,7 @@ namespace Chameleon.lib.Playwright;
 /// Helper/Util class for static Playwright operations
 /// </summary>
 public static class PlaywrightUtil {
-	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(string profileId, Enums.SystemBrowserType browserType, Func<Enums.SystemBrowserType,Task>? openBrowserProfile = null, Func<Process?>? getBrowserProfileProcess = null) {
+	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(string profileId, Enums.SystemBrowserType browserType, Action<Enums.SystemBrowserType>? openBrowserProfile = null, Func<Process?>? getBrowserProfileProcess = null) {
 		// Retrieve path to the browser executable
 		var exePath = await GetExecutable(browserType);
 
@@ -35,7 +35,7 @@ public static class PlaywrightUtil {
 		return cookies;
 	}
 
-	private static async Task<IBrowserContext> GetContextAsync(string profileId, Enums.SystemBrowserType browserType, string exePath, IBrowserType playwrightBrowser, int tries, Func<Enums.SystemBrowserType, Task>? openBrowserProfile = null, Func<Process?>? getBrowserProfileProcess = null) {
+	private static async Task<IBrowserContext> GetContextAsync(string profileId, Enums.SystemBrowserType browserType, string exePath, IBrowserType playwrightBrowser, int tries, Action<Enums.SystemBrowserType>? openBrowserProfile = null, Func<Process?>? getBrowserProfileProcess = null) {
 		try {
 			var context = tries switch {
 				0 => await GetNewContextAsync(profileId, browserType, exePath, playwrightBrowser),
@@ -44,7 +44,7 @@ public static class PlaywrightUtil {
 			};
 
 			if (tries > 1 &&  openBrowserProfile is not null) {
-				await openBrowserProfile(browserType);
+				openBrowserProfile(browserType);
 			}
 			return context;
 		} catch (Exception ex) when (ex.Message.Contains("Target page, context or browser has been closed") && tries < 3) {
