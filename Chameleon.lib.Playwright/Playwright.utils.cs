@@ -25,7 +25,7 @@ public static class PlaywrightUtil {
 		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
 		? playwright.Firefox : playwright.Chromium;
 
-		var context = await GetContextAsync(profileId, browserType, exePath, playwrightBrowser, 0, openBrowserProfile);
+		var context = await GetContextAsync(profileId, browserType, exePath, playwrightBrowser, 0, openBrowserProfile, getBrowserProfileProcess);
 
 		if (context is null) return [];
 
