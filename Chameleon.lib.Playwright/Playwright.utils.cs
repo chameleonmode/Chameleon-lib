@@ -121,7 +121,8 @@ public static class PlaywrightUtil {
 			await page.CloseAsync();
 			await context.CloseAsync();
 		} catch (Exception ex) {
-
+			Toaster.Error($"Failed to create devmode prefs: {ex.Message}");
+			return;
 		}
 
 		while (!File.Exists(prefsFile))

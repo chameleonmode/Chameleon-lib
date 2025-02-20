@@ -19,15 +19,13 @@ public class GsiteJsScript : IBundledJSScript {
 		{ "password" , "Password" },
 	};
 
-	public async Task Run(int port, IDictionary<string, string>? args = null)
-	{
+	public async Task Run(int port, IDictionary<string, string>? args = null) {
 		ArgumentNullException.ThrowIfNull(args, nameof(args));
 
-		var data = new
-		{
+		var data = new {
 			url = "https://sites.google.com/new",
-			email = args.ContainsKey("email") ? args["email"] : Parameters["email"],
-			password = args.ContainsKey("password") ? args["password"] : Parameters["password"],
+			email = args["email"] ?? Parameters["email"],
+			password = args["password"] ?? Parameters["password"],
 			textContent = args["textContent"],
 			textSearch = args["textSearch"],
 			location = args["location"],

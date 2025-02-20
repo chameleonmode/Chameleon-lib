@@ -17,35 +17,34 @@ public class PlaywrightTestRunner : IDisposable {
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-	public static PlaywrightTestRunner Create(string scriptName)
-	{
-		return new PlaywrightTestRunner(
-#if DEBUG 
-		OperatingSystem.IsMacOS() ? 
-		"/Users/dev/src/Chameleon"
-		: "C:\\repos\\Chameleon\\Chameleon.Avalonia\\src\\Chameleon.Avalonia.Desktop\\obj\\outwin"
-#endif
-		, scriptName);
+	public static PlaywrightTestRunner Create(string scriptName) {
+		return new PlaywrightTestRunner(scriptName);
 	}
-	private PlaywrightTestRunner(string? basePath, string scriptName)
-	{
+	private PlaywrightTestRunner(string scriptName) {
 		_scriptName = scriptName;
+		var basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+			#if DEBUG
+				".playwright"
+			#else
+				OperatingSystem.IsWindows() ? @"Resources\.playwright" :
+				"../Resources/.playwright"
+			#endif
+			);
 
-		basePath = Path.Combine(basePath ?? AppDomain.CurrentDomain.BaseDirectory,
-		 OperatingSystem.IsMacOS() ?
-		  "../Resources/.playwright"
-			: ".playwright");
-
-		var nodePath = Path.Combine(basePath, OperatingSystem.IsMacOS()
-				? "node/darwin-x64/node"
-				: "node\\win32_x64\\node.exe");
-		if (!OperatingSystem.IsMacOS())
+		var nodePath = Path.Combine(basePath,
+			OperatingSystem.IsWindows() ? "node\\win32_x64\\node.exe" : "node/darwin-x64/node");
+		if (OperatingSystem.IsWindows())
 			nodePath = @$"""{nodePath}""";
 
-		var args = Path.Combine(basePath, OperatingSystem.IsMacOS()
-				? "scripts/dist/index.js"
-				: "scripts\\dist\\index.js");
-		if (!OperatingSystem.IsMacOS())
+		var args =
+#if DEBUG
+		OperatingSystem.IsWindows() ? @"scripts\dist\index.js"
+		: "/Users/dev/src/chameleon-playwright/dist/index.js"
+#else
+		Path.Combine(basePath, OperatingSystem.IsWindows() ? @"scripts\dist\index.js" : "scripts/dist/index.js")
+#endif
+		;
+		if (OperatingSystem.IsWindows())
 			args = @$"""{args}""";
 
 		var startInfo = new ProcessStartInfo {
@@ -56,7 +55,7 @@ public class PlaywrightTestRunner : IDisposable {
 			RedirectStandardError = true,
 			UseShellExecute = false,
 			CreateNoWindow = true,
-      WorkingDirectory = Path.GetDirectoryName(nodePath) ?? throw new InvalidOperationException("Invalid node path")
+			//WorkingDirectory = Path.GetDirectoryName(nodePath) ?? throw new InvalidOperationException("Invalid node path")
 		};
 
 		_nodeProcess = new Process { StartInfo = startInfo };
@@ -82,8 +81,7 @@ public class PlaywrightTestRunner : IDisposable {
 		_processInput = _nodeProcess.StandardInput;
 	}
 
-	public async Task RunTestAsync(object data, int port)
-	{
+	public async Task RunTestAsync(object data, int port) {
 		try {
 			var command = new { action = "run", name = _scriptName, port, data };
 			var jsonCommand = JsonSerializer.Serialize(command);
@@ -94,15 +92,13 @@ public class PlaywrightTestRunner : IDisposable {
 		}
 	}
 
-	public async Task SetConfigurationAsync(string key, object value)
-	{
+	public async Task SetConfigurationAsync(string key, object value) {
 		var command = new { action = "setConfig", key, value };
 		var jsonCommand = JsonSerializer.Serialize(command);
 		await _processInput.WriteLineAsync(jsonCommand);
 	}
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		try {
 			_nodeProcess!.Kill();
 			_nodeProcess!.Dispose();

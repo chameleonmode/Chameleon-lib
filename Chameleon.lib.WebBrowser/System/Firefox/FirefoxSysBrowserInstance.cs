@@ -14,8 +14,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
 	public override string ExePath { get; } = Consts.Browser.LocalFirefoxExePath;
 
-	protected override async Task InitializeExtensionPath()
-	{
+	protected override async Task InitializeExtensionPath() {
 		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
 		await InitializePrefsJs();
 		//await InitializeExtensions();
@@ -75,8 +74,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		//Directory.CreateDirectory(distributionDir);
 		//File.WriteAllText(Path.Combine(distributionDir, "policies.json"), policy);
 	}
-	protected override string GetCommandLineArguments()
-	{
+	protected override string GetCommandLineArguments() {
 		return Debugger.IsAttached
 			? string.Join(" ", new List<string> {
 			"-jsconsole",
@@ -85,6 +83,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
 		})
 			: string.Join(" ", new List<string> {
+				"-allow-downgrade",
 			"-no-remote",
 			"-wait-for-browser",
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
@@ -127,8 +126,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	}
 
 	// TODO:
-	private async Task InitializePrefsJs()
-	{
+	private async Task InitializePrefsJs() {
 		//"https://arkenfox.github.io/TZP/tzp.html"
 		var prefs = new List<string>(SysBrowserInfoUtil.FirefoxUserPrefs
 			.Where(p => !SysBrowserInfoUtil.FirefoxDepricatedPrefs.Contains(p.Key))
@@ -422,7 +420,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		var userprefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
 		await File.WriteAllLinesAsync(userprefsFile, prefs);
 	}
-	
+
 	public async Task InitializePrefsFile() {
 		Toaster.Info("Creating Prefs file for new profile cache wait for the browser window to relaunch a second time");
 		TaskCompletionSource tcs = new();
