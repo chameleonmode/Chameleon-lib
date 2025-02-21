@@ -26,7 +26,7 @@ public class PlaywrightTestRunner : IDisposable {
 			#if DEBUG
 				".playwright"
 			#else
-				OperatingSystem.IsWindows() ? @"Resources\.playwright" :
+				OperatingSystem.IsWindows() ? @".playwright" :
 				"../Resources/.playwright"
 			#endif
 			);
@@ -39,10 +39,12 @@ public class PlaywrightTestRunner : IDisposable {
 		var args =
 #if DEBUG
 		OperatingSystem.IsWindows() ?
-		@"C:\repos\chameleon-playwright\dist\index.js"
-		: "/Users/dev/src/chameleon-playwright/dist/index.js"
+			@"C:\repos\chameleon-playwright\dist\index.js"
+			: "/Users/dev/src/chameleon-playwright/dist/index.js"
 #else
-		Path.Combine(basePath, OperatingSystem.IsWindows() ? @"scripts\dist\index.js" : "scripts/dist/index.js")
+		OperatingSystem.IsWindows() ?
+			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"Resources\scripts\dist\index.js")
+			: Path.Combine(basePath, "scripts/dist/index.js")
 #endif
 		;
 		if (OperatingSystem.IsWindows())
