@@ -47,8 +47,7 @@ public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
 
 		var returned = new List<PlaywriteRunScriptOptions>();
 		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new PlaywriteRunScriptOptions { BundledJSScript = script }));
-		if(!OperatingSystem.IsWindows())
-			returned.AddRange(AddMappedScripts(BundledCSScripts, script => new PlaywriteRunScriptOptions { BundledCSScript = script }));
+		// returned.AddRange(AddMappedScripts(BundledCSScripts, script => new PlaywriteRunScriptOptions { BundledCSScript = script }));
 
 		return returned;
 	}
