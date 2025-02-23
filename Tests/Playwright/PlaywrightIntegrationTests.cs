@@ -88,12 +88,8 @@ public class PlaywrightIntegrationTests : IDisposable
 				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
 				.AddEnvironmentVariables()
 				.Build(), Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
-		}, (services) =>
+		}, (_) =>
 		{
-			_ = services
-			//app.Playwright
-			.AddSingleton<ICompileScriptService, CompileScriptService>()
-			.AddSingleton<IChromeiumPlaywrightBrowser, ChromeiumPlaywrightBrowser>();
 		});
 		// Setup IoC
 		IoC.Instance.Init(action: setup);

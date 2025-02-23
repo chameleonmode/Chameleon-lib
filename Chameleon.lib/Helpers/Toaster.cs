@@ -34,5 +34,4 @@ public class Toaster {
 			Instance.ToastNotificationService?.ShowInformation(txt);
 		}
 	}
-
 }

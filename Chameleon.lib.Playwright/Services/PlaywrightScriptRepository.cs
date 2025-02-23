@@ -55,7 +55,7 @@ public class PlaywrightScriptRepository {
 		var returned = new List<PlaywriteRunScriptOptions>();
 		foreach (var item in IOtil.ReadDirectory(filepath)) {
 			var inf = new FileInfo(item);
-			if (inf.Extension != ".cs")
+			if (inf.Extension != ".js")
 				continue;
 			returned.Add(new PlaywriteRunScriptOptions {
 				Description = new PlaywrightScriptDescription() {

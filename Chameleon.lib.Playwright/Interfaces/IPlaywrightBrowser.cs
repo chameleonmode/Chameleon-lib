@@ -17,7 +17,3 @@ public interface IPlaywrightBrowser : ISingletonDependency {
 	Task Close();
 }
 
-public interface IChromeiumPlaywrightBrowser
-		: IPlaywrightBrowser {
-}
-

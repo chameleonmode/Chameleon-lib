@@ -53,9 +53,24 @@ public class PlaywrightJSRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestRecord() {
 		var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new PlaywriteRunScriptOptions {
+		await PlaywriteRunner.RunScript(new () {
 			Port = port,
 			Record = true
-		}, CancellationToken.None);
+		});
+	}
+
+	[Fact]
+	public async Task TestUserScript() {
+		var port = await OpenBrowser();
+		await PlaywriteRunner.RunScript(new () {
+			Port = port,
+			Description = new PlaywrightScriptDescription {
+				FilePath = "/Users/dev/Documents/jscripts/test.js",
+				Parameters = [
+					new() { Key = "url", Value = "https://www.google.com" },
+					new() { Key = "search", Value = "tangy" },
+				]
+			}
+		});
 	}
 }

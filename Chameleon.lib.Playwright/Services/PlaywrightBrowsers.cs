@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-using Chameleon.lib.Playwright.Interfaces;
+﻿using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
 
 using Microsoft.Playwright;
@@ -10,10 +6,9 @@ using Microsoft.Playwright;
 namespace Chameleon.lib.Playwright.Services;
 public class ChromeiumPlaywrightBrowserInstance(IBrowser browser)
 		: IPlaywrightBrowserInstance {
-  public IBrowserContext BrowserContext => browser.Contexts[0];
+	public IBrowserContext BrowserContext => browser.Contexts[0];
 
-	public async Task Close()
-	{
+	public async Task Close() {
 		if (BrowserContext != null) await BrowserContext.CloseAsync();
 
 		if (browser != null) {
@@ -23,36 +18,31 @@ public class ChromeiumPlaywrightBrowserInstance(IBrowser browser)
 	}
 }
 
-public class ChromeiumPlaywrightBrowser
-		: IChromeiumPlaywrightBrowser {
+public class ChromeiumPlaywrightBrowser : IPlaywrightBrowser {
 	public IPlaywright? Playwright { get; set; }
 	public IList<IPlaywrightBrowserInstance> RunningAutomationBrowsers { get; } = [];
 
-	public async Task Close()
-	{
+	public async Task Close() {
 		foreach (var browser in RunningAutomationBrowsers) {
 			await browser.Close();
 		}
 		RunningAutomationBrowsers.Clear();
 	}
-	public void Dispose()
-	{
+	public void Dispose() {
 		Playwright?.Dispose();
 		Playwright = null;
 	}
 
-	public virtual async Task<IPlaywrightBrowserInstance> Open(PlaywriteRunScriptOptions o)
-	{
+	public virtual async Task<IPlaywrightBrowserInstance> Open(PlaywriteRunScriptOptions o) {
 		Playwright ??= await Microsoft.Playwright.Playwright.CreateAsync();
 
-		var iBrowser = await TryOpenByCDP(0, o.Port);	
+		var iBrowser = await TryOpenByCDP(0, o.Port);
 		var browser = new ChromeiumPlaywrightBrowserInstance(iBrowser);
 		RunningAutomationBrowsers.Add(browser);
 
 		return browser;
 	}
-	private async Task<IBrowser> TryOpenByCDP(int trys, int port)
-	{
+	private async Task<IBrowser> TryOpenByCDP(int trys, int port) {
 		ArgumentNullException.ThrowIfNull(Playwright);
 
 		try {

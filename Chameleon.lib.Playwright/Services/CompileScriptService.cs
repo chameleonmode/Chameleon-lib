@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 using Chameleon.lib.Playwright.Interfaces;
 
@@ -15,8 +10,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
 
 namespace Chameleon.lib.Playwright.Services;
-public class CompileScriptService
-		: ICompileScriptService {
+public class CompileScriptService {
 	public async Task<IExternalScript> CompileScript(string script)
 			=> await Task.Run(() => {
 				var assembly = CompileCode(script);

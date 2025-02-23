@@ -1,11 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Chameleon.lib.Playwright.Interfaces;
+﻿using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.node;
 
 namespace Chameleon.lib.Playwright.Scripts;
