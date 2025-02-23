@@ -4,7 +4,7 @@ using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts;
 
 namespace Chameleon.lib.Playwright.Services;
-public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
+public class PlaywrightScriptRepository {
 	public IDictionary<string, IBundledCSScript> BundledCSScripts { get; } = new Dictionary<string, IBundledCSScript> {
 		{ nameof(GoogleCTRClickThrough), new GoogleCTRClickThrough() },
 		{ nameof(KeepGmailAlive), new KeepGmailAlive() },
@@ -13,7 +13,7 @@ public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
 
 	public IDictionary<string, IBundledJSScript> BundledJSScripts { get; } = new Dictionary<string, IBundledJSScript> {
 		{ nameof(GsiteJsScript), new GsiteJsScript() },
-		{ nameof(RedditCommentVoteJsScript), new RedditCommentVoteJsScript() },
+		{ nameof(Reddit1Comment), new Reddit1Comment() },
 	};
 
 	public async Task<IList<PlaywriteRunScriptOptions>> GetAll(string filepath)
@@ -67,4 +67,8 @@ public class PlaywrightScriptRepository : IPlaywrightScriptRepository {
 		}
 		return returned;
 	});
+
+	// Singleton
+	private static PlaywrightScriptRepository? _instance;
+	public static PlaywrightScriptRepository Instance => _instance ??= new PlaywrightScriptRepository();
 }

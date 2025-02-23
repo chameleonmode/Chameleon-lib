@@ -4,9 +4,7 @@ using Chameleon.lib.Playwright.Scripts;
 using Chameleon.lib.Common.Constants;
 
 namespace Chameleon.lib.Playwright.Services;
-public class PlaywriteService(ICompileScriptService compileScriptService)
-	: IPlaywriteService {
-
+public class PlaywriteRunner {
 	public static IPlaywrightBrowser Get(Enums.SystemBrowserType browserType) => browserType switch {
 		Enums.SystemBrowserType.Chrome or
 		Enums.SystemBrowserType.Chromium or
@@ -16,7 +14,7 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 		_ => throw new NotImplementedException(),
 	};
 
-	public async Task RunScript(PlaywriteRunScriptOptions options, CancellationToken token)
+	public static async Task RunScript(PlaywriteRunScriptOptions options, CancellationToken token)
 	{
 		IPlaywrightBrowser? browser = null;
 		try {
@@ -29,18 +27,7 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 
 				if (options.BundledJSScript != null) {
 					await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
-				} else {
-					browser = Get(options.BrowserType);
-					var browserInstance = await browser.Open(options);
-
-					if (options.BundledCSScript != null) {
-						await options.BundledCSScript.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
-					} else if (options.BundledCSScript == null && options.Description!.FilePath != null) {
-						var scripBody = await File.ReadAllTextAsync(options.Description!.FilePath, token);
-						var instance = await compileScriptService.CompileScript(scripBody);
-						await instance.Run(browserInstance.BrowserContext, parameters).WaitAsync(token);
-					}
-				}
+				} 
 			}
 		} finally {
 			if (browser != null)
@@ -48,7 +35,7 @@ public class PlaywriteService(ICompileScriptService compileScriptService)
 		}
 	}
 
-	public void Dispose()
+	public static void Dispose()
 	{
 		Get(Enums.SystemBrowserType.Chromium).Dispose();
 	}

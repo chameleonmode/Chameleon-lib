@@ -1,9 +1,9 @@
 ﻿using Chameleon.lib;
-
 using Microsoft.Extensions.Configuration;
 
 namespace Tests;
 public abstract class TestSetup {
+	public readonly TaskCompletionSource<bool> _tcs = new();
 	public TestSetup(int dictionary = 1) {
 		IoC.Instance.Configure(() => {
 			return new WritableConfiguration(new ConfigurationBuilder()
