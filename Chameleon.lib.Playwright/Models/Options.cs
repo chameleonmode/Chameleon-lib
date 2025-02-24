@@ -22,9 +22,4 @@ public record GetCookiesOptions(SysBrowserOpenOptions Browser, int? Port) {
 	public string Dir => Path.Combine(Consts.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());
 }
 
-public class PlaywrightScriptDescription {
-	public string? Title { get; set; }
-	public string? Description { get; set; }
-	public string? FilePath { get; set; }
-	public Dictionary<string, string> Parameters { get; set; } = [];
-}
+public record PlaywrightScriptDescription(Dictionary<string, string> Parameters, string? Title = null, string? Description = null, string? FilePath = null);

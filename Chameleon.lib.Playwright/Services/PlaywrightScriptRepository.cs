@@ -28,11 +28,12 @@ public class PlaywrightScriptRepository {
 		List<RunScriptOptions> AddMappedScripts<T>(IDictionary<string, T> scripts, Func<T, RunScriptOptions> createOptions) where T : IBundledScript
 		{
 			 return [.. scripts.Select(s => {
-				 var description = new PlaywrightScriptDescription {
-					 Title = s.Value.Title,
-					 Description = s.Value.Description,
-					 Parameters = s.Value.Parameters.ToDictionary(x => x.Key, x => x.Value),
-				 };
+				 var description = new PlaywrightScriptDescription (
+					 Title: s.Value.Title,
+					 Description: s.Value.Description,
+					 FilePath: s.Value.Name,
+					 Parameters: s.Value.Parameters.ToDictionary(x => x.Key, x => x.Value)
+				 );
 				 var options = createOptions(s.Value);
 				 options.Description = description;
 				 return options;
@@ -52,11 +53,12 @@ public class PlaywrightScriptRepository {
 			if (inf.Extension != ".js")
 				continue;
 			returned.Add(new RunScriptOptions {
-				Description = new PlaywrightScriptDescription() {
-					Title = inf.Name,
-					Description = inf.Directory?.Name,
-					FilePath = inf.FullName,
-				},
+				Description = new(
+					Title: inf.Name,
+					Description: inf.Directory?.Name ?? inf.FullName,
+					FilePath: inf.FullName,
+					Parameters: []
+				),
 			});
 		}
 		return returned;
