@@ -25,7 +25,7 @@ public static class PlaywrightUtil {
 		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
 		? playwright.Firefox : playwright.Chromium;
 
-		var context = await GetContextAsync(profileId, browserType, exePath, playwrightBrowser, 0, openBrowserProfile, getBrowserProfileProcess);
+		await using var context = await GetContextAsync(profileId, browserType, exePath, playwrightBrowser, 0, openBrowserProfile, getBrowserProfileProcess);
 
 		if (context is null) return [];
 
@@ -53,15 +53,14 @@ public static class PlaywrightUtil {
 	}
 
 	private static async Task<IBrowserContext> GetNewContextAsync(string profileId, Enums.SystemBrowserType browserType, string exePath, IBrowserType playwrightBrowser) {
-		var context = await playwrightBrowser.LaunchPersistentContextAsync(
-						Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId),
-						new() {
-							Headless = true,
-							ExecutablePath = exePath,
-							Args = ["--allow-downgrade"]
-						}
-				);
-		return context;
+		return await playwrightBrowser.LaunchPersistentContextAsync(
+				Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), profileId),
+				new() {
+					Headless = true,
+					ExecutablePath = exePath,
+					Args = ["--allow-downgrade"]
+				}
+		);
 	}
 
 	private static async Task<IBrowserContext> ConnectToProfileContextAsync(string profileId, Enums.SystemBrowserType browserType, string exePath, IBrowserType playwrightBrowser, Func<Process?>? getBrowserProfileProcess = null) {
