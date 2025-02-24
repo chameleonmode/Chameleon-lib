@@ -13,36 +13,26 @@ namespace Chameleon.lib.Playwright.Utils;
 /// Helper/Util class for static Playwright operations
 /// </summary>
 public static class PlaywrightUtil {
-	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(GetCookiesOptions options) {
-		// Retrieve path to the browser executable
-		await using var context = await GetContextAsync(options);
+	public static Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(GetCookiesOptions options) =>
+		GetCookiesWithRetryPolicy(options);
 
-		if (context is null) return [];
-
-		var cookies = await context.CookiesAsync();
-		await context.CloseAsync();
-
-		return cookies;
-	}
-
-	private static async Task<IBrowserContext> GetContextAsync(GetCookiesOptions options, int tries = 0) {
+	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesWithRetryPolicy(GetCookiesOptions options, int tries = 0) {
 		try {
-			//ChromeProcessExtensions.CloseAllChrome();
+			
 			return tries switch {
-				0 => await GetNewContextAsync(options),
-				1 => await GetNewContextAsync(new(options.Browser, null)),
-				_ => throw new InvalidOperationException("Failed to connect a browser context check your currently running browsers and try again"),
+				0 => await GetCookiesAsync(options),
+				1 => await GetCookiesAsync(new(options.Browser, null)),
+				_ => throw new InvalidOperationException("Failed to connect a browser context check your currently running browsers and try again"),//TODO: instead of warn ChromeProcessExtensions.CloseAllChrome();
 			};
 		} catch (Exception ex) when (ex.Message.Contains("Target page, context or browser has been closed") && tries < 3) {
-			return await GetContextAsync(options, ++tries);
+			return await GetCookiesWithRetryPolicy(options, ++tries);
 		}
 	}
 
-	private static async Task<IBrowserContext> GetNewContextAsync(GetCookiesOptions options) {
+	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesAsync(GetCookiesOptions options) {
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
-
-		return options.Port != null ? (await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}")).Contexts[0]
+		var context = options.Port != null ? (await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}")).Contexts[0]
 		 : await playwrightBrowser.LaunchPersistentContextAsync(
 				options.Dir,
 				new() {
@@ -52,6 +42,7 @@ public static class PlaywrightUtil {
 					ExecutablePath = await GetBrowseExecutablePath(options.Browser.BrowserType),
 				}
 		);
+		return await context.CookiesAsync();
 	}
 
 	public static async Task<string> GetBrowseExecutablePath(SystemBrowserType browserType) {
@@ -64,7 +55,7 @@ public static class PlaywrightUtil {
 	public static async Task<string?> InstallPlaywrightsFirefoxIfNecessary() {
 		// 1) Check if it is already installed
 		var existingPath = FindPlaywrightFirefox();
-		if (existingPath != null) 			return existingPath;
+		if (existingPath != null) return existingPath;
 
 		try {
 			Toaster.Info("Installing Firefox Sync Update...");
@@ -91,7 +82,7 @@ public static class PlaywrightUtil {
 				}
 			};
 			process.ErrorDataReceived += (sender, e) => {
-				if (!string.IsNullOrEmpty(e.Data)) 					Toaster.Error($"[Firefox Sync Update Install/Error]: {e.Data}");
+				if (!string.IsNullOrEmpty(e.Data)) Toaster.Error($"[Firefox Sync Update Install/Error]: {e.Data}");
 			};
 
 			// 3) Start process, then begin reading from redirected streams
@@ -119,7 +110,7 @@ public static class PlaywrightUtil {
 	// Finds existing Playwright Firefox installation
 	public static string? FindPlaywrightFirefox() {
 		var cacheDir = GetPlaywrightCacheDir();
-		if (!Directory.Exists(cacheDir)) 			return null;
+		if (!Directory.Exists(cacheDir)) return null;
 
 		var firefoxDir = Directory
 				.GetDirectories(cacheDir, "firefox-*", SearchOption.TopDirectoryOnly)

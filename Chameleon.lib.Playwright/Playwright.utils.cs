@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text.Json.Nodes;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using Chameleon.lib.Common.Constants;
@@ -9,10 +7,8 @@ using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Helpers;
 using Microsoft.Playwright;
-using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models;
 using static Chameleon.lib.Common.Constants.Enums;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Chameleon.lib.Playwright;
 
