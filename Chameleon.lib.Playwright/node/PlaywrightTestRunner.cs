@@ -18,17 +18,9 @@ public class PlaywrightTestRunner : IDisposable {
 	}
 	private PlaywrightTestRunner(string scriptName) {
 		this.scriptName = scriptName;
-		var basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-			#if DEBUG
-				".playwright"
-			#else
-				OperatingSystem.IsWindows() ? @".playwright" :
-				"../Resources/.playwright"
-			#endif
-			);
+		var playwrightPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OperatingSystem.IsWindows() ? ".playwright" : "../.playwright");
 
-		var nodePath = Path.Combine(basePath,
-			OperatingSystem.IsWindows() ? @"node\win32_x64\node.exe" : "node/darwin-x64/node");
+		var nodePath = $"{Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OperatingSystem.IsWindows() ? @".playwright\node\win32_x64\node.exe" : "../.playwright/node/darwin-x64/node")}";
 		if (OperatingSystem.IsWindows())
 			nodePath = @$"""{nodePath}""";
 
@@ -38,9 +30,7 @@ public class PlaywrightTestRunner : IDisposable {
 			@"C:\repos\chameleon-playwright\dist\index.js"
 			: "/Users/dev/src/chameleon-playwright/dist/index.js"
 #else
-		OperatingSystem.IsWindows() ?
-			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"Resources\scripts\dist\index.js")
-			: Path.Combine(basePath, "scripts/dist/index.js")
+			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OperatingSystem.IsWindows() ? @"Resources\scripts\dist\index.js" : "../Resources/scripts/dist/index.js")
 #endif
 		;
 		if (OperatingSystem.IsWindows())
