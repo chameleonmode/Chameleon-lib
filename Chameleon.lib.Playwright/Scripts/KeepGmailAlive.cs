@@ -6,6 +6,7 @@ using System;
 
 namespace Chameleon.lib.Playwright.Scripts;
 public class KeepGmailAlive : IBundledCSScript {
+	public string Name => "KeepGmailAlive";
 	public string Title => "Keep Gmail Alive";
 	public string Description => "Reads a random email in Gmail.";
 	public IDictionary<string,string> Parameters => new Dictionary<string,string>();

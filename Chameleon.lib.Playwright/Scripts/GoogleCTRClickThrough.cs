@@ -8,6 +8,7 @@ using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Scripts;
 public class GoogleCTRClickThrough : IBundledCSScript {
+	public string Name => "GoogleCTR";
 	public string Title => "Google Click Through Rate";
 	public string Description => "Clicks through Google search results to a target URL";
 	public IDictionary<string, string> Parameters => new Dictionary<string, string>() {

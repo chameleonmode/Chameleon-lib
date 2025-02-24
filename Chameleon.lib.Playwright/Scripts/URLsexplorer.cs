@@ -9,6 +9,7 @@ using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Scripts;
 public class URLsexplorer : IBundledCSScript {
+	public string Name => "URLsexplorer";
 
 	public const string ProtocolDelimiter = "://";
 
