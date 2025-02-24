@@ -16,48 +16,42 @@ public class PlaywrightScriptRepository {
 		{ nameof(Reddit1Comment), new Reddit1Comment() },
 	};
 
-	public async Task<IList<PlaywriteRunScriptOptions>> GetAll(string filepath)
+	public async Task<IList<RunScriptOptions>> GetAll(string filepath)
 	{
-		var returned = new List<PlaywriteRunScriptOptions>(await GetUserScripts(filepath));
+		var returned = new List<RunScriptOptions>(await GetUserScripts(filepath));
 		returned.AddRange(GetBundledScrits());
 		return returned;
 	}
 
-	public IList<PlaywriteRunScriptOptions> GetBundledScrits()
+	public IList<RunScriptOptions> GetBundledScrits()
 	{
-		List<PlaywriteRunScriptOptions> AddMappedScripts<T>(IDictionary<string, T> scripts, Func<T, PlaywriteRunScriptOptions> createOptions) where T : IBundledScript
+		List<RunScriptOptions> AddMappedScripts<T>(IDictionary<string, T> scripts, Func<T, RunScriptOptions> createOptions) where T : IBundledScript
 		{
-			 return scripts.Select(s => {
+			 return [.. scripts.Select(s => {
 				 var description = new PlaywrightScriptDescription {
 					 Title = s.Value.Title,
 					 Description = s.Value.Description,
-					 Parameters = s.Value.Parameters
-							.Select(p => new PlaywrightDescriptionParam {
-								DisplayName = p.Value,
-								Key = p.Key, 
-								Value = IoC.GetValue<string>($"{s.Value.Title} {p.Key}") ?? string.Empty 
-							})
-							.ToList()
+					 Parameters = s.Value.Parameters.ToDictionary(x => x.Key, x => x.Value),
 				 };
 				 var options = createOptions(s.Value);
 				 options.Description = description;
 				 return options;
-			 }).ToList();
+			 })];
 		}
 
-		var returned = new List<PlaywriteRunScriptOptions>();
-		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new PlaywriteRunScriptOptions { BundledJSScript = script }));
+		var returned = new List<RunScriptOptions>();
+		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new RunScriptOptions { BundledJSScript = script }));
 		// returned.AddRange(AddMappedScripts(BundledCSScripts, script => new PlaywriteRunScriptOptions { BundledCSScript = script }));
 
 		return returned;
 	}
-	public Task<IList<PlaywriteRunScriptOptions>> GetUserScripts(string filepath) => Task.Run<IList<PlaywriteRunScriptOptions>>(() => {
-		var returned = new List<PlaywriteRunScriptOptions>();
+	public Task<IList<RunScriptOptions>> GetUserScripts(string filepath) => Task.Run<IList<RunScriptOptions>>(() => {
+		var returned = new List<RunScriptOptions>();
 		foreach (var item in IOtil.ReadDirectory(filepath)) {
 			var inf = new FileInfo(item);
 			if (inf.Extension != ".js")
 				continue;
-			returned.Add(new PlaywriteRunScriptOptions {
+			returned.Add(new RunScriptOptions {
 				Description = new PlaywrightScriptDescription() {
 					Title = inf.Name,
 					Description = inf.Directory?.Name,

@@ -1,6 +1,6 @@
 ﻿using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Playwright;
+using Chameleon.lib.Playwright.Utils;
 
 using Microsoft.Playwright;
 
@@ -68,7 +68,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task SendCookies_Success() {
-		var cookies = await PlaywrightUtil.GetCookies("25541", Enums.SystemBrowserType.Chrome);
+		var cookies = await PlaywrightUtil.GetCookies(new (new(Enums.SystemBrowserType.Chrome, new(){ Id = 25541 }), null));
 		var email = "ezexerael@gmail.com";//"elimdadia@gmail.com"
 		var data = await platformaticDB.SendCookies(email, "25541", cookies);
 		Assert.NotNull(data);

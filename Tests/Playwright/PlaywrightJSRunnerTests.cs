@@ -39,17 +39,16 @@ public class PlaywrightJSRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestReddit1CommentScripts() {
 		var port = await OpenBrowser();
-		var cancellationToken = new CancellationToken();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
 			BundledJSScript = repo.BundledJSScripts[nameof(Reddit1Comment)],
 			Description = new PlaywrightScriptDescription {
-				Parameters = [
-					new() { Key = "search", Value = "tangy" },
-					new() { Key = "comment", Value = "rabba luba dub dub" }
-			]
+				Parameters = new() {
+					{"search", "tangy"},
+					{"comment", "rabba luba dub dub"}
+				}
 			}
-		}, cancellationToken);
+		});
 	}
 
 	[Fact]
@@ -57,54 +56,55 @@ public class PlaywrightJSRunnerTests : TestSetup {
 	{
 		var port = await OpenBrowser();
 
-		await PlaywriteRunner.RunScript(new PlaywriteRunScriptOptions
+		await PlaywriteRunner.RunScript(new RunScriptOptions
 		{
 			Port = port,
 			BundledJSScript = repo!.BundledJSScripts[nameof(GsiteJsScript)],
 			Description = new PlaywrightScriptDescription
 			{
-				Parameters = [
-				new PlaywrightDescriptionParam {
-						Key = "gsiteTitle",
-						Value = "Google Site Title"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "publishTitle",
-						Value = "Publish Title"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "postTitle",
-						Value = "Post Title"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "textContent",
-						Value = "Post Content"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "link",
-						Value = "HyperLink Link"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "textWithLink",
-						Value = "HyperLink Text"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "textSearch",
-						Value = "Youtube KW Search"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "location",
-						Value = "Post Location Pin"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "email",
-						Value = "Email"
-					},
-					new PlaywrightDescriptionParam {
-						Key = "password",
-						Value = "Password"
-					}
-				]
+				Parameters = new (){
+					{"",""}
+				// new PlaywrightDescriptionParam {
+				// 		Key = "gsiteTitle",
+				// 		Value = "Google Site Title"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "publishTitle",
+				// 		Value = "Publish Title"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "postTitle",
+				// 		Value = "Post Title"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "textContent",
+				// 		Value = "Post Content"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "link",
+				// 		Value = "HyperLink Link"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "textWithLink",
+				// 		Value = "HyperLink Text"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "textSearch",
+				// 		Value = "Youtube KW Search"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "location",
+				// 		Value = "Post Location Pin"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "email",
+				// 		Value = "Email"
+				// 	},
+				// 	new PlaywrightDescriptionParam {
+				// 		Key = "password",
+				// 		Value = "Password"
+				// 	}
+				}
 			}
 		}, CancellationToken.None);
 	}
@@ -188,10 +188,10 @@ public class PlaywrightJSRunnerTests : TestSetup {
 			Port = port,
 			Description = new PlaywrightScriptDescription {
 				FilePath = "/Users/dev/Documents/jscripts/test.js",
-				Parameters = [
-					new() { Key = "url", Value = "https://www.google.com" },
-					new() { Key = "search", Value = "tangy" },
-				]
+				Parameters = new(){
+					{"url", "https://www.google.com"},
+					{"search", "tangy"}
+				}
 			}
 		});
 	}

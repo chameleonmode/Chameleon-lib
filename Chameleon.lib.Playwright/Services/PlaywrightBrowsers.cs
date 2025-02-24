@@ -33,7 +33,7 @@ public class ChromeiumPlaywrightBrowser : IPlaywrightBrowser {
 		Playwright = null;
 	}
 
-	public virtual async Task<IPlaywrightBrowserInstance> Open(PlaywriteRunScriptOptions o) {
+	public virtual async Task<IPlaywrightBrowserInstance> Open(RunScriptOptions o) {
 		Playwright ??= await Microsoft.Playwright.Playwright.CreateAsync();
 
 		var iBrowser = await TryOpenByCDP(0, o.Port);

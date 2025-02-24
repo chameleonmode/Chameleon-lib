@@ -12,7 +12,7 @@ public interface IPlaywrightBrowserInstance {
 
 public interface IPlaywrightBrowser : ISingletonDependency {
 	IList<IPlaywrightBrowserInstance> RunningAutomationBrowsers { get; }
-	Task<IPlaywrightBrowserInstance> Open(PlaywriteRunScriptOptions options);
+	Task<IPlaywrightBrowserInstance> Open(RunScriptOptions options);
 	void Dispose();
 	Task Close();
 }

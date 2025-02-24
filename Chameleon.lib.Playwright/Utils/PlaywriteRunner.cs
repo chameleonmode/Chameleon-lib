@@ -16,7 +16,7 @@ public class PlaywriteRunner {
     _ => throw new NotImplementedException(),
   };
 
-  public static async Task RunScript(PlaywriteRunScriptOptions options, CancellationToken token = default) {
+  public static async Task RunScript(RunScriptOptions options, CancellationToken token = default) {
     IPlaywrightBrowser? browser = null;
     try {
       if (options.Record) {

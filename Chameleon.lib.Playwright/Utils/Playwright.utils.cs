@@ -1,31 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text.Json.Nodes;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-
-using Chameleon.lib.Common.Constants;
 
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Helpers;
 using Microsoft.Playwright;
-using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Models;
 using static Chameleon.lib.Common.Constants.Enums;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Chameleon.lib.Playwright;
+namespace Chameleon.lib.Playwright.Utils;
 
-public record GetCookiesOptions(SysBrowserOpenOptions Browser, int? Port){
-	public Proxy? Proxy => Browser.Profile.Proxy.Server == null ? null
-	 : new () {
-			Server = Browser.Profile.Proxy.Server,
-			Username = Browser.Profile.Proxy.UserName,
-			Password = Browser.Profile.Proxy.Password,
-	};
-
-	public string Dir => Path.Combine(Consts.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());
-}
 /// <summary>
 /// Helper/Util class for static Playwright operations
 /// </summary>
@@ -47,7 +30,7 @@ public static class PlaywrightUtil {
 			//ChromeProcessExtensions.CloseAllChrome();
 			return tries switch {
 				0 => await GetNewContextAsync(options),
-				1 => await GetNewContextAsync(new (options.Browser, null)),
+				1 => await GetNewContextAsync(new(options.Browser, null)),
 				_ => throw new InvalidOperationException("Failed to connect a browser context check your currently running browsers and try again"),
 			};
 		} catch (Exception ex) when (ex.Message.Contains("Target page, context or browser has been closed") && tries < 3) {
@@ -70,9 +53,9 @@ public static class PlaywrightUtil {
 				}
 		);
 	}
-	
-	public static async Task<string> GetBrowseExecutablePath(Enums.SystemBrowserType browserType) {
-		return browserType == Enums.SystemBrowserType.Firefox
+
+	public static async Task<string> GetBrowseExecutablePath(SystemBrowserType browserType) {
+		return browserType == SystemBrowserType.Firefox
 				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Playwright's Firefox")
 				: SysBrowserInfoUtil.FindByType(browserType).Path;
 	}
@@ -81,9 +64,7 @@ public static class PlaywrightUtil {
 	public static async Task<string?> InstallPlaywrightsFirefoxIfNecessary() {
 		// 1) Check if it is already installed
 		var existingPath = FindPlaywrightFirefox();
-		if (existingPath != null) {
-			return existingPath;
-		}
+		if (existingPath != null) 			return existingPath;
 
 		try {
 			Toaster.Info("Installing Firefox Sync Update...");
@@ -110,9 +91,7 @@ public static class PlaywrightUtil {
 				}
 			};
 			process.ErrorDataReceived += (sender, e) => {
-				if (!string.IsNullOrEmpty(e.Data)) {
-					Toaster.Error($"[Firefox Sync Update Install/Error]: {e.Data}");
-				}
+				if (!string.IsNullOrEmpty(e.Data)) 					Toaster.Error($"[Firefox Sync Update Install/Error]: {e.Data}");
 			};
 
 			// 3) Start process, then begin reading from redirected streams
@@ -140,9 +119,7 @@ public static class PlaywrightUtil {
 	// Finds existing Playwright Firefox installation
 	public static string? FindPlaywrightFirefox() {
 		var cacheDir = GetPlaywrightCacheDir();
-		if (!Directory.Exists(cacheDir)) {
-			return null;
-		}
+		if (!Directory.Exists(cacheDir)) 			return null;
 
 		var firefoxDir = Directory
 				.GetDirectories(cacheDir, "firefox-*", SearchOption.TopDirectoryOnly)
