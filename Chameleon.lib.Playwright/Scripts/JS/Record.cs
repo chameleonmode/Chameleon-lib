@@ -9,7 +9,7 @@ public class RecordScript : IBundledJSScript {
 	public IDictionary<string, string> Parameters => new Dictionary<string, string>();
 
 	public async Task Run(int port, IDictionary<string, string>? args = null) {
-		var runner = PlaywrightTestRunner.Create(Name);
+		using var runner = PlaywrightTestRunner.Create(Name);
 		await runner.RunTestAsync(port, args);
 	}
 }

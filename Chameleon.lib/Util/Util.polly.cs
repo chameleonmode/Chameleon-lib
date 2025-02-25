@@ -4,8 +4,8 @@ public static class PolyUtil {
 	public static async Task<T> RetryWithPolicyAsync<T>(
 		Func<Task<T>> operation, 
 		Action<Exception, int>? OnError = null,
-		int maxRetries = 3)
-	{
+		int maxRetries = 3
+	) {
 		for (var i = 1; i <= maxRetries; i++) {
 			try {
 				return await operation();
