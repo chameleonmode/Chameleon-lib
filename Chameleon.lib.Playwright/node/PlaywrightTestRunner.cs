@@ -69,7 +69,7 @@ public class PlaywrightTestRunner : IDisposable {
 		processInput = nodeProcess.StandardInput;
 	}
 
-	public async Task RunTestAsync(object? data, int port) {
+	public async Task RunTestAsync(int port, object? data = null) {
 		try {
 			var command = new { action = "run", name = scriptName, port, data };
 			var jsonCommand = JsonSerializer.Serialize(command);

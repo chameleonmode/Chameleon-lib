@@ -19,7 +19,6 @@ public static class PlaywrightUtil {
 
 	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesWithRetryPolicy(GetCookiesOptions options, int tries = 0) {
 		try {
-			
 			return tries switch {
 				0 => await GetCookiesAsync(options),
 				1 => await GetCookiesAsync(new(options.Browser, null)),

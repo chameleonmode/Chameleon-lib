@@ -1,12 +1,13 @@
 ﻿using Chameleon.lib.Common.Util;
 using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
-using Chameleon.lib.Playwright.Scripts;
+using Chameleon.lib.Playwright.Scripts.CS;
+using Chameleon.lib.Playwright.Scripts.JS;
 
 namespace Chameleon.lib.Playwright.Services;
-public class PlaywrightScriptRepository {
+public class BundledScriptsService {
 	public IDictionary<string, IBundledCSScript> BundledCSScripts { get; } = new Dictionary<string, IBundledCSScript> {
-		{ nameof(GoogleCTRClickThrough), new GoogleCTRClickThrough() },
+		{ nameof(GoogleCTR), new GoogleCTR() },
 		{ nameof(KeepGmailAlive), new KeepGmailAlive() },
 		{ nameof(URLsexplorer), new URLsexplorer() }
 	};
@@ -42,11 +43,11 @@ public class PlaywrightScriptRepository {
 
 		var returned = new List<RunScriptOptions>();
 		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new RunScriptOptions { BundledJSScript = script }));
-		// returned.AddRange(AddMappedScripts(BundledCSScripts, script => new PlaywriteRunScriptOptions { BundledCSScript = script }));
+		returned.AddRange(AddMappedScripts(BundledCSScripts, script => new RunScriptOptions { BundledCSScript = script }));
 
 		return returned;
 	}
-	public Task<IList<RunScriptOptions>> GetUserScripts(string filepath) => Task.Run<IList<RunScriptOptions>>(() => {
+	public static Task<IList<RunScriptOptions>> GetUserScripts(string filepath) => Task.Run<IList<RunScriptOptions>>(() => {
 		var returned = new List<RunScriptOptions>();
 		foreach (var item in IOtil.ReadDirectory(filepath)) {
 			var inf = new FileInfo(item);
@@ -65,6 +66,6 @@ public class PlaywrightScriptRepository {
 	});
 
 	// Singleton
-	private static PlaywrightScriptRepository? _instance;
-	public static PlaywrightScriptRepository Instance => _instance ??= new PlaywrightScriptRepository();
+	private static BundledScriptsService? _instance;
+	public static BundledScriptsService Instance => _instance ??= new BundledScriptsService();
 }

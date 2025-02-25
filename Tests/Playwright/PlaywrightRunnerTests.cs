@@ -1,5 +1,6 @@
 using Chameleon.lib.Playwright.Models;
-using Chameleon.lib.Playwright.Scripts;
+using Chameleon.lib.Playwright.Scripts.CS;
+using Chameleon.lib.Playwright.Scripts.JS;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Playwright.Utils;
 using Chameleon.lib.Util;
@@ -7,12 +8,12 @@ using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.Playwright;
-public class PlaywrightJSRunnerTests : TestSetup {
-	readonly PlaywrightScriptRepository repo;
+public class PlaywrightRunnerTests : TestSetup {
+	readonly BundledScriptsService repo;
 	readonly SystemBrowserService browserService;
 
-	public PlaywrightJSRunnerTests() {
-		repo = PlaywrightScriptRepository.Instance;
+	public PlaywrightRunnerTests() {
+		repo = BundledScriptsService.Instance;
 		browserService = SystemBrowserService.Instance;
 	}
 
@@ -37,18 +38,61 @@ public class PlaywrightJSRunnerTests : TestSetup {
 	}
 
 	[Fact]
-	public async Task TestReddit1CommentScripts() {
+	public async Task TestURLsexplorer() {
 		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledJSScript = repo.BundledJSScripts[nameof(Reddit1Comment)],
+			BundledCSScript = repo.BundledCSScripts[nameof(URLsexplorer)],
 			Description = new(
 				Parameters: new() {
-					{"search", "tangy"},
-					{"comment", "rabba luba dub dub"}
+					{"urls", "example.com, example.org"},
+					{"delay", "3"}
 				}
 			)
 		});
+	}
+
+	[Fact]
+	public async Task TestKeepGmailAlive() {
+		var port = await OpenBrowser();
+		await PlaywriteRunner.RunScript(new() {
+			Port = port,
+			BundledCSScript = repo.BundledCSScripts[nameof(KeepGmailAlive)]
+		});
+	}
+
+	[Fact]
+	public async Task TestGoogleCTR() {
+		var port = await OpenBrowser();
+		await PlaywriteRunner.RunScript(new() {
+			Port = port,
+			BundledCSScript = repo.BundledCSScripts[nameof(GoogleCTR)],
+			Description = new(
+				Parameters: new() {
+					{"search", "example.com"},
+					{"target", "https://example.com"},
+					{"maxPages", "1"}
+				}
+			)
+		});
+	}
+
+	[Fact]
+	public async Task TestReddit1CommentScripts() {
+		var port = await OpenBrowser();
+		for (var i = 0; i < 5; i++) {
+			await PlaywriteRunner.RunScript(new() {
+				Port = port,
+				BundledJSScript = repo.BundledJSScripts[nameof(Reddit1Comment)],
+				Description = new(
+					Parameters: new() {
+						{"search", "tangy"},
+						{"comment", "rabba luba dub dub " + i}
+					}
+				)
+			});
+			await Task.Delay(1000);
+		}
 	}
 
 	[Fact]

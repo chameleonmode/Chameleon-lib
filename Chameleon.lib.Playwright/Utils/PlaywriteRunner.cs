@@ -4,6 +4,8 @@ using Chameleon.lib.Playwright.Scripts;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Playwright.node;
 using Chameleon.lib.Playwright.Services;
+using Chameleon.lib.Playwright.Scripts.JS;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Chameleon.lib.Playwright.Utils;
 public class PlaywriteRunner {
@@ -17,23 +19,21 @@ public class PlaywriteRunner {
   };
 
   public static async Task RunScript(RunScriptOptions options, CancellationToken token = default) {
-    IPlaywrightBrowser? browser = null;
-    try {
-      if (options.Record) {
-				await new RecordScript().Run(options.Port).WaitAsync(token);
-			} else {
-        if (options.BundledJSScript != null) {
-					await options.BundledJSScript.Run(options.Port, options.Description?.Parameters).WaitAsync(token);
-				} else if (options.Description?.FilePath != null) {
-          var runner = PlaywrightTestRunner.Create(options.Description.FilePath);
-          await runner.RunTestAsync(options.Description?.Parameters, options.Port).WaitAsync(token);
-        } else {
-          throw new ArgumentNullException(nameof(options));
-        }
+    if (options.Record) {
+      await new RecordScript().Run(options.Port).WaitAsync(token);
+    } else {
+      if (options.BundledJSScript != null) {
+        await options.BundledJSScript.Run(options.Port, options.Description?.Parameters).WaitAsync(token);
+      } else if (options.BundledCSScript != null) {
+        using var browser = Get(options.BrowserType);
+        using var context = await browser.Open(options);
+        await options.BundledCSScript.Run(context.BrowserContext, options.Description?.Parameters).WaitAsync(token);
+      } else if (options.Description?.FilePath != null) {
+        var runner = PlaywrightTestRunner.Create(options.Description.FilePath);
+        await runner.RunTestAsync(options.Port, options.Description?.Parameters).WaitAsync(token);
+      } else {
+        throw new NotImplementedException();
       }
-    } finally {
-      if (browser != null)
-        await browser.Close();
     }
   }
 

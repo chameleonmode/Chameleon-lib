@@ -8,9 +8,11 @@ public class RunScriptOptions {
 	public int Port { get; set; }
 	public bool Record { get; set; } = false;
 	public Enums.SystemBrowserType BrowserType { get; set; } = Enums.SystemBrowserType.Chromium;
+	public IBundledCSScript? BundledCSScript { get; set; }
 	public IBundledJSScript? BundledJSScript { get; set; }
 	public PlaywrightScriptDescription? Description { get; set; }
 }
+
 public record GetCookiesOptions(SysBrowserOpenOptions Browser, int? Port) {
 	public Proxy? Proxy => Browser.Profile.Proxy.Server == null ? null
 	 : new() {
@@ -22,4 +24,9 @@ public record GetCookiesOptions(SysBrowserOpenOptions Browser, int? Port) {
 	public string Dir => Path.Combine(Consts.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());
 }
 
-public record PlaywrightScriptDescription(Dictionary<string, string> Parameters, string? Title = null, string? Description = null, string? FilePath = null);
+public record PlaywrightScriptDescription(
+	Dictionary<string, string> Parameters, 
+	string? Title = null, 
+	string? Description = null, 
+	string? FilePath = null
+);

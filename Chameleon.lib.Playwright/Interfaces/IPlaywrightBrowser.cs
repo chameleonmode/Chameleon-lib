@@ -1,19 +1,15 @@
-﻿using Chameleon.lib.Common.Interfaces.Systemics;
-using Chameleon.lib.Playwright.Models;
+﻿using Chameleon.lib.Playwright.Models;
 
 using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Interfaces;
 
-public interface IPlaywrightBrowserInstance {
+public interface IPlaywrightBrowserInstance : IDisposable {
 	IBrowserContext BrowserContext { get; }
-	Task Close();
 }
 
-public interface IPlaywrightBrowser : ISingletonDependency {
+public interface IPlaywrightBrowser : IDisposable {
 	IList<IPlaywrightBrowserInstance> RunningAutomationBrowsers { get; }
 	Task<IPlaywrightBrowserInstance> Open(RunScriptOptions options);
-	void Dispose();
-	Task Close();
 }
 
