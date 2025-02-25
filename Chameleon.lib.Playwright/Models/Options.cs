@@ -8,8 +8,7 @@ public class RunScriptOptions {
 	public int Port { get; set; }
 	public bool Record { get; set; } = false;
 	public Enums.SystemBrowserType BrowserType { get; set; } = Enums.SystemBrowserType.Chromium;
-	public IBundledCSScript? BundledCSScript { get; set; }
-	public IBundledJSScript? BundledJSScript { get; set; }
+	public IBundledScript? BundledScript { get; set; }
 	public PlaywrightScriptDescription? Description { get; set; }
 }
 

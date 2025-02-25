@@ -42,7 +42,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledCSScript = repo.BundledCSScripts[nameof(URLsexplorer)],
+			BundledScript = repo.BundledCSScripts[nameof(URLsexplorer)],
 			Description = new(
 				Parameters: new() {
 					{"urls", "example.com, example.org"},
@@ -57,7 +57,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledCSScript = repo.BundledCSScripts[nameof(KeepGmailAlive)]
+			BundledScript = repo.BundledCSScripts[nameof(KeepGmailAlive)]
 		});
 	}
 
@@ -66,7 +66,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledCSScript = repo.BundledCSScripts[nameof(GoogleCTR)],
+			BundledScript = repo.BundledCSScripts[nameof(GoogleCTR)],
 			Description = new(
 				Parameters: new() {
 					{"search", "example.com"},
@@ -83,7 +83,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		for (var i = 0; i < 5; i++) {
 			await PlaywriteRunner.RunScript(new() {
 				Port = port,
-				BundledJSScript = repo.BundledJSScripts[nameof(Reddit1Comment)],
+				BundledScript = repo.BundledJSScripts[nameof(Reddit1Comment)],
 				Description = new(
 					Parameters: new() {
 						{"search", "tangy"},
@@ -101,7 +101,7 @@ public class PlaywrightRunnerTests : TestSetup {
 
 		await PlaywriteRunner.RunScript(new RunScriptOptions {
 			Port = port,
-			BundledJSScript = repo!.BundledJSScripts[nameof(Gsites)],
+			BundledScript = repo!.BundledJSScripts[nameof(Gsites)],
 			Description = new PlaywrightScriptDescription(
 				Parameters: new Dictionary<string, string>
 				{

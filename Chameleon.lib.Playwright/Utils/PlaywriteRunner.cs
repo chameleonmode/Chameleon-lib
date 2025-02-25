@@ -22,12 +22,12 @@ public class PlaywriteRunner {
     if (options.Record) {
       await new RecordScript().Run(options.Port).WaitAsync(token);
     } else {
-      if (options.BundledJSScript != null) {
-        await options.BundledJSScript.Run(options.Port, options.Description?.Parameters).WaitAsync(token);
-      } else if (options.BundledCSScript != null) {
+      if (options.BundledScript is IBundledJSScript jsScript) {
+        await jsScript.Run(options.Port, options.Description?.Parameters).WaitAsync(token);
+      } else if (options.BundledScript is IBundledCSScript csScript) {
         using var browser = Get(options.BrowserType);
         using var context = await browser.Open(options);
-        await options.BundledCSScript.Run(context.BrowserContext, options.Description?.Parameters).WaitAsync(token);
+        await csScript.Run(context.BrowserContext, options.Description?.Parameters).WaitAsync(token);
       } else if (options.Description?.FilePath != null) {
         var runner = PlaywrightTestRunner.Create(options.Description.FilePath);
         await runner.RunTestAsync(options.Port, options.Description?.Parameters).WaitAsync(token);

@@ -42,8 +42,8 @@ public class BundledScriptsService {
 		}
 
 		var returned = new List<RunScriptOptions>();
-		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new RunScriptOptions { BundledJSScript = script }));
-		returned.AddRange(AddMappedScripts(BundledCSScripts, script => new RunScriptOptions { BundledCSScript = script }));
+		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new RunScriptOptions { BundledScript = script }));
+		returned.AddRange(AddMappedScripts(BundledCSScripts, script => new RunScriptOptions { BundledScript = script }));
 
 		return returned;
 	}

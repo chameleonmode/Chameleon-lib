@@ -20,4 +20,11 @@ public static class ULists {
       cur.Add(destination);
     }
   }
+
+  public static async Task AddMappedAsync<TSource, TDestination>(this IList<TDestination> cur, IEnumerable<TSource> collection, Func<TSource, Task<TDestination>> mapper) {
+    foreach (var item in collection) {
+      var destination = await mapper(item);
+      cur.Add(destination);
+    }
+  }
 }
