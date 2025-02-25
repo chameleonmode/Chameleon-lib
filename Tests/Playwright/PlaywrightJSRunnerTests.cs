@@ -42,7 +42,7 @@ public class PlaywrightJSRunnerTests : TestSetup {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
 			BundledJSScript = repo.BundledJSScripts[nameof(Reddit1Comment)],
-			Description = new (
+			Description = new(
 				Parameters: new() {
 					{"search", "tangy"},
 					{"comment", "rabba luba dub dub"}
@@ -52,36 +52,32 @@ public class PlaywrightJSRunnerTests : TestSetup {
 	}
 
 	[Fact]
-	public async Task TestBundledGsiteJsScriptScript()
-	{
+	public async Task TestBundledGsiteJsScriptScript() {
 		var port = await OpenBrowser();
 
-		await PlaywriteRunner.RunScript(new RunScriptOptions
-		{
+		await PlaywriteRunner.RunScript(new RunScriptOptions {
 			Port = port,
-			BundledJSScript = repo!.BundledJSScripts[nameof(GsiteJsScript)],
-			Description = new PlaywrightScriptDescription (
+			BundledJSScript = repo!.BundledJSScripts[nameof(Gsites)],
+			Description = new PlaywrightScriptDescription(
 				Parameters: new Dictionary<string, string>
 				{
-					{"gsiteTitle", "Google Site Title"},
-					{"publishTitle", "Publish Title"},
-					{"postTitle", "Post Title"},
-					{"textContent", "Post Content"},
-					{"link", "HyperLink Link"},
-					{"textWithLink", "HyperLink Text"},
-					{"textSearch", "Youtube KW Search"},
-					{"location", "Post Location Pin"},
-					{"email", "Email"},
-					{"password", "Password"}
+					{ "name", "Site Name" },
+					{ "title", "Title" },
+					{ "content", "Content" },
+					{ "textContent", "Post Content" },
+					{ "link", "http://example.com" },
+					{ "linkText", "Link Text" },
+					{ "youtubeSearch", "aii" },
+					{ "locationSearch", "Hawaii" }
 				}
 			)
 		});
 	}
-	
+
 	[Fact]
 	public async Task TestRecord() {
 		var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new () {
+		await PlaywriteRunner.RunScript(new() {
 			Port = port,
 			Record = true
 		});
@@ -90,9 +86,9 @@ public class PlaywrightJSRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestUserScript() {
 		var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new () {
+		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			Description = new (
+			Description = new(
 				FilePath: "/Users/dev/Documents/jscripts/test.js",
 				Parameters: new(){
 					{"url", "https://www.google.com"},

@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Helpers;
+using Chameleon.lib.Playwright.Models;
 using Microsoft.Playwright;
 using static Chameleon.lib.Common.Constants.Enums;
 

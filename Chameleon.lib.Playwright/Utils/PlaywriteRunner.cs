@@ -22,14 +22,11 @@ public class PlaywriteRunner {
       if (options.Record) {
 				await new RecordScript().Run(options.Port).WaitAsync(token);
 			} else {
-        var parameters = options.Description?.Parameters
-            .ToDictionary(p => p.Key!, p => p.Value!);
-
         if (options.BundledJSScript != null) {
-					await options.BundledJSScript.Run(options.Port, parameters).WaitAsync(token);
+					await options.BundledJSScript.Run(options.Port, options.Description?.Parameters).WaitAsync(token);
 				} else if (options.Description?.FilePath != null) {
           var runner = PlaywrightTestRunner.Create(options.Description.FilePath);
-          await runner.RunTestAsync(parameters, options.Port).WaitAsync(token);
+          await runner.RunTestAsync(options.Description?.Parameters, options.Port).WaitAsync(token);
         } else {
           throw new ArgumentNullException(nameof(options));
         }

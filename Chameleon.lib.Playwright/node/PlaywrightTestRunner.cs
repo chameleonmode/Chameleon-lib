@@ -18,11 +18,13 @@ public class PlaywrightTestRunner : IDisposable {
 	}
 	private PlaywrightTestRunner(string scriptName) {
 		this.scriptName = scriptName;
-		var playwrightPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OperatingSystem.IsWindows() ? ".playwright" : "../.playwright");
-
-		var nodePath = $"{Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OperatingSystem.IsWindows() ? @".playwright\node\win32_x64\node.exe" : "../.playwright/node/darwin-x64/node")}";
-		if (OperatingSystem.IsWindows())
-			nodePath = @$"""{nodePath}""";
+		var nodePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+#if DEBUG
+		".playwright"
+#else
+		OperatingSystem.IsWindows() ? ".playwright" : "../Resources/.playwright"
+#endif
+		, OperatingSystem.IsWindows() ? @"node\win32_x64\node.exe" : "node/darwin-x64/node");
 
 		var args =
 #if DEBUG
@@ -30,24 +32,21 @@ public class PlaywrightTestRunner : IDisposable {
 			@"C:\repos\chameleon-playwright\dist\index.js"
 			: "/Users/dev/src/chameleon-playwright/dist/index.js"
 #else
-			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, OperatingSystem.IsWindows() ? @"Resources\scripts\dist\index.js" : "../Resources/scripts/dist/index.js")
+		Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+			OperatingSystem.IsWindows() ? @"Resources\scripts\dist\index.js" : "../Resources/scripts/dist/index.js")
 #endif
 		;
-		if (OperatingSystem.IsWindows())
-			args = @$"""{args}""";
-
-		var startInfo = new ProcessStartInfo {
-			FileName = nodePath,
-			Arguments = args,
-			RedirectStandardInput = true,
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-			UseShellExecute = false,
-			CreateNoWindow = true,
-			//WorkingDirectory = Path.GetDirectoryName(nodePath) ?? throw new InvalidOperationException("Invalid node path")
+		nodeProcess = new Process { 
+			StartInfo = new ProcessStartInfo {
+				FileName = OperatingSystem.IsWindows() ? $"\"{nodePath}\"" : nodePath,
+				Arguments = OperatingSystem.IsWindows() ? $"\"{args}\"" : args,
+				RedirectStandardInput = true,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				UseShellExecute = false,
+				CreateNoWindow = true,
+			} 
 		};
-
-		nodeProcess = new Process { StartInfo = startInfo };
 		nodeProcess.OutputDataReceived += (sender, e) => {
 			var output = e.Data ?? string.Empty;
 			Debug.WriteLine(output);
