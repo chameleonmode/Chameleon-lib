@@ -1,11 +1,12 @@
 ﻿using Chameleon.lib;
 using Chameleon.lib.Common.Models;
-
+using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.WebBrowser;
 public class BrowserLauncherTests : WebBroswserTestsBase {
-
+	SystemBrowserService SysBrowserServiceBase => SystemBrowserService.Instance;
+	
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
 		_ = _tcs.Task;
@@ -27,6 +28,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 					Id = 102,
 					Proxy = new SysBrowserProxy()
 				})
+				, ()=>"https://example.com"
 			);
 		Assert.NotNull(bi);
 	}
@@ -52,6 +54,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 					Id = 1,
 					Proxy = new SysBrowserProxy()
 				})
+				, ()=>"https://example.com"
 			);
 
 		Assert.NotNull(bi);
@@ -86,6 +89,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 				new SysBrowserProfile() {
 					Id = 2
 				})
+				, ()=>"https://example.com"
 			);
 		//Assert.NotNull(bi);
 		//	_ = await SysBrowserServiceBase.Open(

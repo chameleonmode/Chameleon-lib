@@ -1,14 +1,26 @@
 ﻿using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Playwright;
+using Chameleon.lib.Playwright.Utils;
 
 using Microsoft.Playwright;
 
 namespace Tests.Abs;
 public class PlatformaticTests : TestSetup {
-	readonly PlatformaticDB platformaticDB = PlatformaticDB.Instance;
+	readonly DB platformaticDB = DB.Instance;
 
 	public PlatformaticTests() : base(0) { }
+
+	[Fact]
+	public async Task Plair_Ask() {
+		var res = await Plair.Instance.Ask(new(
+				"reddit",
+				new {
+					keyword = "mushroom",
+				}
+			)
+		);
+		Assert.NotNull(res?.Payload);
+	}
 
 	[Fact]
 	public async Task GetLatestVersion_Success() {
@@ -63,12 +75,12 @@ public class PlatformaticTests : TestSetup {
 		await platformaticDB.CreateUser(email);
 		Assert.NotNull(platformaticDB.DBusers);
 		Assert.NotEmpty(platformaticDB.DBusers);
-		Assert.NotNull(platformaticDB.DBusers.FirstOrDefault(i=>i.email == email));
+		Assert.NotNull(platformaticDB.DBusers.FirstOrDefault(i => i.email == email));
 	}
 
 	[Fact]
 	public async Task SendCookies_Success() {
-		var cookies = await PlaywrightUtil.GetCookies("25541", Enums.SystemBrowserType.Chrome);
+		var cookies = await PlaywrightUtil.GetCookies(new(new(Enums.SystemBrowserType.Chrome, new() { Id = 25541 }), null));
 		var email = "ezexerael@gmail.com";//"elimdadia@gmail.com"
 		var data = await platformaticDB.SendCookies(email, "25541", cookies);
 		Assert.NotNull(data);

@@ -1,34 +1,35 @@
-﻿using Chameleon.lib.Const;
+﻿using Chameleon.lib.Auth;
+using Chameleon.lib.Const;
 using System.Net;
 using System.Net.Http.Json;
-using System.Net.Http.Headers;
-using Chameleon.lib.Auth.Oidc;
 
-namespace Chameleon.lib.Abs;
-
-public record Params(
-	string? Q = null, 
-	object? Body = null, 
-	bool EnsureSuccess = true,
-	bool Authorize = true,
-	HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead) {
-	public HttpContent? Content => Body == null ? null
-		: JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
-}
-
-public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, AuthenticationHeaderValue)>> authorization) {
+namespace Chameleon.lib.Abs.Platformatic;
+public class Client {
+  public record Response<T>(T Payload);
+	public record Params(
+		string? Q = null,
+		object? Body = null,
+		bool EnsureSuccess = true,
+		bool Authorize = true,
+		HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead
+	) {
+		public HttpContent? Content => Body == null ? null
+			: JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
+	}
+	
+	Client() { }
 	public HttpClient HttpClient { get; } = new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,
 		ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
 	}) {
-		BaseAddress = new Uri(baseUrl)
+		BaseAddress = new Uri(Configs.Urls.ABS_PLATFORMATIC_BASE_URL)
 	};
-	
+
 
 	//
 	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Params @params) {
 		if (@params.Authorize) {
-			var (auth0client, authentication) = await authorization();
+			var (auth0client, authentication) = await Session.Instance.Authenticate();
 			HttpClient.DefaultRequestHeaders.Authorization = authentication;
 			HttpClient.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
 		}
@@ -40,8 +41,8 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 
 		if (@params.CompletionOption == HttpCompletionOption.ResponseHeadersRead) {
 			_ = response.EnsureSuccessStatusCode();
-			return typeof(T) == typeof(HttpResponseMessage) ? 
-				(T)(object)await response.Content.ReadAsStreamAsync() 
+			return typeof(T) == typeof(HttpResponseMessage) ?
+				(T)(object)await response.Content.ReadAsStreamAsync()
 				: default;
 		}
 
@@ -70,4 +71,6 @@ public class AbsClient(string baseUrl, Func<Task<(OidcAuth0Client, Authenticatio
 		SendRequestAsync<T>(HttpMethod.Put, path, @params);
 	public Task<T?> Delete<T>(string path, Params? @params = null) =>
 		SendRequestAsync<T>(HttpMethod.Delete, path, @params ??= new());
+
+	public static Client Instance { get; } = new();
 }

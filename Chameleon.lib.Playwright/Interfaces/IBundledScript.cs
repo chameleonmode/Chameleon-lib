@@ -2,19 +2,16 @@
 
 namespace Chameleon.lib.Playwright.Interfaces;
 public interface IBundledScript {
-	//Display Title
+	string File { get; }
+	string TableName { get; }
 	string Title { get; }
-	//Display Description
 	string Description { get; }
 	IDictionary<string, string> Parameters { get; }
 }
-
 public interface IBundledCSScript : IBundledScript {
-	Task Run(IBrowserContext browserContext, IDictionary<string, string>? args = null);
+	Task Run(IBrowserContext browserContext, IDictionary<string, string>? options = null);
 }
 
 public interface IBundledJSScript : IBundledScript {
-	//Script Name
-	string Name { get; }
-	Task Run(int port, IDictionary<string, string>? args = null);
+	Task<IDictionary<string,string>?> GetOptions(IDictionary<string,string>? options = null);
 }

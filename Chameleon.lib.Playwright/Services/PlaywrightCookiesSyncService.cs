@@ -1,6 +1,8 @@
 ﻿using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
+using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
+using Chameleon.lib.Playwright.Utils;
 
 using Microsoft.Playwright;
 
@@ -18,7 +20,7 @@ public sealed class PlaywrightCookiesSyncService {
 
 	public async Task<bool> HasCookies() {
 		cookyPayloads.Clear();
-		var cookiesSearch = await PlatformaticDB.Instance.GetCookyDataInteractions<BrowserContextCookiesResult>();
+		var cookiesSearch = await DB.Instance.GetCookyDataInteractions<BrowserContextCookiesResult>();
 		if (cookiesSearch != null) {
 			cookyPayloads.AddRange(cookiesSearch);
 		}
@@ -35,7 +37,7 @@ public sealed class PlaywrightCookiesSyncService {
 		}
 
 		// Retrieve path to the browser executable
-		var exePath = await PlaywrightUtil.GetExecutable(browserType);
+		var exePath = await PlaywrightUtil.GetBrowseExecutablePath(browserType);
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
@@ -53,10 +55,10 @@ public sealed class PlaywrightCookiesSyncService {
 
 			// Add the cookies to the context
 			await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-					Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), cookieData.profileId),
+					Path.Combine(FilePaths.AppDataLocalDir, browserType.ToString(), cookieData.profileId),
 					new() {
 						Headless = true,
-						ExecutablePath = await PlaywrightUtil.GetExecutable(browserType),
+						ExecutablePath = await PlaywrightUtil.GetBrowseExecutablePath(browserType),
 						Args = ["--allow-downgrade"]
 					}
 			);

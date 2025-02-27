@@ -1417,7 +1417,7 @@ user_pref("widget.non-native-theme.enabled", true) // [DEFAULT: true]
 
 	public static async Task AddAutoloadTemporaryAddonFF(string directory)
 	{
-		var profileDirPath = Path.Combine(directory, Consts.Browser.Foxameleon).Replace("\\", "\\\\");
+		var profileDirPath = Path.Combine(directory, Consts.Browser.Geckoleon).Replace("\\", "\\\\");
 		var browserExtensions = Path.Combine(Consts.Addons.DefaultExtensionsFolderPath_FF).Replace("\\", "\\\\");
 		var debug = Debugger.IsAttached ? "true" : "false";
 
@@ -1641,7 +1641,7 @@ async function installExtensions() {{
         }}
 
         let folder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
-        folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.Foxameleon}`;
+        folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.Geckoleon}`;
         let pdirDir = new FileUtils.File(folder);
         if (pdirDir.exists() && pdirDir.isDirectory()) {{
             let entries = pdirDir.directoryEntries;
@@ -1655,7 +1655,7 @@ async function installExtensions() {{
         }}
 
     let cachedfolder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
-    cachedfolder = `${{cachedfolder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.CachedFoxameleon}`;
+    cachedfolder = `${{cachedfolder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.GeckoleonCache}`;
     let pdirDirCached = new FileUtils.File(cachedfolder);
     if (pdirDirCached.exists() && pdirDirCached.isDirectory()) {{
       let entries = pdirDirCached.directoryEntries;

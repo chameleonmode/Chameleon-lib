@@ -1,53 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-using Chameleon.lib.Playwright.Interfaces;
-
+﻿using Chameleon.lib.Playwright.Interfaces;
 using Microsoft.Playwright;
 
-namespace Chameleon.lib.Playwright.Scripts;
-public class GoogleCTRClickThrough : IBundledCSScript {
+namespace Chameleon.lib.Playwright.Scripts.CS;
+public class GoogleCTR : Base, IBundledCSScript {
+	public string TableName => nameof(GoogleCTR);
+	public string File => "GoogleCTR";
 	public string Title => "Google Click Through Rate";
 	public string Description => "Clicks through Google search results to a target URL";
 	public IDictionary<string, string> Parameters => new Dictionary<string, string>() {
-		{ "keyword", "Keyword" },
-		{ "targetUrl", "Target Url" },
-		{ "pagescount" , "Max Pages To Search On" },
-		{ "timeout" , "Default Timeout" },
+		{ "search", "Search" },
+		{ "targetUrl", "Target" },
+		{ "maxPages" , "Max Pages To Search Through" },
 	};
-	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
-	{
-		ArgumentNullException.ThrowIfNull(args, nameof(args));
-		var keyword = args["keyword"];
-		var targetUrl = args["targetUrl"];
-		if (!int.TryParse(args["pagescount"], out var pagesCount)) {
-			throw new ArgumentException("Argument <pagescount> is not valid");
-		}
-		if (!int.TryParse(args["timeout"], out var timeout)) {
-			throw new ArgumentException("Argument <timeout> is not valid");
-		}
+	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null) {
+		var keyword = args![Parameters.Keys.ElementAt(0)];
+		var targetUrl = args![Parameters.Keys.ElementAt(1)];
+		var maxPages = int.Parse(Parameters.Keys.ElementAt(2));
 
-		var page = await context.NewPageAsync();
-
-		// Convert to milliseconds
-		timeout *= 1000;
-
+		var page = await NewPage(context);
 		// Go to Google
 		_ = await page.GotoAsync("https://www.google.com");
-
-		var searchInput = page.Locator("//*[@id='APjFqb']");
+		await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
 		// Put the keyword into the search bar
+		var searchInput = page.Locator("//*[@id='APjFqb']");
 		await searchInput.FillAsync(keyword);
 		await searchInput.PressAsync("Enter");
 
 		// Wait for results to load
 		await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 		var found = false;
-		for (var i = 0; i < pagesCount && !found; i++) {
-			await Task.Delay(timeout);
-
+		for (var i = 0; i < maxPages && !found; i++) {
 			// Wait for search results
 			_ = await page.WaitForSelectorAsync("a[href]");
 
@@ -63,8 +46,8 @@ public class GoogleCTRClickThrough : IBundledCSScript {
 			}
 
 
-			var nextPage = page.GetByLabel($"Page {i + 2}");
 			// If not found, go to the next page
+			var nextPage = page.GetByLabel($"Page {i + 2}");
 			if (!found && await nextPage.IsVisibleAsync()) {
 				await nextPage.ClickAsync();
 				await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
@@ -75,9 +58,7 @@ public class GoogleCTRClickThrough : IBundledCSScript {
 		if (found) {
 			await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 			var internalLinks = await page.Locator($"a[href*='{targetUrl}'], a[href^='/']").ElementHandlesAsync();
-			if (internalLinks.Count > 0) {
-				await internalLinks[0].ClickAsync();
-			}
+			if (internalLinks.Count > 0) await internalLinks[0].ClickAsync();
 		}
 	}
 }

@@ -19,6 +19,7 @@
 	<PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="DynamicData" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="System.Data.SQLite" />
   </ItemGroup>
 
 </Project>

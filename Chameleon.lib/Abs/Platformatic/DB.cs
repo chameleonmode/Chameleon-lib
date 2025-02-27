@@ -3,57 +3,51 @@ using Chameleon.lib.Const;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
-public class PlatformaticDB {
-	readonly Session session;
-	readonly AbsClient absClient;
-
-	bool ranLicenseCheck = false;
-
-	PlatformaticDB() {
-		session = Session.Instance;
-		absClient = new AbsClient(Configs.Urls.ABS_PLATFORMATIC_BASE_URL, session.Authenticate);
-	}
+public class DB {
+	DB() { }
+	public Client Client { get; } = Client.Instance;
 
 	#region Props
 	//
 	Task<PlatformaticUser?> GetDBuser =>
-		absClient.Get<PlatformaticUser>(Configs.Endpoints.DB.USER,
+		Client.Get<PlatformaticUser>(Configs.Endpoints.DB.USER,
 			new(
-				Q: $"?email={Uri.EscapeDataString(session.Login!.LoginName)}", EnsureSuccess: false
+				Q: $"?email={Uri.EscapeDataString(Session.Instance.Login!.LoginName)}", EnsureSuccess: false
 			)
 		);
 	public PlatformaticUser? DBuser { get; private set; }
 	//
 	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
-		absClient.Get<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
+		Client.Get<IEnumerable<PlatformaticUser>>("/db/userz");
 	public IEnumerable<PlatformaticUser>? DBusers { get; private set; }
 	// 
-	object LicenseBody => new { license_key = session.Login!.LicenseKey };
+	object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
 	public Task<PlatformaticUser?> ValidateLicese =>
-		absClient.Post<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
+		Client.Post<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
 			new(Body: LicenseBody)
 		);
 	public Task<KickLicenseData?> KickLicenseData =>
-		absClient.Post<KickLicenseData>(Configs.Endpoints.LICENSE.DATA,
+		Client.Post<KickLicenseData>(Configs.Endpoints.LICENSE.DATA,
 			new(Body: LicenseBody)
 		);
 	public Task<KickLicenseStatus?> KickLicenseStatus =>
-		absClient.Post<KickLicenseStatus>(Configs.Endpoints.LICENSE.STATUS,
+		Client.Post<KickLicenseStatus>(Configs.Endpoints.LICENSE.STATUS,
 			new(Body: LicenseBody)
 		);
 	public Task<KickCustomer?> KickCustomer =>
-		absClient.Post<KickCustomer>(Configs.Endpoints.LICENSE.CUSTOMER,
-			new(Body: new { email = session.Login!.LoginName })
+		Client.Post<KickCustomer>(Configs.Endpoints.LICENSE.CUSTOMER,
+			new(Body: new { email = Session.Instance.Login!.LoginName })
 		);
 	// 
 	public Task<AppClientInfo?> GetLatestVersion =>
-		absClient.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST,
+		Client.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST,
 			new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authorize: false)
 		);
 	public AppClientInfo? LatestVersion { get; private set; }
 	#endregion
 
 	//Auth
+	bool ranLicenseCheck = false;
 	public async Task EnsureUser() {
 		DBuser ??= await GetDBuser ?? await ValidateLicese;
 		ArgumentNullException.ThrowIfNull(DBuser, "User not found");
@@ -71,7 +65,7 @@ public class PlatformaticDB {
 	#region GET's
 	public async Task<List<PlatformaticDataInteraction>?> GetDataInteractions() {
 		await EnsureUser();
-		return await absClient.Get<List<PlatformaticDataInteraction>>(Configs.Endpoints.DataInteractions);
+		return await Client.Get<List<PlatformaticDataInteraction>>(Configs.Endpoints.DataInteractions);
 	}
 	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
 		var interactions = await GetDataInteractions();
@@ -86,7 +80,7 @@ public class PlatformaticDB {
 		// Local path where the downloaded file will be saved
 		var ext = OperatingSystem.IsMacOS() ? "zip" : "7z";
 		// Send an asynchronous GET request and ensure headers are read before downloading the stream
-		using var response = await absClient.HttpClient.GetAsync(Configs.Endpoints.APP.DOWNLOAD + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
+		using var response = await Client.HttpClient.GetAsync(Configs.Endpoints.APP.DOWNLOAD + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
 		_ = response.EnsureSuccessStatusCode();
 
 		// Get the file name from the Content-Disposition header
@@ -134,16 +128,17 @@ public class PlatformaticDB {
 	public async Task CreateUser(string email) {
 		await EnsureUser();
 
-		DBusers = await absClient.Post<IEnumerable<PlatformaticUser>?>(Configs.Endpoints.DB.USER,
+		DBusers = await Client.Post<IEnumerable<PlatformaticUser>?>(Configs.Endpoints.DB.USER,
 			new(Body: new { email })
 		);
 	}
 	public async Task<PlatformaticDataInteraction?> SendCookies<T>(
 			string receiverEmail,
 			string profileId,
-			IReadOnlyList<T> cookiesJs) {
+			IReadOnlyList<T> cookiesJs
+	) {
 		await EnsureUser();
-		return await absClient.Post<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES,
+		return await Client.Post<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES,
 			new(
 				Body: new { receiverEmail, payload = new { profileId, cookiesJs } }
 			)
@@ -155,10 +150,10 @@ public class PlatformaticDB {
 	public async Task DeleteDataInteractions() {
 	  var interactions = await GetDataInteractions();
 		foreach (var interaction in interactions!) {
-			_ = await absClient.Delete<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
+			_ = await Client.Delete<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
 		}
 	}
 	#endregion
 
-	public static PlatformaticDB Instance { get; } = new();
+	public static DB Instance { get; } = new();
 }

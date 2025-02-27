@@ -1,18 +1,15 @@
 ﻿using Microsoft.Playwright;
 using Chameleon.lib.Playwright.Interfaces;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System;
 
-namespace Chameleon.lib.Playwright.Scripts;
-public class KeepGmailAlive : IBundledCSScript {
+namespace Chameleon.lib.Playwright.Scripts.CS;
+public class KeepGmailAlive : Base, IBundledCSScript {
+	public string TableName => nameof(KeepGmailAlive);
+	public string File => "KeepGmailAlive";
 	public string Title => "Keep Gmail Alive";
 	public string Description => "Reads a random email in Gmail.";
-	public IDictionary<string,string> Parameters => new Dictionary<string,string>();
-	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null)
-	{
-		ArgumentNullException.ThrowIfNull(args, nameof(args));
-		var page = await context.NewPageAsync();
+	public IDictionary<string, string> Parameters => new Dictionary<string, string>();
+	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null) {
+		var page = await NewPage(context);
 		try {
 			// Navigate to Gmail
 			_ = await page.GotoAsync("https://mail.google.com/");
@@ -31,9 +28,7 @@ public class KeepGmailAlive : IBundledCSScript {
 			_ = await page.WaitForSelectorAsync("tr.zA");
 			// Get all email rows
 			var emailRows = await page.QuerySelectorAllAsync("tr.zA");
-			if (emailRows.Count <= 0) {
-				throw new Exception("No emails found.");
-			}
+			if (emailRows.Count <= 0) 				throw new Exception("No emails found.");
 
 			// Select a random email and click it
 			var randomIndex = new Random().Next(emailRows.Count);
