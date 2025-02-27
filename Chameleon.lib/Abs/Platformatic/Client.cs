@@ -1,11 +1,11 @@
 ﻿using Chameleon.lib.Auth;
 using Chameleon.lib.Const;
 using System.Net;
-namespace Chameleon.lib.Abs;
+using System.Net.Http.Json;
 
-public class AbsClient {
-	AbsClient() { }
-	public static AbsClient Instance { get; } = new();
+namespace Chameleon.lib.Abs.Platformatic;
+public class Client {
+	Client() { }
 	public HttpClient HttpClient { get; } = new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,
 		ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
@@ -13,6 +13,16 @@ public class AbsClient {
 		BaseAddress = new Uri(Configs.Urls.ABS_PLATFORMATIC_BASE_URL)
 	};
 
+public record Params(
+  string? Q = null,
+  object? Body = null,
+  bool EnsureSuccess = true,
+  bool Authorize = true,
+  HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead
+) {
+  public HttpContent? Content => Body == null ? null
+    : JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
+}
 
 	//
 	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Params @params) {
@@ -59,4 +69,6 @@ public class AbsClient {
 		SendRequestAsync<T>(HttpMethod.Put, path, @params);
 	public Task<T?> Delete<T>(string path, Params? @params = null) =>
 		SendRequestAsync<T>(HttpMethod.Delete, path, @params ??= new());
+
+	public static Client Instance { get; } = new();
 }
