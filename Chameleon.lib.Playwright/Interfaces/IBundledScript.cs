@@ -13,5 +13,5 @@ public interface IBundledCSScript : IBundledScript {
 }
 
 public interface IBundledJSScript : IBundledScript {
-	Task Run(int port, IDictionary<string, string>? options = null);
+	Task<IDictionary<string,string>?> GetOptions(IDictionary<string,string>? options = null);
 }

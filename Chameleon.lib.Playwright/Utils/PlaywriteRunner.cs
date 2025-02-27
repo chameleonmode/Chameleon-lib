@@ -3,7 +3,6 @@ using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Playwright.node;
 using Chameleon.lib.Playwright.Services;
-using Chameleon.lib.Playwright.Scripts.JS;
 
 namespace Chameleon.lib.Playwright.Utils;
 public class PlaywriteRunner {
@@ -16,19 +15,23 @@ public class PlaywriteRunner {
     _ => throw new NotImplementedException(),
   };
 
-  public static async Task RunScript(RunScriptOptions options, CancellationToken token = default) {
-    if (options.Record) {
-      await new RecordScript().Run(options.Port).WaitAsync(token);
+  public static async Task RunScript(RunScriptOptions args, CancellationToken token = default) {
+    if (args.Record) {
+      using var runner = PlaywrightTestRunner.Create("record");
+      await runner.RunTestAsync(args.Port).WaitAsync(token);
     } else {
-      if (options.BundledScript is IBundledJSScript jsScript) {
-        await jsScript.Run(options.Port, options.Description?.Parameters).WaitAsync(token);
-      } else if (options.BundledScript is IBundledCSScript csScript) {
-        using var browser = Get(options.BrowserType);
-        using var context = await browser.Open(options);
-        await csScript.Run(context.BrowserContext, options.Description?.Parameters).WaitAsync(token);
-      } else if (options.Description?.FilePath != null) {
-        var runner = PlaywrightTestRunner.Create(options.Description.FilePath);
-        await runner.RunTestAsync(options.Port, options.Description?.Parameters).WaitAsync(token);
+      var savedOptions = args.BundledScript?.TableName == null ? null : IoC.GetJsonValue<Dictionary<string, string>>(args.BundledScript.TableName);
+      if (args.BundledScript is IBundledJSScript jsScript) {
+        var options = await jsScript.GetOptions(savedOptions).WaitAsync(token);
+        using var runner = PlaywrightTestRunner.Create(jsScript.File);
+        await runner.RunTestAsync(args.Port, options).WaitAsync(token);
+      } else if (args.BundledScript is IBundledCSScript csScript) {
+        using var browser = Get(args.BrowserType);
+        using var context = await browser.Open(args);
+        await csScript.Run(context.BrowserContext, savedOptions).WaitAsync(token);
+      } else if (args.Description?.FilePath != null) {
+        var runner = PlaywrightTestRunner.Create(args.Description.FilePath);
+        await runner.RunTestAsync(args.Port, args.Description?.Parameters).WaitAsync(token);
       } else {
         throw new NotImplementedException();
       }

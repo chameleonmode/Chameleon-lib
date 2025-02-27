@@ -90,6 +90,7 @@ public class PlaywrightTestRunner : IDisposable {
 
 	public void Dispose() {
 		try {
+			processInput.WriteLine("exit");
 			nodeProcess?.Kill();
 			nodeProcess?.Dispose();
 		} catch (Exception e) {

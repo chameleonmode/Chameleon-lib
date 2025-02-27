@@ -2,7 +2,8 @@
 using Chameleon.lib.Playwright.node;
 
 namespace Chameleon.lib.Playwright.Scripts.JS;
-public class Gsites : IBundledJSScript {
+public class Gsites : IBundledJSScript
+{
 	public string TableName => "Google_" + nameof(Gsites);
 	public string File => "gsites";
 	public string Title => "Google Site Creator";
@@ -18,8 +19,8 @@ public class Gsites : IBundledJSScript {
 		{ "locationSearch" , "Location Search" }
 	};
 
-	public async Task Run(int port, IDictionary<string, string>? args = null) {
-		using var runner = PlaywrightTestRunner.Create(File);
-		await runner.RunTestAsync(port, args);
+	public Task<IDictionary<string, string>?> GetOptions(IDictionary<string, string>? options = null)
+	{
+		return Task.FromResult(options);
 	}
 }
