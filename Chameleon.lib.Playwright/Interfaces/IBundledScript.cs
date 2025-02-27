@@ -3,9 +3,8 @@
 namespace Chameleon.lib.Playwright.Interfaces;
 public interface IBundledScript {
 	string File { get; }
-	//Display Title
+	string TableName { get; }
 	string Title { get; }
-	//Display Description
 	string Description { get; }
 	IDictionary<string, string> Parameters { get; }
 }

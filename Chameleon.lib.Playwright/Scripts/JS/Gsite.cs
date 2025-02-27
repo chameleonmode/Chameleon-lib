@@ -3,6 +3,7 @@ using Chameleon.lib.Playwright.node;
 
 namespace Chameleon.lib.Playwright.Scripts.JS;
 public class Gsites : IBundledJSScript {
+	public string TableName => "Google_" + nameof(Gsites);
 	public string File => "gsites";
 	public string Title => "Google Site Creator";
 	public string Description => "Chreate a google site";

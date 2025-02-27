@@ -3,6 +3,7 @@ using Chameleon.lib.Playwright.Interfaces;
 
 namespace Chameleon.lib.Playwright.Scripts.CS;
 public class KeepGmailAlive : Base, IBundledCSScript {
+	public string TableName => nameof(KeepGmailAlive);
 	public string File => "KeepGmailAlive";
 	public string Title => "Keep Gmail Alive";
 	public string Description => "Reads a random email in Gmail.";

@@ -3,6 +3,7 @@ using Chameleon.lib.Playwright.node;
 
 namespace Chameleon.lib.Playwright.Scripts.JS;
 public class RecordScript : IBundledJSScript {
+	public string TableName => nameof(RecordScript);
 	public string File => "record";
 	public string Title => "Record";
 	public string Description => "Record";
