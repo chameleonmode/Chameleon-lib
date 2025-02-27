@@ -6,7 +6,7 @@ using Microsoft.Playwright;
 
 namespace Tests.Abs;
 public class PlatformaticTests : TestSetup {
-	readonly PlatformaticDB platformaticDB = PlatformaticDB.Instance;
+	readonly DB platformaticDB = DB.Instance;
 
 	public PlatformaticTests() : base(0) { }
 

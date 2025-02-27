@@ -19,7 +19,7 @@ public sealed class PlaywrightCookiesSyncService {
 
 	public async Task<bool> HasCookies() {
 		cookyPayloads.Clear();
-		var cookiesSearch = await PlatformaticDB.Instance.GetCookyDataInteractions<BrowserContextCookiesResult>();
+		var cookiesSearch = await DB.Instance.GetCookyDataInteractions<BrowserContextCookiesResult>();
 		if (cookiesSearch != null) {
 			cookyPayloads.AddRange(cookiesSearch);
 		}
