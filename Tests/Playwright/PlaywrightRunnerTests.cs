@@ -1,6 +1,7 @@
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Scripts.JS;
+using Chameleon.lib.Playwright.Scripts.JS.Reddit;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Playwright.Utils;
 using Chameleon.lib.Util;
@@ -78,7 +79,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	}
 
 	[Fact]
-	public async Task TestReddit1CommentScripts() {
+	public async Task TestRedditCommentScript() {
 		var port = await OpenBrowser();
 		for (var i = 0; i < 5; i++) {
 			await PlaywriteRunner.RunScript(new() {
@@ -86,7 +87,7 @@ public class PlaywrightRunnerTests : TestSetup {
 				BundledScript = repo.BundledJSScripts[nameof(Reddit1Comment)],
 				Description = new(
 					Parameters: new() {
-						{"search", "tangy"},
+						{"search", "tangy sauce"},
 						{"comment", "rabba luba dub dub " + i}
 					}
 				)

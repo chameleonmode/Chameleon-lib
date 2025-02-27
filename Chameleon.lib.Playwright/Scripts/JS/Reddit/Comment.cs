@@ -1,9 +1,9 @@
 ﻿using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.node;
 
-namespace Chameleon.lib.Playwright.Scripts.JS;
+namespace Chameleon.lib.Playwright.Scripts.JS.Reddit;
 public class Reddit1Comment : IBundledJSScript {
-	public string Name => "reddit1comment";
+	public string File => "reddit/comment.plugin";
 	public string Title => "Reddit Search And Comment";
 	public string Description => "Search for reddit thread comment vote and reply";
 	public IDictionary<string, string> Parameters { get; } = new Dictionary<string, string>() {
@@ -11,8 +11,8 @@ public class Reddit1Comment : IBundledJSScript {
 		{ "comment" , "Comment" },
 	};
 
-	public async Task Run(int port, IDictionary<string, string>? args = null) {
-		using var runner = PlaywrightTestRunner.Create(Name);
-		await runner.RunTestAsync(port, args);
+	public async Task Run(int port, IDictionary<string, string>? options = null) {
+		using var runner = PlaywrightTestRunner.Create(File);
+		await runner.RunTestAsync(port, options);
 	}
 }

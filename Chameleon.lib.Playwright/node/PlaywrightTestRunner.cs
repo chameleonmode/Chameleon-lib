@@ -8,16 +8,16 @@ public class PlaywrightTestRunner : IDisposable {
 
 	readonly Process nodeProcess;
 	readonly StreamWriter processInput;
-	readonly string scriptName;
+	readonly string file;
 
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-	public static PlaywrightTestRunner Create(string scriptName) {
-		return new PlaywrightTestRunner(scriptName);
+	public static PlaywrightTestRunner Create(string relativePath) {
+		return new PlaywrightTestRunner(relativePath);
 	}
-	private PlaywrightTestRunner(string scriptName) {
-		this.scriptName = scriptName;
+	private PlaywrightTestRunner(string relativePath) {
+		file = relativePath;
 		var nodePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
 #if DEBUG
 		".playwright"
@@ -29,11 +29,13 @@ public class PlaywrightTestRunner : IDisposable {
 		var args =
 #if DEBUG
 		OperatingSystem.IsWindows() ?
-			@"C:\repos\chameleon-playwright\dist\index.js"
-			: "/Users/dev/src/chameleon-playwright/dist/index.js"
+			@"C:\repos\chameleon-playwright\dist\bundle.js"
+			: "/Users/dev/src/chameleon-playwright/dist/bundle.js"
 #else
 		Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-			OperatingSystem.IsWindows() ? @"Resources\scripts\dist\index.js" : "../Resources/scripts/dist/index.js")
+			OperatingSystem.IsWindows() ? 
+				@"Resources\scripts\dist\bundle.js"
+			 	: "../Resources/scripts/dist/bundle.js")
 #endif
 		;
 		nodeProcess = new Process { 
@@ -51,14 +53,14 @@ public class PlaywrightTestRunner : IDisposable {
 			var output = e.Data ?? string.Empty;
 			Debug.WriteLine(output);
 			TestOutputReceived?.Invoke(this, output);
-			if (output == $"Test {scriptName} completed finally block")
+			if (output == $"Test {relativePath} completed finally block")
 				_ = _tcs.TrySetResult(true);
 		};
 		nodeProcess.ErrorDataReceived += (sender, e) => {
 			var output = e.Data ?? string.Empty;
 			Debug.WriteLine(output);
 			TestErrorReceived?.Invoke(this, e.Data ?? string.Empty);
-			if (output.Contains("Error: Cannot find module"))
+			if (output.StartsWith("Catch:"))
 				_ = _tcs.TrySetResult(false);
 		};
 
@@ -69,9 +71,9 @@ public class PlaywrightTestRunner : IDisposable {
 		processInput = nodeProcess.StandardInput;
 	}
 
-	public async Task RunTestAsync(int port, object? data = null) {
+	public async Task RunTestAsync(int port, object? options = null) {
 		try {
-			var command = new { action = "run", name = scriptName, port, data };
+			var command = new { arg = "run", file, port, options };
 			var jsonCommand = JsonSerializer.Serialize(command);
 			await processInput.WriteLineAsync(jsonCommand);
 			_ = await _tcs.Task;

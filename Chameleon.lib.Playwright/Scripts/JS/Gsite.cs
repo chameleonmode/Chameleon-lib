@@ -3,7 +3,7 @@ using Chameleon.lib.Playwright.node;
 
 namespace Chameleon.lib.Playwright.Scripts.JS;
 public class Gsites : IBundledJSScript {
-	public string Name => "gsites";
+	public string File => "gsites";
 	public string Title => "Google Site Creator";
 	public string Description => "Chreate a google site";
 	public IDictionary<string, string> Parameters { get; } = new Dictionary<string, string>() {
@@ -18,7 +18,7 @@ public class Gsites : IBundledJSScript {
 	};
 
 	public async Task Run(int port, IDictionary<string, string>? args = null) {
-		using var runner = PlaywrightTestRunner.Create(Name);
+		using var runner = PlaywrightTestRunner.Create(File);
 		await runner.RunTestAsync(port, args);
 	}
 }

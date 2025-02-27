@@ -3,6 +3,7 @@ using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Scripts.JS;
+using Chameleon.lib.Playwright.Scripts.JS.Reddit;
 
 namespace Chameleon.lib.Playwright.Services;
 public class BundledScriptsService {
@@ -32,7 +33,7 @@ public class BundledScriptsService {
 				 var description = new PlaywrightScriptDescription (
 					 Title: s.Value.Title,
 					 Description: s.Value.Description,
-					 FilePath: s.Value.Name,
+					 FilePath: s.Value.File,
 					 Parameters: s.Value.Parameters.ToDictionary(x => x.Key, x => x.Value)
 				 );
 				 var options = createOptions(s.Value);

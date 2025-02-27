@@ -3,7 +3,7 @@ using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Scripts.CS;
 public class URLsexplorer : Base, IBundledCSScript {
-	public string Name => "URLsexplorer";
+	public string File => "URLsexplorer";
 	public string Title => "URLs Explorer";
 	public string Description => "Opens a list of URLs in the browser.";
 
