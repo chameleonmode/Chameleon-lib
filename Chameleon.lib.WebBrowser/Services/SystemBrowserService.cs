@@ -6,6 +6,7 @@ using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
+using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.System.Brave;
@@ -137,22 +138,21 @@ public class SystemBrowserService
 		if (!Instances.TryGetValue(options, out var browser))
 		{
 			OpenTaskCompletionSource = new TaskCompletionSource<ISysBrowserInstance?>();
-			if (options.BrowserType == SystemBrowserType.Firefox)
-			{
-				var systempath = SysBrowserInfoUtil.FindByType(SystemBrowserType.Firefox).Path;
-				if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath))
-				{
-					Toaster.Info("Updating Firefox browser. Please wait...");
-					await IOtil.DeleteDExistsAsync(Consts.Browser.LocalFirefoxDirPath);
-					await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS()
-						? "Applications/firefox.app"
-						: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
-					await Task.Delay(1000);
-					Toaster.Success("Firefox browser updated successfully.");
-				}
-			}
 			try
 			{
+				if (options.BrowserType == SystemBrowserType.Firefox)
+				{
+					var systempath = SysBrowserInfoUtil.FindByType(SystemBrowserType.Firefox).Path;
+					if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath))
+					{
+						Toaster.Info("Updating Firefox browser...");
+						IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
+						IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
+						IOtil.DeleteDir(Consts.Browser.LocalFirefoxDirPath);
+						await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS() ? "/Applications/firefox.app"
+						: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
+					}
+				}
 				browser = await OpenWithSettings(new(options, IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new(), @startUrl(), TcpUtil.NextFreePort(9613)));
 			}
 			catch (Exception e)
@@ -164,8 +164,8 @@ public class SystemBrowserService
 					_ = Instances.TryRemove(options, out _);
 					_ = (OpenTaskCompletionSource?.TrySetResult(null));
 					_ = (browser?.LoadedTCS.TrySetResult(false));
-					return null;
 				}
+				return null;
 			}
 			finally
 			{

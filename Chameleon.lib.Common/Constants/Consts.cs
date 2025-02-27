@@ -15,10 +15,6 @@ public static class Consts {
 	public const string DefaultHomePage = "https://example.com/";
 	public const int PageinationPageItems = 13;
 
-	public static string AppDataLocalDir => IOtil.EnsureDirectoryExists(
-		Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Variables.AppName)
-	);
-
 	public static class Api {
 		public const string ApiBaseUrl = "https://api.chameleonmode.com/api/";
 		public const string ServicesPath = "services/app/";
@@ -64,12 +60,12 @@ public static class Consts {
 	}
 
 	public static class Browser {
-		public const string Foxameleon = "Foxameleon";
-		public const string CachedFoxameleon = "CachedFoxameleon";
+		public const string Geckoleon = "Geckoleon";
+		public const string GeckoleonCache = "GeckoleonCache";
 
 		public static string LocalFirefoxDirPath => OperatingSystem.IsMacOS()
-			? Path.Combine(AppDataLocalDir, Foxameleon, "firefox.app")
-			: Path.Combine(AppDataLocalDir, Foxameleon);
+			? Path.Combine(FilePaths.AppDataLocalDir, Geckoleon, "firefox.app")
+			: Path.Combine(FilePaths.AppDataLocalDir, Geckoleon);
 		public static string LocalFirefoxExePath => OperatingSystem.IsMacOS()
 			? Path.Combine(LocalFirefoxDirPath, "Contents", "MacOS", "firefox")
 			: Path.Combine(LocalFirefoxDirPath, "firefox.exe");

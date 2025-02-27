@@ -1,5 +1,6 @@
 ﻿using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
+using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Playwright.Utils;
 
@@ -54,7 +55,7 @@ public sealed class PlaywrightCookiesSyncService {
 
 			// Add the cookies to the context
 			await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-					Path.Combine(Consts.AppDataLocalDir, browserType.ToString(), cookieData.profileId),
+					Path.Combine(FilePaths.AppDataLocalDir, browserType.ToString(), cookieData.profileId),
 					new() {
 						Headless = true,
 						ExecutablePath = await PlaywrightUtil.GetBrowseExecutablePath(browserType),

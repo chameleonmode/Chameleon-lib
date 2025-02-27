@@ -2,6 +2,7 @@
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models;
 using Microsoft.Playwright;
+using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Playwright.Models;
 public class RunScriptOptions {
@@ -20,7 +21,7 @@ public record GetCookiesOptions(SysBrowserOpenOptions Browser, int? Port) {
 		 Password = Browser.Profile.Proxy.Password,
 	 };
 
-	public string Dir => Path.Combine(Consts.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());
+	public string Dir => Path.Combine(FilePaths.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());
 }
 
 public record PlaywrightScriptDescription(

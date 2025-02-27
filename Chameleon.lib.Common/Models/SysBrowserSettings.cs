@@ -7,6 +7,7 @@ using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 using Chameleon.lib.Common.Extensions;
 using System.Text;
 using Chameleon.lib.Helpers;
+using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Common.Models;
 public class EmulationOptions {
@@ -35,7 +36,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		);
 
 	public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(
-		Path.Combine(Consts.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString())
+		Path.Combine(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString())
 		);
 
 	private string? destextPath;
@@ -43,7 +44,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		get {
 			if (destextPath == null) {
 				destextPath = Path.Combine(Consts.Addons.AddonExtentionDir, BrowserType.ToString(), Profile.Id.ToString());
-				IOtil.DeleteDExists(destextPath);
+				IOtil.DeleteDir(destextPath);
 				destextPath = IOtil.EnsureDirectoryExists(Path.Combine(destextPath, Guid.NewGuid().ToString()));
 			}
 			return destextPath;

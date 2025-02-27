@@ -77,9 +77,9 @@ public static class IOtil {
 		}
 	}
 
-	public static Task DeleteDExistsAsync(string filePath, bool recuersive = true) => Task.Run(() => DeleteDExists(filePath, recuersive));
+	public static Task DeleteDExistsAsync(string filePath, bool recuersive = true) => Task.Run(() => DeleteDir(filePath, recuersive));
 
-	public static void DeleteDExists(string filePath, bool recuersive = true)
+	public static void DeleteDir(string filePath, bool recuersive = true)
 	{
 		if (Directory.Exists(filePath)) {
 			try {

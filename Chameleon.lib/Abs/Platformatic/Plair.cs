@@ -9,6 +9,7 @@ public class Plair {
   public record AskRequest(string Featue, object Scenario, string? Background = null);
   public record AskResponse(string Response);
   public async Task<Response<AskResponse>?> Ask(AskRequest request) {
+    await DB.Instance.EnsureUser();
     return await Client.Instance.Post<Response<AskResponse>>($"{prefix}/ask/{request.Featue}", new() {
       Q = $"?background={Uri.EscapeDataString(request.Background ?? backgrounds[new Random().Next(0, backgrounds.Length)])}",
       Body = new { scenario = request.Scenario },

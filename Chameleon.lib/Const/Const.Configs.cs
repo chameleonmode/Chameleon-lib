@@ -44,8 +44,6 @@ public static class Configs {
 			public const string DATA = $"{BASE}/data";
 			public const string STATUS = $"{BASE}/status";
 		}
-
-		public const string Users = "/users";
 		public const string DataInteractions = "/dataInteractions";
 	}
 }

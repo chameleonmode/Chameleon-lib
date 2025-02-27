@@ -18,7 +18,7 @@ public class DB {
 	public PlatformaticUser? DBuser { get; private set; }
 	//
 	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
-		Client.Get<IEnumerable<PlatformaticUser>>(Configs.Endpoints.Users);
+		Client.Get<IEnumerable<PlatformaticUser>>("/db/userz");
 	public IEnumerable<PlatformaticUser>? DBusers { get; private set; }
 	// 
 	object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };

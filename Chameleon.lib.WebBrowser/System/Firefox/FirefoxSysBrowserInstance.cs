@@ -18,7 +18,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
 		await InitializePrefsJs();
 		//await InitializeExtensions();
-		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Foxameleon);
+		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Geckoleon);
 		var versionFile = Path.Combine(inDir, "version.txt");
 		var version = "2024.1.7.2";
 		if (File.Exists(versionFile)) {
@@ -31,7 +31,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		//
 		var geckoextDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.foxameleon, Settings.CachedExtentionsDir);
 		_ = await Settings.BuildMeleonExtSettings(geckoextDir);
-		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.CachedFoxameleon);
+		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.GeckoleonCache);
 		await IOtil.DC(inDirCached);
 		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
 
@@ -75,15 +75,8 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		//File.WriteAllText(Path.Combine(distributionDir, "policies.json"), policy);
 	}
 	protected override string GetCommandLineArguments() {
-		return Debugger.IsAttached
-			? string.Join(" ", new List<string> {
-			"-jsconsole",
-			"-no-remote",
-			"-wait-for-browser",
-			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
-		})
-			: string.Join(" ", new List<string> {
-				"-allow-downgrade",
+		return string.Join(" ", new List<string> {
+			"-allow-downgrade",
 			"-no-remote",
 			"-wait-for-browser",
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
