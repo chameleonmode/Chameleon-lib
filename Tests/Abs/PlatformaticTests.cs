@@ -12,12 +12,14 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task Plair_Ask() {
-		var response = await Plair.Instance.Ask("reddit", "witty-sarcastic", new {
-			scenario = new {
-				keyword = "mushrooms",
-			}
-		});
-		Assert.NotNull(response?.Payload);
+		var res = await Plair.Instance.Ask(new(
+				"reddit",
+				new {
+					keyword = "mushroom",
+				}
+			)
+		);
+		Assert.NotNull(res?.Payload);
 	}
 
 	[Fact]

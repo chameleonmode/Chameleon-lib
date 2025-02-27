@@ -5,6 +5,18 @@ using System.Net.Http.Json;
 
 namespace Chameleon.lib.Abs.Platformatic;
 public class Client {
+  public record Response<T>(T Payload);
+	public record Params(
+		string? Q = null,
+		object? Body = null,
+		bool EnsureSuccess = true,
+		bool Authorize = true,
+		HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead
+	) {
+		public HttpContent? Content => Body == null ? null
+			: JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
+	}
+	
 	Client() { }
 	public HttpClient HttpClient { get; } = new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,
@@ -13,16 +25,6 @@ public class Client {
 		BaseAddress = new Uri(Configs.Urls.ABS_PLATFORMATIC_BASE_URL)
 	};
 
-public record Params(
-  string? Q = null,
-  object? Body = null,
-  bool EnsureSuccess = true,
-  bool Authorize = true,
-  HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead
-) {
-  public HttpContent? Content => Body == null ? null
-    : JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
-}
 
 	//
 	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Params @params) {

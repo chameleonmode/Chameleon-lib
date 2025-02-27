@@ -1,11 +1,9 @@
 using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
-using Chameleon.lib.Playwright.Scripts;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Playwright.node;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Playwright.Scripts.JS;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace Chameleon.lib.Playwright.Utils;
 public class PlaywriteRunner {

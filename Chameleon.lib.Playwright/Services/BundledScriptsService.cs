@@ -15,7 +15,7 @@ public class BundledScriptsService {
 
 	public IDictionary<string, IBundledJSScript> BundledJSScripts { get; } = new Dictionary<string, IBundledJSScript> {
 		{ nameof(Gsites), new Gsites() },
-		{ nameof(Reddit1Comment), new Reddit1Comment() },
+		{ nameof(Comment), new Comment() },
 	};
 
 	public async Task<IList<RunScriptOptions>> GetAll(string filepath)

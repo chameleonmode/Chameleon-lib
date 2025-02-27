@@ -53,14 +53,14 @@ public class PlaywrightTestRunner : IDisposable {
 			var output = e.Data ?? string.Empty;
 			Debug.WriteLine(output);
 			TestOutputReceived?.Invoke(this, output);
-			if (output == $"Test {relativePath} completed finally block")
+			if (output == $"Try: {file} success")
 				_ = _tcs.TrySetResult(true);
 		};
 		nodeProcess.ErrorDataReceived += (sender, e) => {
 			var output = e.Data ?? string.Empty;
 			Debug.WriteLine(output);
 			TestErrorReceived?.Invoke(this, e.Data ?? string.Empty);
-			if (output.StartsWith("Catch:"))
+			if (output.StartsWith($"Catch: {file}"))
 				_ = _tcs.TrySetResult(false);
 		};
 
