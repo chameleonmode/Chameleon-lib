@@ -5,7 +5,10 @@ using System.Net.Http.Json;
 
 namespace Chameleon.lib.Abs.Platformatic;
 public class Client {
+	Client() { }
+	
   public record Response<T>(T Payload);
+	public record PlatformaticReqError(string Error, string Message);
 	public record Params(
 		string? Q = null,
 		object? Body = null,
@@ -17,14 +20,18 @@ public class Client {
 			: JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
 	}
 	
-	Client() { }
 	public HttpClient HttpClient { get; } = new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,
 		ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
 	}) {
-		BaseAddress = new Uri(Configs.Urls.ABS_PLATFORMATIC_BASE_URL)
+		BaseAddress = new Uri(
+#if DEBUG
+					"http://127.0.0.1:3042"
+#else
+					"https://chameleon-ws.onrender.com"
+#endif
+			)
 	};
-
 
 	//
 	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Params @params) {
@@ -56,7 +63,7 @@ public class Client {
 				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
 					(
 						JS.DeserializeSafely<PlatformaticReqError>(content) is PlatformaticReqError err
-							? $"{err.error}\n{err.message}" : content
+							? $"{err.Error}\n{err.Message}" : content
 					)
 				)
 				: default;

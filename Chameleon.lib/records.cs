@@ -22,57 +22,6 @@ public record TokenPayload(
 		object[] permissions
 );
 
-public record PlatformaticReqError(
-		string error,
-		string message
-);
-
-public record AppClientInfo(
-		string latest
-);
-
-public record KickCustomer(
-		bool status,
-		string secret
-);
-
-public record KickLicenseData(
-		string license_key,
-		string purchase_id,
-		int product_id,
-		int status,
-		object guid
-);
-
-public record KickLicenseStatus(
-		int valid,
-		int active,
-		object guid
-);
-
-public record PlatformaticUser(
-		object id,
-		string userId,
-		string email,
-		string licenseKey,
-		string tenantId,
-		string provider,
-		string providerId,
-		DateTime createdAt,
-		DateTime updatedAt
-);
-
-public record PlatformaticDataInteraction(
-		object id,
-		string interactionId,
-		string tenantId,
-		string senderId,
-		string receiverId,
-		string dataType,
-		string dataPayload,
-		DateTime createdAt
-);
-
 public record PlatformaticDataPayload<T>(
 	T payload
 );

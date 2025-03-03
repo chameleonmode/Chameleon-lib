@@ -1,10 +1,10 @@
 using static Chameleon.lib.Abs.Platformatic.Client;
 
 namespace Chameleon.lib.Abs.Platformatic;
-public class Plair {
+public class Air {
   readonly string prefix = "/plair";
   readonly string[] backgrounds = ["witty-sarcastic", "casual-relatable", "informative-but-funny", "straightforward-critical"];
-  Plair() { }
+  Air() { }
 
   public record AskRequest(string Featue, object Scenario, string? Background = null);
   public record AskResponse(string Response);
@@ -17,5 +17,5 @@ public class Plair {
   }
 
   // singleton
-  public static Plair Instance { get; } = new();
+  public static Air Instance { get; } = new();
 }

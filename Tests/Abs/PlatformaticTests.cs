@@ -11,8 +11,8 @@ public class PlatformaticTests : TestSetup {
 	public PlatformaticTests() : base(0) { }
 
 	[Fact]
-	public async Task Plair_Ask() {
-		var res = await Plair.Instance.Ask(new(
+	public async Task Air_Ask() {
+		var res = await Air.Instance.Ask(new(
 				"reddit",
 				new {
 					keyword = "mushroom",
@@ -23,39 +23,46 @@ public class PlatformaticTests : TestSetup {
 	}
 
 	[Fact]
-	public async Task GetLatestVersion_Success() {
-		var version = await platformaticDB.GetLatestVersion;
+	public async Task DB_Routes_App() {
+		var version = await DB.Routes.App.GetLatestVersion;
 		Assert.NotNull(version);
-	}
 
-	[Fact]
-	public async Task Downlaod_Success() {
-		var success = await platformaticDB.DownloadLatest(Console.WriteLine);
+		var success = await DB.Routes.App.DownloadLatest(Console.WriteLine);
 		Assert.True(success);
 	}
 
 	[Fact]
-	public async Task Kick_ValidateEmail_Success() {
-		var user = await platformaticDB.KickCustomer;
+	public async Task DB_Routes_License() {
+		var customer = await DB.Routes.License.KickCustomer;
+		Assert.NotNull(customer);
+
+		var data = await DB.Routes.License.KickLicenseData;
+		Assert.NotNull(data);
+
+		var status = await DB.Routes.License.KickLicenseStatus;
+		Assert.NotNull(status);
+
+		var user = await DB.Routes.License.ActivateLicense;
 		Assert.NotNull(user);
-		Assert.NotNull(user.secret);
-		Assert.True(user.status);
 	}
 
 	[Fact]
-	public async Task Kick_KickLicenseData_Success() {
-		var data = await platformaticDB.KickLicenseData;
-		Assert.NotNull(data);
+	public async Task DB_Routes_User() {
+		var user = await DB.Routes.User.GetDBuser;
+		Assert.NotNull(user);
+
+		var users = await DB.Routes.User.GetDBusers;
+		Assert.NotNull(users);
+
+		var email = "1@example.com";
+		var create = await DB.Routes.User.CreateUser(email);
+		Assert.NotNull(create);
+		var any = await DB.Routes.User.GetAnyDBuser(email);
+		Assert.NotNull(any);
 	}
 
 	[Fact]
-	public async Task Kick_KickLicenseStatus_Success() {
-		var data = await platformaticDB.KickLicenseStatus;
-		Assert.NotNull(data);
-	}
-
-	[Fact]
-	public async Task EnsureUser_Success() {
+	public async Task DB_EnsureUser() {
 		await platformaticDB.EnsureUser();
 		Assert.NotNull(platformaticDB.DBuser);
 		Assert.NotNull(platformaticDB.DBusers);
@@ -63,43 +70,27 @@ public class PlatformaticTests : TestSetup {
 	}
 
 	[Fact]
-	public async Task ValidateLicese_Success() {
-		var user = await platformaticDB.ValidateLicese;
-		Assert.NotNull(user);
-	}
-
-	[Fact]
-	public async Task CreateUser_Success() {
-		var email = "16@example.com";
-
-		await platformaticDB.CreateUser(email);
-		Assert.NotNull(platformaticDB.DBusers);
-		Assert.NotEmpty(platformaticDB.DBusers);
-		Assert.NotNull(platformaticDB.DBusers.FirstOrDefault(i => i.email == email));
-	}
-
-	[Fact]
-	public async Task SendCookies_Success() {
+	public async Task DB_SendCookie() {
 		var cookies = await PlaywrightUtil.GetCookies(new(new(Enums.SystemBrowserType.Chrome, new() { Id = 25541 }), null));
 		var email = "ezexerael@gmail.com";//"elimdadia@gmail.com"
-		var data = await platformaticDB.SendCookies(email, "25541", cookies);
+		var data = await DB.Routes.Cooky.SendCookies(email, "25541", cookies);
 		Assert.NotNull(data);
 	}
 
 	[Fact]
-	public async Task GetDataInteractions_Success() {
+	public async Task DB_GetDataInteractions() {
 		var datas = await platformaticDB.GetDataInteractions();
 		Assert.NotNull(datas);
 	}
 
 	[Fact]
-	public async Task GetDataInteractions_ToCookies_Success() {
+	public async Task DB_GetCookyDataInteractions() {
 		var datas = await platformaticDB.GetCookyDataInteractions<BrowserContextCookiesResult>();
 		Assert.NotNull(datas);
 	}
 
 	[Fact]
-	public async Task DeleteDataInteractions_Success() {
+	public async Task DB_DeleteDataInteractions() {
 		await platformaticDB.DeleteDataInteractions();
 	}
 }
