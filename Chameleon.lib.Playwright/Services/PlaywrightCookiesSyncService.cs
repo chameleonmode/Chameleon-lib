@@ -3,13 +3,14 @@ using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Playwright.Utils;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Services;
 
 public sealed class PlaywrightCookiesSyncService {
-	readonly List<CookyPayload<BrowserContextCookiesResult>> cookyPayloads = [];
+	readonly List<DB.Routes.Cooky.CookyPayload<BrowserContextCookiesResult>> cookyPayloads = [];
 	#region Constructor
 	private PlaywrightCookiesSyncService() { }
 	// Thread-safe singleton implementation
@@ -20,7 +21,7 @@ public sealed class PlaywrightCookiesSyncService {
 
 	public async Task<bool> HasCookies() {
 		cookyPayloads.Clear();
-		var cookiesSearch = await DB.Instance.GetCookyDataInteractions<BrowserContextCookiesResult>();
+		var cookiesSearch = await DB.Routes.Cooky.GetCookies<BrowserContextCookiesResult>();
 		if (cookiesSearch != null) {
 			cookyPayloads.AddRange(cookiesSearch);
 		}
@@ -55,7 +56,7 @@ public sealed class PlaywrightCookiesSyncService {
 
 			// Add the cookies to the context
 			await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-					Path.Combine(FilePaths.AppDataLocalDir, browserType.ToString(), cookieData.profileId),
+					Path.Combine(FilePaths.AppDataLocalDir, browserType.ToString(), cookieData.ProfileId),
 					new() {
 						Headless = true,
 						ExecutablePath = await PlaywrightUtil.GetBrowseExecutablePath(browserType),
@@ -63,7 +64,7 @@ public sealed class PlaywrightCookiesSyncService {
 					}
 			);
 			await context.AddCookiesAsync(
-				cookieData.cookiesJs!.Select(c =>
+				cookieData.CookiesJs!.Select(c =>
 					new Cookie {
 						Domain = c.Domain,
 						Expires = c.Expires,

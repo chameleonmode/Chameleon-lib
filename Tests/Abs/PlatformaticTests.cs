@@ -61,6 +61,19 @@ public class PlatformaticTests : TestSetup {
 		Assert.NotNull(any);
 	}
 
+		[Fact]
+	public async Task DB_Routes_Cooky() {
+		var cookies = await PlaywrightUtil.GetCookies(new(new(Enums.SystemBrowserType.Chrome, new() { Id = 25541 }), null));
+		var email = "elimdadia@gmail.com";
+		//var email = "ezexerael@gmail.com";
+		var data = await DB.Routes.Cooky.SendCookies(email, "25541", cookies);
+		Assert.NotNull(data);
+
+		var cooky = await DB.Routes.Cooky.GetCookies<BrowserContextCookiesResult>();
+		Assert.NotNull(cooky);
+		Assert.NotEmpty(cooky);
+	}
+
 	[Fact]
 	public async Task DB_EnsureUser() {
 		await platformaticDB.EnsureUser();
@@ -70,27 +83,15 @@ public class PlatformaticTests : TestSetup {
 	}
 
 	[Fact]
-	public async Task DB_SendCookie() {
-		var cookies = await PlaywrightUtil.GetCookies(new(new(Enums.SystemBrowserType.Chrome, new() { Id = 25541 }), null));
-		var email = "ezexerael@gmail.com";//"elimdadia@gmail.com"
-		var data = await DB.Routes.Cooky.SendCookies(email, "25541", cookies);
-		Assert.NotNull(data);
-	}
-
-	[Fact]
 	public async Task DB_GetDataInteractions() {
 		var datas = await platformaticDB.GetDataInteractions();
 		Assert.NotNull(datas);
 	}
 
 	[Fact]
-	public async Task DB_GetCookyDataInteractions() {
-		var datas = await platformaticDB.GetCookyDataInteractions<BrowserContextCookiesResult>();
-		Assert.NotNull(datas);
-	}
-
-	[Fact]
 	public async Task DB_DeleteDataInteractions() {
-		await platformaticDB.DeleteDataInteractions();
+		await platformaticDB.DeleteDataInteractions(DB.Routes.Cooky.DataType);
+		var data = await platformaticDB.GetDataInteractions(DB.Routes.Cooky.DataType);
+		Assert.Empty(data);
 	}
 }

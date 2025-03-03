@@ -70,7 +70,14 @@ public class DB {
 			}
 		}
 		public static class Cooky {
+			public const string DataType = "cooky";
 			public const string ROUTE = "/db/cooky";
+			public record CookyPayload<T>(string ProfileId, T[] CookiesJs);
+			public static async Task<IEnumerable<CookyPayload<T>>?> GetCookies<T>() =>
+			 (await Client.Get<IEnumerable<PlatformaticDataInteraction>?>(ROUTE + "/"))?
+			 		.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.DataPayload))
+			 		.Where(x => x != null)!;
+
 			public static Task<PlatformaticDataInteraction?> SendCookies<T>(
 				string email,
 				string profileId,
@@ -144,7 +151,6 @@ public class DB {
 	//
 	public User? DBuser { get; private set; }
 	public IEnumerable<User>? DBusers { get; private set; }
-	public Routes.App.AppClientInfo? LatestVersion { get; private set; }
 	#endregion
 
 	//Auth
@@ -153,8 +159,6 @@ public class DB {
 		DBuser ??= await Routes.User.GetDBuser ?? await Routes.License.ActivateLicense;
 		ArgumentNullException.ThrowIfNull(DBuser, "User not found");
 		DBusers ??= await Routes.User.GetDBusers;
-		//
-		LatestVersion ??= await Routes.App.GetLatestVersion;
 		// Double check license key if it's null
 		// TODO: Remove this after all users have migrated to auth0
 		if (!ranLicenseCheck && DBuser.LicenseKey == null) {
@@ -164,16 +168,12 @@ public class DB {
 	}
 
 	#region GET's
-	public async Task<List<PlatformaticDataInteraction>?> GetDataInteractions() {
+	public async Task<IEnumerable<PlatformaticDataInteraction>?> GetDataInteractions() {
 		await EnsureUser();
-		return await Client.Get<List<PlatformaticDataInteraction>>(DataInteractions);
+		return await Client.Get<IEnumerable<PlatformaticDataInteraction>>(DataInteractions + "/");
 	}
-	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
-		var interactions = await GetDataInteractions();
-		return interactions?
-			.Where(i => i.DataType == "cooky")
-			.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.DataPayload))
-			.Where(payload => payload != null)!;
+	public async Task<IEnumerable<PlatformaticDataInteraction>?> GetDataInteractions(string dataType) {
+		return (await GetDataInteractions())?.Where(i => i.DataType == dataType);;
 	}
 	#endregion
 
@@ -181,9 +181,10 @@ public class DB {
 	#endregion
 
 	#region DELETE's
-	public async Task DeleteDataInteractions() {
-		var interactions = await GetDataInteractions();
-		foreach (var interaction in interactions!) {
+	public async Task DeleteDataInteractions(string dataType) {
+		var interactions = (await GetDataInteractions())?.Where(i => i.DataType == dataType);
+		if (interactions == null) return;
+		foreach (var interaction in interactions) {
 			_ = await Client.Delete<object>($"{DataInteractions}/{interaction.Id}");
 		}
 	}

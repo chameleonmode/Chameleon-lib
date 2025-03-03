@@ -22,25 +22,4 @@ public record TokenPayload(
 		object[] permissions
 );
 
-public record PlatformaticDataPayload<T>(
-	T payload
-);
-
-public record CookyPayload<T>(
-	string profileId,
-	T[] cookiesJs
-);
-
-//public record Cookiesj(
-//	string name,
-//	string value,
-//	string domain,
-//	string path,
-//	int expires,
-//	bool httpOnly,
-//	bool secure,
-//	int sameSite
-//);
-
-
 #pragma warning restore IDE1006 // Naming Styles
