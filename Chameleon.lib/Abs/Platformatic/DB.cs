@@ -6,7 +6,7 @@ namespace Chameleon.lib.Abs.Platformatic;
 public class DB : Base {
 	DB() { }
 
-	#region Models
+	#region Models / Dto's
 	public record User(
 		object Id,
 		string UserId,
@@ -28,18 +28,22 @@ public class DB : Base {
 		string DataPayload,
 		DateTime CreatedAt
 	);
+	public record Tag(int Id, string Name, string Items, string TenantId);
+	public record ItemTag(string TagItemId, string TagItemType, string TagName, string TenantId);
 	#endregion
 
 	#region  Routes
 	public static class Routes {
 		public const string users = "/users";
 		public const string dataInteractions = "/dataInteractions";
-		
+		public const string tags = "/tags";
+		public const string itemTags = "/itemTags";
+
 		public static class License {
 			public const string prefix = "/license";
 			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
 			public static Task<DB.User?> Update => Post<DB.User>($"{prefix}/update",
-				new(Body: new { 
+				new(Body: new {
 					license_key = Session.Instance.Login!.LicenseKey,
 					email = Session.Instance.Login!.LoginName
 				})
@@ -108,7 +112,7 @@ public class DB : Base {
 
 	//Auth
 	public async Task EnsureUser() {
-		if(DBuser != null) return;
+		if (DBuser != null) return;
 
 		DBuser ??= await Routes.User.GetDBuser ?? await Routes.License.Update;
 		KickCustomer ??= await Routes.License.KickCustomer;
@@ -117,7 +121,7 @@ public class DB : Base {
 			DBuser = await Routes.License.Update ?? DBuser;
 		}
 
-		if(DBuser.LicenseKey != null) {
+		if (DBuser.LicenseKey != null) {
 			KickLickenseStatus ??= await Routes.License.KickLicenseStatus;
 			KickLicenseData ??= await Routes.License.KickLicenseData;
 		}
@@ -125,7 +129,7 @@ public class DB : Base {
 		DBusers ??= await Routes.User.GetDBusers;
 	}
 
-	#region GET's
+	#region DataInteraction's
 	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions() {
 		await EnsureUser();
 		return await Get<IEnumerable<DataInteraction>>(Routes.dataInteractions + "/");
@@ -133,9 +137,6 @@ public class DB : Base {
 	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions(string dataType) {
 		return (await GetDataInteractions())?.Where(i => i.DataType == dataType); ;
 	}
-	#endregion
-
-	#region POST's
 	public record PostDataInteractionRequest(string ReceiverId, string DataType, object DataPayload);
 	public async Task<DataInteraction?> PostDataInteraction(PostDataInteractionRequest request) {
 		await EnsureUser();
@@ -150,19 +151,91 @@ public class DB : Base {
 			}
 		));
 	}
-	#endregion
-
-	#region DELETE's
 	public async Task DeleteDataInteractions(string? dataType = null) {
 		var interactions = await GetDataInteractions();
 		if (interactions == null) return;
 
-		interactions = dataType == null ? interactions 
+		interactions = dataType == null ? interactions
 		: interactions.Where(i => i.DataType == dataType);
 
 		foreach (var interaction in interactions) {
 			_ = await Delete<object>($"{Routes.dataInteractions}/{interaction.Id}");
 		}
+	}
+	#endregion
+
+	#region Tag's
+	public async Task<IEnumerable<Tag>?> GetTags() {
+		return await Get<IEnumerable<Tag>>(Routes.tags + "/");
+	}
+
+	public async Task<Tag?> GetTag(int id) {
+		return await Get<Tag>($"{Routes.tags}/{id}", new(
+				EnsureSuccess: false
+		));
+	}
+
+	public async Task<Tag?> CreateTag(string name, Dictionary<string, List<string>> items) {
+		return await Post<Tag>(Routes.tags + "/", new(
+				Body: new {
+					name,
+					items = JS.Serialize(items),
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<Tag?> UpdateTag(int id, string name, Dictionary<string, List<string>> items) {
+		return await Put<Tag>($"{Routes.tags}/{id}", new(
+				Body: new {
+					name,
+					items = JS.Serialize(items),
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task DeleteTag(int id) {
+		_ = await Delete<object>($"{Routes.tags}/{id}");
+	}
+
+	public async Task<IEnumerable<Tag>?> SearchTags(string pattern) {
+		return await Get<IEnumerable<Tag>>($"{Routes.tags}/", new(
+				Q: $"?where.name.like={Uri.EscapeDataString($"%{pattern}%")}"
+		));
+	}
+	#endregion
+
+	#region ItemTag's
+	public async Task<IEnumerable<ItemTag>?> GetItemTags() {
+		// Use a small page size to reduce response size
+		return await Get<IEnumerable<ItemTag>>(Routes.itemTags + "/");
+	}
+
+	public async Task<IEnumerable<ItemTag>?> GetItemTagsForItem(string tagItemType, string tagItemId) {
+		return await Get<IEnumerable<ItemTag>>($"{Routes.itemTags}/", new(
+				Q: $"?where.tagItemType.eq={Uri.EscapeDataString(tagItemType)}&where.tagItemId.eq={Uri.EscapeDataString(tagItemId)}"
+		));
+	}
+
+	public async Task<ItemTag?> GetItemTag(string tagItemType, string tagItemId, string tagName) {
+		return await Get<ItemTag>($"{Routes.itemTags}/tagItemType/{Uri.EscapeDataString(tagItemType)}/tagItemId/{Uri.EscapeDataString(tagItemId)}/tagName/{Uri.EscapeDataString(tagName)}",
+			new(EnsureSuccess: false));
+	}
+
+	public async Task<ItemTag?> CreateItemTag(string tagItemType, string tagItemId, string tagName) {
+		return await Post<ItemTag>(Routes.itemTags + "/", new(
+				Body: new {
+					tagItemType,
+					tagItemId,
+					tagName,
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task DeleteItemTag(string tagItemType, string tagItemId, string tagName) {
+		_ = await Delete<object>($"{Routes.itemTags}/tagItemType/{Uri.EscapeDataString(tagItemType)}/tagItemId/{Uri.EscapeDataString(tagItemId)}/tagName/{Uri.EscapeDataString(tagName)}");
 	}
 	#endregion
 

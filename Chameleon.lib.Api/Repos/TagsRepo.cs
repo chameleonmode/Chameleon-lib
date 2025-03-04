@@ -70,27 +70,6 @@ public class TagsRepo {
 		return Task.FromResult<TagDto?>(tag);
 	}
 
-	public Task<IEnumerable<TagDto>> SearchTagAsync(string tagName) {
-		if (string.IsNullOrEmpty(tagName))
-			return Task.FromResult<IEnumerable<TagDto>>([]);
-
-		var dataTable = storage.Query(
-				"SELECT Name, Items FROM Tags WHERE Name LIKE @tagName",
-				new Dictionary<string, object> { { "tagName", $"%{tagName}%" } }
-		);
-
-		var results = new List<TagDto>();
-		foreach (DataRow row in dataTable.Rows) {
-			var name = row["Name"]?.ToString() ?? string.Empty;
-			var itemsJson = row["Items"]?.ToString() ?? "{}";
-			var itemsDict = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(itemsJson)
-										 ?? [];
-			results.Add(new TagDto(name, itemsDict));
-		}
-
-		return Task.FromResult<IEnumerable<TagDto>>(results);
-	}
-
 	public Task<IEnumerable<string>> SetTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {
 
 		_ = storage.Delete(
