@@ -64,12 +64,15 @@ public class Service : Base {
       public const string prefix = "/air";
       public static readonly string[] backgrounds = ["sarcastic-ish", "informative-ish", "relatable", "straightforward"];
 
-      public record AskRequest(string Featue, object Scenario, string? Background = null);
+      public record AskRequest(string Feature, object Scenario, string? Background = null);
       public record AskResponse(string Response);
       public static Task<Response<AskResponse>?> Ask(AskRequest request) {
-        return Post<Response<AskResponse>>($"{prefix}/ask/{request.Featue}", new(
-          Q: $"?background={Uri.EscapeDataString(request.Background ?? backgrounds[new Random().Next(0, backgrounds.Length)])}",
-          Body: new { scenario = request.Scenario }
+        return Post<Response<AskResponse>>($"{prefix}/ask/gpt", new(
+          Q: $"?feature={Uri.EscapeDataString(request.Feature)}",
+          Body: new { 
+            background = request.Background ?? backgrounds[new Random().Next(0, backgrounds.Length)],
+            scenario = request.Scenario 
+          }
         ));
       }
 

@@ -18,7 +18,7 @@ public class DB : Base {
 		DateTime CreatedAt,
 		DateTime UpdatedAt
 	);
-	public record PlatformaticDataInteraction(
+	public record DataInteraction(
 		object Id,
 		string InteractionId,
 		string TenantId,
@@ -38,8 +38,11 @@ public class DB : Base {
 		public static class License {
 			public const string prefix = "/license";
 			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
-			public static Task<DB.User?> ActivateLicense => Post<DB.User>($"{prefix}/activate",
-				new(Body: LicenseBody)
+			public static Task<DB.User?> Update => Post<DB.User>($"{prefix}/update",
+				new(Body: new { 
+					license_key = Session.Instance.Login!.LicenseKey,
+					email = Session.Instance.Login!.LoginName
+				})
 			);
 
 			public record Data(string License_key, string Purchase_id, int Product_id, int Status, object Guid);
@@ -78,16 +81,16 @@ public class DB : Base {
 			public const string DataType = "cooky";
 			public record CookyPayload<T>(string ProfileId, T[] CookiesJs);
 			public static async Task<IEnumerable<CookyPayload<T>>?> GetCookies<T>() =>
-			 (await Get<IEnumerable<PlatformaticDataInteraction>?>(prefix + "/"))?
+			 (await Get<IEnumerable<DataInteraction>?>(prefix + "/"))?
 			 		.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.DataPayload))
 			 		.Where(x => x != null)!;
 
-			public static Task<PlatformaticDataInteraction?> SendCookies<T>(
+			public static Task<DataInteraction?> SendCookies<T>(
 				string email,
 				string profileId,
 				IReadOnlyList<T> cookiesJs
 			) {
-				return Post<PlatformaticDataInteraction>($"{prefix}/",
+				return Post<DataInteraction>($"{prefix}/",
 					new(Body: new { email, payload = new { profileId, cookiesJs } })
 				);
 			}
@@ -96,39 +99,38 @@ public class DB : Base {
 	#endregion
 
 	#region Props
-	public static DB Instance { get; } = new();
-	//
 	public User? DBuser { get; private set; }
 	public IEnumerable<User>? DBusers { get; private set; }
+	public Routes.License.Status? LicenseStatus { get; private set; }
 	#endregion
 
 	//Auth
-	bool ranLicenseCheck = false;
 	public async Task EnsureUser() {
-		DBuser ??= await Routes.User.GetDBuser ?? await Routes.License.ActivateLicense;
-		ArgumentNullException.ThrowIfNull(DBuser, "User not found");
-		DBusers ??= await Routes.User.GetDBusers;
-		// Double check license key if it's null
-		// TODO: Remove this after all users have migrated to auth0
-		if (!ranLicenseCheck && DBuser.LicenseKey == null) {
-			DBuser = (await Routes.License.ActivateLicense) ?? DBuser;
-			ranLicenseCheck = true;
+		LicenseStatus ??= await Routes.License.KickLicenseStatus;
+		DBuser ??= await Routes.User.GetDBuser ?? await Routes.License.Update;
+		// Double check license key if it's null and user is active
+		if (DBuser!.LicenseKey == null && (LicenseStatus!.Active == 1 || LicenseStatus!.Valid == 1)) {
+			DBuser = (await Routes.License.Update) ?? DBuser;
 		}
+
+		DBusers ??= await Routes.User.GetDBusers;
 	}
 
 	#region GET's
-	public async Task<IEnumerable<PlatformaticDataInteraction>?> GetDataInteractions() {
-		return await Get<IEnumerable<PlatformaticDataInteraction>>(Routes.dataInteractions + "/");
+	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions() {
+		await EnsureUser();
+		return await Get<IEnumerable<DataInteraction>>(Routes.dataInteractions + "/");
 	}
-	public async Task<IEnumerable<PlatformaticDataInteraction>?> GetDataInteractions(string dataType) {
+	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions(string dataType) {
 		return (await GetDataInteractions())?.Where(i => i.DataType == dataType); ;
 	}
 	#endregion
 
 	#region POST's
 	public record PostDataInteractionRequest(string ReceiverId, string DataType, object DataPayload);
-	public Task<object?> PostDataInteraction(PostDataInteractionRequest request) {
-		return Post<object?>(Routes.dataInteractions + "/", new(
+	public async Task<DataInteraction?> PostDataInteraction(PostDataInteractionRequest request) {
+		await EnsureUser();
+		return await Post<DataInteraction>(Routes.dataInteractions + "/", new(
 			Body: new {
 				interactionId = Guid.NewGuid().ToString(),
 				tenantId = DBuser!.TenantId,
@@ -142,12 +144,18 @@ public class DB : Base {
 	#endregion
 
 	#region DELETE's
-	public async Task DeleteDataInteractions(string dataType) {
-		var interactions = (await GetDataInteractions())?.Where(i => i.DataType == dataType);
+	public async Task DeleteDataInteractions(string? dataType = null) {
+		var interactions = await GetDataInteractions();
 		if (interactions == null) return;
+
+		interactions = dataType == null ? interactions 
+		: interactions.Where(i => i.DataType == dataType);
+
 		foreach (var interaction in interactions) {
 			_ = await Delete<object>($"{Routes.dataInteractions}/{interaction.Id}");
 		}
 	}
 	#endregion
+
+	public static DB Instance { get; } = new();
 }
