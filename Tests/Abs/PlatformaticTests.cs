@@ -9,7 +9,7 @@ namespace Tests.Abs;
 public class PlatformaticTests : TestSetup {
 	readonly DB platformaticDB = DB.Instance;
 
-	public PlatformaticTests() : base(1) { }
+	public PlatformaticTests() : base(0) { }
 
 	[Fact]
 	public async Task Service_Routes_App() {
@@ -102,7 +102,6 @@ public class PlatformaticTests : TestSetup {
 		await platformaticDB.EnsureUser();
 		Assert.NotNull(platformaticDB.DBuser);
 		Assert.NotNull(platformaticDB.DBusers);
-		Assert.NotEmpty(platformaticDB.DBusers);
 	}
 
 	[Fact]

@@ -1,5 +1,4 @@
-﻿using Chameleon.lib;
-using Chameleon.lib.Auth;
+﻿using Chameleon.lib.Auth;
 
 namespace Tests.Auth;
 public class SessionTests : TestSetup {

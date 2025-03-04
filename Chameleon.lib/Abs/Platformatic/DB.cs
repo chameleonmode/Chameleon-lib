@@ -101,16 +101,25 @@ public class DB : Base {
 	#region Props
 	public User? DBuser { get; private set; }
 	public IEnumerable<User>? DBusers { get; private set; }
-	public Routes.License.Status? LicenseStatus { get; private set; }
+	public Routes.License.Status? KickLickenseStatus { get; private set; }
+	public Routes.License.Customer? KickCustomer { get; private set; }
+	public Routes.License.Data? KickLicenseData { get; private set; }
 	#endregion
 
 	//Auth
 	public async Task EnsureUser() {
-		LicenseStatus ??= await Routes.License.KickLicenseStatus;
+		if(DBuser != null) return;
+
 		DBuser ??= await Routes.User.GetDBuser ?? await Routes.License.Update;
+		KickCustomer ??= await Routes.License.KickCustomer;
 		// Double check license key if it's null and user is active
-		if (DBuser!.LicenseKey == null && (LicenseStatus!.Active == 1 || LicenseStatus!.Valid == 1)) {
-			DBuser = (await Routes.License.Update) ?? DBuser;
+		if (DBuser!.LicenseKey == null && KickCustomer?.Status == true) {
+			DBuser = await Routes.License.Update ?? DBuser;
+		}
+
+		if(DBuser.LicenseKey != null) {
+			KickLickenseStatus ??= await Routes.License.KickLicenseStatus;
+			KickLicenseData ??= await Routes.License.KickLicenseData;
 		}
 
 		DBusers ??= await Routes.User.GetDBusers;

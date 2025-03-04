@@ -10,7 +10,7 @@ public class Service : Base {
 
       public record AppClientInfo(string Latest);
       public static Task<AppClientInfo?> GetLatestVersion => Get<AppClientInfo>($"{prefix}/latest",
-        new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authorize: false)
+        new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authenticate: false)
       );
       public static async Task<bool> DownloadLatest(Action<string> onProgress) {
         // Local path where the downloaded file will be saved

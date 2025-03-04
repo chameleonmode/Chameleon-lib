@@ -10,7 +10,7 @@ public class Client {
 		string? Q = null,
 		object? Body = null,
 		bool EnsureSuccess = true,
-		bool Authorize = true,
+		bool Authenticate = true,
 		HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead
 	) {
 		public HttpContent? Content => Body == null ? null
@@ -33,7 +33,7 @@ public class Client {
 
 	//
 	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Request @params) {
-		if (@params.Authorize) {
+		if (@params.Authenticate) {
 			var (auth0client, authentication) = await Session.Instance.Authenticate();
 			HttpClient.DefaultRequestHeaders.Authorization = authentication;
 			HttpClient.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
@@ -53,10 +53,7 @@ public class Client {
 
 		var content = await response.Content.ReadAsStringAsync();
 		return
-			response.IsSuccessStatusCode ?
-				response.StatusCode != HttpStatusCode.NoContent
-				? JS.DeserializeSafely<T>(content) ?? throw new InvalidOperationException("Response is unreadable")
-				: default
+			response.IsSuccessStatusCode ? JS.DeserializeSafely<T>(content) 
 			: @params.EnsureSuccess == true
 				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
 					(
