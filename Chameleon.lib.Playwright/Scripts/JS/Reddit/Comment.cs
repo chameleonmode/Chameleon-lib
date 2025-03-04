@@ -15,7 +15,7 @@ public class Comment : IBundledJSScript
 
 	public async Task<IDictionary<string, string>?> GetOptions(IDictionary<string, string>? options = null)
 	{
-		var res = await Air.Instance.Ask(new(
+		var res = await Service.Routes.Air.Ask(new(
 			"reddit",
 				new
 				{

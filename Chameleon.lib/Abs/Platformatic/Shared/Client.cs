@@ -3,13 +3,10 @@ using Chameleon.lib.Const;
 using System.Net;
 using System.Net.Http.Json;
 
-namespace Chameleon.lib.Abs.Platformatic;
+namespace Chameleon.lib.Abs.Platformatic.Shared;
 public class Client {
 	Client() { }
-	
-  public record Response<T>(T Payload);
-	public record PlatformaticReqError(string Error, string Message);
-	public record Params(
+	public record Request(
 		string? Q = null,
 		object? Body = null,
 		bool EnsureSuccess = true,
@@ -19,7 +16,8 @@ public class Client {
 		public HttpContent? Content => Body == null ? null
 			: JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
 	}
-	
+	public record ReqError(string Error, string Message);
+	//
 	public HttpClient HttpClient { get; } = new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,
 		ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
@@ -34,7 +32,7 @@ public class Client {
 	};
 
 	//
-	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Params @params) {
+	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Request @params) {
 		if (@params.Authorize) {
 			var (auth0client, authentication) = await Session.Instance.Authenticate();
 			HttpClient.DefaultRequestHeaders.Authorization = authentication;
@@ -62,7 +60,7 @@ public class Client {
 			: @params.EnsureSuccess == true
 				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
 					(
-						JS.DeserializeSafely<PlatformaticReqError>(content) is PlatformaticReqError err
+						JS.DeserializeSafely<ReqError>(content) is ReqError err
 							? $"{err.Error}\n{err.Message}" : content
 					)
 				)
@@ -70,13 +68,13 @@ public class Client {
 	}
 
 	//
-	public Task<T?> Get<T>(string path, Params? @params = null) =>
+	public Task<T?> Get<T>(string path, Request? @params = null) =>
 		SendRequestAsync<T>(HttpMethod.Get, path, @params ??= new());
-	public Task<T?> Post<T>(string path, Params @params) =>
+	public Task<T?> Post<T>(string path, Request @params) =>
 		SendRequestAsync<T>(HttpMethod.Post, path, @params);
-	public Task<T?> Put<T>(string path, Params @params) =>
+	public Task<T?> Put<T>(string path, Request @params) =>
 		SendRequestAsync<T>(HttpMethod.Put, path, @params);
-	public Task<T?> Delete<T>(string path, Params? @params = null) =>
+	public Task<T?> Delete<T>(string path, Request? @params = null) =>
 		SendRequestAsync<T>(HttpMethod.Delete, path, @params ??= new());
 
 	public static Client Instance { get; } = new();

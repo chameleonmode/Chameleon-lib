@@ -11,8 +11,17 @@ public class PlatformaticTests : TestSetup {
 	public PlatformaticTests() : base(0) { }
 
 	[Fact]
-	public async Task Air_Ask() {
-		var res = await Air.Instance.Ask(new(
+	public async Task Service_Routes_App() {
+		var version = await Service.Routes.App.GetLatestVersion;
+		Assert.NotNull(version);
+
+		var success = await Service.Routes.App.DownloadLatest(Console.WriteLine);
+		Assert.True(success);
+	}
+
+	[Fact]
+	public async Task Service_Routes_Air() {
+		var res = await Service.Routes.Air.Ask(new(
 				"reddit",
 				new {
 					keyword = "mushroom",
@@ -20,15 +29,6 @@ public class PlatformaticTests : TestSetup {
 			)
 		);
 		Assert.NotNull(res?.Payload);
-	}
-
-	[Fact]
-	public async Task DB_Routes_App() {
-		var version = await DB.Routes.App.GetLatestVersion;
-		Assert.NotNull(version);
-
-		var success = await DB.Routes.App.DownloadLatest(Console.WriteLine);
-		Assert.True(success);
 	}
 
 	[Fact]
@@ -89,9 +89,19 @@ public class PlatformaticTests : TestSetup {
 	}
 
 	[Fact]
+	public async Task DB_PostDataInteraction() {
+		var datas = await platformaticDB.PostDataInteraction(new(
+			ReceiverId: "568bea38-bbc8-4070-a4aa-8ae6f0fdcd4b", 
+			DataType: "poop",
+			DataPayload: "poop"
+		));
+		Assert.NotNull(datas);
+	}
+
+	[Fact]
 	public async Task DB_DeleteDataInteractions() {
 		await platformaticDB.DeleteDataInteractions(DB.Routes.Cooky.DataType);
 		var data = await platformaticDB.GetDataInteractions(DB.Routes.Cooky.DataType);
-		Assert.Empty(data);
+		Assert.Empty(data!);
 	}
 }

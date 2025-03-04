@@ -3,10 +3,10 @@ using System.Net.Http.Headers;
 
 namespace Chameleon.lib.Auth;
 public class Session {
-	public OidcAuth0Client Auth0Client { get; } = new();
+	public Client Auth0Client { get; } = new();
 	public LoginSettings? Login => IoC.GetJsonValue<LoginSettings>(nameof(LoginSettings));
 
-	public async Task<(OidcAuth0Client, AuthenticationHeaderValue)> Authenticate() {
+	public async Task<(Client, AuthenticationHeaderValue)> Authenticate() {
 		return (Auth0Client, await Auth0Client.TryLogIn());
 	}
 

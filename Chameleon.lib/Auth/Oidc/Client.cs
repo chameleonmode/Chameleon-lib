@@ -6,44 +6,50 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace Chameleon.lib.Auth.Oidc;
-public class OidcAuth0Client {
+public class Client {
+	public const string Domain = "dev-gcjhdlkot8s8v2vr.us.auth0.com";
+  public const string ClientId = "dEtvplqXMKlDV1xSuuPfTLoWxtR8uMJv";
+  public const string ApiAudience = "https://api.chameleonmode.com/";
+  public const string Auth0Audience = "https://dev-gcjhdlkot8s8v2vr.us.auth0.com/userinfo";
+
 	readonly string state;
 	readonly string codeVerifier;
 	readonly string codeChallenge;
 
 	AuthenticationHeaderValue? authorization;
 
-	public OidcBrowser OidcBrowser { get; } 
+	public Browser OidcBrowser { get; } 
 	public string RedirectUri { get; }
 
 	public TokenResponse? Token => IoC.GetJsonValue<TokenResponse>(nameof(TokenResponse));
-	public string AuthUrl => $"https://{Configs.Oidc.Domain}/authorize?" +
+	public string AuthUrl => $"https://{Domain}/authorize?" +
 				$"response_type=code&" +
-				$"client_id={Configs.Oidc.ClientId}&" +
+				$"client_id={ClientId}&" +
 				$"redirect_uri={Uri.EscapeDataString(RedirectUri)}&" +
 				$"scope=openid%20profile%20email%20offline_access&" +
-				$"audience={Uri.EscapeDataString(Configs.Oidc.ApiAudience)}&" +
+				$"audience={Uri.EscapeDataString(ApiAudience)}&" +
 				$"state={state}&" +
 				$"code_challenge={codeChallenge}&" +
 				$"code_challenge_method=S256";
-	public string LogoutUrl => $"https://{Configs.Oidc.Domain}/oidc/logout?" +
+	public string LogoutUrl => $"https://{Domain}/oidc/logout?" +
 				$"post_logout_redirect_uri={Uri.EscapeDataString(RedirectUri)}&" +
 				$"id_token_hint={Uri.EscapeDataString(Token!.id_token)}&" +
-				$"client_id={Configs.Oidc.ClientId}";
+				$"client_id={ClientId}";
 
-	public OidcAuth0Client() {
+	public Client() {
 		// Generate state and PKCE values
 		state = StringsUtil.GenerateRandomString();
 		codeVerifier = StringsUtil.GenerateRandomString();
 		codeChallenge = StringsUtil.GenerateCodeChallenge(codeVerifier);
 
 		RedirectUri = $"http://127.0.0.1:{TcpUtil.NextFreePort(7891, 7896)}/callback";
-		OidcBrowser = new OidcBrowser(this);
+		OidcBrowser = new Browser(this);
 	}
 
 	private TokenResponse DeserializeToken(string res) {
-		var token = JsonSerializer.Deserialize<TokenResponse>(res, JS.CaseInsensitiveOptions)
-			?? throw new Exception("Token not found in response");
+		var token = JsonSerializer.Deserialize<TokenResponse>(res, JS.CaseInsensitiveOptions);
+		ArgumentNullException.ThrowIfNull(token, "Token not found in response");
+		
 		IoC.SetJsonValue(token, nameof(TokenResponse));
 		return token;
 	}
@@ -53,10 +59,10 @@ public class OidcAuth0Client {
 	private async Task<TokenResponse> GetNewToken(string code) {
 		using var client = new HttpClient();
 		var res = await client.PostAsync(
-			$"https://{Configs.Oidc.Domain}/oauth/token",
+			$"https://{Domain}/oauth/token",
 			new FormUrlEncodedContent(new Dictionary<string, string> {
 				{ "grant_type", "authorization_code" },
-				{ "client_id", Configs.Oidc.ClientId },
+				{ "client_id", ClientId },
 				{ "code_verifier", codeVerifier },
 				{ "code", code },
 				{ "redirect_uri", RedirectUri }
@@ -91,15 +97,13 @@ public class OidcAuth0Client {
 	/// <param name="refreshToken"></param>
 	/// <returns></returns>
 	public async Task RefreshToken() {
-		ArgumentNullException.ThrowIfNull(Token!.refresh_token);
-
 		using var client = new HttpClient();
 		var res = await client.PostAsync(
-				$"https://{Configs.Oidc.Domain}/oauth/token",
+				$"https://{Domain}/oauth/token",
 				new FormUrlEncodedContent(new Dictionary<string, string> {
 					 { "grant_type", "refresh_token" },
-					 { "client_id", Configs.Oidc.ClientId },
-					 { "refresh_token", Token.refresh_token }
+					 { "client_id", ClientId },
+					 { "refresh_token", Token!.refresh_token }
 				})
 		);
 

@@ -1,9 +1,9 @@
-﻿using Chameleon.lib.Auth;
+﻿using Chameleon.lib.Abs.Platformatic.Shared;
+using Chameleon.lib.Auth;
 using Chameleon.lib.Const;
-using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
-public class DB {
+public class DB : Base {
 	DB() { }
 
 	#region Models
@@ -27,54 +27,58 @@ public class DB {
 		string DataType,
 		string DataPayload,
 		DateTime CreatedAt
-)	;
+	);
 	#endregion
 
 	#region  Routes
-	public const string DataInteractions = "/dataInteractions";
 	public static class Routes {
+		public const string users = "/users";
+		public const string dataInteractions = "/dataInteractions";
+		
 		public static class License {
-			public const string ROUTE = "/license";
+			public const string prefix = "/license";
 			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
-			public static Task<DB.User?> ActivateLicense => Client.Post<DB.User>($"{ROUTE}/activate",
+			public static Task<DB.User?> ActivateLicense => Post<DB.User>($"{prefix}/activate",
 				new(Body: LicenseBody)
 			);
 
 			public record Data(string License_key, string Purchase_id, int Product_id, int Status, object Guid);
-			public static Task<Data?> KickLicenseData => Client.Post<Data>($"{ROUTE}/data",
+			public static Task<Data?> KickLicenseData => Post<Data>($"{prefix}/data",
 				new(Body: LicenseBody)
 			);
-			
+
 			public record Status(int Valid, int Active, object Guid);
-			public static Task<Status?> KickLicenseStatus => Client.Post<Status>($"{ROUTE}/status",
+			public static Task<Status?> KickLicenseStatus => Post<Status>($"{prefix}/status",
 				new(Body: LicenseBody)
 			);
 
 			public record Customer(bool Status, string Secret);
-			public static Task<Customer?> KickCustomer => Client.Post<Customer>($"{ROUTE}/customer",
+			public static Task<Customer?> KickCustomer => Post<Customer>($"{prefix}/customer",
 				new(Body: new { email = Session.Instance.Login!.LoginName })
 			);
 		}
+
 		public static class User {
-			public const string ROUTE = "/db/user";
-			public static Task<DB.User?> GetDBuser => Client.Get<DB.User>($"{ROUTE}/", new(EnsureSuccess: false));
-			public static Task<IEnumerable<DB.User>?> GetDBusers => Client.Get<IEnumerable<DB.User>>($"{ROUTE}/all");
-			public static Task<DB.User?> GetAnyDBuser(string email) => Client.Get<DB.User>($"{ROUTE}/any",
+			public const string prefix = "/db/user";
+			public static Task<DB.User?> GetDBuser => Get<DB.User>($"{prefix}/", new(EnsureSuccess: false));
+			public static Task<IEnumerable<DB.User>?> GetDBusers => Get<IEnumerable<DB.User>>($"{prefix}/all");
+			public static Task<DB.User?> GetAnyDBuser(string email) => Get<DB.User>($"{prefix}/any",
 				new(
 					Q: $"?email={Uri.EscapeDataString(email)}",
 					EnsureSuccess: false
 				)
 			);
 			public static Task<IEnumerable<DB.User>?> CreateUser(string email) {
-				return Client.Post<IEnumerable<DB.User>>($"{ROUTE}/", new(Q: $"?email={Uri.EscapeDataString(email)}"));
+				return Post<IEnumerable<DB.User>>($"{prefix}/", new(Q: $"?email={Uri.EscapeDataString(email)}"));
 			}
 		}
+
 		public static class Cooky {
+			public const string prefix = "/db/cooky";
 			public const string DataType = "cooky";
-			public const string ROUTE = "/db/cooky";
 			public record CookyPayload<T>(string ProfileId, T[] CookiesJs);
 			public static async Task<IEnumerable<CookyPayload<T>>?> GetCookies<T>() =>
-			 (await Client.Get<IEnumerable<PlatformaticDataInteraction>?>(ROUTE + "/"))?
+			 (await Get<IEnumerable<PlatformaticDataInteraction>?>(prefix + "/"))?
 			 		.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.DataPayload))
 			 		.Where(x => x != null)!;
 
@@ -83,63 +87,9 @@ public class DB {
 				string profileId,
 				IReadOnlyList<T> cookiesJs
 			) {
-				return Client.Post<PlatformaticDataInteraction>($"{ROUTE}/",
+				return Post<PlatformaticDataInteraction>($"{prefix}/",
 					new(Body: new { email, payload = new { profileId, cookiesJs } })
 				);
-			}
-		}
-		public static class App {
-			public const string ROUTE = "/app";
-
-			public record AppClientInfo(string Latest);
-			public static Task<AppClientInfo?> GetLatestVersion => Client.Get<AppClientInfo>($"{ROUTE}/latest",
-				new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authorize: false)
-			);
-			public static async Task<bool> DownloadLatest(Action<string> onProgress) {
-				// Local path where the downloaded file will be saved
-				var ext = OperatingSystem.IsMacOS() ? "zip" : "7z";
-				// Send an asynchronous GET request and ensure headers are read before downloading the stream
-				using var response = await Client.HttpClient.GetAsync($"{ROUTE}/download" + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
-				_ = response.EnsureSuccessStatusCode();
-
-				// Get the file name from the Content-Disposition header
-				var fileName = response.Content.Headers.ContentDisposition?.FileName ?? "Chameleon." + ext;
-				var outputFile = Path.Combine(FilePaths.AppDownloadDir, fileName);
-
-				// Get the total number of bytes (if available)
-				var totalBytes = response.Content.Headers.ContentLength;
-				var buffer = new byte[8192];
-				double lastProgressReported = 0; // Tracks the last reported progress percentage
-				long totalBytesRead = 0;
-				int bytesRead;
-
-				// Open a stream to write the downloaded content to a file
-				using var contentStream = await response.Content.ReadAsStreamAsync();
-				using var fileStream = new FileStream(outputFile, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true);
-
-				// Read the content stream in chunks
-				while ((bytesRead = await contentStream.ReadAsync(buffer)) > 0) {
-					// Write the chunk to the file
-					await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-					totalBytesRead += bytesRead;
-
-					// Report progress only if totalBytes is available and we've passed the next 10% increment.
-					if (totalBytes.HasValue) {
-						var progressPercentage = (double)totalBytesRead / totalBytes.Value * 100;
-						if (progressPercentage - lastProgressReported >= 10 || progressPercentage >= 100) {
-							lastProgressReported = Math.Floor(progressPercentage / 10) * 10;
-							var progress = $"Downloaded {totalBytesRead} of {totalBytes.Value} bytes ({progressPercentage:0.00}%)";
-							onProgress(progress);
-						}
-					} else {
-						// If total size is unknown, report the raw byte count (or customize as needed)
-						onProgress($"Downloaded {totalBytesRead} bytes");
-					}
-				}
-
-				ProcessUtil.OpenFolder(FilePaths.AppDownloadDir);
-
-				return File.Exists(outputFile);
 			}
 		}
 	}
@@ -147,7 +97,6 @@ public class DB {
 
 	#region Props
 	public static DB Instance { get; } = new();
-	public static Client Client => Client.Instance;
 	//
 	public User? DBuser { get; private set; }
 	public IEnumerable<User>? DBusers { get; private set; }
@@ -169,15 +118,27 @@ public class DB {
 
 	#region GET's
 	public async Task<IEnumerable<PlatformaticDataInteraction>?> GetDataInteractions() {
-		await EnsureUser();
-		return await Client.Get<IEnumerable<PlatformaticDataInteraction>>(DataInteractions + "/");
+		return await Get<IEnumerable<PlatformaticDataInteraction>>(Routes.dataInteractions + "/");
 	}
 	public async Task<IEnumerable<PlatformaticDataInteraction>?> GetDataInteractions(string dataType) {
-		return (await GetDataInteractions())?.Where(i => i.DataType == dataType);;
+		return (await GetDataInteractions())?.Where(i => i.DataType == dataType); ;
 	}
 	#endregion
 
 	#region POST's
+	public record PostDataInteractionRequest(string ReceiverId, string DataType, object DataPayload);
+	public Task<object?> PostDataInteraction(PostDataInteractionRequest request) {
+		return Post<object?>(Routes.dataInteractions + "/", new(
+			Body: new {
+				interactionId = Guid.NewGuid().ToString(),
+				tenantId = DBuser!.TenantId,
+				senderId = DBuser.UserId,
+				receiverId = request.ReceiverId,
+				dataType = request.DataType,
+				dataPayload = JS.Serialize(request.DataPayload)
+			}
+		));
+	}
 	#endregion
 
 	#region DELETE's
@@ -185,7 +146,7 @@ public class DB {
 		var interactions = (await GetDataInteractions())?.Where(i => i.DataType == dataType);
 		if (interactions == null) return;
 		foreach (var interaction in interactions) {
-			_ = await Client.Delete<object>($"{DataInteractions}/{interaction.Id}");
+			_ = await Delete<object>($"{Routes.dataInteractions}/{interaction.Id}");
 		}
 	}
 	#endregion

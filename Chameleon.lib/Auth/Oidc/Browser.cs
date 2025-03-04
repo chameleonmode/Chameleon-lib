@@ -4,7 +4,7 @@ using Chameleon.lib.Util;
 using System.Text;
 
 namespace Chameleon.lib.Auth.Oidc;
-public class OidcBrowser(OidcAuth0Client oidcClient) {
+public class Browser(Client oidcClient) {
 	const string authResponseHtml = @"
 		<!DOCTYPE html>
 		<html>
