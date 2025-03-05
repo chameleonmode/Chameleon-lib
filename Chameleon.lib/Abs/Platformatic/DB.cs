@@ -29,7 +29,7 @@ public class DB : Base {
 		DateTime CreatedAt
 	);
 	public record Tag(int Id, string Name, string Items, string TenantId);
-	public record ItemTag(string TagItemId, string TagItemType, string TagName, string TenantId);
+	public record ItemTag(string TagItemType, string TagItemId, string TagName, string TenantId);
 	#endregion
 
 	#region  Routes
@@ -110,13 +110,12 @@ public class DB : Base {
 	public Routes.License.Data? KickLicenseData { get; private set; }
 	#endregion
 
-	//Auth
+	#region User's
 	public async Task EnsureUser() {
 		if (DBuser != null) return;
-
 		DBuser ??= await Routes.User.GetDBuser ?? await Routes.License.Update;
 		KickCustomer ??= await Routes.License.KickCustomer;
-		// Double check license key if it's null and user is active
+
 		if (DBuser!.LicenseKey == null && KickCustomer?.Status == true) {
 			DBuser = await Routes.License.Update ?? DBuser;
 		}
@@ -128,10 +127,10 @@ public class DB : Base {
 
 		DBusers ??= await Routes.User.GetDBusers;
 	}
+	#endregion
 
 	#region DataInteraction's
 	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions() {
-		await EnsureUser();
 		return await Get<IEnumerable<DataInteraction>>(Routes.dataInteractions + "/");
 	}
 	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions(string dataType) {
@@ -139,7 +138,6 @@ public class DB : Base {
 	}
 	public record PostDataInteractionRequest(string ReceiverId, string DataType, object DataPayload);
 	public async Task<DataInteraction?> PostDataInteraction(PostDataInteractionRequest request) {
-		await EnsureUser();
 		return await Post<DataInteraction>(Routes.dataInteractions + "/", new(
 			Body: new {
 				interactionId = Guid.NewGuid().ToString(),
@@ -166,17 +164,19 @@ public class DB : Base {
 
 	#region Tag's
 	public async Task<IEnumerable<Tag>?> GetTags() {
-		return await Get<IEnumerable<Tag>>(Routes.tags + "/");
-	}
-
-	public async Task<Tag?> GetTag(int id) {
-		return await Get<Tag>($"{Routes.tags}/{id}", new(
-				EnsureSuccess: false
-		));
+		var tags = new List<Tag>();
+		do {
+			var tag = await Get<IEnumerable<Tag>>($"{Routes.tags}/",
+				new(Q: $"?offset={tags.Count}&limit=100")
+			);
+			if (tag == null || !tag.Any()) break;
+			tags.AddRange(tag);	
+		} while (true);
+		return tags;
 	}
 
 	public async Task<Tag?> CreateTag(string name, Dictionary<string, List<string>> items) {
-		return await Post<Tag>(Routes.tags + "/", new(
+		return await Post<Tag>($"{Routes.tags}/", new(
 				Body: new {
 					name,
 					items = JS.Serialize(items),
@@ -195,6 +195,19 @@ public class DB : Base {
 		));
 	}
 
+	public async Task<Tag?> GetTag(int id) {
+		return await Get<Tag>($"{Routes.tags}/{id}", 
+			new(EnsureSuccess: false)
+		);
+	}
+
+	public async Task<Tag?> GetTagBy(string name) {
+		var tags =  await Get<IEnumerable<Tag>>($"{Routes.tags}/", new(
+				Q: $"?where.name.eq={Uri.EscapeDataString($"{name}")}"
+		));
+		return tags?.FirstOrDefault();
+	}
+
 	public async Task DeleteTag(int id) {
 		_ = await Delete<object>($"{Routes.tags}/{id}");
 	}
@@ -204,27 +217,27 @@ public class DB : Base {
 				Q: $"?where.name.like={Uri.EscapeDataString($"%{pattern}%")}"
 		));
 	}
+
+	public async Task<IEnumerable<ItemTag>?> GetItemTagsForTag(int id) {
+		return await Get<IEnumerable<ItemTag>>($"{Routes.tags}/{id}/itemTagTagName");
+	}
 	#endregion
 
 	#region ItemTag's
 	public async Task<IEnumerable<ItemTag>?> GetItemTags() {
-		// Use a small page size to reduce response size
-		return await Get<IEnumerable<ItemTag>>(Routes.itemTags + "/");
-	}
-
-	public async Task<IEnumerable<ItemTag>?> GetItemTagsForItem(string tagItemType, string tagItemId) {
-		return await Get<IEnumerable<ItemTag>>($"{Routes.itemTags}/", new(
-				Q: $"?where.tagItemType.eq={Uri.EscapeDataString(tagItemType)}&where.tagItemId.eq={Uri.EscapeDataString(tagItemId)}"
-		));
-	}
-
-	public async Task<ItemTag?> GetItemTag(string tagItemType, string tagItemId, string tagName) {
-		return await Get<ItemTag>($"{Routes.itemTags}/tagItemType/{Uri.EscapeDataString(tagItemType)}/tagItemId/{Uri.EscapeDataString(tagItemId)}/tagName/{Uri.EscapeDataString(tagName)}",
-			new(EnsureSuccess: false));
+		var tags = new List<ItemTag>();
+		do {
+			var tag = await Get<IEnumerable<ItemTag>>($"{Routes.itemTags}/",
+				new(Q: $"?offset={tags.Count}&limit=100")
+			);
+			if (tag == null || !tag.Any()) break;
+			tags.AddRange(tag);
+		} while (true);
+		return tags;
 	}
 
 	public async Task<ItemTag?> CreateItemTag(string tagItemType, string tagItemId, string tagName) {
-		return await Post<ItemTag>(Routes.itemTags + "/", new(
+		return await Post<ItemTag>($"{Routes.itemTags}/", new(
 				Body: new {
 					tagItemType,
 					tagItemId,
@@ -234,8 +247,53 @@ public class DB : Base {
 		));
 	}
 
-	public async Task DeleteItemTag(string tagItemType, string tagItemId, string tagName) {
-		_ = await Delete<object>($"{Routes.itemTags}/tagItemType/{Uri.EscapeDataString(tagItemType)}/tagItemId/{Uri.EscapeDataString(tagItemId)}/tagName/{Uri.EscapeDataString(tagName)}");
+	public async Task<ItemTag?> UpdateItemTag(string tagItemType, string tagItemId, string tagName) {
+		return await Put<ItemTag>($"{Routes.itemTags}/", new(
+				Body: new {
+					tagItemType,
+					tagItemId,
+					tagName,
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<ItemTag?> GetItemTagBy(string tagItemType, string tagItemId, string tagName) {
+		return await Get<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", 
+			new(EnsureSuccess: false)
+		);
+	}
+
+	public async Task<ItemTag?> CreateItemTagBy(string tagItemType, string tagItemId, string tagName) {
+		return await Post<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", new(
+				Body: new {
+					tagItemType,
+					tagItemId,
+					tagName,
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<ItemTag?> UpdateItemTagBy(string tagItemType, string tagItemId, string tagName) {
+		return await Put<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", new(
+				Body: new {
+					tagItemType,
+					tagItemId,
+					tagName,
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<ItemTag?> DeleteItemTagBy(string tagItemType, string tagItemId, string tagName) {
+		return await Delete<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}");
+	}
+
+	public async Task<IEnumerable<ItemTag>?> GetItemTagsForItem(string tagItemType, string tagItemId) {
+		return await Get<IEnumerable<ItemTag>>($"{Routes.itemTags}/", new(
+				Q: $"?where.tagItemType.eq={Uri.EscapeDataString(tagItemType)}&where.tagItemId.eq={Uri.EscapeDataString(tagItemId)}"
+		));
 	}
 	#endregion
 

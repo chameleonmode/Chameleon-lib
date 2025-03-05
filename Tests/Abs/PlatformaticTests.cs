@@ -8,35 +8,78 @@ using Chameleon.lib.Playwright.Utils;
 using Microsoft.Playwright;
 
 namespace Tests.Abs;
-public class PlatformaticTests : TestSetup {
-	readonly DB platformaticDB = DB.Instance;
-
+public class PlatformaticTests : TestSetup {	
 	public PlatformaticTests() : base(0) { }
+
+	#region DB users and data interactiions
+	[Fact]
+	public async Task DB_EnsureUser() {
+		await DB.Instance.EnsureUser();
+		Assert.NotNull(DB.Instance.DBuser);
+		Assert.NotNull(DB.Instance.DBusers);
+	}
+
+	[Fact]
+	public async Task DB_GetDataInteractions() {
+		await DB.Instance.EnsureUser();
+		var datas = await DB.Instance.GetDataInteractions();
+		Assert.NotNull(datas);
+	}
+
+	[Fact]
+	public async Task DB_PostDataInteraction() {
+		await DB.Instance.EnsureUser();
+		var datas = await DB.Instance.PostDataInteraction(new(
+			ReceiverId: "ef61cf83-13e7-486a-ac37-84ec78841b4f",
+			DataType: "poop",
+			DataPayload: "poop"
+		));
+		Assert.NotNull(datas);
+	}
+
+	[Fact]
+	public async Task DB_DeleteDataInteractions() {
+		await DB.Instance.EnsureUser();
+		await DB.Instance.DeleteDataInteractions(DB.Routes.Cooky.DataType);
+		var data = await DB.Instance.GetDataInteractions(DB.Routes.Cooky.DataType);
+		Assert.Empty(data!);
+
+		await DB.Instance.DeleteDataInteractions();
+		var all = await DB.Instance.GetDataInteractions();
+		Assert.Empty(all!);
+	}
+	#endregion
 
 	[Fact]
 	public async Task DB_Tags() {
 		await DB.Instance.EnsureUser();
 		// Create a tag
-		var create = await DB.Instance.CreateTag("test", new Dictionary<string, List<string>> {
-						{ "folder", new List<string> { "id", "id2" } }
-				});
+		var name = "tester5";
+		var create = await DB.Instance.CreateTag(name, []);
 		Assert.NotNull(create);
-		Assert.Equal("test", create.Name);
+		Assert.Equal(name, create.Name);
 
-		// Get the tag
+		// Get the tag by id
 		var get = await DB.Instance.GetTag(create.Id);
 		Assert.NotNull(get);
-		var tag = new TagDto(get.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(get.Items)!);
-		Assert.Equal("test", tag.Name);
-		Assert.Contains("folder", tag.Items.Keys);
-		Assert.Contains("id", tag.Items["folder"]);
-		Assert.Contains("id2", tag.Items["folder"]);
+		Assert.Equal(name, get.Name);
+
+		// Get the tag
+		var getBy = await DB.Instance.GetTagBy(name);
+		Assert.NotNull(getBy);
+		Assert.Equal(getBy.Name, get.Name);
 
 		// Update the tag
-		var update = await DB.Instance.UpdateTag(create.Id, "test", new Dictionary<string, List<string>> {
+		var update = await DB.Instance.UpdateTag(create.Id, name, new Dictionary<string, List<string>> {
 						{ "folder", new List<string> { "id", "id2", "id3" } }
 				});
 		Assert.NotNull(update);
+		Assert.Equal(name, update.Name);
+
+		var tag = new TagDto(update.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(update.Items)!);
+		Assert.Contains("folder", tag.Items.Keys);
+		Assert.Contains("id", tag.Items["folder"]);
+		Assert.Contains("id2", tag.Items["folder"]);
 
 		// Verify update
 		get = await DB.Instance.GetTag(create.Id);
@@ -49,12 +92,12 @@ public class PlatformaticTests : TestSetup {
 		);
 		Assert.NotNull(list);
 		Assert.NotEmpty(list);
-		Assert.Contains(list, t => t.Name == "test");
+		Assert.Contains(list, t => t.Name == name);
 
 		// Search for tags
 		var searchResults = await DB.Instance.SearchTags("te");
 		Assert.NotNull(searchResults);
-		Assert.Contains(searchResults, t => t.Name == "test");
+		Assert.Contains(searchResults, t => t.Name == name);
 
 		// Clean up
 		await DB.Instance.DeleteTag(create.Id);
@@ -66,55 +109,57 @@ public class PlatformaticTests : TestSetup {
 	public async Task DB_ItemTags() {
 		await DB.Instance.EnsureUser();
 
+		var name = "testTagingz5";
 		// Create a tag first
-		var tag = await DB.Instance.CreateTag("testTag", new Dictionary<string, List<string>>());
+		var tag = await DB.Instance.CreateTag(name, []);
 		Assert.NotNull(tag);
 
 		// Create an item tag
-		var itemTag = await DB.Instance.CreateItemTag("document", "doc123", "testTag");
+		var itemTag = await DB.Instance.CreateItemTag("document", "doc123", name);
 		Assert.NotNull(itemTag);
 		Assert.Equal("document", itemTag.TagItemType);
 		Assert.Equal("doc123", itemTag.TagItemId);
-		Assert.Equal("testTag", itemTag.TagName);
+		Assert.Equal(name, itemTag.TagName);
 
 		// Get the item tag
-		var getItemTag = await DB.Instance.GetItemTag("document", "doc123", "testTag");
+		var getItemTag = await DB.Instance.GetItemTagBy("document", "doc123", name);
 		Assert.NotNull(getItemTag);
 		Assert.Equal("document", getItemTag.TagItemType);
 		Assert.Equal("doc123", getItemTag.TagItemId);
-		Assert.Equal("testTag", getItemTag.TagName);
+		Assert.Equal(name, getItemTag.TagName);
 
 		// Get item tags for item
 		var itemTags = await DB.Instance.GetItemTagsForItem("document", "doc123");
 		Assert.NotNull(itemTags);
 		Assert.NotEmpty(itemTags);
-		Assert.Contains(itemTags, it => it.TagName == "testTag");
-
-		// Update the tag
-		var update = await DB.Instance.UpdateTag(tag.Id, "testTag", new Dictionary<string, List<string>> {
-						{ "document", new List<string> { "doc123" } }
-				});
-		Assert.NotNull(update);
+		Assert.Contains(itemTags, it => it.TagName == name);
 
 		// Update the tag's items collection
+		var update = await DB.Instance.UpdateTag(tag.Id, name, new Dictionary<string, List<string>> {
+			{ "document", new List<string> { "doc123" } }
+		});
+		Assert.NotNull(update);
 		var updatedTag = await DB.Instance.GetTag(tag.Id);
 		var itemsDict = JS.DeserializeSafely<Dictionary<string, List<string>>>(updatedTag!.Items) ?? new();
 		Assert.Contains("document", itemsDict.Keys);
 		Assert.Contains("doc123", itemsDict["document"]);
 
 		// Create a second item tag
-		var itemTag2 = await DB.Instance.CreateItemTag("document", "doc456", "testTag");
+		var itemTag2 = await DB.Instance.CreateItemTag("document", "doc456", name);
 		Assert.NotNull(itemTag2);
+		itemsDict["document"].Add("doc456");
+		var updatedTag2 = await DB.Instance.UpdateTag(tag.Id, name, itemsDict);
+		Assert.NotNull(updatedTag2);
 
 		// Get all item tags
 		var allItemTags = await DB.Instance.GetItemTags();
 		Assert.NotNull(allItemTags);
-		Assert.Contains(allItemTags, it => it.TagItemId == "doc123" && it.TagName == "testTag");
-		Assert.Contains(allItemTags, it => it.TagItemId == "doc456" && it.TagName == "testTag");
+		Assert.Contains(allItemTags, it => it.TagItemId == "doc123" && it.TagName == name);
+		Assert.Contains(allItemTags, it => it.TagItemId == "doc456" && it.TagName == name);
 
 		// Delete item tag
-		await DB.Instance.DeleteItemTag("document", "doc123", "testTag");
-		var afterDelete = await DB.Instance.GetItemTag("document", "doc123", "testTag");
+		_ = await DB.Instance.DeleteItemTagBy("document", "doc123", name);
+		var afterDelete = await DB.Instance.GetItemTagBy("document", "doc123", name);
 		Assert.Null(afterDelete);
 
 		// Clean up
@@ -207,39 +252,5 @@ public class PlatformaticTests : TestSetup {
 		var cooky = await DB.Routes.Cooky.GetCookies<BrowserContextCookiesResult>();
 		Assert.NotNull(cooky);
 		Assert.NotEmpty(cooky);
-	}
-
-	[Fact]
-	public async Task DB_EnsureUser() {
-		await platformaticDB.EnsureUser();
-		Assert.NotNull(platformaticDB.DBuser);
-		Assert.NotNull(platformaticDB.DBusers);
-	}
-
-	[Fact]
-	public async Task DB_GetDataInteractions() {
-		var datas = await platformaticDB.GetDataInteractions();
-		Assert.NotNull(datas);
-	}
-
-	[Fact]
-	public async Task DB_PostDataInteraction() {
-		var datas = await platformaticDB.PostDataInteraction(new(
-			ReceiverId: "d65f225e-8e42-45f3-8d2f-5e001fce630d",
-			DataType: "poop",
-			DataPayload: "poop"
-		));
-		Assert.NotNull(datas);
-	}
-
-	[Fact]
-	public async Task DB_DeleteDataInteractions() {
-		await platformaticDB.DeleteDataInteractions(DB.Routes.Cooky.DataType);
-		var data = await platformaticDB.GetDataInteractions(DB.Routes.Cooky.DataType);
-		Assert.Empty(data!);
-
-		await platformaticDB.DeleteDataInteractions();
-		var all = await platformaticDB.GetDataInteractions();
-		Assert.Empty(all!);
 	}
 }

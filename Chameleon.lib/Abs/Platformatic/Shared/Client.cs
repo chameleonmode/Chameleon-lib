@@ -17,30 +17,32 @@ public class Client {
 			: JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
 	}
 	public record ReqError(string Error, string Message);
+
 	//
-	public HttpClient HttpClient { get; } = new(new HttpClientHandler {
-		AutomaticDecompression = DecompressionMethods.GZip,
-		ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-	}) {
-		BaseAddress = new Uri(
+	public string AddressUri { get; } =
 #if DEBUG
 					"http://127.0.0.1:3042"
 #else
 					"https://chameleon-ws.onrender.com"
 #endif
-			)
+	;
+	public HttpClient HttpClient => new(new HttpClientHandler {
+		AutomaticDecompression = DecompressionMethods.GZip,
+		ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+	}) {
+		BaseAddress = new Uri(AddressUri)
 	};
 
-	//
-	private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Request @params) {
+	internal async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Request @params) {
+		using var client = this.HttpClient;
 		if (@params.Authenticate) {
 			var (auth0client, authentication) = await Session.Instance.Authenticate();
-			HttpClient.DefaultRequestHeaders.Authorization = authentication;
-			HttpClient.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
+			client.DefaultRequestHeaders.Authorization = authentication;
+			client.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
 		}
 
 		var requestUri = $"{path}{@params.Q ?? ""}";
-		using var response = await HttpClient.SendAsync(new HttpRequestMessage(method, requestUri) {
+		using var response = await client.SendAsync(new HttpRequestMessage(method, requestUri) {
 			Content = @params.Content
 		}, @params.CompletionOption);
 
@@ -53,7 +55,7 @@ public class Client {
 
 		var content = await response.Content.ReadAsStringAsync();
 		return
-			response.IsSuccessStatusCode ? JS.DeserializeSafely<T>(content) 
+			response.IsSuccessStatusCode ? JS.DeserializeSafely<T>(content)
 			: @params.EnsureSuccess == true
 				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
 					(
@@ -65,14 +67,5 @@ public class Client {
 	}
 
 	//
-	public Task<T?> Get<T>(string path, Request? @params = null) =>
-		SendRequestAsync<T>(HttpMethod.Get, path, @params ??= new());
-	public Task<T?> Post<T>(string path, Request @params) =>
-		SendRequestAsync<T>(HttpMethod.Post, path, @params);
-	public Task<T?> Put<T>(string path, Request @params) =>
-		SendRequestAsync<T>(HttpMethod.Put, path, @params);
-	public Task<T?> Delete<T>(string path, Request? @params = null) =>
-		SendRequestAsync<T>(HttpMethod.Delete, path, @params ??= new());
-
 	public static Client Instance { get; } = new();
 }
