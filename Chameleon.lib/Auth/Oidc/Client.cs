@@ -50,11 +50,11 @@ public class Client {
 		var token = JsonSerializer.Deserialize<TokenResponse>(res, JS.CaseInsensitiveOptions);
 		ArgumentNullException.ThrowIfNull(token, "Token not found in response");
 		
-		IoC.SetJsonValue(token, nameof(TokenResponse));
+		SaveToken(token);
 		return token;
 	}
 	private void SaveToken(TokenResponse token) {
-		IoC.SetJsonValue(token, nameof(TokenResponse));
+		IoC.SetJsonVal(token, nameof(TokenResponse));
 	}
 	private async Task<TokenResponse> GetNewToken(string code) {
 		using var client = new HttpClient();
@@ -97,6 +97,7 @@ public class Client {
 	/// <param name="refreshToken"></param>
 	/// <returns></returns>
 	public async Task RefreshToken() {
+		ArgumentNullException.ThrowIfNull(Token!.refresh_token, "Token not found");
 		using var client = new HttpClient();
 		var res = await client.PostAsync(
 				$"https://{Domain}/oauth/token",
