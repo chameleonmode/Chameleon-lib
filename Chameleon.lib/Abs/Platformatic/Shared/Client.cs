@@ -20,11 +20,11 @@ public class Client {
 
 	//
 	public string AddressUri { get; } =
-#if DEBUG
+		#if DEBUG
 					"http://127.0.0.1:3042"
-#else
+		#else
 					"https://chameleon-ws.onrender.com"
-#endif
+		#endif
 	;
 	public HttpClient HttpClient => new(new HttpClientHandler {
 		AutomaticDecompression = DecompressionMethods.GZip,

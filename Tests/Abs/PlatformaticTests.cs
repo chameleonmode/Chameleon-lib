@@ -54,7 +54,7 @@ public class PlatformaticTests : TestSetup {
 	public async Task DB_Tags() {
 		await DB.Instance.EnsureUser();
 		// Create a tag
-		var name = "tester5";
+		var name = "tester8";
 		var create = await DB.Instance.CreateTag(name, []);
 		Assert.NotNull(create);
 		Assert.Equal(name, create.Name);
@@ -231,7 +231,7 @@ public class PlatformaticTests : TestSetup {
 		var user = await DB.Routes.User.GetDBuser;
 		Assert.NotNull(user);
 
-		var email = "1@example.com";
+		var email = "2@example.com";
 		var create = await DB.Routes.User.CreateUser(email);
 		Assert.NotNull(create);
 		var any = await DB.Routes.User.GetAnyDBuser(email);

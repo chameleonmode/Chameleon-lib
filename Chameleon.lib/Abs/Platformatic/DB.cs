@@ -213,13 +213,19 @@ public class DB : Base {
 	}
 
 	public async Task<IEnumerable<Tag>?> SearchTags(string pattern) {
-		return await Get<IEnumerable<Tag>>($"{Routes.tags}/", new(
-				Q: $"?where.name.like={Uri.EscapeDataString($"%{pattern}%")}"
-		));
+		var tags = new List<Tag>();
+		do {
+			var tag = await Get<IEnumerable<Tag>>($"{Routes.tags}/",
+				new(Q: $"?where.name.like={Uri.EscapeDataString($"%{pattern}%")}&offset={tags.Count}&limit=100")
+			);
+			if (tag == null || !tag.Any()) break;
+			tags.AddRange(tag);
+		} while (true);
+		return tags;
 	}
 
 	public async Task<IEnumerable<ItemTag>?> GetItemTagsForTag(int id) {
-		return await Get<IEnumerable<ItemTag>>($"{Routes.tags}/{id}/itemTagTagName");
+		return await Get<IEnumerable<ItemTag>>($"{Routes.tags}/{id}/itemTagTagName?limit=100");
 	}
 	#endregion
 
