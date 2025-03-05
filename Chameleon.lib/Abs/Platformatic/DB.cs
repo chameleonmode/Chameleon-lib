@@ -1,157 +1,305 @@
-﻿using Chameleon.lib.Auth;
+﻿using Chameleon.lib.Abs.Platformatic.Shared;
+using Chameleon.lib.Auth;
 using Chameleon.lib.Const;
-using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
-public class DB {
+public class DB : Base {
 	DB() { }
-	public Client Client { get; } = Client.Instance;
 
-	#region Props
-	//
-	Task<PlatformaticUser?> GetDBuser =>
-		Client.Get<PlatformaticUser>(Configs.Endpoints.DB.USER,
-			new(
-				Q: $"?email={Uri.EscapeDataString(Session.Instance.Login!.LoginName)}", EnsureSuccess: false
-			)
-		);
-	public PlatformaticUser? DBuser { get; private set; }
-	//
-	Task<IEnumerable<PlatformaticUser>?> GetDBusers =>
-		Client.Get<IEnumerable<PlatformaticUser>>("/db/userz");
-	public IEnumerable<PlatformaticUser>? DBusers { get; private set; }
-	// 
-	object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
-	public Task<PlatformaticUser?> ValidateLicese =>
-		Client.Post<PlatformaticUser>(Configs.Endpoints.LICENSE.ACTIVATE,
-			new(Body: LicenseBody)
-		);
-	public Task<KickLicenseData?> KickLicenseData =>
-		Client.Post<KickLicenseData>(Configs.Endpoints.LICENSE.DATA,
-			new(Body: LicenseBody)
-		);
-	public Task<KickLicenseStatus?> KickLicenseStatus =>
-		Client.Post<KickLicenseStatus>(Configs.Endpoints.LICENSE.STATUS,
-			new(Body: LicenseBody)
-		);
-	public Task<KickCustomer?> KickCustomer =>
-		Client.Post<KickCustomer>(Configs.Endpoints.LICENSE.CUSTOMER,
-			new(Body: new { email = Session.Instance.Login!.LoginName })
-		);
-	// 
-	public Task<AppClientInfo?> GetLatestVersion =>
-		Client.Get<AppClientInfo>(Configs.Endpoints.APP.LATEST,
-			new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authorize: false)
-		);
-	public AppClientInfo? LatestVersion { get; private set; }
+	#region Models / Dto's
+	public record User(
+		object Id,
+		string UserId,
+		string Email,
+		string LicenseKey,
+		string TenantId,
+		string Provider,
+		string ProviderId,
+		DateTime CreatedAt,
+		DateTime UpdatedAt
+	);
+	public record DataInteraction(
+		object Id,
+		string InteractionId,
+		string TenantId,
+		string SenderId,
+		string ReceiverId,
+		string DataType,
+		string DataPayload,
+		DateTime CreatedAt
+	);
+	public record Tag(int Id, string Name, string Items, string TenantId);
+	public record ItemTag(string TagItemType, string TagItemId, string TagName, string TenantId);
 	#endregion
 
-	//Auth
-	bool ranLicenseCheck = false;
-	public async Task EnsureUser() {
-		DBuser ??= await GetDBuser ?? await ValidateLicese;
-		ArgumentNullException.ThrowIfNull(DBuser, "User not found");
-		DBusers ??= await GetDBusers;
-		//
-		LatestVersion ??= await GetLatestVersion;
-		// Double check license key if it's null
-		// TODO: Remove this after all users have migrated to auth0
-		if (!ranLicenseCheck && DBuser.licenseKey == null) {
-			DBuser = (await ValidateLicese) ?? DBuser;
-			ranLicenseCheck = true;
+	#region  Routes
+	public static class Routes {
+		public const string users = "/users";
+		public const string dataInteractions = "/dataInteractions";
+		public const string tags = "/tags";
+		public const string itemTags = "/itemTags";
+
+		public static class License {
+			public const string prefix = "/license";
+			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
+			public static Task<DB.User?> Update => Post<DB.User>($"{prefix}/update",
+				new(Body: new {
+					license_key = Session.Instance.Login!.LicenseKey,
+					email = Session.Instance.Login!.LoginName
+				})
+			);
+
+			public record Data(string License_key, string Purchase_id, int Product_id, int Status, object Guid);
+			public static Task<Data?> KickLicenseData => Post<Data>($"{prefix}/data",
+				new(Body: LicenseBody)
+			);
+
+			public record Status(int Valid, int Active, object Guid);
+			public static Task<Status?> KickLicenseStatus => Post<Status>($"{prefix}/status",
+				new(Body: LicenseBody)
+			);
+
+			public record Customer(bool Status, string Secret);
+			public static Task<Customer?> KickCustomer => Post<Customer>($"{prefix}/customer",
+				new(Body: new { email = Session.Instance.Login!.LoginName })
+			);
 		}
-	}
 
-	#region GET's
-	public async Task<List<PlatformaticDataInteraction>?> GetDataInteractions() {
-		await EnsureUser();
-		return await Client.Get<List<PlatformaticDataInteraction>>(Configs.Endpoints.DataInteractions);
-	}
-	public async Task<IEnumerable<CookyPayload<T>>?> GetCookyDataInteractions<T>() {
-		var interactions = await GetDataInteractions();
-		return interactions?
-			.Where(i => i.dataType == "cooky")
-			.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.dataPayload))
-			.Where(payload => payload != null)!;
-	}
-	public async Task<bool> DownloadLatest(Action<string> onProgress) {
-		//await EnsureUser();
-
-		// Local path where the downloaded file will be saved
-		var ext = OperatingSystem.IsMacOS() ? "zip" : "7z";
-		// Send an asynchronous GET request and ensure headers are read before downloading the stream
-		using var response = await Client.HttpClient.GetAsync(Configs.Endpoints.APP.DOWNLOAD + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
-		_ = response.EnsureSuccessStatusCode();
-
-		// Get the file name from the Content-Disposition header
-		var fileName = response.Content.Headers.ContentDisposition?.FileName ?? "Chameleon." + ext;
-		var outputFile = Path.Combine(FilePaths.AppDownloadDir, fileName);
-
-		// Get the total number of bytes (if available)
-		var totalBytes = response.Content.Headers.ContentLength;
-		var buffer = new byte[8192];
-		double lastProgressReported = 0; // Tracks the last reported progress percentage
-		long totalBytesRead = 0;
-		int bytesRead;
-
-		// Open a stream to write the downloaded content to a file
-		using var contentStream = await response.Content.ReadAsStreamAsync();
-		using var fileStream = new FileStream(outputFile, FileMode.Create, FileAccess.Write, FileShare.None, 8192, useAsync: true);
-
-		// Read the content stream in chunks
-		while ((bytesRead = await contentStream.ReadAsync(buffer)) > 0) {
-			// Write the chunk to the file
-			await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-			totalBytesRead += bytesRead;
-
-			// Report progress only if totalBytes is available and we've passed the next 10% increment.
-			if (totalBytes.HasValue) {
-				var progressPercentage = (double)totalBytesRead / totalBytes.Value * 100;
-				if (progressPercentage - lastProgressReported >= 10 || progressPercentage >= 100) {
-					lastProgressReported = Math.Floor(progressPercentage / 10) * 10;
-					var progress = $"Downloaded {totalBytesRead} of {totalBytes.Value} bytes ({progressPercentage:0.00}%)";
-					onProgress(progress);
-				}
-			} else {
-				// If total size is unknown, report the raw byte count (or customize as needed)
-				onProgress($"Downloaded {totalBytesRead} bytes");
+		public static class User {
+			public const string prefix = "/db/user";
+			public static Task<DB.User?> GetDBuser => Get<DB.User>($"{prefix}/", new(EnsureSuccess: false));
+			public static Task<IEnumerable<DB.User>?> GetDBusers => Get<IEnumerable<DB.User>>($"{prefix}/all");
+			public static Task<DB.User?> GetAnyDBuser(string email) => Get<DB.User>($"{prefix}/any",
+				new(
+					Q: $"?email={Uri.EscapeDataString(email)}",
+					EnsureSuccess: false
+				)
+			);
+			public static Task<IEnumerable<DB.User>?> CreateUser(string email) {
+				return Post<IEnumerable<DB.User>>($"{prefix}/", new(Q: $"?email={Uri.EscapeDataString(email)}"));
 			}
 		}
 
-		ProcessUtil.OpenFolder(FilePaths.AppDownloadDir);
+		public static class Cooky {
+			public const string prefix = "/db/cooky";
+			public const string DataType = "cooky";
+			public record CookyPayload<T>(string ProfileId, T[] CookiesJs);
+			public static async Task<IEnumerable<CookyPayload<T>>?> GetCookies<T>() =>
+			 (await Get<IEnumerable<DataInteraction>?>(prefix + "/"))?
+			 		.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.DataPayload))
+			 		.Where(x => x != null)!;
 
-		return File.Exists(outputFile);
-	}
-	#endregion
-
-	#region POST's
-	public async Task CreateUser(string email) {
-		await EnsureUser();
-
-		DBusers = await Client.Post<IEnumerable<PlatformaticUser>?>(Configs.Endpoints.DB.USER,
-			new(Body: new { email })
-		);
-	}
-	public async Task<PlatformaticDataInteraction?> SendCookies<T>(
-			string receiverEmail,
-			string profileId,
-			IReadOnlyList<T> cookiesJs
-	) {
-		await EnsureUser();
-		return await Client.Post<PlatformaticDataInteraction>(Configs.Endpoints.DB.COOKIES,
-			new(
-				Body: new { receiverEmail, payload = new { profileId, cookiesJs } }
-			)
-		);
-	}
-	#endregion
-
-	#region DELETE's
-	public async Task DeleteDataInteractions() {
-	  var interactions = await GetDataInteractions();
-		foreach (var interaction in interactions!) {
-			_ = await Client.Delete<object>($"{Configs.Endpoints.DataInteractions}/{interaction.id}");
+			public static Task<DataInteraction?> SendCookies<T>(
+				string email,
+				string profileId,
+				IReadOnlyList<T> cookiesJs
+			) {
+				return Post<DataInteraction>($"{prefix}/",
+					new(Body: new { email, payload = new { profileId, cookiesJs } })
+				);
+			}
 		}
+	}
+	#endregion
+
+	#region Props
+	public User? DBuser { get; private set; }
+	public IEnumerable<User>? DBusers { get; private set; }
+	public Routes.License.Status? KickLickenseStatus { get; private set; }
+	public Routes.License.Customer? KickCustomer { get; private set; }
+	public Routes.License.Data? KickLicenseData { get; private set; }
+	#endregion
+
+	#region User's
+	public async Task EnsureUser() {
+		if (DBuser != null) return;
+		DBuser ??= await Routes.User.GetDBuser ?? await Routes.License.Update;
+		KickCustomer ??= await Routes.License.KickCustomer;
+
+		if (DBuser!.LicenseKey == null && KickCustomer?.Status == true) {
+			DBuser = await Routes.License.Update ?? DBuser;
+		}
+
+		if (DBuser.LicenseKey != null) {
+			KickLickenseStatus ??= await Routes.License.KickLicenseStatus;
+			KickLicenseData ??= await Routes.License.KickLicenseData;
+		}
+
+		DBusers ??= await Routes.User.GetDBusers;
+	}
+	#endregion
+
+	#region DataInteraction's
+	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions() {
+		return await Get<IEnumerable<DataInteraction>>(Routes.dataInteractions + "/");
+	}
+	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions(string dataType) {
+		return (await GetDataInteractions())?.Where(i => i.DataType == dataType); ;
+	}
+	public record PostDataInteractionRequest(string ReceiverId, string DataType, object DataPayload);
+	public async Task<DataInteraction?> PostDataInteraction(PostDataInteractionRequest request) {
+		return await Post<DataInteraction>(Routes.dataInteractions + "/", new(
+			Body: new {
+				interactionId = Guid.NewGuid().ToString(),
+				tenantId = DBuser!.TenantId,
+				senderId = DBuser.UserId,
+				receiverId = request.ReceiverId,
+				dataType = request.DataType,
+				dataPayload = JS.Serialize(request.DataPayload)
+			}
+		));
+	}
+	public async Task DeleteDataInteractions(string? dataType = null) {
+		var interactions = await GetDataInteractions();
+		if (interactions == null) return;
+
+		interactions = dataType == null ? interactions
+		: interactions.Where(i => i.DataType == dataType);
+
+		foreach (var interaction in interactions) {
+			_ = await Delete<object>($"{Routes.dataInteractions}/{interaction.Id}");
+		}
+	}
+	#endregion
+
+	#region Tag's
+	public async Task<IEnumerable<Tag>?> GetTags() {
+		var tags = new List<Tag>();
+		do {
+			var tag = await Get<IEnumerable<Tag>>($"{Routes.tags}/",
+				new(Q: $"?offset={tags.Count}&limit=100")
+			);
+			if (tag == null || !tag.Any()) break;
+			tags.AddRange(tag);	
+		} while (true);
+		return tags;
+	}
+
+	public async Task<Tag?> CreateTag(string name, Dictionary<string, List<string>> items) {
+		return await Post<Tag>($"{Routes.tags}/", new(
+				Body: new {
+					name,
+					items = JS.Serialize(items),
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<Tag?> UpdateTag(int id, string name, Dictionary<string, List<string>> items) {
+		return await Put<Tag>($"{Routes.tags}/{id}", new(
+				Body: new {
+					name,
+					items = JS.Serialize(items),
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<Tag?> GetTag(int id) {
+		return await Get<Tag>($"{Routes.tags}/{id}", 
+			new(EnsureSuccess: false)
+		);
+	}
+
+	public async Task<Tag?> GetTagBy(string name) {
+		var tags =  await Get<IEnumerable<Tag>>($"{Routes.tags}/", new(
+				Q: $"?where.name.eq={Uri.EscapeDataString($"{name}")}"
+		));
+		return tags?.FirstOrDefault();
+	}
+
+	public async Task DeleteTag(int id) {
+		_ = await Delete<object>($"{Routes.tags}/{id}");
+	}
+
+	public async Task<IEnumerable<Tag>?> SearchTags(string pattern) {
+		var tags = new List<Tag>();
+		do {
+			var tag = await Get<IEnumerable<Tag>>($"{Routes.tags}/",
+				new(Q: $"?where.name.like={Uri.EscapeDataString($"%{pattern}%")}&offset={tags.Count}&limit=100")
+			);
+			if (tag == null || !tag.Any()) break;
+			tags.AddRange(tag);
+		} while (true);
+		return tags;
+	}
+
+	public async Task<IEnumerable<ItemTag>?> GetItemTagsForTag(int id) {
+		return await Get<IEnumerable<ItemTag>>($"{Routes.tags}/{id}/itemTagTagName?limit=100");
+	}
+	#endregion
+
+	#region ItemTag's
+	public async Task<IEnumerable<ItemTag>?> GetItemTags() {
+		var tags = new List<ItemTag>();
+		do {
+			var tag = await Get<IEnumerable<ItemTag>>($"{Routes.itemTags}/",
+				new(Q: $"?offset={tags.Count}&limit=100")
+			);
+			if (tag == null || !tag.Any()) break;
+			tags.AddRange(tag);
+		} while (true);
+		return tags;
+	}
+
+	public async Task<ItemTag?> CreateItemTag(string tagItemType, string tagItemId, string tagName) {
+		return await Post<ItemTag>($"{Routes.itemTags}/", new(
+				Body: new {
+					tagItemType,
+					tagItemId,
+					tagName,
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<ItemTag?> UpdateItemTag(string tagItemType, string tagItemId, string tagName) {
+		return await Put<ItemTag>($"{Routes.itemTags}/", new(
+				Body: new {
+					tagItemType,
+					tagItemId,
+					tagName,
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<ItemTag?> GetItemTagBy(string tagItemType, string tagItemId, string tagName) {
+		return await Get<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", 
+			new(EnsureSuccess: false)
+		);
+	}
+
+	public async Task<ItemTag?> CreateItemTagBy(string tagItemType, string tagItemId, string tagName) {
+		return await Post<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", new(
+				Body: new {
+					tagItemType,
+					tagItemId,
+					tagName,
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<ItemTag?> UpdateItemTagBy(string tagItemType, string tagItemId, string tagName) {
+		return await Put<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", new(
+				Body: new {
+					tagItemType,
+					tagItemId,
+					tagName,
+					tenantId = DBuser!.TenantId
+				}
+		));
+	}
+
+	public async Task<ItemTag?> DeleteItemTagBy(string tagItemType, string tagItemId, string tagName) {
+		return await Delete<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}");
+	}
+
+	public async Task<IEnumerable<ItemTag>?> GetItemTagsForItem(string tagItemType, string tagItemId) {
+		return await Get<IEnumerable<ItemTag>>($"{Routes.itemTags}/", new(
+				Q: $"?where.tagItemType.eq={Uri.EscapeDataString(tagItemType)}&where.tagItemId.eq={Uri.EscapeDataString(tagItemId)}"
+		));
 	}
 	#endregion
 

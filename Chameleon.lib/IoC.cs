@@ -79,15 +79,17 @@ public class IoC {
 	//
 	public static void SetJsonValue<T>(T value, params string[] keys) {
 		var key = string.Join('_', keys).Replace(' ', '_');
+		SetJsonVal(value, key, "Settings saved");
+	}
+	public static void SetJsonVal<T>(T value, string key, string? message = null) {
 		var newValue = JsonSerializer.Serialize(value);
 		var currentValue = Instance.Config!.GetValue<string>(key);
-
 		if (string.Equals(newValue, currentValue, StringComparison.Ordinal)) {
 			return; // Serialized JSON is unchanged; no update required.
 		}
-
 		Instance.Config!.SetValue(key, newValue);
-		Toaster.Success("Settings saved");
+		if (message != null)
+			Toaster.Success(message);
 	}
 	public static T? GetJsonValue<T>(params string[] keys) => GetValue<string>(string.Join('_', keys)) is string val ? JsonSerializer.Deserialize<T>(val) : default;
 	public static Task SetValueAsync<T>(T value, params string[] keys) => Task.Run(() => SetValue(value, keys));

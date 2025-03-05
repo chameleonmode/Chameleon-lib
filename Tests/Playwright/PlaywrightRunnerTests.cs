@@ -82,7 +82,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestRedditCommentScript() {
 		var search = "tangy sauce";
-		var res = await Plair.Instance.Ask(new(
+		var res = await Service.Routes.Air.Ask(new(
 				"reddit",
 				new {
 					keyword = search,

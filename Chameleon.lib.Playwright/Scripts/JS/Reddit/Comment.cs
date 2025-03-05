@@ -1,6 +1,5 @@
 ﻿using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Playwright.node;
 
 namespace Chameleon.lib.Playwright.Scripts.JS.Reddit;
 public class Comment : IBundledJSScript
@@ -15,7 +14,7 @@ public class Comment : IBundledJSScript
 
 	public async Task<IDictionary<string, string>?> GetOptions(IDictionary<string, string>? options = null)
 	{
-		var res = await Plair.Instance.Ask(new(
+		var res = await Service.Routes.Air.Ask(new(
 			"reddit",
 				new
 				{

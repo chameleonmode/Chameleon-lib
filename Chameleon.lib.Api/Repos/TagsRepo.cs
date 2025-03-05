@@ -1,173 +1,55 @@
-﻿using Chameleon.lib.Common.Models.Dto;
-using Chameleon.lib.Storage;
+﻿using Chameleon.lib.Abs.Platformatic;
+using Chameleon.lib.Common.Models.Dto;
+using Chameleon.lib.Const;
 using DynamicData;
 using System.Data;
-using System.Text.Json;
 
 namespace Chameleon.lib.Api.Repos;
 public class TagsRepo {
+	TagsRepo() { }
+	
+	readonly SourceCache<TagDto, string> cache = new(tag => tag.Name);
+	public IObservableCache<TagDto, string> Cache => cache;
 
-	private static readonly SourceCache<TagDto, string> cache = new(tag => tag.Name);
-
-	public static IObservableCache<TagDto, string> Cache => cache;
-
-	private readonly SqliteStorageService storage = SqliteStorageService.Instance;
-
-	private bool isInitialized = false;
-
-	private TagsRepo() {
-		Initialize();
-	}
-	public void Initialize() {
-		if (!isInitialized) {
-			storage.CreateTable(
-					tableName: "Tags",
-					columns: new Dictionary<string, string>
-					{
-															{ "Name",  "TEXT PRIMARY KEY" },
-															{ "Items", "TEXT"             }
-					}
-					);
-
-			storage.CreateTable(
-					tableName: "ItemTags",
-					columns: new Dictionary<string, string>
-					{
-										{ "TagItemType", "TEXT" },
-										{ "Id",          "TEXT" },
-										{ "TagName",     "TEXT" }
-					}
-			);
-
-			LoadCacheFromDatabase();
-
-			isInitialized = true;
-		}
-	}
-
-	public static IObservable<IChangeSet<TagDto, string>> Connect(
-						Func<TagDto, bool>? predicate = null,
-						bool suppressEmptyChangeSets = true)
-						=> Cache.Connect(predicate, suppressEmptyChangeSets);
-
-	public Task<TagDto?> FindTagAsync(string tagName) {
-		if (string.IsNullOrEmpty(tagName))
-			return Task.FromResult<TagDto?>(null);
-
-		var dataTable = storage.Query(
-				"SELECT Items FROM Tags WHERE Name=@name",
-				new Dictionary<string, object> { { "name", tagName } }
+	public async Task Load() {
+		var list = (await DB.Instance.GetTags())?.Select(
+			t => new TagDto(t.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(t.Items) ?? [])
 		);
-
-		if (dataTable.Rows.Count == 0)
-			return Task.FromResult<TagDto?>(null);
-
-		var itemsJson = dataTable.Rows[0]["Items"]?.ToString() ?? "{}";
-		var itemsDict = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(itemsJson)
-									 ?? [];
-
-		var tag = new TagDto(tagName, itemsDict);
-		return Task.FromResult<TagDto?>(tag);
+		cache.Edit(updater => {
+			updater.Clear();
+			updater.AddOrUpdate(list ?? []);
+		});
 	}
 
-	public Task<IEnumerable<TagDto>> SearchTagAsync(string tagName) {
-		if (string.IsNullOrEmpty(tagName))
-			return Task.FromResult<IEnumerable<TagDto>>([]);
-
-		var dataTable = storage.Query(
-				"SELECT Name, Items FROM Tags WHERE Name LIKE @tagName",
-				new Dictionary<string, object> { { "tagName", $"%{tagName}%" } }
-		);
-
-		var results = new List<TagDto>();
-		foreach (DataRow row in dataTable.Rows) {
-			var name = row["Name"]?.ToString() ?? string.Empty;
-			var itemsJson = row["Items"]?.ToString() ?? "{}";
-			var itemsDict = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(itemsJson)
-										 ?? [];
-			results.Add(new TagDto(name, itemsDict));
-		}
-
-		return Task.FromResult<IEnumerable<TagDto>>(results);
+	public async Task<TagDto?> FindTagAsync(string tagName) {
+		var tag = await DB.Instance.GetTagBy(tagName);
+		return tag == null ? null 
+			: new TagDto(tag.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(tag.Items) ?? []);
 	}
 
-	public Task<IEnumerable<string>> SetTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {
-
-		_ = storage.Delete(
-				"ItemTags",
-				"TagItemType=@type AND Id=@id",
-				new Dictionary<string, object>
-				{
-										{ "type", tagItemType },
-										{ "id",   id           }
-				}
-		);
-
-		foreach (var tag in tags) {
-			var values = new Dictionary<string, object>
-			{
-										{ "TagItemType", tagItemType },
-										{ "Id",          id           },
-										{ "TagName",     tag            }
-								};
-			_ = storage.Insert("ItemTags", values);
+	public async Task<IEnumerable<string>> SetTagsAsync(string tagItemType, string tagItemId, IEnumerable<string> tags) {
+		foreach (var tagName in tags) {
+			_ = await DB.Instance.GetItemTagBy(tagItemType, tagItemId, tagName) is null 
+				? await DB.Instance.CreateItemTag(tagItemType, tagItemId, tagName)
+				: await DB.Instance.UpdateItemTagBy(tagItemType, tagItemId, tagName);
 		}
-
-		return Task.FromResult(tags);
+		return tags;
 	}
 
-	public Task<IEnumerable<string>> GetTagsAsync(string tagItemType, string id) {
-		var dataTable = storage.Query(
-				"SELECT TagName FROM ItemTags WHERE TagItemType=@type AND Id=@id",
-				new Dictionary<string, object>
-				{
-										{ "type", tagItemType },
-										{ "id",   id           }
-				}
-		);
-
-		var results = new List<string>();
-		foreach (DataRow row in dataTable.Rows) {
-			if (row["TagName"] != null) {
-				results.Add(row["TagName"].ToString()!);
-			}
-		}
-
-		return Task.FromResult<IEnumerable<string>>(results);
+	public async Task<IEnumerable<string>> GetTagsAsync(string tagItemType, string tagItemId) {
+		return (await DB.Instance.GetItemTagsForItem(tagItemType, tagItemId))?.Select(it => it.TagName) ?? [];
 	}
 
 	public async Task<TagDto> SaveAsync(TagDto tag) {
-
-		var existingTag = await FindTagAsync(tag.Name);
-
-		var itemsJson = JsonSerializer.Serialize(tag.Items);
-
-		_ = existingTag == null
-			? storage.Insert(
-					"Tags",
-					new Dictionary<string, object>
-					{
-												{ "Name",  tag.Name  },
-												{ "Items", itemsJson }
-					}
-			)
-			: storage.Update(
-					"Tags",
-					new Dictionary<string, object>
-					{
-												{ "Items", itemsJson }
-					},
-					"Name=@name",
-					new Dictionary<string, object> { { "name", tag.Name } }
-			);
-
+		var existing = await DB.Instance.GetTagBy(tag.Name);
+		var current = existing == null
+			? await DB.Instance.CreateTag(tag.Name, tag.Items)
+			: await DB.Instance.UpdateTag(existing.Id, tag.Name, tag.Items);
 		cache.Edit(updater => updater.AddOrUpdate(tag));
-
-		return tag;
+		return cache.Lookup(tag.Name).Value;
 	}
 
 	public async Task<TagDto> SaveAsync(string tagName, TagItemDto tagItem) {
-
 		var tag = await FindTagAsync(tagName) ?? new TagDto(tagName, []);
 
 		if (!tag.Items.ContainsKey(tagItem.Type)) {
@@ -179,8 +61,7 @@ public class TagsRepo {
 			}
 		}
 
-		_ = await SaveAsync(tag);
-		return tag;
+		return await SaveAsync(tag);
 	}
 
 	public async Task<TagDto> UpdateAsync(string tagName, string tagItemType, string id) {
@@ -223,29 +104,9 @@ public class TagsRepo {
 		}
 	}
 
-	private void LoadCacheFromDatabase() {
-		var dt = storage.Query("SELECT Name, Items FROM Tags");
-		var list = new List<TagDto>();
-
-		foreach (DataRow row in dt.Rows) {
-			var name = row["Name"]?.ToString() ?? string.Empty;
-			var itemsJson = row["Items"]?.ToString() ?? "{}";
-			var itemsDict = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(itemsJson)
-										 ?? [];
-			list.Add(new TagDto(name, itemsDict));
-		}
-
-		cache.Edit(updater => updater.AddOrUpdate(list));
-	}
-
-	private static TagsRepo? _instance;
-	private static readonly object _lock = new();
-	public static TagsRepo Instance {
-		get {
-			lock (_lock) {
-				return _instance ??= new TagsRepo();
-			}
-		}
-	}
-
+	public static TagsRepo Instance { get; } = new();
+	public static IObservable<IChangeSet<TagDto, string>> Connect(
+		Func<TagDto, bool>? predicate = null,
+		bool suppressEmptyChangeSets = true
+	) => Instance.Cache.Connect(predicate, suppressEmptyChangeSets);
 }
