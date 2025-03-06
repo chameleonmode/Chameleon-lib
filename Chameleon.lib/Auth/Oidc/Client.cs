@@ -16,7 +16,7 @@ public class Client {
 	readonly string codeVerifier;
 	readonly string codeChallenge;
 
-	AuthenticationHeaderValue? authorization;
+	public AuthenticationHeaderValue? Authorization { get; internal set; } 
 
 	public Browser OidcBrowser { get; } 
 	public string RedirectUri { get; }
@@ -122,16 +122,16 @@ public class Client {
 	}
 
 	internal async Task<AuthenticationHeaderValue> TryLogIn() {
-		if (authorization?.Parameter is null) {
+		if (Authorization?.Parameter is null) {
 			try {
 				await RefreshToken();
 			} catch {
 				await Login();
 			} finally {
-				authorization = new("Bearer", Token?.access_token);
+				Authorization = new("Bearer", Token?.access_token);
 			}
 		}
 
-		return authorization;
+		return Authorization;
 	}
 }

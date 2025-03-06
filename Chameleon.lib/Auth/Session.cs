@@ -20,8 +20,9 @@ public class Session {
 	public async Task Logout() {
 		try {
 			await Auth0Client.Logout();
+			Auth0Client.Authorization = null;
 			IoC.ClearValue(nameof(TokenResponse));
-		} catch {
+		} catch (Exception){
 			// ignore for now
 		} finally {
 			if (Login != null)
