@@ -62,7 +62,7 @@ public class Service : Base {
     
     public static class Air {
       public const string prefix = "/air";
-      public static readonly string[] backgrounds = ["sarcastic-ish", "informative-ish", "relatable", "straightforward"];
+      public static readonly string[] backgrounds = ["sarcastic", "informative", "relatable", "straightforward"];
 
       public record AskRequest(string Feature, object Scenario, string? Background = null);
       public record AskResponse(string Response);

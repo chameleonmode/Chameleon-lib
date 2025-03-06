@@ -17,15 +17,6 @@ public static class Enums {
 		}
 	}
 
-	public enum ExtensionType {
-		chromeleon,
-		proxychromeleon,
-		foxameleon,
-		foxyproxy,
-		//https://github.com/JeromeDane/chrome-extension-auto-reload/blob/master/src/js/background.js
-		extreloader,
-	}
-
 	public enum SystemBrowserType {
 		Unknown,
 		[Description("chrome")]

@@ -2,29 +2,23 @@
 
 namespace chameleon.assets;
 public class Loader {
-	private readonly Assembly _assembly = Assembly.GetExecutingAssembly();
+	Loader() { }
+	readonly Assembly assembly = Assembly.GetExecutingAssembly();
 
-	public Stream Open(Uri uri)
-	{
+	public Stream Open(Uri uri) {
 		return OpenResource(uri);
 	}
 
-	private Stream OpenResource(Uri uri)
-	{
-		ArgumentNullException.ThrowIfNull(uri, nameof(uri));
-
+	private Stream OpenResource(Uri uri) {
 		var resourcePath = uri.Authority;
-		var stream = _assembly.GetManifestResourceStream(resourcePath)
+		var stream = assembly.GetManifestResourceStream(resourcePath)
 				?? throw new FileNotFoundException($"Embedded resource not found: {resourcePath}");
 		return stream;
 	}
 
-	public IEnumerable<Uri> GetAssets(Uri uri, string? pattern = null)
-	{
-		ArgumentNullException.ThrowIfNull(uri, nameof(uri));
-
+	public IEnumerable<Uri> GetAssets(Uri uri, string? pattern = null) {
 		var basePath = GetResourcePath(uri);
-		var resources = _assembly
+		var resources = assembly
 			.GetManifestResourceNames()
 			.Where(x => x.StartsWith(basePath, StringComparison.OrdinalIgnoreCase));
 
@@ -35,8 +29,7 @@ public class Loader {
 		return resources.Select(x => new Uri($"embedded://{x}"));
 	}
 
-	private string GetResourcePath(Uri uri)
-	{
+	private string GetResourcePath(Uri uri) {
 		if (uri.Scheme is not "embedded")
 			throw new ArgumentException($"Unsupported URI scheme: {uri.Scheme}", nameof(uri));
 
@@ -47,12 +40,8 @@ public class Loader {
 		// Replace hyphens with underscores
 		path = path.Replace("-", "_");
 
-		return $"{_assembly.GetName().Name}.{path.Replace('/', '.')}";
+		return $"{assembly.GetName().Name}.{path.Replace('/', '.')}";
 	}
 
 	public static Loader Instance { get; } = new Loader();
-	private Loader()
-	{
-
-	}
 }

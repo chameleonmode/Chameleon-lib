@@ -1,15 +1,10 @@
 ﻿using System.Diagnostics;
-
-using Chameleon.lib.WebBrowser.Services;
-
-using static Chameleon.lib.Common.Constants.Enums;
+using chameleon.assets;
 
 namespace Tests.WebBrowser;
-public class ExtensionLoaderServiceTests : WebBroswserTestsBase {
+public class ExtensionLoaderServiceTests {
 	[Fact]
 	public async Task LoadExtension_ValidExtension_Succeeds() {
-		_ = await _tcs.Task;
-
 		// Arrange
 		var extensionType = ExtensionType.chromeleon;
 		var destinationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -24,7 +19,7 @@ public class ExtensionLoaderServiceTests : WebBroswserTestsBase {
 			//}
 
 			// Act
-			_ = await ExtensionLoaderService.LoadExtension(extensionType, destinationPath, settings);
+			_ = await ExtensionLoader.LoadExtension(extensionType, destinationPath, settings);
 
 			// Assert
 			var dest = Path.Combine(destinationPath, extensionType.ToString());

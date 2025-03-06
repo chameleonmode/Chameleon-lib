@@ -1,22 +1,9 @@
 ﻿using System.Diagnostics;
-using System.IO;
 using System.IO.Compression;
-using System.Text;
-using System.Text.Json;
-
-using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Common.Util;
 public static class IOtil {
-	public static async Task CopyFromStream(Stream stream, string destination)
-	{
-		using var assetStream = stream;
-		// Create a new file stream for the destination file
-		using var fileStream = new FileStream(destination, FileMode.Create, FileAccess.Write);
-		// Copy the asset stream to the file stream
-		await assetStream.CopyToAsync(fileStream).ConfigureAwait(false);
-	}
 
 	public static async Task DC(string directoryPath)
 	{
@@ -166,63 +153,6 @@ public static class IOtil {
 				Console.WriteLine($"Unexpected error: {ex.Message}");
 				throw; // Re-throw unexpected exceptions
 			}
-		}
-	}
-
-	public static string GetRelativePathFromAuthority(string[] authorityParts, string? relitiveTo = null)
-	{
-		var path = authorityParts.First().Replace('/', Path.DirectorySeparatorChar);
-		//
-		if (authorityParts.Length > 1) {
-			var relativePath = string.Join("/", authorityParts.Take(authorityParts.Length - 1)) + "." + authorityParts.Last();
-			path = relativePath.Replace('/', Path.DirectorySeparatorChar);
-		}
-		//
-		if (relitiveTo != null)
-			path = path[path.IndexOf(relitiveTo)..];
-		//
-		return path;
-	}
-
-	public static async Task CopyFromStream(Stream inputStream, string targetDir, string relativePath, string? header = null, string? version = null)
-	{
-		ArgumentNullException.ThrowIfNull(inputStream);
-
-		var desPath = Path.Combine(targetDir, relativePath);
-		var destDir = Path.GetDirectoryName(desPath);
-		ArgumentNullException.ThrowIfNull(destDir);
-
-		await CreateDirectoryAsync(destDir);
-
-		var tempFilePath = Path.GetTempFileName();
-		try {
-			using (var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
-				if (header.Is()) {
-					var headerBytes = Encoding.UTF8.GetBytes(header!);
-					await tempFileStream.WriteAsync(headerBytes);
-				}
-
-				await inputStream.CopyToAsync(tempFileStream);
-			}
-
-			if (version.Is()) {
-				// Read the JSON file
-				var jsonString = await File.ReadAllTextAsync(tempFilePath);
-				var manifest = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonString);
-
-				if (manifest != null && manifest.TryGetValue("version", out var value)) {
-						manifest["version"] = version!;
-
-						// Serialize back to JSON
-						jsonString = JsonSerializer.Serialize(manifest);
-				}
-
-				await File.WriteAllTextAsync(desPath, jsonString);
-			} else {
-				File.Copy(tempFilePath, desPath, true);
-			}
-		} finally {
-			File.Delete(tempFilePath);
 		}
 	}
 

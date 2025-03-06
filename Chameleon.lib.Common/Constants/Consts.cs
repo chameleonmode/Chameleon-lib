@@ -46,7 +46,6 @@ public static class Consts {
 	}
 
 	public static class Addons {
-		public const string AddonsEmbeddedDir = "embedded://chameleon.assets/addons";
 		public static string AddonExtentionDir => Path.Combine(FilePaths.AppTempDir, "Addons");
 		public static string CachedExtentionDir => Path.Combine(FilePaths.AppTempDir, "eleonextcache");
 		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()

@@ -1,11 +1,13 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using Chameleon.lib.Helpers;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Chameleon.lib.Playwright.node;
 public class PlaywrightTestRunner : IDisposable {
 	private readonly TaskCompletionSource<bool> _tcs = new();
 
+	readonly Func<string, Task<string>>? onAsk = null;
 	readonly Process nodeProcess;
 	readonly StreamWriter processInput;
 	readonly string file;
@@ -13,10 +15,8 @@ public class PlaywrightTestRunner : IDisposable {
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-	public static PlaywrightTestRunner Create(string relativePath) {
-		return new PlaywrightTestRunner(relativePath);
-	}
-	private PlaywrightTestRunner(string relativePath) {
+	public PlaywrightTestRunner(string relativePath, Func<string, Task<string>>? onAsk = null) {
+		this.onAsk = onAsk;
 		file = relativePath;
 		var nodePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
 #if DEBUG
@@ -49,13 +49,7 @@ public class PlaywrightTestRunner : IDisposable {
 				CreateNoWindow = true,
 			} 
 		};
-		nodeProcess.OutputDataReceived += (sender, e) => {
-			var output = e.Data ?? string.Empty;
-			Debug.WriteLine(output);
-			TestOutputReceived?.Invoke(this, output);
-			if (output == $"Try: {file} success")
-				_ = _tcs.TrySetResult(true);
-		};
+		nodeProcess.OutputDataReceived += OnOutputDataReceived;
 		nodeProcess.ErrorDataReceived += (sender, e) => {
 			var output = e.Data ?? string.Empty;
 			Debug.WriteLine(output);
@@ -69,6 +63,17 @@ public class PlaywrightTestRunner : IDisposable {
 		nodeProcess.BeginErrorReadLine();
 
 		processInput = nodeProcess.StandardInput;
+	}
+	public async void OnOutputDataReceived(object sender, DataReceivedEventArgs e) {
+		var output = e.Data ?? string.Empty;
+		Debug.WriteLine(output);
+		TestOutputReceived?.Invoke(this, output);
+		if (output == $"Try: {file} success")
+			_ = _tcs.TrySetResult(true);
+
+		if (output.StartsWith("Ask:") && onAsk is not null) {
+			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
+		}
 	}
 
 	public async Task RunTestAsync(int port, object? options = null) {

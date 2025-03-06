@@ -1,4 +1,3 @@
-using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Scripts.JS;
@@ -81,23 +80,14 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestRedditCommentScript() {
-		var search = "tangy sauce";
-		var res = await Service.Routes.Air.Ask(new(
-				"reddit",
-				new {
-					keyword = search,
-				}
-			)
-		);
-
-		var port = await OpenBrowser();
+		var port = 9613; 
+		//var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
 			BundledScript = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
 				Parameters: new() {
-					{"search", search},
-					{"comment", res!.Payload.Response}
+					{"search", "pulombo bumbo"}
 				}
 			)
 		});
