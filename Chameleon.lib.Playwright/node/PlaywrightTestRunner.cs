@@ -71,8 +71,8 @@ public class PlaywrightTestRunner : IDisposable {
 		if (output == $"Try: {file} success")
 			_ = _tcs.TrySetResult(true);
 
-		if (output.StartsWith("Asking: ") && onAsk is not null) {
-			processInput?.WriteLine(await onAsk(output[8..]));
+		if (output.StartsWith("Ask:") && onAsk is not null) {
+			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
 		}
 	}
 

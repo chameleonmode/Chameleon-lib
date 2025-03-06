@@ -89,14 +89,18 @@ public class DB : Base {
 			 		.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.DataPayload))
 			 		.Where(x => x != null)!;
 
-			public static Task<DataInteraction?> SendCookies<T>(
+			public static async Task<DataInteraction?> SendCookies<T>(
 				string email,
 				string profileId,
 				IReadOnlyList<T> cookiesJs
 			) {
-				return Post<DataInteraction>($"{prefix}/",
+				var res = await Post<DataInteraction>($"{prefix}/",
 					new(Body: new { email, payload = new { profileId, cookiesJs } })
 				);
+				if(!Instance.DBusers!.Any(u => u.Email == email))
+					Instance.DBusers = await User.GetDBusers;
+					
+				return res;
 			}
 		}
 	}
@@ -126,6 +130,16 @@ public class DB : Base {
 		}
 
 		DBusers ??= await Routes.User.GetDBusers;
+	}
+	public async Task<User?> CreateUser(string email) {
+		var res = await Routes.User.CreateUser(email);
+		DBusers = await Routes.User.GetDBusers;
+		return DBusers?.FirstOrDefault((u) => u.Email == email);
+	}
+	public async Task<User?> DeleteUser(string email) {
+		var id = DBusers?.FirstOrDefault(u => u.Email == email)?.Id;
+		if (id == null) return null;
+		return await Delete<User>($"{Routes.users}/{id}");
 	}
 	#endregion
 
