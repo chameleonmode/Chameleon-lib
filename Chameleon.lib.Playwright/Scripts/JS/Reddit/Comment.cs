@@ -12,17 +12,8 @@ public class Comment : IBundledJSScript
 		{ "search" , "Search" }
 	};
 
-	public async Task<IDictionary<string, string>?> GetOptions(IDictionary<string, string>? options = null)
+	public Task<IDictionary<string, string>?> GetOptions(IDictionary<string, string>? options = null)
 	{
-		var res = await Service.Routes.Air.Ask(new(
-			"reddit",
-				new
-				{
-					keyword = options!["search"],
-				}
-			)
-		);
-		options.Add("comment", res!.Payload.Response);
-		return options;
+		return Task.FromResult(options);
 	}
 }

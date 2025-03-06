@@ -1,36 +1,24 @@
 ﻿using System.Reflection;
 
 namespace chameleon.assets;
-public enum ExtensionType {
-	chromeleon,
-	proxychromeleon,
-	foxameleon,
-	foxyproxy
-}
-
 public class Loader {
 	Loader() { }
-	
-	private readonly Assembly _assembly = Assembly.GetExecutingAssembly();
+	readonly Assembly assembly = Assembly.GetExecutingAssembly();
 
 	public Stream Open(Uri uri) {
 		return OpenResource(uri);
 	}
 
 	private Stream OpenResource(Uri uri) {
-		ArgumentNullException.ThrowIfNull(uri, nameof(uri));
-
 		var resourcePath = uri.Authority;
-		var stream = _assembly.GetManifestResourceStream(resourcePath)
+		var stream = assembly.GetManifestResourceStream(resourcePath)
 				?? throw new FileNotFoundException($"Embedded resource not found: {resourcePath}");
 		return stream;
 	}
 
 	public IEnumerable<Uri> GetAssets(Uri uri, string? pattern = null) {
-		ArgumentNullException.ThrowIfNull(uri, nameof(uri));
-
 		var basePath = GetResourcePath(uri);
-		var resources = _assembly
+		var resources = assembly
 			.GetManifestResourceNames()
 			.Where(x => x.StartsWith(basePath, StringComparison.OrdinalIgnoreCase));
 
@@ -52,7 +40,7 @@ public class Loader {
 		// Replace hyphens with underscores
 		path = path.Replace("-", "_");
 
-		return $"{_assembly.GetName().Name}.{path.Replace('/', '.')}";
+		return $"{assembly.GetName().Name}.{path.Replace('/', '.')}";
 	}
 
 	public static Loader Instance { get; } = new Loader();

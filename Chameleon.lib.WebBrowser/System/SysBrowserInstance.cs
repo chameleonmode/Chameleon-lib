@@ -1,6 +1,5 @@
 ﻿using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
-using Chameleon.lib.Common.ServiceManagers;
 using Chameleon.lib.Common.Constants;
 using static Chameleon.lib.Common.Constants.Enums;
 using Chameleon.lib.Common.Interfaces.Sys;
@@ -17,8 +16,7 @@ public abstract class SysBrowserInstance
 	public Process? Brocess { get; set; }
 	public required SysBrowserSettings Settings { get; init; }
 
-	public async Task InitializeAsync(object? param = null)
-	{
+	public async Task InitializeAsync(object? param = null) {
 		if (Brocess is null) {
 			await InitializeExtensionPath();
 			if (LoadedTCS.Task.IsCompleted)
@@ -49,16 +47,14 @@ public abstract class SysBrowserInstance
 		}
 	}
 
-	public void InvokeEvent(SysBrowserEventType eventType)
-	{
+	public void InvokeEvent(SysBrowserEventType eventType) {
 		if (eventType == SysBrowserEventType.Foreground)
 			_ = ProUtil.TrySetForeground(Brocess);
 
 		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
 	}
 
-	public void Close()
-	{
+	public void Close() {
 		if (OperatingSystem.IsMacOS()) {
 			if (Brocess?.Id is int id)
 				MacOSWindowListener.Instance.RemPid(id);

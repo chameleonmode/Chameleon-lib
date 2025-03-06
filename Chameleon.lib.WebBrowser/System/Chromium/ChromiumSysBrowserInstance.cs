@@ -1,11 +1,10 @@
 ﻿using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using chameleon.assets;
 
-using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
@@ -13,16 +12,17 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	public override string ExePath => SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
 
 	// ...
-	protected override string GetCommandLineArguments()
-	{
+	protected override string GetCommandLineArguments() {
+		var exts = new[] {
+			Settings.DestExtentionsDir,
+			Settings.CachedExtentionsDir,
+			Settings.SysBrowseUserExtDir
+		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories);
+		
 		//https://niek.github.io/chrome-features/
 		//https://github.com/GoogleChrome/chrome-launcher/blob/main/src/flags.ts
-		List<string> args =
-		[
-			//BackgroundFetch
-
+		return string.Join(" ", [
 			"--enable-features=NetworkServiceInProcess2,WebContentsDiscard,SkiaGraphite,CooperativeScheduling,DeferSpeculativeRFHCreation",
-			//
 			"--disable-features=InstalledApp,InstalledAppProvider,FedCm,DIPS,OptimizationHints,GlobalMediaControls,AvoidUnnecessaryBeforeUnloadCheckSync,MediaRouter,DialMediaRouteProvider,CalculateNativeWinOcclusion,InterestFeedContentSuggestions,CertificateTransparencyComponentUpdater,PrivacySandboxSettings4",
 			// Disable all chrome extensions
 			//'--disable-extensions',
@@ -71,7 +71,6 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--propagate-iph-for-testing",
 			//
 			"--bypass-app-banner-engagement-checks",
-			//
 			"--disable-field-trial-config",
 			"--disable-session-crashed-bubble",
 			"--disable-hyperlink-auditing",
@@ -82,43 +81,16 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--ash-no-nudges",
 			"--silent-debugger-extension-api",
 			$"--remote-debugging-port={Settings.Port}",
-      //$"--window-name=\"{UserProfile.Title}\"",
-     ];
-
-		if (Settings.Profile.Proxy.CanUse) {
-			args.Add($"--proxy-server={Settings.Profile.Proxy.ServerForRequest}");
-		} else {
-			args.Add("--no-proxy-server");
-		}
-
-		args.Add($"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"");
-
-		List<string> exts = [];
-		if (Directory.Exists(Settings.DestExtentionsDir)) {
-			foreach (var item in Directory.GetDirectories(Settings.DestExtentionsDir)) {
-				exts.Add(item);
-			}
-		}
-		if (Directory.Exists(Settings.CachedExtentionsDir)) {
-			foreach (var item in Directory.GetDirectories(Settings.CachedExtentionsDir)) {
-				exts.Add(item);
-			}
-		}
-
-		if (Directory.Exists(Settings.SysBrowseUserExtDir))
-			exts.AddRange(Directory.GetDirectories(Settings.SysBrowseUserExtDir));
-
-		if (exts.Count > 0)
-			args.Add($"--load-extension=\"{exts.ToCommaSeparatedString()}\"");
-
-		args.Add($"about:blank");
-
-		return string.Join(" ", args);
+			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
+			Settings.Profile.Proxy.CanUse ? $"--proxy-server={Settings.Profile.Proxy.ServerForRequest}" : "--no-proxy-server",
+			Settings.Profile.Proxy.HasLogin ? $"--proxy-auth={Settings.Profile.Proxy.UserName}:{Settings.Profile.Proxy.Password}" : "",
+			exts.Any() ? $"--load-extension=\"{exts.ToCommaSeparatedString()}\"" : "",
+			"about:blank"
+		 ]);
 	}
 
 	// ...
-	protected override async Task InitializeExtensionPath()
-	{
+	protected override async Task InitializeExtensionPath() {
 		if (!File.Exists(PrefsFile)) {
 			_ = Directory.CreateDirectory(Path.GetDirectoryName(PrefsFile)!);
 			await File.AppendAllTextAsync(PrefsFile, "{\"extensions\": { \"ui\": { \"developer_mode\": true } }}");
@@ -137,23 +109,22 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			}
 		}
 
-		var extDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-    _ = await Settings.BuildMeleonExtSettings(extDir);
+		var extDir = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+		_ = await Settings.BuildMeleonExtSettings(extDir);
 
-    Settings.ExtentionsDirs.Add(Enums.ExtensionType.proxychromeleon, (
-      Settings.BuildProxyExtSettings(),
-      Guid.NewGuid().ToString(),
-      Settings.DestExtentionsDir)
-    );
+		Settings.ExtentionsDirs.Add(ExtensionType.proxychromeleon, (
+			Settings.BuildProxyExtSettings(),
+			Guid.NewGuid().ToString(),
+			Settings.DestExtentionsDir)
+		);
 
-    foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
-      _ = await ExtensionLoaderService.LoadExtension(ext, destDir, setting);
-    }
+		foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
+			_ = await ExtensionLoader.LoadExtension(ext, destDir, setting);
+		}
 	}
 
 	[SupportedOSPlatform("windows")]
-	protected override async Task WaitForWinHandle()
-	{
+	protected override async Task WaitForWinHandle() {
 		_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
 	}
 }

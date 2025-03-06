@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Chameleon.Assets\chameleon.assets.csproj" />
     <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
   </ItemGroup>
 

@@ -8,7 +8,7 @@ using Chameleon.lib.Common.Extensions;
 using System.Text;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Const;
-
+using chameleon.assets;
 namespace Chameleon.lib.Common.Models;
 public class EmulationOptions {
 	public bool AutoTimezone { get; set; } = true;
@@ -60,7 +60,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 
 	public SysBrowserEvent CreateEvent(Enums.SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
 
-	public Dictionary<Enums.ExtensionType, (string? settings, string guid, string destDir)> ExtentionsDirs { get; } = [];
+	public Dictionary<ExtensionType, (string? settings, string guid, string destDir)> ExtentionsDirs { get; } = [];
 
 	public async Task<string> BuildMeleonExtSettings(string extDir)
 	{

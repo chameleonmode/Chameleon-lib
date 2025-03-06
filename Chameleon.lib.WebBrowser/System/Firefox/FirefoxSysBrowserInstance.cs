@@ -1,13 +1,12 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Versioning;
-
+using chameleon.assets;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
-using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
@@ -29,21 +28,21 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await File.WriteAllTextAsync(versionFile, version);
 
 		//
-		var geckoextDir = await ExtensionLoaderService.LoadExtension(Enums.ExtensionType.foxameleon, Settings.CachedExtentionsDir);
+		var geckoextDir = await ExtensionLoader.LoadExtension(ExtensionType.foxameleon, Settings.CachedExtentionsDir);
 		_ = await Settings.BuildMeleonExtSettings(geckoextDir);
 		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.GeckoleonCache);
 		await IOtil.DC(inDirCached);
 		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
 
 		//
-		Settings.ExtentionsDirs.Add(Enums.ExtensionType.foxyproxy, (
+		Settings.ExtentionsDirs.Add(ExtensionType.foxyproxy, (
 			Settings.BuildProxyExtSettings(),
 			Guid.NewGuid().ToString(),
 			Settings.DestExtentionsDir)
 		);
 
 		foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
-			var extDir = await ExtensionLoaderService.LoadExtension(ext, destDir, setting, version);
+			var extDir = await ExtensionLoader.LoadExtension(ext, destDir, setting, version);
 			if (Directory.Exists(extDir)) {
 				await IOtil.CreateZipAsync(Path.Combine(inDir, guid + ".xpi"), extDir);
 				await IOtil.DeleteDExistsAsync(destDir);
@@ -75,12 +74,15 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		//File.WriteAllText(Path.Combine(distributionDir, "policies.json"), policy);
 	}
 	protected override string GetCommandLineArguments() {
-		return string.Join(" ", new List<string> {
+		return string.Join(" ", [
 			"-allow-downgrade",
 			"-no-remote",
 			"-wait-for-browser",
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
-		});
+			#if DEBUG
+			,"-devtools"
+			#endif
+		]);
 	}
 
 	[SupportedOSPlatform("windows")]

@@ -4,40 +4,38 @@ using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.WebBrowser;
-public class BrowserLauncherTests : WebBroswserTestsBase {
-	SystemBrowserService SysBrowserServiceBase => SystemBrowserService.Instance;
+public class BrowserLauncherTests {
 	
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
-		_ = _tcs.Task;
-		Assert.NotNull(SysBrowserServiceBase);
-
-		IoC.SetJsonValue(new EmulationOptions {
-			DisableWebRTC = true,
-			SpoofClientRects = true,
-			SpoofFontFingerprint = true,
-			SpoofCanvasFingerprint = true,
-			SpoofWebGLFingerprint = true,
-			SpoofGeoLocation = true,
-			AutoTimezone = true,
-		}, nameof(EmulationOptions));
-		var bi = await SysBrowserServiceBase.Open(
+		var bi = await SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(
 				SystemBrowserType.Chrome,
 				new SysBrowserProfile() {
-					Id = 102,
-					Proxy = new SysBrowserProxy()
-				})
-				, ()=>"https://example.com"
+					Id = 28296,
+					Proxy = new SysBrowserProxy() {
+						Host = "proxy.chameleonmode.com",
+						Port = 31112,
+						UserName = "elimdadia_gmail_com",
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-MAa3x0NK"
+					}
+				}),
+				() => "https://example.com",
+				new EmulationOptions {
+					DisableWebRTC = true,
+					SpoofClientRects = true,
+					SpoofFontFingerprint = true,
+					SpoofCanvasFingerprint = true,
+					SpoofWebGLFingerprint = true,
+					SpoofGeoLocation = true,
+					AutoTimezone = true,
+				}
 			);
 		Assert.NotNull(bi);
 	}
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Brave() {
-		_ = _tcs.Task;
-		Assert.NotNull(SysBrowserServiceBase);
-
 		IoC.SetJsonValue(new EmulationOptions {
 			DisableWebRTC = true,
 			SpoofClientRects = true,
@@ -47,7 +45,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 			SpoofGeoLocation = true,
 			AutoTimezone = true,
 		}, nameof(EmulationOptions));
-		var bi = await SysBrowserServiceBase.Open(
+		var bi = await  SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(
 				SystemBrowserType.Brave,
 				new SysBrowserProfile() {
@@ -62,9 +60,6 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
-		_ = _tcs.Task;
-		Assert.NotNull(SysBrowserServiceBase);
-
 		IoC.SetJsonValue(new EmulationOptions {
 			DisableWebRTC = true,
 			SpoofClientRects = true,
@@ -74,16 +69,7 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 			SpoofGeoLocation = true,
 			AutoTimezone = true,
 		}, nameof(EmulationOptions));
-
-		//var bi = await SysBrowserServiceBase.Open(
-		//	new SysBrowserOpenOptions(
-		//		SystemBrowserType.Firefox,
-		//		new Common.Models.UserProfileModel() {
-		//			Id = 111
-		//		})
-		//	);
-		//await ProUtil.TryKillProcess(bi!.Settings.Brocess);
-		var bi = await SysBrowserServiceBase.Open(
+		var bi = await  SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(
 				SystemBrowserType.Firefox,
 				new SysBrowserProfile() {
@@ -91,27 +77,5 @@ public class BrowserLauncherTests : WebBroswserTestsBase {
 				})
 				, ()=>"https://example.com"
 			);
-		//Assert.NotNull(bi);
-		//	_ = await SysBrowserServiceBase.Open(
-		//new SysBrowserOpenOptions(
-		//	Common.Enums.SystemBrowserType.Firefox,
-		//	new Common.Models.UserProfileModel() {
-		//		Id = 111,
-		//		Proxy = new Common.Models.ProxySettings() {
-		//			Host = "proxy.chameleonmode.com",
-		//			Port = 31112,
-		//			UserName = "elimdadia_gmail_com",
-		//			Password = "gb0Q1sXdTDZTlR2J_session-mk3wMyyY"
-		//		}
-		//	})
-		//);
-		//_ = await SysBrowserServiceBase.Open
-		//	(
-		//	new SysBrowserOpenOptions(
-		//		Common.Enums.SystemBrowserType.Firefox,
-		//		new Common.Models.UserProfileModel() {
-		//			Id = 222
-		//		})
-		//	);
 	}
 }
