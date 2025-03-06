@@ -3,8 +3,15 @@ using System.Net.Http.Headers;
 
 namespace Chameleon.lib.Auth;
 public class Session {
+	Session() { }
+
 	public Client Auth0Client { get; } = new();
-	public LoginSettings? Login => IoC.GetJsonValue<LoginSettings>(nameof(LoginSettings));
+	public LoginSettings? Login { get; private set; }
+
+	public void SetLogin(LoginSettings login) {
+		Login = login;
+		IoC.SetJsonValue(login, nameof(LoginSettings));
+	}
 
 	public async Task<(Client, AuthenticationHeaderValue)> Authenticate() {
 		return (Auth0Client, await Auth0Client.TryLogIn());
@@ -22,8 +29,6 @@ public class Session {
 		}
 	}
 
-	// singleton
-	private Session() {
-	}
+	// singleton	
 	public static Session Instance { get; } = new();
 }

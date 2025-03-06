@@ -11,6 +11,16 @@ namespace Tests.Abs;
 public class PlatformaticTests : TestSetup {	
 	public PlatformaticTests() : base(0) { }
 
+	[Fact]
+	public async Task DB_CheckKey() {
+		var user = await DB.Post<DB.Routes.License.Status>($"{DB.Routes.License.prefix}/update",
+				new(Body: new {
+					license_key = "",
+					email = ""
+				}));
+		Assert.NotNull(user);
+	}
+
 	#region DB users and data interactiions
 	[Fact]
 	public async Task DB_EnsureUser() {
