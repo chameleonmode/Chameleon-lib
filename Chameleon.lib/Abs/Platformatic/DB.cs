@@ -139,7 +139,10 @@ public class DB : Base {
 	public async Task<User?> DeleteUser(string email) {
 		var id = DBusers?.FirstOrDefault(u => u.Email == email)?.Id;
 		if (id == null) return null;
-		return await Delete<User>($"{Routes.users}/{id}");
+
+		var user = await Delete<User>($"{Routes.users}/{id}");
+		DBusers = await Routes.User.GetDBusers;
+		return user;
 	}
 	#endregion
 
