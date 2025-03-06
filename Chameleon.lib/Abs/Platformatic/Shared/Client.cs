@@ -21,8 +21,7 @@ public class Client {
 	//
 	public string AddressUri { get; } =
 		#if DEBUG
-					//"http://127.0.0.1:3042"
-					"https://chameleon-ws-pr-10.onrender.com"
+					"http://127.0.0.1:3042"
 		#else
 					"https://chameleon-ws.onrender.com"
 		#endif
