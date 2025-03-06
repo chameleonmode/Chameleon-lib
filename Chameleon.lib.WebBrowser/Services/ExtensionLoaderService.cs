@@ -6,7 +6,7 @@ using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.WebBrowser.Services;
 public static class ExtensionLoaderService {
-	public static async Task<string> LoadExtension(Enums.ExtensionType extensionType, string destinationPath, string? settings = null, string? version = null)
+	public static async Task<string> LoadExtension(ExtensionType extensionType, string destinationPath, string? settings = null, string? version = null)
 	{
 		try {
 			var extensionName = extensionType.ToString();

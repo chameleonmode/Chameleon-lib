@@ -1,16 +1,23 @@
 ﻿using System.Reflection;
 
 namespace chameleon.assets;
+public enum ExtensionType {
+	chromeleon,
+	proxychromeleon,
+	foxameleon,
+	foxyproxy
+}
+
 public class Loader {
+	Loader() { }
+	
 	private readonly Assembly _assembly = Assembly.GetExecutingAssembly();
 
-	public Stream Open(Uri uri)
-	{
+	public Stream Open(Uri uri) {
 		return OpenResource(uri);
 	}
 
-	private Stream OpenResource(Uri uri)
-	{
+	private Stream OpenResource(Uri uri) {
 		ArgumentNullException.ThrowIfNull(uri, nameof(uri));
 
 		var resourcePath = uri.Authority;
@@ -19,8 +26,7 @@ public class Loader {
 		return stream;
 	}
 
-	public IEnumerable<Uri> GetAssets(Uri uri, string? pattern = null)
-	{
+	public IEnumerable<Uri> GetAssets(Uri uri, string? pattern = null) {
 		ArgumentNullException.ThrowIfNull(uri, nameof(uri));
 
 		var basePath = GetResourcePath(uri);
@@ -35,8 +41,7 @@ public class Loader {
 		return resources.Select(x => new Uri($"embedded://{x}"));
 	}
 
-	private string GetResourcePath(Uri uri)
-	{
+	private string GetResourcePath(Uri uri) {
 		if (uri.Scheme is not "embedded")
 			throw new ArgumentException($"Unsupported URI scheme: {uri.Scheme}", nameof(uri));
 
@@ -51,8 +56,4 @@ public class Loader {
 	}
 
 	public static Loader Instance { get; } = new Loader();
-	private Loader()
-	{
-
-	}
 }
