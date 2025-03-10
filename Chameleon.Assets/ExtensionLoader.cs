@@ -16,10 +16,12 @@ public static class ExtensionLoader {
 				var relativePath = GetRelativePathFromAuthority(authorityParts, extensionName);
 
 				await CopyFromStream(
-						Loader.Instance.Open(asset),
-						destinationPath, relativePath,
-						relativePath.EndsWith("background.js") ? settings : null,
-						relativePath.EndsWith("manifest.json") ? version : null);
+					Loader.Instance.Open(asset),
+					destinationPath,
+					relativePath,
+					relativePath.EndsWith("background.js") ? settings : null,
+					relativePath.EndsWith("manifest.json") ? version : null
+				);
 			}
 		} catch (Exception ex) {
 			Console.WriteLine($"Unexpected error: {ex.Message}");
@@ -43,7 +45,8 @@ public static class ExtensionLoader {
 		var destDir = Path.GetDirectoryName(desPath);
 		ArgumentNullException.ThrowIfNull(destDir);
 
-		if (!Directory.Exists(destDir)) 			_ = Directory.CreateDirectory(destDir);
+		if (!Directory.Exists(destDir)) 			
+		  _ = Directory.CreateDirectory(destDir);
 
 		var tempFilePath = Path.GetTempFileName();
 		try {

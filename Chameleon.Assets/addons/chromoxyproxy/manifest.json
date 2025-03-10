@@ -1,0 +1,22 @@
+{
+    "name": "Chromoxy Proxy",
+    "version": "2025.3.10.0",
+    "manifest_version": 3,
+    "permissions": [
+        "management",
+        "proxy",
+        "storage",
+        "tabs",
+        "webRequest", 
+        "webRequestAuthProvider"
+    ],
+    "host_permissions": [ "<all_urls>" ],
+    "background": {
+      "service_worker": "background.js",
+      "type": "module" 
+    },
+    "externally_connectable": {
+      "ids": ["cffjcbnflngjpnjenjogeaojacooflng"],
+      "matches": ["<all_urls>"]
+    }
+  }

@@ -20,9 +20,7 @@
     "webRequest",
     "geolocation"
   ],
-  "host_permissions": [
-    "*://*/*"
-  ],
+  "host_permissions": [ "<all_urls>" ],
   "commands": {
     "_execute_action": {}
   },

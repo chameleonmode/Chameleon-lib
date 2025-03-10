@@ -4,8 +4,8 @@ using Chameleon.lib.Util;
 namespace Chameleon.lib.Common.Models;
 
 public class SysBrowserProxy {
-	public string? HostForRequest => Host?.Contains(Consts.Http.ChameleonModeHost) == true 
-		? Consts.Http.PacketStreamHost
+	public string? HostForRequest => Host?.Contains("proxy.chameleonmode.com") == true ?
+		"proxy.packetstream.io" 
 		: Host;
 	public string? Server => CanUse ? $"{HostForRequest}:{Port}" : null;
 	public string? ServerForRequest => CanUse ? $"http://{Server}" : null;

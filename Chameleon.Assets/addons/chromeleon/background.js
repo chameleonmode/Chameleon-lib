@@ -1,3 +1,4 @@
+import { config } from "./config.js";
 import { applyOverrides } from "./modules/emulations.js";
 import { log, setLogLevel } from "./modules/logger.js";
 import {
