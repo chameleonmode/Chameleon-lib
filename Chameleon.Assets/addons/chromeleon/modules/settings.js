@@ -244,21 +244,3 @@ export async function resetSettings(thesettings) {
   const index = Math.floor(Math.random() * tmp.length);
   thesettings.Fontssign = tmp[index];
 }
-
-export const Actions = {
-  TZ_RESET: "tz_reset",
-  GEO_RESET: "geo_reset",
-};
-
-export const promptDictionary = {
-  [Actions.TZ_RESET]: {
-    promptText:
-      'Enter a "timezone" value. Use https://www.timeanddate.com/time/map/ to find these values',
-    defaultInput: settings.timezone,
-  },
-  [Actions.GEO_RESET]: {
-    promptText:
-      'Enter a "latitude" and "longitude" separated by a comma. Use https://www.latlong.net/ to find these values',
-    defaultInput: `${settings.latitude}, ${settings.longitude}`,
-  },
-};

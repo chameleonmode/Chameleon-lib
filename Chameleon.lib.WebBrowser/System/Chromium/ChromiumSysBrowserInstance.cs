@@ -1,10 +1,16 @@
-﻿using System.Runtime.Versioning;
+﻿using System.Diagnostics;
+using System.Net;
+using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using chameleon.assets;
 
 using Chameleon.lib.Common.Extensions;
+using Chameleon.lib.Common.Models;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
+using Chameleon.lib.Helpers;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
 public class ChromiumSysBrowserInstance : SysBrowserInstance {
@@ -177,9 +183,44 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			//}
 		}
 
-		var extDir = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-		//await File.WriteAllTextAsync(Path.Combine(extDir, "settings.json"), settingsBuilder.ToString());
-		_ = await Settings.BuildMeleonExtSettings(extDir);
+		var ipapi = await GeoIpApi.GetIpapi(
+			proxy: Settings.Profile.Proxy.WebProxy,
+			onretry: e => Toaster.Error(e)
+		) ?? new () {	
+			timezone = "America/Los_Angeles", 
+			lat = 34.052235,
+			lon = -118.243683,
+			myIp = "true" 
+		};
+		await File.WriteAllTextAsync(
+			Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir), "config.js"), 
+			@$"export const config = {{
+				enabled: {Settings.Profile.Proxy.CanUse.Tlwr()},
+				logLevel: {(Debugger.IsAttached ? 5 : -1)},
+				webglSpoofing: {Settings.Emulation.SpoofWebGLFingerprint.Tlwr()},
+				canvasProtection: {Settings.Emulation.SpoofCanvasFingerprint.Tlwr()},
+				clientRectsSpoofing: {Settings.Emulation.SpoofClientRects.Tlwr()},
+				fontsSpoofing: {Settings.Emulation.SpoofFontFingerprint.Tlwr()},
+				audioSpoofing: {Settings.Emulation.SpoofAudio.Tlwr()},
+				geoSpoofing: {Settings.Emulation.SpoofGeoLocation.Tlwr()},
+				timezoneSpoofing: {Settings.Emulation.AutoTimezone.Tlwr()},
+				timezone: '{ipapi.timezone}',
+				latitude: {ipapi.lat},
+				longitude: {ipapi.lon},
+				myIP: {ipapi.myIp},
+				dAPI: true,
+				webRtcEnabled: true,
+				randomizeTZ: false,
+				randomizeGeo: false,
+				noiseLevel: 'medium',
+				eMode: 'disable_non_proxied_udp',
+				dMode: 'default_public_and_private_interfaces',
+				locale: 'en-US',
+				accuracy: 69.96,
+				bypass: [],
+				history: []
+			}}"
+		);
 
 		await File.WriteAllTextAsync(
 			Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chromoxyproxy, Settings.DestExtentionsDir), "settings.js"), 

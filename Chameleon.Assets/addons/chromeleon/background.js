@@ -1,37 +1,23 @@
 import { config } from "./config.js";
-import { applyOverrides } from "./modules/emulations.js";
 import { log, setLogLevel } from "./modules/logger.js";
-import {
-  settings,
-  updateSettings,
-} from "./modules/settings.js";
+import { updateSettings, SETTINGS_ARRAY } from "./modules/settings.js";
+import { applyOverrides } from "./modules/emulations.js";
 import { genUULE, updateLocationRules } from "./modules/uule.js";
-import {
-  createWebRTCContextMenus,
-  handleWebRTCMenuClick,
-  handleWebRTCSettings,
-} from "./modules/webrtc.js";
+import { createWebRTCContextMenus, handleWebRTCMenuClick } from "./modules/webrtc.js";
 
-fetch(chrome.runtime.getURL("settings.json"))
-  .then((response) => {
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-    return response.json(); // Parse JSON directly
-  })
-  .then(async (data) => {
-    await updateSettings(data);
-    setLogLevel(settings.debug);
-    await applyAllOverrides();
-    createWebRTCContextMenus();
-    chrome.contextMenus.create({
-      title: "Exception List Editor",
-      id: "exception-editor",
-      contexts: ["action"]
-    });
-    log.info("Received: ", data);
-  })
-  .catch((error) => console.error("Error loading settings:", error));
+async function init() {
+  setLogLevel(config.logLevel);
+  createWebRTCContextMenus(config);
+  chrome.contextMenus.create({
+    title: "Exception List Editor",
+    id: "exception-editor",
+    contexts: ["action"],
+  });
+  await updateSettings(config);
+  await applyAllOverrides();
+}
+chrome.runtime.onInstalled.addListener(init);
+chrome.runtime.onStartup.addListener(init);
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "exception-editor") {
@@ -43,18 +29,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       *.example.com
       https://example.com/*
       *://*.example.com/*`;
-      chrome.windows.getCurrent((win) => {
-        chrome.windows.create({
-          url: `data/editor/index.html?msg=${encodeURIComponent(
-            msg
-          )}&storage=bypass`,
-          width: 600,
-          height: 600,
-          left: win.left + Math.round((win.width - 600) / 2),
-          top: win.top + Math.round((win.height - 600) / 2),
-          type: "popup",
-        });
+    chrome.windows.getCurrent((win) => {
+      chrome.windows.create({
+        url: `data/editor/index.html?msg=${encodeURIComponent(msg)}&storage=bypass`,
+        width: 600,
+        height: 600,
+        left: win.left + Math.round((win.width - 600) / 2),
+        top: win.top + Math.round((win.height - 600) / 2),
+        type: "popup",
       });
+    });
   } else {
     handleWebRTCMenuClick(info);
   }
@@ -66,34 +50,41 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
       `Storage key "${key}" in namespace "${namespace}" changed.`,
       `Old value was "${oldValue}", new value is "${newValue}".`
     );
-    settings[key] = newValue;
   }
   await applyAllOverrides();
   return true;
 });
 
-chrome.tabs.onCreated.addListener((tab) => {
-  applyOverrides(tab);
+chrome.tabs.onCreated.addListener(async (tab) => {
+  await applyOverrides(tab);
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "loading") {
-    applyOverrides(tab);
+    await applyOverrides(tab);
   }
 });
 
 async function applyAllOverrides() {
   log.info("Applying all overrides");
 
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach((tab) => {
-      applyOverrides(tab);
+  chrome.tabs.query({}, async(tabs) => {
+    await tabs.forEach( async(tab) => {
+      await applyOverrides(tab);
     });
   });
 
-  await handleWebRTCSettings();
+  const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+  const value = settings.webRtcEnabled && settings.dAPI ? settings.eMode : settings.dMode;
+  chrome.privacy.network.webRTCIPHandlingPolicy.clear({}, () => {
+    chrome.privacy.network.webRTCIPHandlingPolicy.set({ value }, () => {
+      chrome.privacy.network.webRTCIPHandlingPolicy.get({}, (s) => {
+        //
+      });
+    });
+  });
   updateLocationRules(genUULE(settings.latitude, settings.longitude));
-  
+
   //https://developer.chrome.com/docs/extensions/reference/api/userScripts
   const USER_SCRIPT_ID = "chromeleonairz";
   const __myAddonRandObjName__ = `${
@@ -108,7 +99,7 @@ async function applyAllOverrides() {
       allFrames: true,
       world: "MAIN",
       runAt: "document_start",
-      matches: ["*://*/*"],
+      matches: ["<all_urls>"],
       js: [
         {
           code: `

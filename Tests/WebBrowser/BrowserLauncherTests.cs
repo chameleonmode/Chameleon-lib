@@ -21,7 +21,7 @@ public class BrowserLauncherTests {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
 					}
 				}),
 				() => "https://example.com",

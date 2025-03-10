@@ -16,4 +16,5 @@ public class Ipapi {
 	public string? org { get; set; }
 	public string? _as { get; set; }
 	public string? query { get; set; }
+	public string myIp { get; set; } = "false";
 }

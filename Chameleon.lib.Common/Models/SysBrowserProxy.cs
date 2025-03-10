@@ -1,4 +1,5 @@
-﻿using Chameleon.lib.Common.Constants;
+﻿using System.Net;
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Common.Models;
@@ -9,6 +10,9 @@ public class SysBrowserProxy {
 		: Host;
 	public string? Server => CanUse ? $"{HostForRequest}:{Port}" : null;
 	public string? ServerForRequest => CanUse ? $"http://{Server}" : null;
+	public WebProxy? WebProxy => CanUse ? new WebProxy(Server) {
+		Credentials = new NetworkCredential(UserName, Password)
+	} : null;
 
 	public bool CanUse => Host.IsNot() && Port > 0;
 	public bool HasLogin => UserName.IsNot() && Password.IsNot();

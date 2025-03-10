@@ -1,31 +1,12 @@
-import { SETTINGS_ARRAY, settings } from './settings.js';
+import { SETTINGS_ARRAY } from './settings.js';
 
-const IS_FIREFOX = /Firefox/.test(navigator.userAgent) || typeof InstallTrigger !== "undefined";
-
-export async function handleWebRTCSettings() {
-/*    let settings = await browser.storage.sync.get(SETTINGS_ARRAY);*/
-  const value = settings.webRtcEnabled && settings.dAPI ? settings.eMode : settings.dMode;
-  chrome.privacy.network.webRTCIPHandlingPolicy.clear({}, () => {
-    chrome.privacy.network.webRTCIPHandlingPolicy.set({ value }, () => {
-      chrome.privacy.network.webRTCIPHandlingPolicy.get({}, (s) => {
-        //
-      });
-    });
-  });
-}
-
-export function createWebRTCContextMenus() {
+export function createWebRTCContextMenus(settings) {
   chrome.contextMenus.create({ title: "WebRTC", id: "webrtc-menu", contexts: ["action"] });
   chrome.contextMenus.create({ title: "Check WebRTC Leakage", id: "rtc-test", contexts: ["action"], parentId: "webrtc-menu" });
-  /*chrome.contextMenus.create({ title: "WebRTC Protection Enabled", id: "webRtcEnabled", contexts: ["action"], type: "checkbox", parentId: "webrtc-menu", checked: settings.webRtcEnabled });*/
   chrome.contextMenus.create({ title: "Disable WebRTC Media Device Enumeration API", id: "dApi", contexts: ["action"], type: "checkbox", parentId: "webrtc-menu", checked: settings.dAPI });
   chrome.contextMenus.create({ title: "Options", id: "webrtc-options", contexts: ["action"], parentId: "webrtc-menu" });
   
-  createWhenEnabledMenu();
-  createWhenDisabledMenu();
-}
-
-function createWhenEnabledMenu() {
+  //createWhenEnabledMenu();
   chrome.contextMenus.create({ title: "When Enabled", id: "when-enabled", contexts: ["action"], parentId: "webrtc-options" });
   chrome.contextMenus.create({
     title: "Disable non-proxied UDP (force proxy)",
@@ -35,18 +16,8 @@ function createWhenEnabledMenu() {
     parentId: "when-enabled",
     checked: settings.eMode === "disable_non_proxied_udp"
   });
-  chrome.contextMenus.create({
-    title: "Only connections using TURN on a TCP connection through a proxy",
-    id: "proxy_only",
-    contexts: ["action"],
-    type: "radio",
-    parentId: "when-enabled",
-    enabled: IS_FIREFOX,
-    checked: settings.eMode === "proxy_only"
-  });
-}
 
-function createWhenDisabledMenu() {
+  //createWhenDisabledMenu();
   chrome.contextMenus.create({ title: "When Disabled", id: "when-disabled", contexts: ["action"], parentId: "webrtc-options" });
   chrome.contextMenus.create({
     title: "Use the default public interface only",

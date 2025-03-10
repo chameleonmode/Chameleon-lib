@@ -82,11 +82,15 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		foreach (var o in options) {
 			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
 		}
-		var ipapi = tzSpoofing && await GeoIpApi.GetIpapi(Profile.Proxy, e => Toaster.Error(e)) is Ipapi papi 
-			? papi 
-			: new Ipapi() { 
-				timezone = "America/Los_Angeles", lat = 34.052235, lon = -118.243683 
-			};
+		var ipapi = await GeoIpApi.GetIpapi(
+			proxy: Profile.Proxy.WebProxy,
+			onretry: e => Toaster.Error(e)
+		) ?? new () {	
+			timezone = "America/Los_Angeles", 
+			lat = 34.052235,
+			lon = -118.243683,
+			myIp = "true" 
+		};
 		_ = settingsBuilder.AppendLine($"\"timezone\": \"{ipapi.timezone}\",");
 		_ = settingsBuilder.AppendLine($"\"latitude\": {ipapi.lat},");
 		_ = settingsBuilder.AppendLine($"\"longitude\":{ipapi.lon},");

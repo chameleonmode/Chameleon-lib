@@ -1,19 +1,20 @@
-import { settings } from './settings.js';
-import { log } from './logger.js';
-import { offsets } from './offsets.js';
+import { log } from "./logger.js";
+import { offsets } from "./offsets.js";
+import { SETTINGS_ARRAY } from "./settings.js";
 
 export async function applyOverrides(tab) {
   try {
-    if ((tab.url.indexOf("chrome://") < 0) && (settings.timezoneSpoofing || settings.geoSpoofing)) {
+    const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+    if (tab.url.indexOf("chrome://") < 0 && (settings.timezoneSpoofing || settings.geoSpoofing)) {
       try {
-        await chrome.debugger.attach({ tabId: tab.id }, '1.3');
+        await chrome.debugger.attach({ tabId: tab.id }, "1.3");
       } catch (error) {
         log.error(`Failed to attach debugger to tab ${tab.id}:`, error);
       }
       if (tab && tab.url) {
-          await applyTimezoneOverride(tab);
+        await applyTimezoneOverride(tab, settings);
         if (settings.geoSpoofing) {
-          await applyGeoOverride(tab);
+          await applyGeoOverride(tab, settings);
         }
       }
       log.log(`Debugger attached and overrides applied for tab ${tab.id}`);
@@ -25,76 +26,36 @@ export async function applyOverrides(tab) {
   return false;
 }
 
-export async function applyTimezoneOverride(tab) {
-  let timezoneId = settings.timezone;
-  if (settings.myIP) {
-    timezoneId = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } else if (settings.randomizeTZ) {
-    timezoneId = getRandomTimezone();
-  }
-  await chrome.debugger.sendCommand(
-    { tabId: tab.id },
-    "Emulation.setTimezoneOverride",
-    { timezoneId: timezoneId }
-  );
-  await chrome.debugger.sendCommand(
-    { tabId: tab.id },
-    "Emulation.setLocaleOverride",
-    { locale: settings.locale }
-  );
+async function applyTimezoneOverride(tab, settings) {
+  const { myIP, randomizeTZ, timezone, locale } = settings;
+  const timezoneId = myIP
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone
+    : randomizeTZ
+    ? Object.keys(offsets)[Math.floor(Math.random() * Object.keys(offsets).length)]
+    : timezone;
+
+  await chrome.debugger.sendCommand({ tabId: tab.id }, "Emulation.setTimezoneOverride", { timezoneId });
+  await chrome.debugger.sendCommand({ tabId: tab.id }, "Emulation.setLocaleOverride", { locale });
+
   log.info(`Timezone set to ${timezoneId} for tab ${tab.id}`);
 }
 
-function getRandomTimezone() {
-  const timeZoneKeys = Object.keys(offsets);
-  const randomKey = timeZoneKeys[Math.floor(Math.random() * timeZoneKeys.length)];
-  return randomKey;
-}
+async function applyGeoOverride(tab, settings) {
+  const { randomizeGeo, accuracy } = settings;
+  let { latitude, longitude } = settings;
+  if (randomizeGeo) {
+    const m = latitude + (Math.random() > 0.5 ? 1 : -1) * randomizeGeo * Math.random();
+    latitude = Number(m.toFixed(latitude.toString().split(".")[1].length));
 
-async function applyGeoOverride(tab) {
-  if (settings.randomizeGeo) {
-    randomizeGeoLocation();
+    const n = longitude + (Math.random() > 0.5 ? 1 : -1) * randomizeGeo * Math.random();
+    longitude = Number(n.toFixed(longitude.toString().split(".")[1].length));
   }
-  await chrome.debugger.sendCommand(
-    { tabId: tab.id },
-    "Emulation.setGeolocationOverride",
-    {
-      latitude: settings.latitude,
-      longitude: settings.longitude,
-      accuracy: settings.accuracy,
-    }
-  );
-}
 
-function randomizeGeoLocation() {
-  try {
-    const m = settings.latitude.toString().split(".")[1].length;
-    settings.latitude = settings.latitude + (Math.random() > 0.5 ? 1 : -1) * settings.randomizeGeo * Math.random();
-    settings.latitude = Number(settings.latitude.toFixed(m));
-
-    const n = settings.longitude.toString().split(".")[1].length;
-    settings.longitude = settings.longitude + (Math.random() > 0.5 ? 1 : -1) * settings.randomizeGeo * Math.random();
-    settings.longitude = Number(settings.longitude.toFixed(n));
-
-      //const uule = genUULE(settings.latitude, settings.longitude);
-      //updateLocationRules(uule);
-  } catch (e) {
-    log.warn("Cannot randomizeGeo GEO", e);
-  }
-}
-
-export function setupTabListeners() {
-  // chrome.tabs.onRemoved.addListener((tabId) => {
-  //   chrome.debugger.detach({ tabId: tabId });
-  // });
-
-  chrome.tabs.onCreated.addListener((tab) => {
-    applyOverrides(tab);
+  await chrome.debugger.sendCommand({ tabId: tab.id }, "Emulation.setGeolocationOverride", {
+    latitude: latitude,
+    longitude: longitude,
+    accuracy: accuracy,
   });
 
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === "loading") {
-      applyOverrides(tab);
-    }
-  });
+  log.info(`Geolocation set to ${latitude}, ${longitude} for tab ${tab.id}`);
 }
