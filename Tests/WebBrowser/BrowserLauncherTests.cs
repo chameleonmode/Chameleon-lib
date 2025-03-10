@@ -21,7 +21,7 @@ public class BrowserLauncherTests {
 					}
 				}),
 				() => "https://example.com",
-				new EmulationOptions {
+				new () {
 					DisableWebRTC = true,
 					SpoofClientRects = true,
 					SpoofFontFingerprint = true,
