@@ -1,16 +1,13 @@
-import { settings } from './settings.js';
 import { log } from "./logger.js";
-// Function to generate UULE string for Google search requests
-export function genUULE() {
-    const lat = Math.floor(settings.latitude * 1e7);
-    const lng = Math.floor(settings.longitude * 1e7);
-    const locationString = `role: CURRENT_LOCATION\nproducer: DEVICE_LOCATION\nradius: 65000\nlatlng <\n  latitude_e7: ${lat}\n  longitude_e7: ${lng}\n>`;
-    const encodedLocation = btoa(locationString);
-    return `a ${encodedLocation}`;
-}
+
 // Function to modify headers for Google search requests
-export function updateLocationRules(uule) {
+export function updateLocationRules(settings) {
     const acceptLanguage = 'en-US';;
+    const lat = Math.floor(settings.lat * 1e7);
+    const lng = Math.floor(settings.lon * 1e7);
+    const locationString = `role: CURRENT_LOCATION\nproducer: DEVICE_LOCATION\nradius: 65000\nlatlng <\n  latitude_e7: ${lat}\n  longitude_e7: ${lng}\n>`;
+    const uule = `a ${btoa(locationString)}`;
+
     chrome.declarativeNetRequest.updateSessionRules({
         removeRuleIds: [1],
         addRules: [

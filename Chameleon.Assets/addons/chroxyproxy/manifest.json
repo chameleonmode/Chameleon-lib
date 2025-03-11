@@ -1,6 +1,7 @@
 {
-    "name": "Chromoxy Proxy",
-    "version": "2025.3.10.0",
+    "name": "Chroxy Proxy",
+    "description": "A Chroxy Proxy is one of the Chromeleon adaptations.",
+    "version": "2025.3.11",
     "manifest_version": 3,
     "permissions": [
         "management",
@@ -16,7 +17,7 @@
       "type": "module" 
     },
     "externally_connectable": {
-      "ids": ["cffjcbnflngjpnjenjogeaojacooflng"],
+      "ids": ["onmphcpdlamnigcccfcpikhihfaffapp"],
       "matches": ["<all_urls>"]
     }
   }

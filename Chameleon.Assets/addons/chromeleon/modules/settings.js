@@ -12,13 +12,11 @@ export const SETTINGS_ARRAY = [
   "randomizeTZ",
   "randomizeGeo",
   "noiseLevel",
-  "eMode",
-  "dMode",
   "timezone",
   "locale",
   "debug",
-  "latitude",
-  "longitude",
+  "lat",
+  "lon",
   "accuracy",
   "myIP",
   "bypass",
@@ -64,11 +62,9 @@ export let settings = {
   canvasA: 1,
   Fontsnoise: 1,
   Fontssign: 1,
-  eMode: "disable_non_proxied_udp",
-  dMode: "default_public_interface_only",
   timezone: "America/Los_Angeles",
-  latitude: 34.052235,
-  longitude: -118.243683,
+  lat: 34.052235,
+  lon: -118.243683,
   locale: "en-US",
   debug: 4,
   accuracy: 64.0999,
@@ -166,6 +162,8 @@ export async function updateSettings(built) {
     var current = await chrome.storage.sync.get(SETTINGS_ARRAY);
     if (current) Object.assign(settings, current);
 
+    settings.webRtcEnabled = built.webRtcEnabled;
+    settings.dAPI = built.dAPI;
     settings.webglSpoofing = built.webglSpoofing;
     settings.canvasProtection = built.canvasProtection;
     settings.clientRectsSpoofing = built.clientRectsSpoofing;
@@ -173,18 +171,11 @@ export async function updateSettings(built) {
     settings.debug = built.debug;
     settings.timezoneSpoofing = built.timezoneSpoofing;
     settings.audioSpoofing = built.audioSpoofing;
-    if (settings.timezoneSpoofing) {
-      settings.myIP = false;
-      settings.timezone = built.timezone;
-    } else {
-      settings.myIP = true;
-    }
+    settings.myIP = built.myIP;
+    settings.timezone = built.timezone;
     settings.geoSpoofing = built.geoSpoofing;
-    if (settings.accuracy === 69.96) settings.accuracy = 64.0999;
-    if (settings.geoSpoofing) {
-      settings.latitude = built.latitude;
-      settings.longitude = built.longitude;
-    }
+    settings.lat = built.lat;
+    settings.lon = built.lon;
     if (
       settings.DOMRectnoise === 1 ||
       settings.DOMRectReadOnlynoise === 1 ||
@@ -200,6 +191,7 @@ export async function updateSettings(built) {
       resetSettings(settings);  
     }
   }
+  
   await chrome.storage.sync.set(settings);
   settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
 }

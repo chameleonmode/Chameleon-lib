@@ -2,7 +2,7 @@ import { resetSettings, SETTINGS_ARRAY } from "../../modules/settings.js";
 import { offsets } from "../../modules/offsets.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
-  let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+  const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
   const toggleExtension = document.getElementById("toggle-extension");
   const statusText = document.getElementById("status-text");
   const noiseLevelSlider = document.getElementById("noise-level-slider");
@@ -81,8 +81,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   geoAccuracy.value = settings.accuracy || 64.0999;
   
   // Set coordinates value if both latitude and longitude exist
-  if (settings.latitude !== null && settings.longitude !== null) {
-    coordinates.value = `${settings.latitude},${settings.longitude}`;
+  if (settings.lat !== null && settings.lon !== null) {
+    coordinates.value = `${settings.lat},${settings.lon}`;
   }
 
   // Set timezone value
@@ -233,8 +233,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     
     // Parse and save coordinates
     const { lat, lng } = parseCoordinates(coordinates.value);
-    settings.latitude = lat;
-    settings.longitude = lng;
+    settings.lat = lat;
+    settings.lon = lng;
 
     // Extract timezone value from input (remove GMT offset if present)
     settings.timezone = timezoneSelect.value;

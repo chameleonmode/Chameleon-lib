@@ -6,16 +6,19 @@ export const AppLaunchManager = {
 
   // Register a new session launched by the app
   registerSession: function (sessionId, params = {}) {
-    console.log(`Registering app-launched session: ${sessionId}`);
-
-    this.launchedSessions[sessionId] = {
+    App.session = {
       sessionId: sessionId,
       appInstanceId: params.appInstanceId || "unknown",
       timestamp: Date.now(),
       source: "app",
       active: true,
+      ready: false,
       params: params,
     };
+    this.launchedSessions[sessionId] = App.session;
+
+    App.session.sessionId = sessionId;
+    App.session.appInstanceId =params.appInstanceId || "unknown";
 
     // Store in persistent storage
     this.saveSessionsToStorage();
@@ -31,13 +34,13 @@ export const AppLaunchManager = {
     const result = await chrome.storage.local.get(["launchedSessions"]);
     if (result && result.launchedSessions) {
       this.launchedSessions = result.launchedSessions;
-      console.log(`Loaded ${Object.keys(this.launchedSessions).length} launched sessions from storage`);
+      //console.log(`Loaded ${Object.keys(this.launchedSessions).length} launched sessions from storage`);
     }
   },
 
   // Save sessions to persistent storage
-  saveSessionsToStorage: function () {
-    chrome.storage.local.set({ launchedSessions: this.launchedSessions });
+  saveSessionsToStorage: async function () {
+    await chrome.storage.local.set({ launchedSessions: this.launchedSessions });
   },
 
   // Check if a session was launched by the app
@@ -53,7 +56,7 @@ export const AppLaunchManager = {
   // Notify listeners about new session
   notifySessionRegistered: function (sessionId) {
     // You could implement custom event dispatch here if needed
-    console.log(`Session ${sessionId} registered and ready`);
+    //console.log(`Session ${sessionId} registered and ready`);
   },
 
   // Add the session info to API requests
@@ -77,26 +80,26 @@ export const AppLaunchManager = {
 export const App = {
   candidatePorts: [5016, 5031, 7034, 8032, 8084, 9027],
   port: null,
-  sessionId: null,
-
-  // Set the current session ID
-  setSessionId: function (id) {
-    this.sessionId = id;
+  session: {
+    active: false,
+    ready: false,
+    sessionId: null,
+    appInstanceId: null,
+    timestamp: null,
+    source: null,
+    params: null,
   },
 
   // Find the app server
   discoverServer: async function () {
-    console.log("Attempting to discover app...");
-
     // Try each port in the list
     for (const port of this.candidatePorts) {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/ping`, {
-          signal: AbortSignal.timeout(300), // 300ms timeout
+          signal: AbortSignal.timeout(500), // 500ms timeout
         });
 
         if (response.ok) {
-          console.log(`Found app on port ${port}`);
           this.port = port;
           return true;
         }
@@ -104,8 +107,6 @@ export const App = {
         // Continue to next port
       }
     }
-
-    console.log("app not found on any expected port");
     return false;
   },
 
@@ -116,7 +117,7 @@ export const App = {
     }
 
     try {
-      const session = AppLaunchManager.getSessionDetails(this.sessionId);  
+      const session = AppLaunchManager.getSessionDetails(this.session.sessionId);  
       const response = await fetch(`http://localhost:${this.port}/app/data`, {
         method: "POST",
         headers: {
@@ -124,7 +125,7 @@ export const App = {
           // Add session headers if available
           ...(session
             ? {
-                "X-Session-ID": this.sessionId,
+                "X-Session-ID": this.session.sessionId,
                 "X-Instance-ID": session.appInstanceId
               }
             : {}),
@@ -144,14 +145,14 @@ export const App = {
   },
 
   // Get app state
-  getState: async function () {
+  getAppState: async function () {
     // Make sure we're connected first
     if (!this.port && !(await this.discoverServer())) {
       throw new Error("app not found");
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:${this.port}/api/state`);
+      const response = await fetch(`http://127.0.0.1:${this.port}/app/state`);
 
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);

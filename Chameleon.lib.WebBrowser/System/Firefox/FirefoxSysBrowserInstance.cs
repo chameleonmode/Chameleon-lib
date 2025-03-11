@@ -28,7 +28,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await File.WriteAllTextAsync(versionFile, version);
 
 		//
-		var geckoextDir = await ExtensionLoader.LoadExtension(ExtensionType.foxameleon, Settings.CachedExtentionsDir);
+		var geckoextDir = await ExtensionLoader.LoadExtension(ExtensionType.geckolean, Settings.CachedExtentionsDir);
 		_ = await Settings.BuildMeleonExtSettings(geckoextDir);
 		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.GeckoleonCache);
 		await IOtil.DC(inDirCached);

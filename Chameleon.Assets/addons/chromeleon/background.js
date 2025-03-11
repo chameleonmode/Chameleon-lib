@@ -1,14 +1,11 @@
 import { App, AppLaunchManager } from "./app.js";
 import { log, setLogLevel } from "./modules/logger.js";
 import { updateSettings, SETTINGS_ARRAY } from "./modules/settings.js";
+import { createContextMenus, updatePolicy } from "./modules/webrtc.js";
+import { updateLocationRules } from "./modules/uule.js";
 import { applyOverrides } from "./modules/emulations.js";
-import { genUULE, updateLocationRules } from "./modules/uule.js";
-import { createWebRTCContextMenus, handleWebRTCMenuClick } from "./modules/webrtc.js";
 
-const state = {
-  connected: false,
-  sessionId: null,
-};
+
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === "sendToApp") {
@@ -19,17 +16,17 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
 
   if (message.action === "getAppState") {
-    App.getState()
+    App.getAppState()
       .then((state) => sendResponse({ success: true, data: state }))
       .catch((error) => sendResponse({ success: false, error: error.message }));
-    return true; // Indicates async response
+    return true;
   }
 
   if (message.action === "checkConnection") {
     App.isRunning()
       .then((running) => sendResponse({ connected: running }))
       .catch(() => sendResponse({ connected: false }));
-    return true; // Indicates async response
+    return true;
   }
 
   if (message.action === "registerAppLaunch") {
@@ -38,26 +35,22 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       timestamp: message.timestamp,
       additionalData: message.additionalData,
     });
-    console.log("Loaded launched sessions");
 
-    App.setSessionId(message.sessionId);
     const found = await App.discoverServer();
     if (found) {
-      console.log("Connected to app");
       const { data: config } = await App.sendData({ type: "init" });
+
       setLogLevel(config.logLevel);
-      createWebRTCContextMenus(config);
-      chrome.contextMenus.create({
-        title: "Exception List Editor",
-        id: "exception-editor",
-        contexts: ["action"],
-      });
+      createContextMenus(config);
+
       await updateSettings(config);
-      state.connected = true;
-      state.sessionId = message.sessionId;
+
+      App.session.ready = true;
       await applyAllOverrides();
+
+      log.info("App connected", config);
     } else {
-      console.log("app not found - will try again when needed");
+      log.error("App not found");
     }
     sendResponse({ success });
     return true;
@@ -71,30 +64,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     });
     return true;
   }
-});
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === "exception-editor") {
-    const msg = `Insert one hostname per line. Press the "Save List" button to update the list.
-
-    Example of valid formats:
-    
-      example.com
-      *.example.com
-      https://example.com/*
-      *://*.example.com/*`;
-    chrome.windows.getCurrent((win) => {
-      chrome.windows.create({
-        url: `data/editor/index.html?msg=${encodeURIComponent(msg)}&storage=bypass`,
-        width: 600,
-        height: 600,
-        left: win.left + Math.round((win.width - 600) / 2),
-        top: win.top + Math.round((win.height - 600) / 2),
-        type: "popup",
-      });
+  if (message.checkIncognito) {
+    chrome.extension.isAllowedIncognitoAccess().then((isAllowed) => {
+      sendResponse({ isAllowed });
     });
-  } else {
-    handleWebRTCMenuClick(info);
+    return true;
   }
 });
 
@@ -109,18 +84,8 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
   return true;
 });
 
-chrome.tabs.onCreated.addListener(async (tab) => {
-  await applyOverrides(tab);
-});
-
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === "loading") {
-    await applyOverrides(tab);
-  }
-});
-
 async function applyAllOverrides() {
-  if(state.connected === false) return;
+  if (App.session.ready === false) return;
 
   log.info("Applying all overrides");
 
@@ -131,15 +96,9 @@ async function applyAllOverrides() {
   });
 
   const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
-  const value = settings.webRtcEnabled && settings.dAPI ? settings.eMode : settings.dMode;
-  chrome.privacy.network.webRTCIPHandlingPolicy.clear({}, () => {
-    chrome.privacy.network.webRTCIPHandlingPolicy.set({ value }, () => {
-      chrome.privacy.network.webRTCIPHandlingPolicy.get({}, (s) => {
-        //
-      });
-    });
-  });
-  updateLocationRules(genUULE(settings.latitude, settings.longitude));
+  // Set WebRTC IP handling policy
+  await updatePolicy(settings);
+  updateLocationRules(settings);
 
   //https://developer.chrome.com/docs/extensions/reference/api/userScripts
   const USER_SCRIPT_ID = "chromeleonairz";

@@ -69,7 +69,7 @@ public class AddonsServer {
         try {
           var data = JS.DeserializeSafely<object>(body);
           return Results.Json(new { data = AddonInstances[sessionId!] });
-        } catch (Exception e) {
+        } catch {
           return Results.BadRequest(new { error = "Invalid JSON" });
         }
       });

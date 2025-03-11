@@ -8,7 +8,9 @@ const LOG_LEVELS = {
   ERROR: 4,
 };
 
-let currentLogLevel = LOG_LEVELS["DEBUG"];
+const config = {
+  currentLogLevel: LOG_LEVELS["DEBUG"],
+};
 
 const formatMessage = (level, message) => {
   const timestamp = new Date().toISOString();
@@ -17,45 +19,45 @@ const formatMessage = (level, message) => {
 
 export const log = {
   log: (message, ...args) => {
-    if (0 <= currentLogLevel) {
+    if (0 <= config.currentLogLevel) {
       console.log(formatMessage("LOG", message), ...args);
     }
   },
   debug: (message, ...args) => {
-    if (1 <= currentLogLevel) {
-      console.log(formatMessage("DEBUG", message), ...args);
+    if (1 <= config.currentLogLevel) {
+      console.debug(formatMessage("DEBUG", message), ...args);
     }
   },
   info: (message, ...args) => {
-    if (2 <= currentLogLevel) {
-      console.log(formatMessage("INFO", message), ...args);
+    if (2 <= config.currentLogLevel) {
+      console.info(formatMessage("INFO", message), ...args);
     }
   },
   warn: (message, ...args) => {
-    if (3 <= currentLogLevel) {
-      console.log(formatMessage("WARN", message), ...args);
+    if (3 <= config.currentLogLevel) {
+      console.warn(formatMessage("WARN", message), ...args);
     }
   },
   error: (message, ...args) => {
-    if (4 <= currentLogLevel) {
-      console.log(formatMessage("ERROR", message), ...args);
+    if (4 <= config.currentLogLevel) {
+      console.error(formatMessage("ERROR", message), ...args);
     }
   },
 };
 
 export default function logger(type, message, ...args) {
-  if(currentLogLevel < 0) return;
+  if (config.currentLogLevel < 0) return;
   switch (type) {
-    case 'log':
+    case "log":
       log.debug(message, ...args);
       break;
-    case 'error':
+    case "error":
       log.error(message, ...args);
       break;
-    case 'warn':
+    case "warn":
       log.warn(message, ...args);
       break;
-    case 'info':
+    case "info":
       log.info(message, ...args);
       break;
     default:
@@ -65,5 +67,5 @@ export default function logger(type, message, ...args) {
 
 // Example of setting the log level dynamically
 export function setLogLevel(level) {
-  currentLogLevel = level;
+  config.currentLogLevel = level;
 }

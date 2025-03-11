@@ -1,54 +1,78 @@
-import { SETTINGS_ARRAY } from './settings.js';
+import { SETTINGS_ARRAY } from "./settings.js";
 
-export function createWebRTCContextMenus(settings) {
+export function createContextMenus(settings) {
   chrome.contextMenus.create({ title: "WebRTC", id: "webrtc-menu", contexts: ["action"] });
-  chrome.contextMenus.create({ title: "Check WebRTC Leakage", id: "rtc-test", contexts: ["action"], parentId: "webrtc-menu" });
-  chrome.contextMenus.create({ title: "Disable WebRTC Media Device Enumeration API", id: "dApi", contexts: ["action"], type: "checkbox", parentId: "webrtc-menu", checked: settings.dAPI });
-  chrome.contextMenus.create({ title: "Options", id: "webrtc-options", contexts: ["action"], parentId: "webrtc-menu" });
-  
-  //createWhenEnabledMenu();
-  chrome.contextMenus.create({ title: "When Enabled", id: "when-enabled", contexts: ["action"], parentId: "webrtc-options" });
   chrome.contextMenus.create({
-    title: "Disable non-proxied UDP (force proxy)",
-    id: "disable_non_proxied_udp",
+    title: "Enabled",
+    id: "webRtcEnabled",
     contexts: ["action"],
-    type: "radio",
-    parentId: "when-enabled",
-    checked: settings.eMode === "disable_non_proxied_udp"
+    type: "checkbox",
+    parentId: "webrtc-menu",
+    checked: settings.webRtcEnabled,
   });
 
-  //createWhenDisabledMenu();
-  chrome.contextMenus.create({ title: "When Disabled", id: "when-disabled", contexts: ["action"], parentId: "webrtc-options" });
+  // options
   chrome.contextMenus.create({
-    title: "Use the default public interface only",
-    id: "default_public_interface_only",
+    title: "Options",
+    id: "webrtc-options",
     contexts: ["action"],
-    type: "radio",
-    parentId: "when-disabled",
-    checked: settings.dMode === "default_public_interface_only"
+    parentId: "webrtc-menu",
   });
   chrome.contextMenus.create({
-    title: "Use the default public interface and private interface",
-    id: "default_public_and_private_interfaces",
+    title: "default",
+    id: "default",
     contexts: ["action"],
     type: "radio",
-    parentId: "when-disabled",
-    checked: settings.dMode === "default_public_and_private_interfaces"
+    parentId: "webrtc-options",
+    checked: settings.dAPI === "default",
+  });
+  chrome.contextMenus.create({
+    title: "default public and private interfaces",
+    id: "default_public_and_private_interfaces",
+    checked: settings.dAPI === "default_public_and_private_interfaces",
+    contexts: ["action"],
+    type: "radio",
+    parentId: "webrtc-options",
+  });
+  chrome.contextMenus.create({
+    title: "default public interface only",
+    id: "default_public_interface_only",
+    checked: settings.dAPI === "default_public_interface_only",
+    contexts: ["action"],
+    type: "radio",
+    parentId: "webrtc-options",
+  });
+  chrome.contextMenus.create({
+    title: "disable non proxied udp",
+    id: "disable_non_proxied_udp",
+    checked: settings.dAPI === "disable_non_proxied_udp",
+    contexts: ["action"],
+    type: "radio",
+    parentId: "webrtc-options",
   });
 }
 
-export async function handleWebRTCMenuClick(info) {
-  let settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
+export async function updatePolicy(settings) {
+  console.log("Current WebRTC policy:", await chrome.privacy.network.webRTCIPHandlingPolicy.get({}));
+
+  await chrome.privacy.network.webRTCIPHandlingPolicy.clear({});
+
+  if(settings.webRtcEnabled) {
+    await chrome.privacy.network.webRTCIPHandlingPolicy.set({
+      value: settings.dAPI,
+    });
+  }
+
+  console.log("New WebRTC policy:", await chrome.privacy.network.webRTCIPHandlingPolicy.get({}));
+}
+
+chrome.contextMenus.onClicked.addListener(async (info) => {
+  const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
   if (info.menuItemId === "webRtcEnabled") {
     settings.webRtcEnabled = info.checked;
-  } else if (info.menuItemId === "dApi") {
-    settings.dAPI = info.checked;
-  } else if (["disable_non_proxied_udp", "proxy_only"].includes(info.menuItemId)) {
-    settings.eMode = info.menuItemId;
-  } else if (["default_public_interface_only", "default_public_and_private_interfaces"].includes(info.menuItemId)) {
-    settings.dMode = info.menuItemId;
-  } else if (info.menuItemId === "rtc-test") {
-    chrome.tabs.create({ url: "https://browserleaks.com/webrtc" });
   }
+  else
+    settings.dAPI = info.menuItemId;
+
   await chrome.storage.sync.set(settings);
-}
+});

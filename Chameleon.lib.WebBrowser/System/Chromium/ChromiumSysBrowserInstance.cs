@@ -196,7 +196,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			timezone = "America/Los_Angeles", 
 			lat = 34.052235,
 			lon = -118.243683,
-			myIp = "true" 
+			myIP = "true" 
 		};
 		AddonsServer.Instance.AddonInstances[SessionId] = new {
 			enabled = true,
@@ -208,52 +208,21 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			audioSpoofing = Settings.Emulation.SpoofAudio,
 			geoSpoofing = Settings.Emulation.SpoofGeoLocation,
 			timezoneSpoofing = Settings.Emulation.AutoTimezone,
-			timezone = ipapi.timezone,
-			latitude = ipapi.lat,
-			longitude = ipapi.lon,
-			myIP = ipapi.myIp,
-			dAPI = true,
-			webRtcEnabled = true,
+			ipapi.timezone,
+			ipapi.lat,
+			ipapi.lon,
+			ipapi.myIP,
 			randomizeTZ = false,
 			randomizeGeo = false,
+			webRtcEnabled = true,
+			dAPI = "disable_non_proxied_udp",
 			noiseLevel = "medium",
-			eMode = "disable_non_proxied_udp",
-			dMode = "default_public_and_private_interfaces",
 			locale = "en-US",
 			accuracy = 69.96,
 			bypass = Array.Empty<string>(),
 			history = Array.Empty<string>()
 		};
 
-		// await NodeServerLauncher.Instance.PostMessage(new {
-		// 	profile = Settings.Profile.Id,
-		// 	config = new {
-		// 		enabled = true,
-		// 		logLevel = Debugger.IsAttached ? 5 : -1,
-		// 		webglSpoofing = Settings.Emulation.SpoofWebGLFingerprint,
-		// 		canvasProtection = Settings.Emulation.SpoofCanvasFingerprint,
-		// 		clientRectsSpoofing = Settings.Emulation.SpoofClientRects,
-		// 		fontsSpoofing = Settings.Emulation.SpoofFontFingerprint,
-		// 		audioSpoofing = Settings.Emulation.SpoofAudio,
-		// 		geoSpoofing = Settings.Emulation.SpoofGeoLocation,
-		// 		timezoneSpoofing = Settings.Emulation.AutoTimezone,
-		// 		timezone = ipapi.timezone,
-		// 		latitude = ipapi.lat,
-		// 		longitude = ipapi.lon,
-		// 		myIP = ipapi.myIp,
-		// 		dAPI = true,
-		// 		webRtcEnabled = true,
-		// 		randomizeTZ = false,
-		// 		randomizeGeo = false,
-		// 		noiseLevel = "medium",
-		// 		eMode = "disable_non_proxied_udp",
-		// 		dMode = "default_public_and_private_interfaces",
-		// 		locale = "en-US",
-		// 		accuracy = 69.96,
-		// 		bypass = Array.Empty<string>(),
-		// 		history = Array.Empty<string>()
-		// 	}
-		// });
 		_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
 		// await File.WriteAllTextAsync(
 		// 	Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir), "config.js"), 
@@ -286,7 +255,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		// );
 
 		await File.WriteAllTextAsync(
-			Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chromoxyproxy, Settings.DestExtentionsDir), "settings.js"), 
+			Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir), "settings.js"), 
 			@$"export const settings = {{
 			   	type: 'http',
 				 	server: '{Settings.Profile.Proxy.Server}',

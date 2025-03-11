@@ -21,7 +21,7 @@ public class BrowserLauncherTests {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
 					}
 				}),
 				"https://example.com",
@@ -39,14 +39,16 @@ public class BrowserLauncherTests {
 
 		// Create a manual reset event that will keep the test running
     var testCompletionEvent = new ManualResetEventSlim(false);
-    
-    // Start a monitoring task that will complete when the signal file is deleted
-    _ = Task.Run(() => {
-        while (bi.Brocess?.HasExited == false) {
-            Thread.Sleep(1000 * 6); 
-        }
-				testCompletionEvent.Set();
-    });
+
+		// Start a monitoring task that will complete when the signal file is deleted
+		_ = Task.Run(() => {
+			try {
+				while (bi.Brocess?.HasExited == false) {
+					Thread.Sleep(1000 * 6);
+				}
+			} catch { }
+			testCompletionEvent.Set();
+		});
 
 		// Wait for the manual signal (file deletion) or timeout after 30 minutes
 		_ = testCompletionEvent.Wait(TimeSpan.FromMinutes(30));

@@ -13,9 +13,7 @@ export async function applyOverrides(tab) {
       }
       if (tab && tab.url) {
         await applyTimezoneOverride(tab, settings);
-        if (settings.geoSpoofing) {
-          await applyGeoOverride(tab, settings);
-        }
+        await applyGeoOverride(tab, settings);
       }
       log.log(`Debugger attached and overrides applied for tab ${tab.id}`);
       return true;
@@ -41,21 +39,35 @@ async function applyTimezoneOverride(tab, settings) {
 }
 
 async function applyGeoOverride(tab, settings) {
-  const { randomizeGeo, accuracy } = settings;
-  let { latitude, longitude } = settings;
+  const { randomizeGeo, accuracy, geoSpoofing, lat, lon } = settings;
+  if(!geoSpoofing) return;
+  
+  let latitude = lat;
+  let longitude = lon;
+  
   if (randomizeGeo) {
-    const m = latitude + (Math.random() > 0.5 ? 1 : -1) * randomizeGeo * Math.random();
-    latitude = Number(m.toFixed(latitude.toString().split(".")[1].length));
+    const m = lat + (Math.random() > 0.5 ? 1 : -1) * randomizeGeo * Math.random();
+    latitude = Number(m.toFixed(lat.toString().split(".")[1].length));
 
-    const n = longitude + (Math.random() > 0.5 ? 1 : -1) * randomizeGeo * Math.random();
-    longitude = Number(n.toFixed(longitude.toString().split(".")[1].length));
+    const n = lon + (Math.random() > 0.5 ? 1 : -1) * randomizeGeo * Math.random();
+    latitude = Number(n.toFixed(lon.toString().split(".")[1].length));
   }
 
   await chrome.debugger.sendCommand({ tabId: tab.id }, "Emulation.setGeolocationOverride", {
-    latitude: latitude,
-    longitude: longitude,
+    latitude,
+    longitude,
     accuracy: accuracy,
   });
 
-  log.info(`Geolocation set to ${latitude}, ${longitude} for tab ${tab.id}`);
+  log.info(`Geolocation set to ${lat}, ${lon} for tab ${tab.id}`);
 }
+
+chrome.tabs.onCreated.addListener(async (tab) => {
+  await applyOverrides(tab);
+});
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === "loading") {
+    await applyOverrides(tab);
+  }
+});

@@ -2,7 +2,7 @@ namespace chameleon.assets;
 
 public enum ExtensionType {
 	chromeleon,
-	chromoxyproxy,
-	foxameleon,
+	chroxyproxy,
+	geckolean,
 	foxyproxy
 }
