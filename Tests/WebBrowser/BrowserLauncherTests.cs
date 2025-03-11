@@ -21,21 +21,35 @@ public class BrowserLauncherTests {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
 					}
 				}),
-				() => "https://example.com",
+				"https://example.com",
 				new () {
 					DisableWebRTC = true,
 					SpoofClientRects = true,
 					SpoofFontFingerprint = true,
 					SpoofCanvasFingerprint = true,
-					SpoofWebGLFingerprint = true,
+					SpoofWebGLFingerprint = false,
 					SpoofGeoLocation = true,
 					AutoTimezone = true,
 				}
 		);
 		Assert.NotNull(bi);
+
+		// Create a manual reset event that will keep the test running
+    var testCompletionEvent = new ManualResetEventSlim(false);
+    
+    // Start a monitoring task that will complete when the signal file is deleted
+    _ = Task.Run(() => {
+        while (bi.Brocess?.HasExited == false) {
+            Thread.Sleep(1000 * 6); 
+        }
+				testCompletionEvent.Set();
+    });
+
+		// Wait for the manual signal (file deletion) or timeout after 30 minutes
+		_ = testCompletionEvent.Wait(TimeSpan.FromMinutes(30));
 	}
 
 	[Fact]
@@ -51,7 +65,7 @@ public class BrowserLauncherTests {
 					// 	Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
 					// }
 				}),
-				() => "https://example.com",
+				"https://example.com",
 				new () {
 					DisableWebRTC = true,
 					SpoofClientRects = true,
@@ -82,7 +96,7 @@ public class BrowserLauncherTests {
 				new SysBrowserProfile() {
 					Id = 2
 				})
-				, ()=>"https://example.com"
+				,"https://example.com"
 			);
 	}
 }

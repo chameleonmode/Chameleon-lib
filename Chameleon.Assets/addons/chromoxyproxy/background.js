@@ -18,7 +18,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     await chrome.tabs.discard(tab.id);
   }
   await updateProxy();
-  //const extensionId = "cffjcbnflngjpnjenjogeaojacooflng";
+  //const extensionId = "onmphcpdlamnigcccfcpikhihfaffapp";
   //await chrome.management.setEnabled(extensionId, false);
   //await chrome.management.setEnabled(extensionId, true);
   //chrome.management.launchApp(extensionId);

@@ -66,6 +66,9 @@ public abstract class SysBrowserInstance
 
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
+
+	public string SessionId { get; } = Guid.NewGuid().ToString();
+
 	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments();
 

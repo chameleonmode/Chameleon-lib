@@ -1,23 +1,77 @@
-import { config } from "./config.js";
+import { App, AppLaunchManager } from "./app.js";
 import { log, setLogLevel } from "./modules/logger.js";
 import { updateSettings, SETTINGS_ARRAY } from "./modules/settings.js";
 import { applyOverrides } from "./modules/emulations.js";
 import { genUULE, updateLocationRules } from "./modules/uule.js";
 import { createWebRTCContextMenus, handleWebRTCMenuClick } from "./modules/webrtc.js";
 
-async function init() {
-  setLogLevel(config.logLevel);
-  createWebRTCContextMenus(config);
-  chrome.contextMenus.create({
-    title: "Exception List Editor",
-    id: "exception-editor",
-    contexts: ["action"],
-  });
-  await updateSettings(config);
-  await applyAllOverrides();
-}
-chrome.runtime.onInstalled.addListener(init);
-chrome.runtime.onStartup.addListener(init);
+const state = {
+  connected: false,
+  sessionId: null,
+};
+// Listen for messages from popup or content scripts
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  if (message.action === "sendToApp") {
+    App.sendData(message.data)
+      .then((response) => sendResponse({ success: true, data: response }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true; // Indicates async response
+  }
+
+  if (message.action === "getAppState") {
+    App.getState()
+      .then((state) => sendResponse({ success: true, data: state }))
+      .catch((error) => sendResponse({ success: false, error: error.message }));
+    return true; // Indicates async response
+  }
+
+  if (message.action === "checkConnection") {
+    App.isRunning()
+      .then((running) => sendResponse({ connected: running }))
+      .catch(() => sendResponse({ connected: false }));
+    return true; // Indicates async response
+  }
+
+  if (message.action === "registerAppLaunch") {
+    const success = AppLaunchManager.registerSession(message.sessionId, {
+      appInstanceId: message.appInstanceId,
+      timestamp: message.timestamp,
+      additionalData: message.additionalData,
+    });
+    console.log("Loaded launched sessions");
+
+    App.setSessionId(message.sessionId);
+    const found = await App.discoverServer();
+    if (found) {
+      console.log("Connected to app");
+      const { data: config } = await App.sendData({ type: "init" });
+      setLogLevel(config.logLevel);
+      createWebRTCContextMenus(config);
+      chrome.contextMenus.create({
+        title: "Exception List Editor",
+        id: "exception-editor",
+        contexts: ["action"],
+      });
+      await updateSettings(config);
+      state.connected = true;
+      state.sessionId = message.sessionId;
+      await applyAllOverrides();
+    } else {
+      console.log("app not found - will try again when needed");
+    }
+    sendResponse({ success });
+    return true;
+  }
+
+  if (message.action === "checkSessionStatus") {
+    const isAppLaunched = AppLaunchManager.isAppLaunchedSession(message.sessionId);
+    sendResponse({
+      isAppLaunched,
+      sessionDetails: isAppLaunched ? AppLaunchManager.getSessionDetails(message.sessionId) : null,
+    });
+    return true;
+  }
+});
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "exception-editor") {
@@ -66,10 +120,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 async function applyAllOverrides() {
+  if(state.connected === false) return;
+
   log.info("Applying all overrides");
 
-  chrome.tabs.query({}, async(tabs) => {
-    await tabs.forEach( async(tab) => {
+  chrome.tabs.query({}, async (tabs) => {
+    await tabs.forEach(async (tab) => {
       await applyOverrides(tab);
     });
   });

@@ -38,8 +38,6 @@ public static class Consts {
 	}
 
 	public static class Addons {
-		public static string AddonExtentionDir => Path.Combine(FilePaths.AppTempDir, "Addons");
-		public static string CachedExtentionDir => Path.Combine(FilePaths.AppTempDir, "eleonextcache");
 		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..Resources/BrowserExtensions")
 			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources\\BrowserExtensions");

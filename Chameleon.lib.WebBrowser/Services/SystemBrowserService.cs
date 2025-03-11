@@ -88,6 +88,8 @@ public class SystemBrowserService {
 	#endregion
 
 	public async Task<ISysBrowserInstance?> OpenWithSettings(SysBrowserSettings launchSettings) {
+		//await NodeServerLauncher.Instance.StartServer();
+		await AddonsServer.Instance.Start();
 		var browser = Instances[launchSettings.OpenOptions] = launchSettings.BrowserType switch {
 			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = launchSettings },
 			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = launchSettings },
@@ -122,7 +124,7 @@ public class SystemBrowserService {
 	}
 	public async Task<ISysBrowserInstance?> Open(
 		SysBrowserOpenOptions options, 
-		Func<string> @startUrl,
+		string startUrl,
 		EmulationOptions? emulations = null
 	) {
 		if (!Instances.TryGetValue(options, out var browser)) {
@@ -139,7 +141,12 @@ public class SystemBrowserService {
 						: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
 					}
 				}
-				browser = await OpenWithSettings(new(options, emulations ?? IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new(), startUrl(), TcpUtil.NextFreePort(9613)));
+				browser = await OpenWithSettings(new(
+					options, 
+					emulations ?? IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new(), 
+					startUrl,
+					TcpUtil.NextFreePort(9613))
+				);
 			} catch (Exception e) {
 				browser?.InvokeEvent(SysBrowserEventType.Error);
 				Toaster.Error(e.Message);
@@ -156,7 +163,7 @@ public class SystemBrowserService {
 			if (browser.Brocess?.HasExited == true) {
 				browser.Close();
 				await Task.Delay(250);
-				_ = Open(options, @startUrl);
+				_ = Open(options, startUrl);
 			} else {
 				browser.InvokeEvent(SysBrowserEventType.Foreground);
 			}
