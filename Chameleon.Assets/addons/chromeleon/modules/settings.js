@@ -1,3 +1,4 @@
+
 export const SETTINGS_ARRAY = [
   "enabled",
   "webglSpoofing",

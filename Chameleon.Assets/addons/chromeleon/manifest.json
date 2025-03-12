@@ -7,21 +7,23 @@
   "incognito": "spanning",
   "permissions": [
     "storage",
-    "activeTab",
+    "tabs",
+    "scripting",
+    "declarativeNetRequest",
+    "webRequest",
     "contextMenus",
+    "activeTab",
     "notifications",
     "debugger",
-    "declarativeNetRequest",
     "declarativeNetRequestFeedback",
     "privacy",
-    "scripting",
     "userScripts",
-    "tabs",
     "webNavigation",
-    "webRequest",
     "geolocation"
   ],
-  "host_permissions": [ "<all_urls>" ],
+  "host_permissions": [ 
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

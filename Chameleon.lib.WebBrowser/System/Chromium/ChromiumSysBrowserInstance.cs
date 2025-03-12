@@ -20,7 +20,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 
 	public override string ExePath => SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
 
-	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/register.html?" +
+	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?" +
 		$"sessionId={SessionId}" +
 		$"&appInstanceId={Settings.Profile.Id}";
 
@@ -211,8 +211,9 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 		{
 			enabled = true,
 			log = Debugger.IsAttached ? "debug" : "none",
-			webglSpoofing = Settings.Emulation.SpoofWebGLFingerprint,
+			dAPI = "disable_non_proxied_udp",
 			canvasProtection = Settings.Emulation.SpoofCanvasFingerprint,
+			webglSpoofing = Settings.Emulation.SpoofWebGLFingerprint,
 			clientRectsSpoofing = Settings.Emulation.SpoofClientRects,
 			fontsSpoofing = Settings.Emulation.SpoofFontFingerprint,
 			audioSpoofing = Settings.Emulation.SpoofAudio,
@@ -224,8 +225,6 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 			ipapi.myIP,
 			randomizeTZ = false,
 			randomizeGeo = false,
-			webRtcEnabled = true,
-			dAPI = "disable_non_proxied_udp",
 			noiseLevel = "medium",
 			locale = "en-US",
 			accuracy = 69.96,

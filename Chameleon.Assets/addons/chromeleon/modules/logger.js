@@ -20,29 +20,29 @@ const formatMessage = (level, message) => {
 };
 
 export const log = {
-  log: (message, ...args) => {
+  log: (message, args = {}) => {
     if (0 <= config.currentLogLevel) {
-      console.log(formatMessage("LOG", message), ...args);
+      console.log(formatMessage("LOG", message, args));
     }
   },
-  debug: (message, ...args) => {
+  debug: (message, args = {}) => {
     if (1 <= config.currentLogLevel) {
-      console.debug(formatMessage("DEBUG", message), ...args);
+      console.debug(formatMessage("DEBUG", message, args));
     }
   },
-  info: (message, ...args) => {
+  info: (message, args = {}) => {
     if (2 <= config.currentLogLevel) {
-      console.info(formatMessage("INFO", message), ...args);
+      console.info(formatMessage("INFO", message, args));
     }
   },
-  warn: (message, ...args) => {
+  warn: (message, args = {}) => {
     if (3 <= config.currentLogLevel) {
-      console.warn(formatMessage("WARN", message), ...args);
+      console.warn(formatMessage("WARN", message, args));
     }
   },
-  error: (message, ...args) => {
+  error: (message, args = {}) => {
     if (4 <= config.currentLogLevel) {
-      console.error(formatMessage("ERROR", message), ...args);
+      console.error(formatMessage("ERROR", message, args));
     }
   },
 };

@@ -3,7 +3,8 @@ import { log, setLogLevel } from "./modules/logger.js";
 import { updateSettings, SETTINGS_ARRAY } from "./modules/settings.js";
 import { updateLocationRules } from "./modules/uule.js";
 import { applyOverrides } from "./modules/emulations.js";
-import "./modules/webrtc.js";
+import * as WebRTC from "./modules/webrtc.js";
+//import "./modules/canvasing.js";
 
 
 // Fix the incomplete runtime event listener
@@ -13,18 +14,14 @@ chrome.runtime.onInstalled.addListener(async () => {
   App.session = await chrome.storage.local.get("session");
   App.config = await chrome.storage.local.get("config");
   if (App.session && App.config) {
-    App.config.log = App.config.log || "all";
-    if (!App.config.webRtcEnabled) {
-      App.config.webRtcEnabled = true;
-      App.config.dAPI = "default";
-    }
-    App.session.ready = true;
-    log.info("Restored session", App.session, App.config);
-  } else {
-    App.config.log = "all";
-    App.config.webRtcEnabled = true;
-    App.config.dAPI = "default";
-  }
+    log.info("Restored session", {session: App.session, config: App.config});
+  } 
+
+  App.config.enabled = true;
+  App.config.log = "all";
+  App.config.dAPI = WebRTC.policies.disable_non_proxied_udp.id;
+  App.config.canvasing = true;
+  await chrome.storage.sync.set({...App.config});
 
   setLogLevel(App.config.log);
   createContextMenus();
@@ -36,7 +33,7 @@ chrome.runtime.onStartup.addListener(async() => {
 });
 
 // Listen for messages from popup or content scripts
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "sendToApp") {
     App.sendData(message.data)
       .then((response) => sendResponse({ success: true, data: response }))
@@ -63,7 +60,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       async (success) => {
         if (success) {
           createContextMenus();
-          setLogLevel(App.session.config.logLevel);
+          setLogLevel(App.session.config.log);
           App.session.ready = true;
           await applyAllOverrides();
           log.info("App connected", config);
@@ -98,15 +95,16 @@ async function applyAllOverrides() {
 
   log.info("Applying all overrides");
 
-  chrome.tabs.query({}, async (tabs) => {
-    await tabs.forEach(async (tab) => {
-      await applyOverrides(tab);
-    });
-  });
+  // chrome.tabs.query({}, async (tabs) => {
+  //   await tabs.forEach(async (tab) => {
+  //     await applyOverrides(tab);
+  //   });
+  // });
 
   const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
   // Set WebRTC IP handling policy
   updateLocationRules(settings);
+  return;
 
   //https://developer.chrome.com/docs/extensions/reference/api/userScripts
   const USER_SCRIPT_ID = "chromeleonairz";
@@ -156,56 +154,29 @@ async function applyAllOverrides() {
 }
 
 export function createContextMenus() {
+  chrome.contextMenus.removeAll();
   chrome.contextMenus.create({ title: "WebRTC", id: "webrtc-menu", contexts: ["action"] });
-  chrome.contextMenus.create({
-    title: "Enabled",
-    id: "webRtcEnabled",
-    contexts: ["action"],
-    type: "checkbox",
-    parentId: "webrtc-menu",
-    checked: App.config.webRtcEnabled === true,
-  });
 
   // options
-  chrome.contextMenus.create({
-    title: "Options",
-    id: "webrtc-options",
-    contexts: ["action"],
-    parentId: "webrtc-menu",
-  });
-  chrome.contextMenus.create({
-    parentId: "webrtc-options",
-    type: "radio",
-    contexts: ["action"],
-    title: "default",
-    id: "default",
-    checked: App.config.dAPI === "default",
-  });
-  chrome.contextMenus.create({
-    parentId: "webrtc-options",
-    type: "radio",
-    contexts: ["action"],
-    title: "default public and private interfaces",
-    id: "default_public_and_private_interfaces",
-    checked: App.config.dAPI === "default_public_and_private_interfaces",
-  });
-  chrome.contextMenus.create({
-    parentId: "webrtc-options",
-    type: "radio",
-    contexts: ["action"],
-    title: "default public interface only",
-    id: "default_public_interface_only",
-    checked: App.config.dAPI === "default_public_interface_only",
-  });
-  chrome.contextMenus.create({
-    parentId: "webrtc-options",
-    type: "radio",
-    contexts: ["action"],
-    title: "disable non proxied udp",
-    id: "disable_non_proxied_udp",
-    checked: App.config.dAPI === "disable_non_proxied_udp",
+  const options = [
+    WebRTC.policies.default,
+    WebRTC.policies.default_public_and_private_interfaces,
+    WebRTC.policies.default_public_interface_only,
+    WebRTC.policies.disable_non_proxied_udp,
+  ]
+  // create context menus
+  options.forEach((option) => {
+    chrome.contextMenus.create({
+      parentId: "webrtc-menu",
+      type: "radio",
+      contexts: ["action"],
+      title: option.title,
+      id: option.id,
+      checked: App.config.dAPI === option.id,
+    });
   });
 }
+
 
 // chrome.webNavigation.onDOMContentLoaded.addListener(async ({ tabId, url }) => {
 //   chrome.scripting.executeScript({
@@ -247,3 +218,151 @@ export function createContextMenus() {
 // });
 
 log.info("Background script loaded");
+
+// // background.js - Updated for isolated world script injection
+// chrome.runtime.onInstalled.addListener(() => {
+//   console.log("Canvas Fingerprint Protector installed");
+  
+//   // Set up declarativeNetRequest rules to block known fingerprinting scripts
+//   const rules = [
+//     {
+//       id: 1,
+//       priority: 1,
+//       action: { type: "block" },
+//       condition: { 
+//         urlFilter: "*fingerprint*.js", 
+//         resourceTypes: ["script"] 
+//       }
+//     },
+//     {
+//       id: 2,
+//       priority: 1,
+//       action: { type: "block" },
+//       condition: { 
+//         urlFilter: "*analytics*canvas*", 
+//         resourceTypes: ["script"] 
+//       }
+//     }
+//   ];
+  
+//   chrome.declarativeNetRequest.updateDynamicRules({
+//     removeRuleIds: [1, 2],
+//     addRules: rules
+//   });
+  
+//   // Initialize default settings
+//   chrome.storage.local.set({
+//     enableProxyAPI: true,
+//     enableCSSInjection: true,
+//     enableShadowDOM: true,
+//     noiseLevel: 5, // 1-10 scale
+//     blockedCount: 0,
+//     isolatedWorldInjection: true // New setting for isolated world injection
+//   });
+// });
+
+// // Handle tab activation to ensure protection is applied
+// chrome.tabs.onActivated.addListener((activeInfo) => {
+//   injectProtectionScripts(activeInfo.tabId);
+// });
+
+// // Handle tab updates to ensure protection is applied to new page loads
+// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+//   if (changeInfo.status === 'loading') {
+//     injectProtectionScripts(tabId);
+//   }
+// });
+
+// // Function to inject scripts into the isolated world
+// function injectProtectionScripts(tabId) {
+//   chrome.storage.local.get(['isolatedWorldInjection'], (settings) => {
+//     if (settings.isolatedWorldInjection) {
+//       // Only inject into main frame, not iframes (could be changed if needed)
+//       chrome.scripting.executeScript({
+//         target: { tabId: tabId, allFrames: true },
+//         files: ['content-isolated.js'],
+//         // world: "ISOLATED" is the default in Manifest V3
+//       }).catch(error => {
+//         console.error("Script injection failed:", error);
+//       });
+//     }
+//   });
+// }
+
+// // Handle messages from content scripts
+// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+//   if (message.type === "getSettings") {
+//     chrome.storage.local.get(null, (settings) => {
+//       sendResponse(settings);
+//     });
+//     return true; // Keep the message channel open for async response
+//   }
+  
+//   if (message.type === "fingerprintingDetected" || message.type === "protectionActive") {
+//     console.log(`${message.type} in ${message.world || 'unknown'} world`);
+    
+//     // Update badge counter if it's a fingerprinting detection
+//     if (message.type === "fingerprintingDetected") {
+//       // Increment counter for detected fingerprinting attempts
+//       chrome.storage.local.get("blockedCount", (data) => {
+//         const newCount = (data.blockedCount || 0) + 1;
+//         chrome.storage.local.set({ blockedCount: newCount });
+        
+//         // Update the badge
+//         chrome.action.setBadgeText({ text: newCount.toString() });
+//         chrome.action.setBadgeBackgroundColor({ color: '#F44336' });
+//       });
+//     }
+//   }
+  
+//   if (message.type === "updateSettings") {
+//     // Broadcast settings update to all content scripts
+//     chrome.tabs.query({}, (tabs) => {
+//       tabs.forEach(tab => {
+//         chrome.tabs.sendMessage(tab.id, {
+//           type: "updateSettings",
+//           ...message.settings
+//         }).catch(() => {
+//           // Tab might not have content script injected, that's okay
+//         });
+//       });
+//     });
+    
+//     // Re-inject scripts if isolated world setting changed
+//     if (message.settings.isolatedWorldInjection !== undefined) {
+//       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+//         if (tabs[0]) {
+//           injectProtectionScripts(tabs[0].id);
+//         }
+//       });
+//     }
+    
+//     sendResponse({ status: "settings-broadcast-initiated" });
+//   }
+// });
+
+// // Monitor web requests for potential fingerprinting
+// chrome.webRequest.onCompleted.addListener(
+//   function(details) {
+//     // Check if the URL contains likely fingerprinting indicators
+//     const url = details.url.toLowerCase();
+//     if (url.includes('fingerprint') || 
+//         (url.includes('canvas') && (url.includes('track') || url.includes('detect'))) ||
+//         (url.includes('device') && url.includes('identify'))) {
+      
+//       // Log the detected request
+//       console.log("Potential fingerprinting request detected:", details.url);
+      
+//       // Increment counter
+//       chrome.storage.local.get("blockedCount", (data) => {
+//         const newCount = (data.blockedCount || 0) + 1;
+//         chrome.storage.local.set({ blockedCount: newCount });
+        
+//         // Update the badge
+//         chrome.action.setBadgeText({ text: newCount.toString() });
+//         chrome.action.setBadgeBackgroundColor({ color: '#F44336' });
+//       });
+//     }
+//   },
+//   { urls: ["<all_urls>"] }
+// );
