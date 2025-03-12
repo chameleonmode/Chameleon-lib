@@ -5,7 +5,49 @@ import { updateLocationRules } from "./modules/uule.js";
 import { applyOverrides } from "./modules/emulations.js";
 import * as WebRTC from "./modules/webrtc.js";
 //import "./modules/canvasing.js";
+(async function() {
+  // Get settings from storage
+  const settings = await getSettings();
+  
+  // Early exit if protection is disabled
+  if (!settings.enabled || !settings.canvasing) {
+    return;
+  }
 
+  // Set up message listeners to coordinate with content scripts
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "getCanvasSettings") {
+      sendResponse({settings: settings});
+    }
+  });
+  
+  // Inject content script into all frames via manifest
+  // This is done in manifest.json with "all_frames": true
+  
+  /**
+   * Get extension settings from storage
+   */
+  async function getSettings() {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(
+        ["canvasing", "randomCanvasing", "canvasR", "canvasG", "canvasB", "canvasA", "enabled"],
+        (result) => {
+          // Set default values if not found
+          const settings = {
+            canvasing: result.canvasing !== undefined ? result.canvasing : true,
+            randomCanvasing: result.randomCanvasing !== undefined ? result.randomCanvasing : true,
+            canvasR: result.canvasR !== undefined ? result.canvasR : 1,
+            canvasG: result.canvasG !== undefined ? result.canvasG : 1,
+            canvasB: result.canvasB !== undefined ? result.canvasB : 1,
+            canvasA: result.canvasA !== undefined ? result.canvasA : 1,
+            enabled: result.enabled !== undefined ? result.enabled : true
+          };
+          resolve(settings);
+        }
+      );
+    });
+  }
+}());
 
 // Fix the incomplete runtime event listener
 chrome.runtime.onInstalled.addListener(async () => {
@@ -25,6 +67,15 @@ chrome.runtime.onInstalled.addListener(async () => {
 
   setLogLevel(App.config.log);
   createContextMenus();
+
+   // Initialize default settings
+   chrome.storage.local.set({
+    enableProxyAPI: true,
+    enableCSSInjection: true,
+    enableWasmApproach: true,
+    enableShadowDOM: true,
+    noiseLevel: 5 // 1-10 scale
+  });
 });
 
 // Add runtime startup listener
@@ -34,6 +85,12 @@ chrome.runtime.onStartup.addListener(async() => {
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "getSettings") {
+    chrome.storage.local.get(null, (settings) => {
+      sendResponse(settings);
+    });
+    return true; // Keep the message channel open for async response
+  }
   if (message.action === "sendToApp") {
     App.sendData(message.data)
       .then((response) => sendResponse({ success: true, data: response }))
