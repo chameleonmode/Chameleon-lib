@@ -6,11 +6,11 @@ using static Chameleon.lib.Common.Constants.Enums;
 namespace Tests.WebBrowser;
 public class BrowserLauncherTests {
 	
-// http://proxy.chameleonmode.com:31112:elimdadia_gmail_com:gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr
-// http://proxy.chameleonmode.com:31112:elimdadia_gmail_com:gb0Q1sXdTDZTlR2J_country-UnitedStates_session-CYpEvUqY
-// http://proxy.chameleonmode.com:31112:elimdadia_gmail_com:gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY
-// http://proxy.chameleonmode.com:31112:elimdadia_gmail_com:gb0Q1sXdTDZTlR2J_country-UnitedStates_session-mzBorsdy
-// http://proxy.chameleonmode.com:31112:elimdadia_gmail_com:gb0Q1sXdTDZTlR2J_country-UnitedStates_session-N2Vb4Jvy
+// SGP6J3fr
+// CYpEvUqY
+// vUp6cZAY
+// mzBorsdy
+// N2Vb4Jvy
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
 		var bi = await SystemBrowserService.Instance.Open(
@@ -21,7 +21,7 @@ public class BrowserLauncherTests {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-N2Vb4Jvy"
 					}
 				}),
 				"https://example.com",

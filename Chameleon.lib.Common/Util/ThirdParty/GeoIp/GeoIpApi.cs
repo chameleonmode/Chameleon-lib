@@ -33,7 +33,8 @@ public class GeoIpApi {
 				OnError: (e, i) => {
 					httpClientTimeoutInSeconds *= i + 1;
 					onretry($"Timezone Request from proxy failed. Retrying {i}");
-				}
+				},
+				sleep: 4000
 			);
 		} finally {
 			client.Dispose();

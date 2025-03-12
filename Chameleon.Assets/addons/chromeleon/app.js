@@ -1,110 +1,50 @@
-// app.js for Chrome Extension
+// app.js for Chrome Extension to communicate with the app server
 
-// Object to track sessions launched by the app
-export const AppLaunchManager = {
+export const App = {
+  server: null,
+  port: null,
+  config: {},
+  session: {
+    ready: false,
+    sessionId: null,
+    instanceId: null,
+    params: {},
+  },
   launchedSessions: {},
 
   // Register a new session launched by the app
-  registerSession: function (sessionId, params = {}) {
-    App.session = {
-      sessionId: sessionId,
-      appInstanceId: params.appInstanceId || "unknown",
-      timestamp: Date.now(),
-      source: "app",
-      active: true,
-      ready: false,
-      params: params,
+  initialize: async function (sessionId, instanceId, params = {}) {
+    if (!(await this.discoverServer())) return false
+
+    const { config } = await this.sendData({ type: "init" });
+    this.config = config;
+    this.session = {
+      sessionId,
+      instanceId,
+      params,
     };
-    this.launchedSessions[sessionId] = App.session;
-
-    App.session.sessionId = sessionId;
-    App.session.appInstanceId =params.appInstanceId || "unknown";
-
-    // Store in persistent storage
-    this.saveSessionsToStorage();
-
-    // Notify any listeners about this new session
-    this.notifySessionRegistered(sessionId);
-
+    this.launchedSessions[sessionId] = this.session;
+    await chrome.storage.local.set({ session: this.session, launchedSessions: this.launchedSessions, config });
     return true;
-  },
-
-  // Load sessions from persistent storage
-  loadSessionsFromStorage: async function () {
-    const result = await chrome.storage.local.get(["launchedSessions"]);
-    if (result && result.launchedSessions) {
-      this.launchedSessions = result.launchedSessions;
-      //console.log(`Loaded ${Object.keys(this.launchedSessions).length} launched sessions from storage`);
-    }
-  },
-
-  // Save sessions to persistent storage
-  saveSessionsToStorage: async function () {
-    await chrome.storage.local.set({ launchedSessions: this.launchedSessions });
-  },
-
-  // Check if a session was launched by the app
-  isAppLaunchedSession: function (sessionId) {
-    return !!this.launchedSessions[sessionId];
-  },
-
-  // Get session details
-  getSessionDetails: function (sessionId) {
-    return this.launchedSessions[sessionId] || null;
-  },
-
-  // Notify listeners about new session
-  notifySessionRegistered: function (sessionId) {
-    // You could implement custom event dispatch here if needed
-    //console.log(`Session ${sessionId} registered and ready`);
-  },
-
-  // Add the session info to API requests
-  addSessionToRequest: function (data, sessionId) {
-    if (!sessionId || !this.isAppLaunchedSession(sessionId)) {
-      return data;
-    }
-
-    const session = this.getSessionDetails(sessionId);
-
-    return {
-      ...data,
-      _launchedByApp: true,
-      _sessionId: sessionId,
-      _appInstanceId: session.appInstanceId,
-    };
-  },
-};
-
-// The App object is used to communicate with the app server
-export const App = {
-  candidatePorts: [5016, 5031, 7034, 8032, 8084, 9027],
-  port: null,
-  session: {
-    active: false,
-    ready: false,
-    sessionId: null,
-    appInstanceId: null,
-    timestamp: null,
-    source: null,
-    params: null,
   },
 
   // Find the app server
   discoverServer: async function () {
     // Try each port in the list
-    for (const port of this.candidatePorts) {
+    for (const port of [3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696]) {
       try {
-        const response = await fetch(`http://127.0.0.1:${port}/ping`, {
+        const url = `http://127.0.0.1:${port}`;
+        const response = await fetch(`${url}/ping`, {
           signal: AbortSignal.timeout(500), // 500ms timeout
         });
-
-        if (response.ok) {
-          this.port = port;
-          return true;
-        }
+        if (!response.ok) continue;
+        
+        this.port = port;
+        this.server = url;
+        return true;
       } catch (error) {
         // Continue to next port
+        console.error(error);
       }
     }
     return false;
@@ -112,62 +52,29 @@ export const App = {
 
   // Send data to the app
   sendData: async function (data) {
-    if (!this.port && !(await this.discoverServer())) {
+    if (!this.server && !(await this.discoverServer())) {
       throw new Error("app not found");
     }
 
-    try {
-      const session = AppLaunchManager.getSessionDetails(this.session.sessionId);  
-      const response = await fetch(`http://localhost:${this.port}/app/data`, {
+    return await (
+      await fetch(`${this.server}/app/data`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Add session headers if available
-          ...(session
-            ? {
-                "X-Session-ID": this.session.sessionId,
-                "X-Instance-ID": session.appInstanceId
-              }
-            : {}),
+          "X-Session-ID": this.session.sessionId,
+          "X-Instance-ID": this.session.instanceId,
         },
         body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      this.port = null;
-      throw error;
-    }
+      })
+    ).json();
   },
 
   // Get app state
   getAppState: async function () {
-    // Make sure we're connected first
-    if (!this.port && !(await this.discoverServer())) {
+    if (!this.server && !(await this.discoverServer())) {
       throw new Error("app not found");
     }
 
-    try {
-      const response = await fetch(`http://127.0.0.1:${this.port}/app/state`);
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      // If connection fails, reset port and try discovery on next attempt
-      this.port = null;
-      throw error;
-    }
-  },
-
-  // Check if the app is running
-  isRunning: async function () {
-    return await this.discoverServer();
+    return await (await fetch(`${this.server}/app/state`)).json();
   },
 };

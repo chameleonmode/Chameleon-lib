@@ -2,6 +2,14 @@ import { log } from "./logger.js";
 import { offsets } from "./offsets.js";
 import { SETTINGS_ARRAY } from "./settings.js";
 
+chrome.storage.onChanged.addListener(async (changes, namespace) => {
+  chrome.tabs.query({}, async (tabs) => {
+    await tabs.forEach(async (tab) => {
+      await applyOverrides(tab);
+    });
+  });
+});
+
 export async function applyOverrides(tab) {
   try {
     const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);

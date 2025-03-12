@@ -1,10 +1,39 @@
-import { App, AppLaunchManager } from "./app.js";
+import { App } from "./app.js";
 import { log, setLogLevel } from "./modules/logger.js";
 import { updateSettings, SETTINGS_ARRAY } from "./modules/settings.js";
-import { createContextMenus, updatePolicy } from "./modules/webrtc.js";
 import { updateLocationRules } from "./modules/uule.js";
 import { applyOverrides } from "./modules/emulations.js";
+import "./modules/webrtc.js";
 
+
+// Fix the incomplete runtime event listener
+chrome.runtime.onInstalled.addListener(async () => {
+  log.info("Extension installed");
+  // Restore session from storage
+  App.session = await chrome.storage.local.get("session");
+  App.config = await chrome.storage.local.get("config");
+  if (App.session && App.config) {
+    App.config.log = App.config.log || "all";
+    if (!App.config.webRtcEnabled) {
+      App.config.webRtcEnabled = true;
+      App.config.dAPI = "default";
+    }
+    App.session.ready = true;
+    log.info("Restored session", App.session, App.config);
+  } else {
+    App.config.log = "all";
+    App.config.webRtcEnabled = true;
+    App.config.dAPI = "default";
+  }
+
+  setLogLevel(App.config.log);
+  createContextMenus();
+});
+
+// Add runtime startup listener
+chrome.runtime.onStartup.addListener(async() => {
+  log.info("Extension started");
+});
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
@@ -23,51 +52,31 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
 
   if (message.action === "checkConnection") {
-    App.isRunning()
+    App.discoverServer()
       .then((running) => sendResponse({ connected: running }))
       .catch(() => sendResponse({ connected: false }));
     return true;
   }
 
   if (message.action === "registerAppLaunch") {
-    const success = AppLaunchManager.registerSession(message.sessionId, {
-      appInstanceId: message.appInstanceId,
-      timestamp: message.timestamp,
-      additionalData: message.additionalData,
-    });
-
-    const found = await App.discoverServer();
-    if (found) {
-      const { data: config } = await App.sendData({ type: "init" });
-
-      setLogLevel(config.logLevel);
-      createContextMenus(config);
-
-      await updateSettings(config);
-
-      App.session.ready = true;
-      await applyAllOverrides();
-
-      log.info("App connected", config);
-    } else {
-      log.error("App not found");
-    }
-    sendResponse({ success });
+    App.initialize(message.sessionId, message.appInstanceId, message.additionalData).then(
+      async (success) => {
+        if (success) {
+          createContextMenus();
+          setLogLevel(App.session.config.logLevel);
+          App.session.ready = true;
+          await applyAllOverrides();
+          log.info("App connected", config);
+        }
+        sendResponse({ success });
+      }
+    );
     return true;
   }
 
-  if (message.action === "checkSessionStatus") {
-    const isAppLaunched = AppLaunchManager.isAppLaunchedSession(message.sessionId);
+  if (message.action === "getAppSession") {
     sendResponse({
-      isAppLaunched,
-      sessionDetails: isAppLaunched ? AppLaunchManager.getSessionDetails(message.sessionId) : null,
-    });
-    return true;
-  }
-
-  if (message.checkIncognito) {
-    chrome.extension.isAllowedIncognitoAccess().then((isAllowed) => {
-      sendResponse({ isAllowed });
+      session: App.session,
     });
     return true;
   }
@@ -97,7 +106,6 @@ async function applyAllOverrides() {
 
   const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
   // Set WebRTC IP handling policy
-  await updatePolicy(settings);
   updateLocationRules(settings);
 
   //https://developer.chrome.com/docs/extensions/reference/api/userScripts
@@ -145,6 +153,58 @@ async function applyAllOverrides() {
       await chrome.userScripts.update(userscripts);
     }
   }
+}
+
+export function createContextMenus() {
+  chrome.contextMenus.create({ title: "WebRTC", id: "webrtc-menu", contexts: ["action"] });
+  chrome.contextMenus.create({
+    title: "Enabled",
+    id: "webRtcEnabled",
+    contexts: ["action"],
+    type: "checkbox",
+    parentId: "webrtc-menu",
+    checked: App.config.webRtcEnabled === true,
+  });
+
+  // options
+  chrome.contextMenus.create({
+    title: "Options",
+    id: "webrtc-options",
+    contexts: ["action"],
+    parentId: "webrtc-menu",
+  });
+  chrome.contextMenus.create({
+    parentId: "webrtc-options",
+    type: "radio",
+    contexts: ["action"],
+    title: "default",
+    id: "default",
+    checked: App.config.dAPI === "default",
+  });
+  chrome.contextMenus.create({
+    parentId: "webrtc-options",
+    type: "radio",
+    contexts: ["action"],
+    title: "default public and private interfaces",
+    id: "default_public_and_private_interfaces",
+    checked: App.config.dAPI === "default_public_and_private_interfaces",
+  });
+  chrome.contextMenus.create({
+    parentId: "webrtc-options",
+    type: "radio",
+    contexts: ["action"],
+    title: "default public interface only",
+    id: "default_public_interface_only",
+    checked: App.config.dAPI === "default_public_interface_only",
+  });
+  chrome.contextMenus.create({
+    parentId: "webrtc-options",
+    type: "radio",
+    contexts: ["action"],
+    title: "disable non proxied udp",
+    id: "disable_non_proxied_udp",
+    checked: App.config.dAPI === "disable_non_proxied_udp",
+  });
 }
 
 // chrome.webNavigation.onDOMContentLoaded.addListener(async ({ tabId, url }) => {

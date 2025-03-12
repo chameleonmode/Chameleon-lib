@@ -1,15 +1,17 @@
 const ADDON_NAME = "Chromeleon Defender";
 
 const LOG_LEVELS = {
-  LOG: 0,
-  DEBUG: 1,
-  INFO: 2,
-  WARN: 3,
-  ERROR: 4,
+  none: -1,
+  log: 0,
+  debug: 1,
+  info: 2,
+  warn: 3,
+  error: 4,
+  all: 5,
 };
 
 const config = {
-  currentLogLevel: LOG_LEVELS["DEBUG"],
+  currentLogLevel: LOG_LEVELS["all"],
 };
 
 const formatMessage = (level, message) => {
@@ -45,27 +47,8 @@ export const log = {
   },
 };
 
-export default function logger(type, message, ...args) {
-  if (config.currentLogLevel < 0) return;
-  switch (type) {
-    case "log":
-      log.debug(message, ...args);
-      break;
-    case "error":
-      log.error(message, ...args);
-      break;
-    case "warn":
-      log.warn(message, ...args);
-      break;
-    case "info":
-      log.info(message, ...args);
-      break;
-    default:
-      log.debug(message, ...args);
-  }
-}
 
 // Example of setting the log level dynamically
 export function setLogLevel(level) {
-  config.currentLogLevel = level;
+  config.currentLogLevel = LOG_LEVELS[level];
 }

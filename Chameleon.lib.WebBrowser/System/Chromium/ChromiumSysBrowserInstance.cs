@@ -9,28 +9,28 @@ using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
-public class ChromiumSysBrowserInstance : SysBrowserInstance {
+public class ChromiumSysBrowserInstance : SysBrowserInstance
+{
 	public override string PrefsFile => Path.Combine(
-		Settings.SysBrowserProfileCachePath, 
+		Settings.SysBrowserProfileCachePath,
 		"Default",
 		"Preferences"
-		//OperatingSystem.IsWindows() ? "Preferences" : "Secure Preferences"
+	//OperatingSystem.IsWindows() ? "Preferences" : "Secure Preferences"
 	);
 
 	public override string ExePath => SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
 
-	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/register.html" + 
-    $"?source=app" +
-    $"&sessionId={SessionId}" +
-    $"&appInstanceId={Settings.Profile.Id}" +
-    $"&timestamp={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/register.html?" +
+		$"sessionId={SessionId}" +
+		$"&appInstanceId={Settings.Profile.Id}";
 
 	// ...
-	protected override string GetCommandLineArguments() {
+	protected override string GetCommandLineArguments()
+	{
 		var exts = new[] {
 			Settings.CachedExtentionsDir,
 			Settings.DestExtentionsDir,
-			Settings.SysBrowseUserExtDir
+			Settings.SysBrowseUserExtDir,
 		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories).ToCommaSeparatedString();
 
 		// Construct URL with parameters for extension
@@ -126,18 +126,26 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			//Settings.Profile.Proxy.CanUse ? $"--proxy-server={Settings.Profile.Proxy.ServerForRequest}" : "",
 			//Settings.Profile.Proxy.HasLogin ? $"--proxy-auth={Settings.Profile.Proxy.UserName}:{Settings.Profile.Proxy.Password}" : "",
-			$"--load-extension=\"{exts}\"",
+			#if DEBUG
+				$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
+			#else
+				$"--load-extension=\"{exts}\"",
+			#endif
 			ExtUrl
 			//"about:blank"
 		}.Where(x => !string.IsNullOrWhiteSpace(x)));
 	}
 
 	// ...
-	protected override async Task InitializeExtensionPath() {
-		if (!File.Exists(PrefsFile)) {
+	protected override async Task InitializeExtensionPath()
+	{
+		if (!File.Exists(PrefsFile))
+		{
 			_ = Directory.CreateDirectory(Path.GetDirectoryName(PrefsFile)!);
 			await File.AppendAllTextAsync(PrefsFile, "{\"extensions\": { \"ui\": { \"developer_mode\": true } }}");
-		} else {
+		}
+		else
+		{
 			// Make sure Chrome is closed before modifying the file
 			// var jsonText = await File.ReadAllTextAsync(PrefsFile);
 			// using var doc = JsonDocument.Parse(jsonText);
@@ -192,15 +200,17 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		var ipapi = await GeoIpApi.GetIpapi(
 			proxy: Settings.Profile.Proxy.WebProxy,
 			onretry: e => Toaster.Error(e)
-		) ?? new () {	
-			timezone = "America/Los_Angeles", 
+		) ?? new()
+		{
+			timezone = "America/Los_Angeles",
 			lat = 34.052235,
 			lon = -118.243683,
-			myIP = "true" 
+			myIP = "true"
 		};
-		AddonsServer.Instance.AddonInstances[SessionId] = new {
+		AddonsServer.Instance.AddonInstances[SessionId] = new
+		{
 			enabled = true,
-			logLevel = Debugger.IsAttached ? 5 : -1,
+			log = Debugger.IsAttached ? "debug" : "none",
 			webglSpoofing = Settings.Emulation.SpoofWebGLFingerprint,
 			canvasProtection = Settings.Emulation.SpoofCanvasFingerprint,
 			clientRectsSpoofing = Settings.Emulation.SpoofClientRects,
@@ -222,8 +232,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			bypass = Array.Empty<string>(),
 			history = Array.Empty<string>()
 		};
+		//_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
 
-		_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
 		// await File.WriteAllTextAsync(
 		// 	Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir), "config.js"), 
 		// 	@$"export const config = {{
@@ -255,7 +265,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		// );
 
 		await File.WriteAllTextAsync(
-			Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir), "settings.js"), 
+			Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir), "settings.js"),
 			@$"export const settings = {{
 			   	type: 'http',
 				 	server: '{Settings.Profile.Proxy.Server}',
@@ -275,7 +285,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	}
 
 	[SupportedOSPlatform("windows")]
-	protected override async Task WaitForWinHandle() {
+	protected override async Task WaitForWinHandle()
+	{
 		_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
 	}
 }

@@ -1,15 +1,15 @@
 {
   "name": "Chromeleon",
   "description": "A Chromeleon is the extension that can change its behavior to blend into the environment of any websites fishing attempts.",
-  "version": "2025.3.11",
+  "version": "2025.3.12",
   "manifest_version": 3,
   "offline_enabled": true,
   "incognito": "spanning",
   "permissions": [
     "storage",
+    "activeTab",
     "contextMenus",
     "notifications",
-    "activeTab",
     "debugger",
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
