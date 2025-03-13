@@ -1,7 +1,7 @@
 {
   "name": "Chromeleon",
   "description": "A Chromeleon is the extension that can change its behavior to blend into the environment of any websites fishing attempts.",
-  "version": "2025.3.14.2",
+  "version": "2025.3.14.12",
   "manifest_version": 3,
   "offline_enabled": true,
   "incognito": "spanning",
@@ -39,30 +39,16 @@
   },
   "content_scripts": [
     {
-      "run_at": "document_start",
-      "all_frames": true,
-      "match_about_blank": true,
-      "match_origin_as_fallback": true,
-      "matches": [ "<all_urls>" ],
-      "include_globs": ["<all_urls>"],
-      "js": [ "data/scripts/isolated.js" ],
-      "world": "ISOLATED"
-    },
-    {
-      "matches": [ "<all_urls>" ],
-      "js": [ "data/scripts/content-script.js" ]
-    },   
-    {
-      "world": "MAIN",
-      "run_at": "document_start",
       "matches": ["<all_urls>"],
+      "js": ["content.js"],
       "all_frames": true,
-      "js": ["scriptin/canvas.js"]
+      "run_at": "document_idle",
+      "world": "ISOLATED"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["data/web/register.html", "canvas-protection.js"],
+      "resources": ["data/web/register.html"],
       "matches": ["<all_urls>"]
     }
   ],

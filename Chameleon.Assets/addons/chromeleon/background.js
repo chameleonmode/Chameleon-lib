@@ -5,49 +5,6 @@ import { updateLocationRules } from "./modules/uule.js";
 import { applyOverrides } from "./modules/emulations.js";
 import * as WebRTC from "./modules/webrtc.js";
 //import "./modules/canvasing.js";
-(async function() {
-  // Get settings from storage
-  const settings = await getSettings();
-  
-  // Early exit if protection is disabled
-  if (!settings.enabled || !settings.canvasing) {
-    return;
-  }
-
-  // Set up message listeners to coordinate with content scripts
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "getCanvasSettings") {
-      sendResponse({settings: settings});
-    }
-  });
-  
-  // Inject content script into all frames via manifest
-  // This is done in manifest.json with "all_frames": true
-  
-  /**
-   * Get extension settings from storage
-   */
-  async function getSettings() {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(
-        ["canvasing", "randomCanvasing", "canvasR", "canvasG", "canvasB", "canvasA", "enabled"],
-        (result) => {
-          // Set default values if not found
-          const settings = {
-            canvasing: result.canvasing !== undefined ? result.canvasing : true,
-            randomCanvasing: result.randomCanvasing !== undefined ? result.randomCanvasing : true,
-            canvasR: result.canvasR !== undefined ? result.canvasR : 1,
-            canvasG: result.canvasG !== undefined ? result.canvasG : 1,
-            canvasB: result.canvasB !== undefined ? result.canvasB : 1,
-            canvasA: result.canvasA !== undefined ? result.canvasA : 1,
-            enabled: result.enabled !== undefined ? result.enabled : true
-          };
-          resolve(settings);
-        }
-      );
-    });
-  }
-}());
 
 // Fix the incomplete runtime event listener
 chrome.runtime.onInstalled.addListener(async () => {
@@ -56,30 +13,203 @@ chrome.runtime.onInstalled.addListener(async () => {
   App.session = await chrome.storage.local.get("session");
   App.config = await chrome.storage.local.get("config");
   if (App.session && App.config) {
-    log.info("Restored session", {session: App.session, config: App.config});
-  } 
+    log.info("Restored session", { session: App.session, config: App.config });
+  }
 
   App.config.enabled = true;
   App.config.log = "all";
   App.config.dAPI = WebRTC.policies.disable_non_proxied_udp.id;
   App.config.canvasing = true;
-  await chrome.storage.sync.set({...App.config});
+  await chrome.storage.sync.set({ ...App.config });
 
   setLogLevel(App.config.log);
   createContextMenus();
 
-   // Initialize default settings
-   chrome.storage.local.set({
-    enableProxyAPI: true,
-    enableCSSInjection: true,
-    enableWasmApproach: true,
-    enableShadowDOM: true,
-    noiseLevel: 5 // 1-10 scale
-  });
+  // await chrome.userScripts.configureWorld({
+  //     csp: "script-src 'self'; object-src 'self'",
+  // });
+  // Register user scripts
 });
 
+// Background script approach for bypassing CSP in iframes
+// This requires appropriate permissions in manifest.json:
+// - "activeTab" or specific site permissions
+// - "scripting" permission for Manifest V3
+
+// Store your script content
+const scriptContent = `
+  // Your actual script code here
+  console.log("Script executed successfully, bypassing CSP");
+  
+  // Add your functionality here
+  
+`;
+
+// For Manifest V3 extensions, use this approach
+if (typeof chrome !== "undefined" && chrome.scripting) {
+  // Function to inject into all frames including those with CSP
+  async function injectIntoAllFrames() {
+ try {
+    // Get the current active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab) {
+      console.error("No active tab found");
+      return;
+    }
+
+    // Execute script in the current tab to target the specific iframe
+    chrome.scripting
+      .executeScript({
+        target: { tabId: tab.id },
+        func: (scriptToInject) => {
+          // Function to inject script into the specific iframe
+          function injectIntoTargetIframe() {
+            // Find the target iframe
+            const targetIframe = document.getElementById('canvas-iframe');
+            
+            if (!targetIframe) {
+              console.error("Target iframe with id 'canvas-iframe' not found");
+              return;
+            }
+            
+            console.log("Target iframe found:", targetIframe);
+            
+            // Function to inject script into a document
+            function injectScriptIntoDocument(scriptContent, document) {
+              try {
+                // Create blob from the script content
+                const blob = new Blob([scriptContent], { type: "application/javascript" });
+                
+                // Create a URL for the blob
+                const blobURL = URL.createObjectURL(blob);
+                
+                // Create and inject the script element
+                const script = document.createElement("script");
+                script.src = "about:blank"; // Set a dummy URL to allow script execution
+                script.onload = function () {
+                  // Clean up the URL when done
+                  URL.revokeObjectURL(blobURL);
+                  console.log("Script injected successfully into canvas-iframe");
+                };
+                
+                // Append the script to the document
+                document.documentElement.appendChild(script);
+              } catch (err) {
+                console.error("Error injecting script:", err);
+              }
+            }
+            
+            // Try to access the iframe's content document
+            try {
+              // Since the iframe has sandbox="allow-same-origin", we should be able to access its contentDocument
+              if (targetIframe.contentDocument) {
+                injectScriptIntoDocument(scriptToInject, targetIframe.contentDocument);
+              } else {
+                console.error("Cannot access iframe contentDocument - same-origin policy or sandbox restrictions may be preventing access");
+              }
+            } catch (err) {
+              console.error("Error accessing iframe:", err);
+            }
+          }
+          
+          // Run the injection immediately
+          injectIntoTargetIframe();
+          
+          // Also set up a MutationObserver to handle if the iframe is created dynamically
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              mutation.addedNodes.forEach((node) => {
+                // Check if the added node is our target iframe
+                if (node.id === 'canvas-iframe' && node.tagName === 'IFRAME') {
+                  // Wait a bit for the iframe to load
+                  setTimeout(() => {
+                    injectIntoTargetIframe();
+                  }, 100);
+                }
+                
+                // Also check if our target iframe was added inside this node
+                if (node.querySelectorAll) {
+                  const targetIframe = node.querySelector('#canvas-iframe');
+                  if (targetIframe) {
+                    setTimeout(() => {
+                      injectIntoTargetIframe();
+                    }, 100);
+                  }
+                }
+              });
+            });
+          });
+          
+          // Start observing the document with the configured parameters
+          observer.observe(document, {
+            childList: true,
+            subtree: true,
+          });
+        },
+        args: [scriptContent],
+        world: "MAIN",
+      })
+      .catch((e) => console.error("Error injecting script:", e));
+      
+  } catch (error) {
+    console.error("Error in injectIntoCanvasIframe:", error);
+  }
+  }
+
+  // For popup or background script to trigger injection
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "injectScript") {
+      injectIntoAllFrames()
+        .then(() => {
+          sendResponse({ success: true });
+        })
+        .catch((error) => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Required for async response
+    }
+  });
+}
+
+const userscripts = [
+  {
+    id: "chromeleon",
+    world: "MAIN",
+    runAt: "document_start",
+    matches: ["<all_urls>"],
+    allFrames: true,
+    js: [
+      //   { code: `
+      //   // Additional properties that might be used for fingerprinting
+      //   // Modify navigator properties
+      //   const navigatorProps = {
+      //     hardwareConcurrency: Math.min(8, navigator.hardwareConcurrency),
+      //     deviceMemory: Math.min(8, navigator.deviceMemory || 8),
+      //   };
+
+      //   // Apply navigator property spoofing
+      //   for (const [prop, value] of Object.entries(navigatorProps)) {
+      //     if (navigator[prop] !== undefined) {
+      //       try {
+      //         Object.defineProperty(navigator, prop, {
+      //           get: function() { return value; }
+      //         });
+      //       } catch (e) {
+      //         console.log("Failed to override navigator." + prop);
+      //       }
+      //     }
+      //   }
+      // `},
+      { file: "scriptin/canvas.js" },
+      { file: "scriptin/navigator.js" },
+    ],
+  },
+];
+//chrome.userScripts.register(userscripts);
+
 // Add runtime startup listener
-chrome.runtime.onStartup.addListener(async() => {
+chrome.runtime.onStartup.addListener(async () => {
   log.info("Extension started");
 });
 
@@ -161,53 +291,53 @@ async function applyAllOverrides() {
   const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
   // Set WebRTC IP handling policy
   updateLocationRules(settings);
-  return;
+  //return;
 
   //https://developer.chrome.com/docs/extensions/reference/api/userScripts
-  const USER_SCRIPT_ID = "chromeleonairz";
-  const __myAddonRandObjName__ = `${
-    String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
-    Math.random()
-      .toString(36)
-      .substring(Math.floor(Math.random() * 5) + 5)
-  }`;
-  const userscripts = [
-    {
-      id: USER_SCRIPT_ID,
-      allFrames: true,
-      world: "MAIN",
-      runAt: "document_start",
-      matches: ["<all_urls>"],
-      js: [
-        {
-          code: `
-          if(!window.${__myAddonRandObjName__}) {
-            window.${__myAddonRandObjName__} = ${Math.random() * 0.00000001};
-            settings = JSON.parse(\`${JSON.stringify(settings)}\`);
-          }`,
-        },
-        { file: "scriptin/clientrects.js" },
-        { file: "scriptin/canvas.js" },
-        { file: "scriptin/webgl.js" },
-        { file: "scriptin/fonts.js" },
-        { file: "scriptin/audio.js" },
-      ],
-    },
-  ];
+  // const USER_SCRIPT_ID = "chromeleonairz";
+  // const __myAddonRandObjName__ = `${
+  //   String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
+  //   Math.random()
+  //     .toString(36)
+  //     .substring(Math.floor(Math.random() * 5) + 5)
+  // }`;
+  // const userscripts = [
+  //   {
+  //     id: USER_SCRIPT_ID,
+  //     allFrames: true,
+  //     world: "MAIN",
+  //     runAt: "document_start",
+  //     matches: ["<all_urls>"],
+  //     js: [
+  //       {
+  //         code: `
+  //         if(!window.${__myAddonRandObjName__}) {
+  //           window.${__myAddonRandObjName__} = ${Math.random() * 0.00000001};
+  //           settings = JSON.parse(\`${JSON.stringify(settings)}\`);
+  //         }`,
+  //       },
+  //       //{ file: "scriptin/clientrects.js" },
+  //       { file: "scriptin/canvas.js" },
+  //      // { file: "scriptin/webgl.js" },
+  //      // { file: "scriptin/fonts.js" },
+  //       //{ file: "scriptin/audio.js" },
+  //     ],
+  //   },
+  // ];
 
-  const existingScripts = await chrome.userScripts.getScripts({
-    ids: [USER_SCRIPT_ID],
-  });
-  if (existingScripts.length > 0) {
-    await chrome.userScripts.update(userscripts);
-  } else {
-    try {
-      await chrome.userScripts.register(userscripts);
-    } catch (error) {
-      log.error("Error registering user scripts", error);
-      await chrome.userScripts.update(userscripts);
-    }
-  }
+  // const existingScripts = await chrome.userScripts.getScripts({
+  //   ids: [USER_SCRIPT_ID],
+  // });
+  // if (existingScripts.length > 0) {
+  //   await chrome.userScripts.update(userscripts);
+  // } else {
+  //   try {
+  //     await chrome.userScripts.register(userscripts);
+  //   } catch (error) {
+  //     log.error("Error registering user scripts", error);
+  //     await chrome.userScripts.update(userscripts);
+  //   }
+  // }
 }
 
 export function createContextMenus() {
@@ -220,7 +350,7 @@ export function createContextMenus() {
     WebRTC.policies.default_public_and_private_interfaces,
     WebRTC.policies.default_public_interface_only,
     WebRTC.policies.disable_non_proxied_udp,
-  ]
+  ];
   // create context menus
   options.forEach((option) => {
     chrome.contextMenus.create({
@@ -233,7 +363,6 @@ export function createContextMenus() {
     });
   });
 }
-
 
 // chrome.webNavigation.onDOMContentLoaded.addListener(async ({ tabId, url }) => {
 //   chrome.scripting.executeScript({
@@ -279,34 +408,34 @@ log.info("Background script loaded");
 // // background.js - Updated for isolated world script injection
 // chrome.runtime.onInstalled.addListener(() => {
 //   console.log("Canvas Fingerprint Protector installed");
-  
+
 //   // Set up declarativeNetRequest rules to block known fingerprinting scripts
 //   const rules = [
 //     {
 //       id: 1,
 //       priority: 1,
 //       action: { type: "block" },
-//       condition: { 
-//         urlFilter: "*fingerprint*.js", 
-//         resourceTypes: ["script"] 
+//       condition: {
+//         urlFilter: "*fingerprint*.js",
+//         resourceTypes: ["script"]
 //       }
 //     },
 //     {
 //       id: 2,
 //       priority: 1,
 //       action: { type: "block" },
-//       condition: { 
-//         urlFilter: "*analytics*canvas*", 
-//         resourceTypes: ["script"] 
+//       condition: {
+//         urlFilter: "*analytics*canvas*",
+//         resourceTypes: ["script"]
 //       }
 //     }
 //   ];
-  
+
 //   chrome.declarativeNetRequest.updateDynamicRules({
 //     removeRuleIds: [1, 2],
 //     addRules: rules
 //   });
-  
+
 //   // Initialize default settings
 //   chrome.storage.local.set({
 //     enableProxyAPI: true,
@@ -354,24 +483,24 @@ log.info("Background script loaded");
 //     });
 //     return true; // Keep the message channel open for async response
 //   }
-  
+
 //   if (message.type === "fingerprintingDetected" || message.type === "protectionActive") {
 //     console.log(`${message.type} in ${message.world || 'unknown'} world`);
-    
+
 //     // Update badge counter if it's a fingerprinting detection
 //     if (message.type === "fingerprintingDetected") {
 //       // Increment counter for detected fingerprinting attempts
 //       chrome.storage.local.get("blockedCount", (data) => {
 //         const newCount = (data.blockedCount || 0) + 1;
 //         chrome.storage.local.set({ blockedCount: newCount });
-        
+
 //         // Update the badge
 //         chrome.action.setBadgeText({ text: newCount.toString() });
 //         chrome.action.setBadgeBackgroundColor({ color: '#F44336' });
 //       });
 //     }
 //   }
-  
+
 //   if (message.type === "updateSettings") {
 //     // Broadcast settings update to all content scripts
 //     chrome.tabs.query({}, (tabs) => {
@@ -384,7 +513,7 @@ log.info("Background script loaded");
 //         });
 //       });
 //     });
-    
+
 //     // Re-inject scripts if isolated world setting changed
 //     if (message.settings.isolatedWorldInjection !== undefined) {
 //       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -393,7 +522,7 @@ log.info("Background script loaded");
 //         }
 //       });
 //     }
-    
+
 //     sendResponse({ status: "settings-broadcast-initiated" });
 //   }
 // });
@@ -403,18 +532,18 @@ log.info("Background script loaded");
 //   function(details) {
 //     // Check if the URL contains likely fingerprinting indicators
 //     const url = details.url.toLowerCase();
-//     if (url.includes('fingerprint') || 
+//     if (url.includes('fingerprint') ||
 //         (url.includes('canvas') && (url.includes('track') || url.includes('detect'))) ||
 //         (url.includes('device') && url.includes('identify'))) {
-      
+
 //       // Log the detected request
 //       console.log("Potential fingerprinting request detected:", details.url);
-      
+
 //       // Increment counter
 //       chrome.storage.local.get("blockedCount", (data) => {
 //         const newCount = (data.blockedCount || 0) + 1;
 //         chrome.storage.local.set({ blockedCount: newCount });
-        
+
 //         // Update the badge
 //         chrome.action.setBadgeText({ text: newCount.toString() });
 //         chrome.action.setBadgeBackgroundColor({ color: '#F44336' });
