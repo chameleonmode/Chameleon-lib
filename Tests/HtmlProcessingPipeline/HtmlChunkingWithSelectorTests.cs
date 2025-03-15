@@ -1,7 +1,6 @@
-﻿using Chameleon.lib.Playwright.HtmlChunking;
-using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlChunking;
+﻿using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlChunking;
 
-namespace Tests.HtmlProcessingPipeline.HtmlChunking;
+namespace Tests.HtmlProcessingPipeline;
 public class HtmlChunkingTests {
 	private readonly IHtmlChunker chunker;
 

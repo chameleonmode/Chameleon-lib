@@ -1,7 +1,6 @@
-﻿using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlChunking;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
-namespace Chameleon.lib.Playwright.HtmlChunking;
+namespace Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlChunking;
 public partial class HtmlChunkingService : IHtmlChunker {
 	public async Task<IList<string>> ChunkHtmlAsync(string html, HtmlChunkingOptions options, CancellationToken cancellationToken = default) {
 		return await Task.Run(() => {

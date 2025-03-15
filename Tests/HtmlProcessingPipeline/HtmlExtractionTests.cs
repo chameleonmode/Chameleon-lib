@@ -1,7 +1,7 @@
 ﻿using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlExtraction;
 using Microsoft.Playwright;
 
-namespace Tests.HtmlProcessingPipeline.HtmlExtraction;
+namespace Tests.HtmlProcessingPipeline;
 public class HtmlExtractionTests : IAsyncLifetime {
 	private IPlaywright? playwright;
 	private IBrowser? browser;
@@ -15,7 +15,7 @@ public class HtmlExtractionTests : IAsyncLifetime {
 	}
 
 	public async Task DisposeAsync() {
-		if (browser is not null) 			await browser.DisposeAsync();
+		if (browser is not null) await browser.DisposeAsync();
 		playwright?.Dispose();
 	}
 
