@@ -22,7 +22,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 
 	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?" +
 		$"sessionId={SessionId}" +
-		$"&appInstanceId={Settings.Profile.Id}";
+		$"&instanceId={Settings.Profile.Id}";
 
 	// ...
 	protected override string GetCommandLineArguments()
@@ -263,132 +263,43 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 	// ...
 	protected override async Task InitializeExtensionPath()
 	{
-		if (!File.Exists(PrefsFile))
-		{
-			_ = Directory.CreateDirectory(Path.GetDirectoryName(PrefsFile)!);
-			await File.AppendAllTextAsync(PrefsFile, "{\"extensions\": { \"ui\": { \"developer_mode\": true } }}");
-		}
-		else
-		{
-			// Make sure Chrome is closed before modifying the file
-			// var jsonText = await File.ReadAllTextAsync(PrefsFile);
-			// using var doc = JsonDocument.Parse(jsonText);
-
-			// // Create a new mutable JSON structure
-			// var rootObject = new JsonObject();
-			// foreach (var property in doc.RootElement.EnumerateObject()) {
-			// 	rootObject.Add(property.Name, JsonNode.Parse(property.Value.GetRawText()));
-			// }
-
-			// // Ensure the path exists and set the developer_mode property
-			// if (!rootObject.ContainsKey("extensions"))
-			// 	rootObject["extensions"] = new JsonObject();
-
-			// if (rootObject["extensions"] is JsonObject extensions) {
-			// 	if (!extensions.ContainsKey("ui"))
-			// 		extensions["ui"] = new JsonObject();
-
-			// 	if (extensions["ui"] is JsonObject ui) {
-			// 		ui["developer_mode"] = true;
-			// 	}
-			// }
-			// // Write back to the file with proper formatting
-			// var options = new JsonSerializerOptions { WriteIndented = true };
-			// await File.WriteAllTextAsync(PrefsFile, rootObject.ToJsonString(options));
-
-			// Alternative way to modify the file
-			//if (
-			//	JsonNode.Parse(
-			//		JsonDocument.Parse(await File.ReadAllTextAsync(PrefsFile)).RootElement.Clone().GetRawText()
-			//	)?.AsObject() is JsonObject root
-			//) {
-			//	var extensions = root["extensions"] ??= new JsonObject();
-			//	var ui = extensions["ui"] ??= new JsonObject();
-			//	ui["developer_mode"] = true;
-			//	await File.WriteAllTextAsync(PrefsFile, JsonSerializer.Serialize(root));
-			//}
-
-			//var root = JsonNode.Parse(
-			//	JsonDocument.Parse(await File.ReadAllTextAsync(PrefsFile)).RootElement.Clone().GetRawText()
-			//)?.AsObject();
-			//
-			//// Convert the root element to a JsonObject
-			//if (root is JsonObject) {
-			//	var extensions = root["extensions"] ??= new JsonObject();
-			//	var ui = extensions["ui"] ??= new JsonObject();
-			//	ui["developer_mode"] = true;
-			//	await File.WriteAllTextAsync(PrefsFile, JsonSerializer.Serialize(root));
-			//}
-		}
-
-		var ipapi = await GeoIpApi.GetIpapi(
-			proxy: Settings.Profile.Proxy.WebProxy,
-			onretry: e => Toaster.Error(e)
-		) ?? new()
-		{
+		Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
+		var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new(){
 			timezone = "America/Los_Angeles",
 			lat = 34.052235,
 			lon = -118.243683,
-			myIP = "true"
+			tzSystem = true
 		};
 		AddonsServer.Instance.AddonInstances[SessionId] = new
 		{
 			enabled = true,
-			log = Debugger.IsAttached ? "debug" : "none",
+			log = Debugger.IsAttached ? "all" : "none",
 			dAPI = "disable_non_proxied_udp",
+			tzEmulation = Settings.Emulation.AutoTimezone,
+			ipapi.timezone,
+			ipapi.tzSystem,
+			tzLocale = "en-US",
+			tzRandomize = false,
+			geoEmulation = Settings.Emulation.SpoofGeoLocation,
+			ipapi.lat,
+			ipapi.lon,
+			geoAccuracy = 69.96,
+			geoRandomize = false,
 			canvasProtection = Settings.Emulation.SpoofCanvasFingerprint,
 			webglSpoofing = Settings.Emulation.SpoofWebGLFingerprint,
 			clientRectsSpoofing = Settings.Emulation.SpoofClientRects,
 			fontsSpoofing = Settings.Emulation.SpoofFontFingerprint,
 			audioSpoofing = Settings.Emulation.SpoofAudio,
-			geoSpoofing = Settings.Emulation.SpoofGeoLocation,
-			timezoneSpoofing = Settings.Emulation.AutoTimezone,
-			ipapi.timezone,
-			ipapi.lat,
-			ipapi.lon,
-			ipapi.myIP,
-			randomizeTZ = false,
-			randomizeGeo = false,
 			noiseLevel = "medium",
-			locale = "en-US",
-			accuracy = 69.96,
 			bypass = Array.Empty<string>(),
 			history = Array.Empty<string>()
 		};
-		//_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-
-		// await File.WriteAllTextAsync(
-		// 	Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir), "config.js"), 
-		// 	@$"export const config = {{
-		// 		enabled: {Settings.Profile.Proxy.CanUse.Tlwr()},
-		// 		logLevel: {(Debugger.IsAttached ? 5 : -1)},
-		// 		webglSpoofing: {Settings.Emulation.SpoofWebGLFingerprint.Tlwr()},
-		// 		canvasProtection: {Settings.Emulation.SpoofCanvasFingerprint.Tlwr()},
-		// 		clientRectsSpoofing: {Settings.Emulation.SpoofClientRects.Tlwr()},
-		// 		fontsSpoofing: {Settings.Emulation.SpoofFontFingerprint.Tlwr()},
-		// 		audioSpoofing: {Settings.Emulation.SpoofAudio.Tlwr()},
-		// 		geoSpoofing: {Settings.Emulation.SpoofGeoLocation.Tlwr()},
-		// 		timezoneSpoofing: {Settings.Emulation.AutoTimezone.Tlwr()},
-		// 		timezone: '{ipapi.timezone}',
-		// 		latitude: {ipapi.lat},
-		// 		longitude: {ipapi.lon},
-		// 		myIP: {ipapi.myIp},
-		// 		dAPI: true,
-		// 		webRtcEnabled: true,
-		// 		randomizeTZ: false,
-		// 		randomizeGeo: false,
-		// 		noiseLevel: 'medium',
-		// 		eMode: 'disable_non_proxied_udp',
-		// 		dMode: 'default_public_and_private_interfaces',
-		// 		locale: 'en-US',
-		// 		accuracy: 69.96,
-		// 		bypass: [],
-		// 		history: []
-		// 	}}"
-		// );
 
 		await File.WriteAllTextAsync(
-			Path.Combine(await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir), "settings.js"),
+			Path.Combine(
+				await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir), 
+				"settings.js"
+			),
 			@$"export const settings = {{
 			   	type: 'http',
 				 	server: '{Settings.Profile.Proxy.Server}',
@@ -401,10 +312,6 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 					ext: '{ExtUrl}'
 			}};"
 		);
-
-		// foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
-		// 	_ = await ExtensionLoader.LoadExtension(ext, destDir, setting);
-		// }
 	}
 
 	[SupportedOSPlatform("windows")]

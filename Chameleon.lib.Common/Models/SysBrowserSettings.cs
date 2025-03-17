@@ -91,7 +91,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 			timezone = "America/Los_Angeles", 
 			lat = 34.052235,
 			lon = -118.243683,
-			myIP = "true" 
+			tzSystem = true
 		};
 		_ = settingsBuilder.AppendLine($"\"timezone\": \"{ipapi.timezone}\",");
 		_ = settingsBuilder.AppendLine($"\"latitude\": {ipapi.lat},");

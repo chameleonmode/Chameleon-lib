@@ -12,9 +12,9 @@ public class Ipapi {
 	public double lat { get; set; }
 	public double lon { get; set; }
 	public string? timezone { get; set; }
+	public bool tzSystem { get; set; }
 	public string? isp { get; set; }
 	public string? org { get; set; }
 	public string? _as { get; set; }
 	public string? query { get; set; }
-	public string myIP { get; set; } = "false";
 }

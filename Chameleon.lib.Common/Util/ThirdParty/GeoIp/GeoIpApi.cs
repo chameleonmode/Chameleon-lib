@@ -2,7 +2,6 @@
 
 using Chameleon.lib.Common.Models;
 using Chameleon.lib.Const;
-using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Common.Util.ThirdParty.GeoIp;
@@ -12,7 +11,6 @@ public class GeoIpApi {
 		JS.DeserializeSafely<Ipapi>(await GetIPApi(proxy, onretry));
 
 	private static Task<string> GetIPApi(WebProxy? proxy, Action<string> onretry) {
-		Toaster.Info($"Requesting timezone/geo data for {proxy?.Address?.Host ?? "local"}");
 		return GetHttpResponseContent(proxy, "http://ip-api.com/json", onretry);
 	}
 	private static async Task<string> GetHttpResponseContent(WebProxy? proxy, string requestUri, Action<string> onretry) {

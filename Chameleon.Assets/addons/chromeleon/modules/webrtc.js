@@ -16,15 +16,15 @@ export const policies = {
 };
 
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
-  if (!changes.dAPI) return;
+  if (!changes.dAPI || !changes.dAPI.newValue) return;
 
   await chrome.privacy.network.webRTCIPHandlingPolicy.clear({});
-
   await chrome.privacy.network.webRTCIPHandlingPolicy.set({
     value: changes.dAPI.newValue,
   });
 });
 
 chrome.contextMenus.onClicked.addListener(async (info) => {
-  await chrome.storage.sync.set({ dAPI: info.menuItemId });
+  if (!info.menuItemId || !Object.keys(policies).includes(info.menuItemId)) return;
+  await chrome.storage.local.set({ dAPI: info.menuItemId });
 });

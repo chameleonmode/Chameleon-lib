@@ -1,9 +1,11 @@
 // app.js for Chrome Extension to communicate with the app server
-
 export const App = {
   server: null,
   port: null,
-  config: {},
+  config: {
+    enabled: true,
+    log: 'all',
+  },
   session: {
     ready: false,
     sessionId: null,
@@ -11,6 +13,15 @@ export const App = {
     params: {},
   },
   launchedSessions: {},
+
+  // Startup
+  startup: async function () {
+    const { session, launchedSessions, config } = await chrome.storage.local.get(["session", "launchedSessions", "config"]);
+    this.config = config || this.config;
+    this.session = session || this.session;
+    this.launchedSessions = launchedSessions || this.launchedSessions;
+    return true;
+  },
 
   // Register a new session launched by the app
   initialize: async function (sessionId, instanceId, params = {}) {
@@ -24,7 +35,7 @@ export const App = {
       params,
     };
     this.launchedSessions[sessionId] = this.session;
-    await chrome.storage.local.set({ session: this.session, launchedSessions: this.launchedSessions, config });
+    await chrome.storage.local.set({ config: this.config, session: this.session, launchedSessions: this.launchedSessions });
     return true;
   },
 
