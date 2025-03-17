@@ -1,597 +1,852 @@
 import { log } from "./logger.js";
-import { offsets } from "./offsets.js";
-
-const activeTabs = new Map(); // Track tabs with active debugger sessions
-
-// Clean up when a tab is closed
-chrome.tabs.onRemoved.addListener((tabId) => {
-  if (activeTabs.has(tabId)) {
-    detachDebugger(tabId);
-  }
-});
-
-
-// Listen for debugger events
-chrome.debugger.onEvent.addListener((debuggeeId, method, params) => {
-  const tabId = debuggeeId.tabId;
-  
-  if (method === "DOM.documentUpdated") {
-    // Re-observe mutations when the document is updated
-    setupMutationObserver(tabId);
-  } else if (method === "Page.frameAttached") {
-    // This fires when new frames are attached to the page
-    if (params.frameId) {
-      // Setup mutation observer in the new frame
-      injectObserverIntoFrame(tabId, params.frameId);
-    }
-  } else if (method === "Runtime.consoleAPICalled") {
-    // Log mutations reported from the page
-    if (params.type === "log" && params.args && params.args.length > 0) {
-      console.log(`Mutation in ${tabId}:`, params.args[0]);
-    }
-  }
-});
-
-async function attachDebugger(tabId) {
-  try {
-    // Attach debugger to the tab
-    await chrome.debugger.attach({tabId}, "1.3");
-    
-    // Enable required domains
-    await chrome.debugger.sendCommand({tabId}, "DOM.enable");
-    await chrome.debugger.sendCommand({tabId}, "Runtime.enable");
-    await chrome.debugger.sendCommand({tabId}, "Page.enable");
-    
-    // Setup mutation observers
-    await setupMutationObserver(tabId);
-    
-    // Discover frames and set up observers for them
-    await discoverFrames(tabId);
-    
-    // Track this tab
-    activeTabs.set(tabId, true);
-    
-    // Update the extension icon to show active state
-    chrome.action.setBadgeText({text: "ON", tabId});
-    chrome.action.setBadgeBackgroundColor({color: "#4CAF50", tabId});
-    
-    console.log(`Debugger attached to tab ${tabId}`);
-  } catch (error) {
-    console.error(`Failed to attach debugger to tab ${tabId}:`, error);
-  }
-}
-
-async function detachDebugger(tabId) {
-  try {
-    await chrome.debugger.detach({tabId});
-    activeTabs.delete(tabId);
-    
-    // Update the extension icon to show inactive state
-    chrome.action.setBadgeText({text: "", tabId});
-    
-    console.log(`Debugger detached from tab ${tabId}`);
-  } catch (error) {
-    console.error(`Failed to detach debugger from tab ${tabId}:`, error);
-  }
-}
-
-async function setupMutationObserver(tabId) {
-  // Inject and execute code to set up a MutationObserver in the main document
-  const script = `
-    // Clean up any existing observer
-    if (window.__domMutationObserver) {
-      window.__domMutationObserver.disconnect();
-    }
-    
-    // Create a new MutationObserver
-    window.__domMutationObserver = new MutationObserver((mutations) => {
-      // Log mutations to console which will be captured by the debugger
-      console.log({
-        source: 'main_document',
-        timestamp: new Date().toISOString(),
-        mutations: mutations.map(m => ({
-          mutation: m,
-          type: m.type,
-          target: m.target.nodeName,
-          addedNodes: m.addedNodes.length,
-          removedNodes: m.removedNodes.length,
-          attributeName: m.attributeName || null
-        }))
-      });
-    });
-    
-    // Start observing with all possible mutation types
-    window.__domMutationObserver.observe(document.documentElement || document.body || document, {
-      childList: true,
-      attributes: true,
-      characterData: true,
-      subtree: true,
-      attributeOldValue: true,
-      characterDataOldValue: true
-    });
-    
-    "MutationObserver set up for main document";
-  `;
-  
-  try {
-    const result = await chrome.debugger.sendCommand({tabId}, "Runtime.evaluate", {
-      expression: script,
-      returnByValue: true
-    });
-    console.log(`Main document observer setup result:`, result);
-  } catch (error) {
-    console.error(`Failed to set up mutation observer in tab ${tabId}:`, error);
-  }
-}
-
-// This function is replaced by injectObserverIntoFrame
-async function discoverFrames(tabId) {
-  try {
-    // Use Page.getResourceTree to get all frames
-    const result = await chrome.debugger.sendCommand({tabId}, "Page.getResourceTree");
-    
-    if (result && result.frameTree) {
-      // Set up observers for the main frame's child frames
-      if (result.frameTree.childFrames) {
-        for (const childFrame of result.frameTree.childFrames) {
-          await injectObserverIntoFrame(tabId, childFrame.frame.id);
-        }
-      }
-    }
-  } catch (error) {
-    console.error(`Failed to discover frames in tab ${tabId}:`, error);
-  }
-}
-
-async function injectObserverIntoFrame(tabId, frameId) {
-  try {
-    // Execute script within a specific frame
-    const script = `
-      // Clean up any existing observer
-      if (window.__domMutationObserver) {
-        window.__domMutationObserver.disconnect();
-      }
-      
-      // Create a new MutationObserver
-      window.__domMutationObserver = new MutationObserver((mutations) => {
-        // Log mutations to console which will be captured by the debugger
-        console.log({
-          source: 'iframe',
-          frameId: '${frameId}',
-          timestamp: new Date().toISOString(),
-          mutations: mutations.map(m => ({
-            type: m.type,
-            target: m.target.nodeName,
-            addedNodes: m.addedNodes.length,
-            removedNodes: m.removedNodes.length,
-            attributeName: m.attributeName || null
-          }))
-        });
-      });
-      
-      // Start observing with all possible mutation types
-      if (document.documentElement || document.body || document) {
-        window.__domMutationObserver.observe(document.documentElement || document.body || document, {
-          childList: true,
-          attributes: true,
-          characterData: true,
-          subtree: true,
-          attributeOldValue: true,
-          characterDataOldValue: true
-        });
-        return "MutationObserver set up for iframe";
-      } else {
-        return "No document found in frame";
-      }
-    `;
-    
-    const result = await chrome.debugger.sendCommand({tabId}, "Page.createIsolatedWorld", {
-      frameId: frameId,
-      worldName: "MutationObserverWorld"
-    });
-    
-    const worldId = result.executionContextId;
-    
-    await chrome.debugger.sendCommand({tabId}, "Runtime.evaluate", {
-      expression: script,
-      contextId: worldId,
-      returnByValue: true
-    });
-    
-    console.log(`Frame observer setup for frameId: ${frameId}`);
-  } catch (error) {
-    console.error(`Failed to set up mutation observer in frame ${frameId}:`, error);
-  }
-}
-
-// Listen for frame navigation events to refresh observers
-chrome.debugger.onEvent.addListener((debuggeeId, method, params) => {
-  if (method === "Page.frameNavigated") {
-    // Frame navigated, refresh the observer for this specific frame
-    if (params.frame && params.frame.id) {
-      injectObserverIntoFrame(debuggeeId.tabId, params.frame.id);
-    }
-  }
-});
-
-async function onEvent(tab) {
-  if (!tab.url || tab.url.indexOf("chrome://") >= 0) return;
-
-  // First detach any existing debugger
-  if (!activeTabs.has(tab.id)) {
-    await attachDebugger(tab.id);
-  }
-
-  // Set up the emulation
-  const { tzEmulation, timezone, tzSystem, tzLocale, tzRandomize } = await chrome.storage.local.get([
-    "tzEmulation",
-    "timezone",
-    "tzSystem",
-    "tzRandomize",
-    "tzLocale",
-  ]);
-  if (tzEmulation) {
-    log.info(`Applying timezone emulation for tab ${tab.id}`);
-    log.info(`Timezone: ${timezone}`);
-    log.info(`System timezone: ${tzSystem}`);
-    log.info(`Randomize timezone: ${tzRandomize}`);
-    log.info(`Locale: ${tzLocale}`);
-    await chrome.debugger.sendCommand({ tabId: tab.id }, "Emulation.setTimezoneOverride", {
-      timezoneId: tzSystem
-        ? Intl.DateTimeFormat().resolvedOptions().timeZone
-        : tzRandomize
-        ? Object.keys(offsets)[Math.floor(Math.random() * Object.keys(offsets).length)]
-        : timezone,
-    });
-    await chrome.debugger.sendCommand({ tabId: tab.id }, "Emulation.setLocaleOverride", {
-      locale: tzLocale,
-    });
-  }
-
-  const { geoEmulation, lat, lon, geoRandomize, geoAccuracy } = await chrome.storage.local.get([
-    "geoEmulation",
-    "lat",
-    "lon",
-    "geoRandomize",
-    "geoAccuracy",
-  ]);
-  if (geoEmulation) {
-    log.info(`Applying geolocation emulation for tab ${tab.id}`);
-    log.info(`Latitude: ${lat}`);
-    log.info(`Longitude: ${lon}`);
-    log.info(`Randomize geolocation: ${geoRandomize}`);
-    log.info(`Accuracy: ${geoAccuracy}`);
-    await chrome.debugger.sendCommand({ tabId: tab.id }, "Emulation.setGeolocationOverride", {
-      latitude: geoRandomize ? lat + (Math.random() - 0.5) * geoRandomize : lat,
-      longitude: geoRandomize ? lon + (Math.random() - 0.5) * geoRandomize : lon,
-      accuracy: geoAccuracy,
-    });
-  }
-}
-
-// Background script for monitoring canvas operations across all frames
-async function monitorCanvasOperations(tabId) {
-  try {
-    // Enable necessary domains
-    await chrome.debugger.sendCommand({ tabId: tabId }, "DOM.enable");
-    await chrome.debugger.sendCommand({ tabId: tabId }, "Runtime.enable");
-    await chrome.debugger.sendCommand({ tabId: tabId }, "Page.enable");
-
-    // Function to inject canvas monitoring script into a frame
-    async function injectCanvasMonitor(frameId = null) {
-      // Get the document in the specified frame
-      const params = {
-        depth: -1,
-        pierce: true,
-      };
-
-      // Add frameId parameter only when specified
-      if (frameId) {
-        params.frameId = frameId;
-      }
-
-      const response = await chrome.debugger.sendCommand({ tabId: tabId }, "DOM.getDocument", params);
-
-      if (!response || !response.root || !response.root.nodeId) {
-        throw new Error("Invalid DOM document response");
-      }
-
-      // Convert the DOM nodeId to an objectId
-      const resolveResponse = await chrome.debugger.sendCommand({ tabId: tabId }, "DOM.resolveNode", {
-        nodeId: response.root.nodeId,
-      });
-
-      if (!resolveResponse || !resolveResponse.object || !resolveResponse.object.objectId) {
-        throw new Error("Failed to resolve node to object");
-      }
-
-      const { object } = resolveResponse;
-
-      // Inject the monitor function
-      const { result } = await chrome.debugger.sendCommand({ tabId: tabId }, "Runtime.callFunctionOn", {
-        objectId: object.objectId,
-        functionDeclaration: `
-          function() {
-            // Log that we're starting canvas monitoring
-            console.log('[CanvasMonitor] Starting canvas monitoring in', window.location.href);
-            
-            // Store original canvas prototype methods
-            if (!window._canvasMonitorInitialized) {
-              window._canvasMonitorInitialized = true;
-              
-              // Track all created canvases
-              window._monitoredCanvases = new Set();
-              
-              // Original methods we want to intercept
-              const originalHTMLCanvasElementProto = HTMLCanvasElement.prototype;
-              const originalCanvasRenderingContext2DProto = CanvasRenderingContext2D.prototype;
-              
-              // Store original methods
-              const originalGetContext = originalHTMLCanvasElementProto.getContext;
-              const originalToDataURL = originalHTMLCanvasElementProto.toDataURL;
-              const originalToBlob = originalHTMLCanvasElementProto.toBlob;
-              const originalGetImageData = originalCanvasRenderingContext2DProto.getImageData;
-              const originalPutImageData = originalCanvasRenderingContext2DProto.putImageData;
-              const originalDrawImage = originalCanvasRenderingContext2DProto.drawImage;
-              const originalFillText = originalCanvasRenderingContext2DProto.fillText;
-              const originalFillRect = originalCanvasRenderingContext2DProto.fillRect;
-              
-              // Keep track of operations on each canvas
-              function logOperation(canvas, operation, args) {
-                const canvasInfo = {
-                  id: canvas.id || 'unnamed',
-                  width: canvas.width,
-                  height: canvas.height,
-                  operation: operation,
-                  args: Array.from(args).map(arg => {
-                    if (typeof arg === 'string') return arg;
-                    if (arg instanceof ImageData) return 'ImageData(' + arg.width + 'x' + arg.height + ')';
-                    if (arg instanceof HTMLImageElement) return 'Image(' + arg.src.substring(0, 30) + '...)';
-                    if (arg instanceof HTMLCanvasElement) return 'Canvas(' + arg.width + 'x' + arg.height + ')';
-                    return String(arg);
-                  }),
-                  timestamp: new Date().toISOString(),
-                  url: window.location.href,
-                  stackTrace: new Error().stack
-                };
-                
-                console.log('[CanvasMonitor] Operation:', JSON.stringify(canvasInfo));
-                
-                // If this is a fingerprinting-like operation, log more details
-                if (
-                  (operation === 'fillText' && args[0] && args[0].includes('Leak')) ||
-                  (operation === 'toDataURL' && canvas.width === 220 && canvas.height === 30)
-                ) {
-                  console.log('[CanvasMonitor] POTENTIAL FINGERPRINTING DETECTED!', canvasInfo);
-                }
-              }
-              
-              // Intercept canvas creation
-              const originalCreateElement = Document.prototype.createElement;
-              Document.prototype.createElement = function(tagName, options) {
-                const element = originalCreateElement.call(this, tagName, options);
-                if (tagName.toLowerCase() === 'canvas') {
-                  console.log('[CanvasMonitor] Canvas created:', element);
-                  window._monitoredCanvases.add(element);
-                }
-                return element;
-              };
-              
-              // Intercept getContext
-              HTMLCanvasElement.prototype.getContext = function() {
-                const context = originalGetContext.apply(this, arguments);
-                logOperation(this, 'getContext', arguments);
-                return context;
-              };
-              
-              // Intercept toDataURL
-              HTMLCanvasElement.prototype.toDataURL = function() {
-                logOperation(this, 'toDataURL', arguments);
-                return originalToDataURL.apply(this, arguments);
-              };
-              
-              // Intercept toBlob
-              HTMLCanvasElement.prototype.toBlob = function() {
-                logOperation(this, 'toBlob', arguments);
-                return originalToBlob.apply(this, arguments);
-              };
-              
-              // Intercept getImageData
-              CanvasRenderingContext2D.prototype.getImageData = function() {
-                logOperation(this.canvas, 'getImageData', arguments);
-                return originalGetImageData.apply(this, arguments);
-              };
-              
-              // Intercept putImageData
-              CanvasRenderingContext2D.prototype.putImageData = function() {
-                logOperation(this.canvas, 'putImageData', arguments);
-                return originalPutImageData.apply(this, arguments);
-              };
-              
-              // Intercept drawImage
-              CanvasRenderingContext2D.prototype.drawImage = function() {
-                logOperation(this.canvas, 'drawImage', arguments);
-                return originalDrawImage.apply(this, arguments);
-              };
-              
-              // Intercept fillText
-              CanvasRenderingContext2D.prototype.fillText = function() {
-                logOperation(this.canvas, 'fillText', arguments);
-                return originalFillText.apply(this, arguments);
-              };
-              
-              // Intercept fillRect
-              CanvasRenderingContext2D.prototype.fillRect = function() {
-                logOperation(this.canvas, 'fillRect', arguments);
-                return originalFillRect.apply(this, arguments);
-              };
-              
-              // Set up MutationObserver to watch for dynamically added canvases
-              const observer = new MutationObserver(mutations => {
-                mutations.forEach(mutation => {
-                  if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach(node => {
-                      // Check if node is a canvas
-                      if (node.nodeName === 'CANVAS') {
-                        console.log('[CanvasMonitor] Canvas added to DOM:', node);
-                        window._monitoredCanvases.add(node);
-                      }
-                      
-                      // Check for canvases within added nodes
-                      if (node.querySelectorAll) {
-                        const canvases = node.querySelectorAll('canvas');
-                        canvases.forEach(canvas => {
-                          console.log('[CanvasMonitor] Canvas found in added node:', canvas);
-                          window._monitoredCanvases.add(canvas);
-                        });
-                      }
-                    });
-                  }
-                });
-              });
-              
-              // Start observing
-              observer.observe(document.documentElement || document, {
-                childList: true,
-                subtree: true
-              });
-              
-              // Look for existing canvases
-              const existingCanvases = document.querySelectorAll('canvas');
-              existingCanvases.forEach(canvas => {
-                console.log('[CanvasMonitor] Existing canvas found:', canvas);
-                window._monitoredCanvases.add(canvas);
-              });
-              
-              console.log('[CanvasMonitor] Initialized, found', existingCanvases.length, 'existing canvases');
-            }
-            
-            return 'Canvas monitoring active in ' + window.location.href;
-          }
-        `,
-        returnByValue: true,
-      });
-
-      console.log("Canvas monitor injected into frame, result:", result.value);
-      return result.value;
-    }
-
-    // First inject into main frame
-    await injectCanvasMonitor();
-
-    // Get all frames in the page
-    const { frameTree } = await chrome.debugger.sendCommand({ tabId: tabId }, "Page.getFrameTree");
-
-    // Function to process all frames recursively
-    async function processFrames(frame) {
-      // Skip the main frame as we already injected into it
-      if (frame.frame.parentId) {
-        try {
-          await injectCanvasMonitor(frame.frame.id);
-        } catch (error) {
-          console.error("Error injecting into frame", frame.frame.id, error);
-        }
-      }
-
-      // Process child frames
-      if (frame.childFrames) {
-        for (const childFrame of frame.childFrames) {
-          await processFrames(childFrame);
-        }
-      }
-    }
-
-    // Process all frames
-    await processFrames(frameTree);
-
-    // Listen for new frames being created
-    chrome.debugger.onEvent.addListener((source, method, params) => {
-      if (source.tabId === tabId && method === "Page.frameAttached") {
-        console.log("New frame attached:", params.frameId);
-
-        // Track frame loading state
-        const frameId = params.frameId;
-
-        // First wait for the frame to navigate
-        chrome.debugger.onEvent.addListener(function frameNavigatedListener(source, method, navParams) {
-          if (
-            source.tabId === tabId &&
-            method === "Page.frameNavigated" &&
-            navParams.frame &&
-            navParams.frame.id === frameId
-          ) {
-            console.log("Frame navigated:", frameId, navParams.frame.url);
-
-            // Remove this listener since we got the navigation event
-            chrome.debugger.onEvent.removeListener(frameNavigatedListener);
-
-            // Give the frame more time to fully load its DOM
-            setTimeout(() => {
-              // Try to inject the monitor
-              injectCanvasMonitor(frameId).catch((error) => {
-                console.log("Initial injection into frame failed, will retry:", frameId, error);
-
-                // If it fails, try again with an even longer delay
-                setTimeout(() => {
-                  injectCanvasMonitor(frameId).catch((error) => {
-                    console.error("Error injecting into frame after retry:", frameId, error);
-                  });
-                }, 1500);
-              });
-            }, 1000);
-          }
-        });
-      }
-    });
-
-    console.log("Canvas monitor setup complete for tab", tabId);
-
-    // Return a detach function for cleanup
-    return {
-      detach: async () => {
-        try {
-          await chrome.debugger.detach({ tabId: tabId });
-          console.log("Debugger detached from tab", tabId);
-        } catch (error) {
-          console.error("Error detaching debugger:", error);
-        }
-      },
-    };
-  } catch (error) {
-    console.error("Error setting up canvas monitor:", error);
-    throw error;
-  }
-}
-
+// Description: This file is responsible for setting up mutation observers in the main document and all iframes in the inspected tab.
 chrome.tabs.query({}, async (tabs) => {
   for (const tab of tabs) {
-    await onEvent(tab);
+    if(tab.url.startsWith("chrome://")) continue;
+    await attachDebugger(tab.id);
   }
 });
 
 chrome.tabs.onCreated.addListener(async (tab) => {
-  await onEvent(tab);
+  await attachDebugger(tab.id);
 });
 
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === "loading") {
-    await onEvent(tab);
+// Clean up when a tab is closed
+chrome.tabs.onRemoved.addListener((tab) => {
+  if (activeTabs.has(tab.id)) {
+    detachDebugger(tab.id);
   }
 });
-
 // Clean up when done
 chrome.debugger.onDetach.addListener((debuggee, reason) => {
   log.info("Debugger detached:", reason);
 });
 
-// chrome.storage.onChanged.addListener((changes, namespace) => {
-//   if (namespace === 'local') {
-//     chrome.tabs.query({}, async (tabs) => {
-//       for (const tab of tabs) {
-//         if (!tab.url || tab.url.indexOf("chrome://") >= 0) continue;
-//         await onEvent(tab);
-//       }
-//     });
+// chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+//   if (changeInfo.status === "loading") {
+//     await onEvent(tab);
 //   }
-//   return true;
 // });
+
+const activeTabs = new Map(); // Track tabs with active debugger sessions
+
+async function attachDebugger(tabId) {
+  try {
+    if (activeTabs.has(tabId)) return;
+
+    // Attach debugger to the tab
+    await chrome.debugger.attach({ tabId }, "1.3");
+
+    // Enable required domains
+    await chrome.debugger.sendCommand({ tabId }, "DOM.enable");
+    await chrome.debugger.sendCommand({ tabId }, "Runtime.enable");
+    await chrome.debugger.sendCommand({ tabId }, "Page.enable");
+
+    // Track this tab
+    activeTabs.set(tabId, true);
+
+// Create observer that only monitors iframes, including their document changes and shadow DOM
+const observer = new WebpageMutationObserver(tabId, (data) => {
+  console.log("Mutation event:", data);
+  switch (data.type) {
+    case 'iframe-element-added':
+      console.log(`New element added to iframe ${data.frameId}:`);
+      console.log(`- Element: ${data.element.nodeName}#${data.element.id}`);
+      console.log(`- Path: ${data.element.path}`);
+      console.log(`- Added to: ${data.parent.path}`);
+      console.log(`- Content preview: ${data.element.innerHTML?.substring(0, 100)}...`);
+      
+      // You can inspect attributes
+      if (data.element.attributes && data.element.attributes.length) {
+        console.log('- Attributes:', data.element.attributes);
+      }
+      break;
+      
+    case 'iframe-element-removed':
+      console.log(`Element removed from iframe ${data.frameId}:`);
+      console.log(`- Element: ${data.element.nodeName}#${data.element.id}`);
+      console.log(`- Path: ${data.element.path}`);
+      console.log(`- Removed from: ${data.parent.path}`);
+      break;
+  }
+}, {
+  iframesOnly: true,
+  includeDocumentChanges: true
+});
+
+await observer.start();
+
+    // Start observing
+    await observer.start();
+
+    // Later, when you want to stop observing
+    // await observer.stop();
+
+    log.log(`Debugger attached to tab ${tabId}`);
+  } catch (error) {
+    log.error(`Failed to attach debugger to tab ${tabId}:`, error);
+  }
+}
+
+async function detachDebugger(tabId) {
+  try {
+    await chrome.debugger.detach({ tabId });
+    activeTabs.delete(tabId);
+
+    log.log(`Debugger detached from tab ${tabId}`);
+  } catch (error) {
+    log.error(`Failed to detach debugger from tab ${tabId}:`, error);
+  }
+}
+
+/**
+ * Module for observing DOM mutations across a webpage, including document, iframes, and shadow DOM.
+ * Works with Chrome's debugger API.
+ */
+export class WebpageMutationObserver {
+  /**
+   * @param {number} tabId - The Chrome tab ID to observe
+   * @param {Function} callback - Optional callback function that receives mutation events
+   * @param {Object} options - Configuration options
+   * @param {boolean} options.iframesOnly - If true, only monitor iframe content, not the main document or shadow DOM
+   * @param {boolean} options.includeDocumentChanges - If true, monitor document changes (default: true)
+   * @param {boolean} options.includeShadowDOM - If true, monitor shadow DOM changes (default: true)
+   */
+  constructor(tabId, callback = null, options = {}) {
+    this.tabId = tabId;
+    this.callback = callback;
+    this.observedFrames = new Set();
+    this.isObserving = false;
+    this.mainFrameId = null;
+    
+    // Set default options
+    this.options = {
+      iframesOnly: false,
+      includeDocumentChanges: true,
+      includeShadowDOM: true,
+      ...options
+    };
+    
+    // If iframesOnly is true, override other options for main document
+    if (this.options.iframesOnly) {
+      this.options.includeDocumentChanges = false;
+      this.options.includeShadowDOM = false;
+    }
+    
+    // Bind methods to maintain 'this' context
+    this.onDebuggerEvent = this.onDebuggerEvent.bind(this);
+  }
+
+  /**
+   * Start observing mutations across the webpage
+   * @returns {Promise<boolean>} Whether the operation was successful
+   */
+  async start() {
+    if (this.isObserving) {
+      console.log("Already observing mutations");
+      return true;
+    }
+
+    try {
+      // Add debugger event listener
+      chrome.debugger.onEvent.addListener(this.onDebuggerEvent);
+      
+      // Add binding for mutation reporting from page contexts
+      await chrome.debugger.sendCommand(
+        { tabId: this.tabId },
+        "Runtime.addBinding",
+        { name: "reportMutation" }
+      );
+      
+      // Get the frame tree to find all frames
+      const { frameTree } = await chrome.debugger.sendCommand(
+        { tabId: this.tabId },
+        "Page.getFrameTree"
+      );
+      
+      // Store the main frame ID to help filter events in iframesOnly mode
+      this.mainFrameId = frameTree.frame.id;
+      
+      // Start with the main frame if we're not in iframesOnly mode or we need to detect iframes
+      await this.observeFrame(frameTree.frame.id);
+      
+      // Process all child frames recursively (we always process iframes)
+      if (frameTree.childFrames && frameTree.childFrames.length > 0) {
+        await this.processChildFrames(frameTree.childFrames);
+      }
+      
+      // Set up event listener for frame navigation/attachment
+      this.isObserving = true;
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to start observing:", error);
+      chrome.debugger.onEvent.removeListener(this.onDebuggerEvent);
+      return false;
+    }
+  }
+  
+  /**
+   * Process child frames recursively
+   * @param {Array} childFrames - Array of child frame objects
+   */
+  async processChildFrames(childFrames) {
+    for (const frameInfo of childFrames) {
+      // Pass parent info when observing a child frame
+      await this.observeFrame(frameInfo.frame.id, { 
+        parentFrameId: frameInfo.frame.parentId 
+      });
+      
+      // After observing each frame, check if we need to monitor its iframes' contents
+      if (frameInfo.childFrames && frameInfo.childFrames.length > 0) {
+        await this.processChildFrames(frameInfo.childFrames);
+      }
+    }
+  }
+  
+  /**
+   * Set up mutation observation for a specific frame
+   * @param {string} frameId - The ID of the frame to observe
+   * @param {Object} params - Optional parameters like parentFrameId for iframes
+   */
+  async observeFrame(frameId, params = {}) {
+    if (this.observedFrames.has(frameId)) {
+      return true; // Already observing this frame
+    }
+    
+    try {
+      // Set up observers for this frame based on options
+      const result = await chrome.debugger.sendCommand(
+        { tabId: this.tabId },
+        "Runtime.evaluate",
+        {
+          expression: `
+            (function() {
+              // Helper to get a node's path for identification
+              function getNodePath(node) {
+                if (!node || node.nodeType !== 1) return '';
+                if (node === document) return 'document';
+                
+                const path = [];
+                let current = node;
+                
+                while (current && current !== document) {
+                  let identifier = current.nodeName.toLowerCase();
+                  
+                  if (current.id) {
+                    identifier += '#' + current.id;
+                  } else if (current.className && typeof current.className === 'string') {
+                    identifier += '.' + current.className.trim().replace(/\\s+/g, '.');
+                  }
+                  
+                  path.unshift(identifier);
+                  current = current.parentElement;
+                }
+                
+                return path.join(' > ');
+              }
+              
+              // Function to observe a shadow root - only if includeShadowDOM is true
+              function observeShadowRoot(element) {
+                if (!element || !element.shadowRoot) return;
+                
+                // Skip shadow DOM observation if not enabled
+                if (${!this.options.includeShadowDOM}) return;
+                
+                // Generate ID for this shadow root
+                const shadowId = 'shadow_' + Math.random().toString(36).substring(2, 9);
+                
+                // Report shadow root found
+                window.reportMutation(JSON.stringify({
+                  type: 'shadow-root-detected',
+                  frameId: '${frameId}',
+                  url: document.location.href,
+                  timestamp: Date.now(),
+                  shadowRoot: {
+                    id: shadowId,
+                    hostNodeName: element.nodeName,
+                    hostNodeId: element.id || null,
+                    hostNodePath: getNodePath(element)
+                  }
+                }));
+                
+                // Create observer for shadow DOM
+                const shadowObserver = new MutationObserver(mutations => {
+                  window.reportMutation(JSON.stringify({
+                    type: 'shadow-dom-mutation',
+                    shadowId: shadowId,
+                    frameId: '${frameId}',
+                    url: document.location.href,
+                    timestamp: Date.now(),
+                    host: {
+                      nodeName: element.nodeName,
+                      id: element.id || null,
+                      path: getNodePath(element)
+                    },
+                    mutations: mutations.map(m => ({
+                      type: m.type,
+                      target: m.target.nodeName,
+                      targetPath: getNodePath(m.target),
+                      addedNodes: Array.from(m.addedNodes).map(n => ({
+                        nodeName: n.nodeName,
+                        nodeType: n.nodeType,
+                        id: n.id || null
+                      })),
+                      removedNodes: Array.from(m.removedNodes).map(n => ({
+                        nodeName: n.nodeName,
+                        nodeType: n.nodeType,
+                        id: n.id || null
+                      })),
+                      attributeName: m.attributeName || null,
+                      oldValue: m.oldValue || null,
+                      newValue: m.attributeName ? m.target.getAttribute(m.attributeName) : null
+                    }))
+                  }));
+                  
+                  // Check for new shadow roots in added nodes
+                  mutations.forEach(mutation => {
+                    if (mutation.type === 'childList') {
+                      Array.from(mutation.addedNodes).forEach(node => {
+                        if (node.nodeType === 1) { // Element node
+                          observeShadowRoot(node);
+                          
+                          try {
+                            // Check descendants for shadow roots
+                            const elements = node.querySelectorAll('*');
+                            elements.forEach(el => observeShadowRoot(el));
+                          } catch (e) {
+                            // Silently ignore errors for cross-origin elements
+                          }
+                        }
+                      });
+                    }
+                  });
+                });
+                
+                // Observe all changes in the shadow DOM
+                shadowObserver.observe(element.shadowRoot, {
+                  childList: true,
+                  attributes: true,
+                  characterData: true,
+                  subtree: true,
+                  attributeOldValue: true,
+                  characterDataOldValue: true
+                });
+                
+                // Store observer for cleanup
+                window.__shadowObservers = window.__shadowObservers || [];
+                window.__shadowObservers.push(shadowObserver);
+                
+                // Check for nested shadow roots
+                try {
+                  const nestedElements = element.shadowRoot.querySelectorAll('*');
+                  nestedElements.forEach(el => observeShadowRoot(el));
+                } catch (e) {
+                  // Silently ignore errors for cross-origin elements
+                }
+              }
+              
+              // Function to set up iframe detection
+              function setupIframeDetection() {
+                // This is a minimal observer just to detect iframes and their mutations
+                const iframeDetector = new MutationObserver(mutations => {
+                  mutations.forEach(mutation => {
+                    // Track added iframes
+                    if (mutation.type === 'childList') {
+                      Array.from(mutation.addedNodes).forEach(node => {
+                        if (node.nodeType === 1) { // Element node
+                          // Check if it's an iframe
+                          if (node.nodeName === 'IFRAME') {
+                            window.reportMutation(JSON.stringify({
+                              type: 'iframe-detected',
+                              frameId: '${frameId}',
+                              url: document.location.href,
+                              timestamp: Date.now(),
+                              iframe: {
+                                id: node.id || null,
+                                name: node.name || null,
+                                src: node.src || null,
+                                path: getNodePath(node)
+                              },
+                              mutation: {
+                                type: mutation.type,
+                                target: mutation.target.nodeName,
+                                targetPath: getNodePath(mutation.target),
+                                addedNodes: Array.from(mutation.addedNodes).map(n => ({
+                                  nodeName: n.nodeName,
+                                  nodeType: n.nodeType,
+                                  id: n.id || null
+                                })),
+                                removedNodes: Array.from(mutation.removedNodes).map(n => ({
+                                  nodeName: n.nodeName,
+                                  nodeType: n.nodeType,
+                                  id: n.id || null
+                                }))
+                              }
+                            }));
+                          }
+                          
+                          try {
+                            // Check descendants for iframes
+                            const iframes = node.querySelectorAll('iframe');
+                            iframes.forEach(iframe => {
+                              window.reportMutation(JSON.stringify({
+                                type: 'iframe-detected',
+                                frameId: '${frameId}',
+                                url: document.location.href,
+                                timestamp: Date.now(),
+                                iframe: {
+                                  id: iframe.id || null,
+                                  name: iframe.name || null,
+                                  src: iframe.src || null,
+                                  path: getNodePath(iframe)
+                                },
+                                mutation: {
+                                  type: mutation.type,
+                                  target: mutation.target.nodeName,
+                                  targetPath: getNodePath(mutation.target),
+                                  parentNode: getNodePath(node),
+                                  nestedDiscovery: true
+                                }
+                              }));
+                            });
+                          } catch (e) {
+                            // Silently ignore errors for cross-origin elements
+                          }
+                        }
+                      });
+                      
+                      // Track removed iframes
+                      Array.from(mutation.removedNodes).forEach(node => {
+                        if (node.nodeType === 1 && node.nodeName === 'IFRAME') {
+                          window.reportMutation(JSON.stringify({
+                            type: 'iframe-removed',
+                            frameId: '${frameId}',
+                            url: document.location.href,
+                            timestamp: Date.now(),
+                            iframe: {
+                              id: node.id || null,
+                              name: node.name || null,
+                              src: node.src || null,
+                              path: getNodePath(node)
+                            },
+                            mutation: {
+                              type: mutation.type,
+                              target: mutation.target.nodeName,
+                              targetPath: getNodePath(mutation.target)
+                            }
+                          }));
+                        }
+                      });
+                    }
+                    
+                    // Track attribute changes to iframes
+                    if (mutation.type === 'attributes' && mutation.target.nodeName === 'IFRAME') {
+                      window.reportMutation(JSON.stringify({
+                        type: 'iframe-attribute-changed',
+                        frameId: '${frameId}',
+                        url: document.location.href,
+                        timestamp: Date.now(),
+                        iframe: {
+                          id: mutation.target.id || null,
+                          name: mutation.target.name || null,
+                          src: mutation.target.src || null,
+                          path: getNodePath(mutation.target)
+                        },
+                        mutation: {
+                          type: mutation.type,
+                          attributeName: mutation.attributeName,
+                          oldValue: mutation.oldValue,
+                          newValue: mutation.target.getAttribute(mutation.attributeName)
+                        }
+                      }));
+                    }
+                  });
+                });
+                
+                // Start observing for iframes and their mutations
+                iframeDetector.observe(document, {
+                  childList: true,
+                  attributes: true,
+                  attributeOldValue: true,
+                  subtree: true
+                });
+                
+                // Store detector for cleanup
+                window.__iframeDetector = iframeDetector;
+                
+                // Initial scan for existing iframes
+                try {
+                  const iframes = document.querySelectorAll('iframe');
+                  iframes.forEach(iframe => {
+                    window.reportMutation(JSON.stringify({
+                      type: 'iframe-exists',
+                      frameId: '${frameId}',
+                      url: document.location.href,
+                      timestamp: Date.now(),
+                      iframe: {
+                        id: iframe.id || null,
+                        name: iframe.name || null,
+                        src: iframe.src || null,
+                        path: getNodePath(iframe)
+                      },
+                      initialScan: true
+                    }));
+                  });
+                } catch (e) {
+                  console.error('Error scanning for iframes:', e);
+                }
+              }
+              
+              // If we're only monitoring iframes, set up just the iframe detection for main document
+              if (${this.options.iframesOnly && !params.parentFrameId}) {
+                setupIframeDetection();
+                return true;
+              }
+              
+              // Main document observer - only if includeDocumentChanges is true for non-iframes
+              // Or always for iframe frames (if document changes are enabled)
+              if ((${this.options.includeDocumentChanges} && ${!params.parentFrameId}) || 
+                  (${params.parentFrameId} && ${this.options.includeDocumentChanges})) {
+                const docObserver = new MutationObserver(mutations => {
+                  // First report the general document mutation
+                  window.reportMutation(JSON.stringify({
+                    type: ${params.parentFrameId} ? '"iframe-document-mutation"' : '"document-mutation"',
+                    frameId: '${frameId}',
+                    url: document.location.href,
+                    timestamp: Date.now(),
+                    mutations: mutations.map(m => ({
+                      type: m.type,
+                      target: m.target.nodeName,
+                      targetPath: getNodePath(m.target),
+                      addedNodes: Array.from(m.addedNodes).map(n => ({
+                        nodeName: n.nodeName,
+                        nodeType: n.nodeType,
+                        id: n.id || null
+                      })),
+                      removedNodes: Array.from(m.removedNodes).map(n => ({
+                        nodeName: n.nodeName,
+                        nodeType: n.nodeType,
+                        id: n.id || null
+                      })),
+                      attributeName: m.attributeName || null,
+                      oldValue: m.oldValue || null,
+                      newValue: m.attributeName ? m.target.getAttribute(m.attributeName) : null
+                    }))
+                  }));
+                  
+                  // Then send specific notifications for element additions and removals in iframes
+                  if (${params.parentFrameId}) {
+                    mutations.forEach(mutation => {
+                      if (mutation.type === 'childList') {
+                        // Report added elements in iframe
+                        if (mutation.addedNodes.length > 0) {
+                          Array.from(mutation.addedNodes).forEach(node => {
+                            if (node.nodeType === 1) { // Element node
+                              window.reportMutation(JSON.stringify({
+                                type: 'iframe-element-added',
+                                frameId: '${frameId}',
+                                url: document.location.href,
+                                timestamp: Date.now(),
+                                element: {
+                                  nodeName: node.nodeName,
+                                  nodeType: node.nodeType,
+                                  id: node.id || null,
+                                  className: node.className || null,
+                                  path: getNodePath(node),
+                                  innerHTML: node.outerHTML ? node.outerHTML.substring(0, 500) : null, // First 500 chars for context
+                                  childElementCount: node.childElementCount || 0,
+                                  attributes: node.hasAttributes ? Array.from(node.attributes || []).map(attr => ({
+                                    name: attr.name,
+                                    value: attr.value
+                                  })) : []
+                                },
+                                parent: {
+                                  nodeName: mutation.target.nodeName,
+                                  nodeType: mutation.target.nodeType,
+                                  id: mutation.target.id || null,
+                                  path: getNodePath(mutation.target)
+                                }
+                              }));
+                            }
+                          });
+                        }
+                        
+                        // Report removed elements from iframe
+                        if (mutation.removedNodes.length > 0) {
+                          Array.from(mutation.removedNodes).forEach(node => {
+                            if (node.nodeType === 1) { // Element node
+                              window.reportMutation(JSON.stringify({
+                                type: 'iframe-element-removed',
+                                frameId: '${frameId}',
+                                url: document.location.href,
+                                timestamp: Date.now(),
+                                element: {
+                                  nodeName: node.nodeName,
+                                  nodeType: node.nodeType,
+                                  id: node.id || null,
+                                  className: node.className || null,
+                                  path: getNodePath(node)
+                                },
+                                parent: {
+                                  nodeName: mutation.target.nodeName,
+                                  nodeType: mutation.target.nodeType,
+                                  id: mutation.target.id || null,
+                                  path: getNodePath(mutation.target)
+                                }
+                              }));
+                            }
+                          });
+                        }
+                      }
+                    });
+                  }
+                  
+                  // Check for new iframes and shadow roots
+                  mutations.forEach(mutation => {
+                    if (mutation.type === 'childList') {
+                      Array.from(mutation.addedNodes).forEach(node => {
+                        if (node.nodeType === 1) { // Element node
+                          // Check if it's an iframe
+                          if (node.nodeName === 'IFRAME') {
+                            window.reportMutation(JSON.stringify({
+                              type: 'iframe-detected',
+                              frameId: '${frameId}',
+                              url: document.location.href,
+                              timestamp: Date.now(),
+                              iframe: {
+                                id: node.id || null,
+                                name: node.name || null,
+                                src: node.src || null,
+                                path: getNodePath(node)
+                              },
+                              mutation: {
+                                type: mutation.type,
+                                target: mutation.target.nodeName,
+                                targetPath: getNodePath(mutation.target),
+                                addedNodes: Array.from(mutation.addedNodes).map(n => ({
+                                  nodeName: n.nodeName,
+                                  nodeType: n.nodeType,
+                                  id: n.id || null
+                                })),
+                                removedNodes: Array.from(mutation.removedNodes).map(n => ({
+                                  nodeName: n.nodeName,
+                                  nodeType: n.nodeType,
+                                  id: n.id || null
+                                }))
+                              }
+                            }));
+                          }
+                          
+                          // Check for shadow root
+                          if (${this.options.includeShadowDOM} || ${params.parentFrameId && this.options.includeShadowDOM}) {
+                            observeShadowRoot(node);
+                            
+                            try {
+                              // Check descendants for shadow roots
+                              const elements = node.querySelectorAll('*');
+                              elements.forEach(el => observeShadowRoot(el));
+                            } catch (e) {
+                              // Silently ignore errors for cross-origin elements
+                            }
+                          }
+                        }
+                      });
+                    }
+                  });
+                });
+                
+                // Start observing the document
+                docObserver.observe(document, {
+                  childList: true,
+                  attributes: true,
+                  characterData: true,
+                  subtree: true,
+                  attributeOldValue: true,
+                  characterDataOldValue: true
+                });
+                
+                // Store observer for cleanup
+                window.__docObserver = docObserver;
+              } else {
+                // If we're not monitoring document changes but need iframe detection
+                setupIframeDetection();
+              }
+              
+              // Initial scan for existing shadow roots
+              if ((${this.options.includeShadowDOM} && ${!params.parentFrameId}) || 
+                  (${params.parentFrameId} && ${this.options.includeShadowDOM})) {
+                try {
+                  const elements = document.querySelectorAll('*');
+                  elements.forEach(el => observeShadowRoot(el));
+                } catch (e) {
+                  console.error('Error scanning for shadow roots:', e);
+                }
+              }
+              
+              return true;
+            })()
+          `,
+          frameId,
+          returnByValue: true
+        }
+      );
+      
+      if (result?.result?.value === true) {
+        this.observedFrames.add(frameId);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error(`Error observing frame ${frameId}:`, error);
+      return false;
+    }
+  }
+  
+  /**
+   * Handle Chrome debugger events
+   * @param {Object} debuggeeId - The debuggee identifier
+   * @param {string} method - The method name
+   * @param {Object} params - The event parameters
+   */
+  onDebuggerEvent(debuggeeId, method, params) {
+    console.log("Debugger event:", method, params);
+    if (debuggeeId.tabId !== this.tabId) return;
+    
+    switch (method) {
+      case "DOM.documentUpdated":
+        // Document has been refreshed or navigated
+        if (this.isObserving) {
+          console.log("Document updated, re-observing...");
+          this.observedFrames.clear();
+          this.start();
+        }
+        break;
+        
+      case "Page.frameAttached":
+        // New iframe attached
+        if (this.isObserving && params.frameId) {
+          console.log("Frame attached:", params.frameId);
+          this.observeFrame(params.frameId, { parentFrameId: params.parentFrameId });
+        }
+        break;
+        
+      case "Page.frameNavigated":
+        // Frame navigated to a new URL
+        if (this.isObserving && params.frame && params.frame.id) {
+          console.log("Frame navigated:", params.frame.id);
+          // Only re-observe if it's an iframe or if we're not in iframesOnly mode
+          if (!this.options.iframesOnly || params.frame.parentId) {
+            this.observeFrame(params.frame.id, { parentFrameId: params.frame.parentId });
+          }
+        }
+        break;
+        
+      case "Runtime.bindingCalled":
+        // Handle binding calls from our injected code
+        if (params.name === "reportMutation" && params.payload) {
+          try {
+            const data = JSON.parse(params.payload);
+            // If we're in iframesOnly mode, only process iframe-related events
+            if (!this.options.iframesOnly || 
+                data.type.includes('iframe') || 
+                (data.frameId && data.frameId !== this.mainFrameId)) {
+              this.processMutation(data);
+            }
+          } catch (e) {
+            console.error("Error processing mutation data:", e);
+          }
+        }
+        break;
+    }
+  }
+  
+  /**
+   * Process mutation data and invoke callback
+   * @param {Object} data - The mutation data
+   */
+  processMutation(data) {
+    if (this.callback) {
+      this.callback(data);
+    }
+  }
+  
+  /**
+   * Stop observing mutations
+   * @returns {Promise<boolean>} Whether stopping was successful
+   */
+  async stop() {
+    if (!this.isObserving) {
+      return false;
+    }
+    
+    try {
+      // Remove event listener
+      chrome.debugger.onEvent.removeListener(this.onDebuggerEvent);
+      
+      // Disconnect all observers in all frames
+      for (const frameId of this.observedFrames) {
+        try {
+          await chrome.debugger.sendCommand(
+            { tabId: this.tabId },
+            "Runtime.evaluate",
+            {
+              expression: `
+                (function() {
+                  // Disconnect document observer
+                  if (window.__docObserver) {
+                    window.__docObserver.disconnect();
+                    window.__docObserver = null;
+                  }
+                  
+                  // Disconnect iframe detector
+                  if (window.__iframeDetector) {
+                    window.__iframeDetector.disconnect();
+                    window.__iframeDetector = null;
+                  }
+                  
+                  // Disconnect shadow DOM observers
+                  if (window.__shadowObservers) {
+                    window.__shadowObservers.forEach(observer => observer.disconnect());
+                    window.__shadowObservers = [];
+                  }
+                  
+                  // Make sure to also clean up iframe-specific observers
+                  if (window.__frameDocObserver) {
+                    window.__frameDocObserver.disconnect();
+                    window.__frameDocObserver = null;
+                  }
+                  
+                  if (window.__frameShadowRootDetector) {
+                    window.__frameShadowRootDetector.disconnect();
+                    window.__frameShadowRootDetector = null;
+                  }
+                  
+                  if (window.__frameShadowObservers) {
+                    window.__frameShadowObservers.forEach(observer => observer.disconnect());
+                    window.__frameShadowObservers = [];
+                  }
+                  
+                  return true;
+                })()
+              `,
+              frameId,
+              returnByValue: true
+            }
+          );
+        } catch (error) {
+          console.warn(`Failed to clean up observers in frame ${frameId}:`, error);
+        }
+      }
+      
+      this.observedFrames.clear();
+      this.isObserving = false;
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to stop observation:", error);
+      return false;
+    }
+  }
+}
