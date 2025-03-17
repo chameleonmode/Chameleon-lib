@@ -85,7 +85,7 @@
     }
   }
   
-  /**
+/**
  * Applies canvas fingerprint protection
  */
 function applyCanvasProtection(settings) {
