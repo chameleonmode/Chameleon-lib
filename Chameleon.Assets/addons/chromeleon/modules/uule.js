@@ -39,7 +39,6 @@ async function updateLocationRules() {
     }
   );
 }
-updateLocationRules();
 
 function removeLocationRules() {
   chrome.declarativeNetRequest.updateSessionRules(
@@ -60,3 +59,7 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
   if (!changes.lat && !changes.lon) return;
   await updateLocationRules();
 });
+
+(async () => {
+  await updateLocationRules();
+})();

@@ -2,8 +2,9 @@ import { App } from "./app.js";
 import { log, setLogLevel } from "./modules/logger.js";
 import { updateSettings, SETTINGS_ARRAY } from "./modules/settings.js";
 import * as WebRTC from "./modules/webrtc.js";
-import "./modules/emulations.js";
 import "./modules/uule.js";
+import "./src/services/debugger.js";
+//import "./modules/emulations.js";
 //import "./modules/canvasing.js";
 
 // Fix the incomplete runtime event listener

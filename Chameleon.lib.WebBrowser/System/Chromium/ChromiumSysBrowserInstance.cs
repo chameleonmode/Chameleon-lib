@@ -237,12 +237,13 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 			"--propagate-iph-for-testing",
 			// Avoids blue bubble "user education" nudges (eg., "… give your browser a new look", Memory Saver)
 			"--ash-no-nudges",
+			// The id of the extension which you intend to debug. Attaching to an extension background page is only possible when the --silent-debugger-extension-api command-line switch is used.
+			"--silent-debugger-extension-api",
 			// Additional flags 
 			"--bypass-app-banner-engagement-checks",
 			"--disable-field-trial-config",
 			"--disable-session-crashed-bubble",
 			"--disable-hyperlink-auditing",
-			"--silent-debugger-extension-api",
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
 			"--restore-last-session",
