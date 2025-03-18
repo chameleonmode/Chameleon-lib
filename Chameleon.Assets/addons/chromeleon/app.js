@@ -24,17 +24,18 @@ export const App = {
 
   // Register a new session launched by the app
   initialize: async function (sessionId, instanceId) {
-    if (!(await this.discoverServer())) return false
+    if (!(await this.discoverServer())) return undefined;
 
     const response = await this.sendData({ type: "init" });
     this.config = response.config;
+
     this.session = {
       sessionId,
       instanceId
     };
     this.launchedSessions[sessionId] = this.session;
-    await chrome.storage.local.set({ config: this.config, session: this.session, launchedSessions: this.launchedSessions });
-    return true;
+    await chrome.storage.local.set({ session: this.session, launchedSessions: this.launchedSessions, config: this.config });
+    return response.config;
   },
 
   // Find the app server

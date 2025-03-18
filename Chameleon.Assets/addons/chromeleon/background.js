@@ -4,22 +4,24 @@ import * as WebRTC from "./src/services/webrtc.js";
 import "./src/services/uule.js";
 import "./src/services/debugger.js";
 
-// Fix the incomplete runtime event listener
-chrome.runtime.onInstalled.addListener(async () => {
-  
+const startup = async () => {
   // Restore session from storage
-  App.session = (await chrome.storage.local.get("session")).session;
-  App.config = (await chrome.storage.local.get("config")).config;
+  await App.startup();
 
   log.setLogLevel(App.config.log);
   createContextMenus();
+};
 
-  log.info("Restored session", { session: App.session, config: App.config });
+// Fix the incomplete runtime event listener
+chrome.runtime.onInstalled.addListener(async () => {
+  log.info("Extension installed");
+  await startup();
 });
 
 // Add runtime startup listener
 chrome.runtime.onStartup.addListener(async () => {
   log.info("Extension started");
+  await startup();
 });
 
 // Listen for messages from popup or content scripts
@@ -61,16 +63,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "registerAppLaunch") {
     const { sessionId, instanceId, data } = message;
     log.info("Registering app launch", { sessionId, instanceId, data });
-    App.initialize(sessionId, instanceId).then((success) => {
-      if (success) {
-        log.setLogLevel(App.config.log);
-        createContextMenus();
-        // Configure once at application startup
-
-        log.info("App connected", App.config);
-      }
-      sendResponse({ success });
-    });
+    App.initialize(sessionId, instanceId)
+      .then(async (config) => {
+        if (config) {
+          log.debug("App connected", config);
+          await startup();
+        }
+        sendResponse({ success: true, config });
+      })
+      .catch((error) => {
+        log.error("Error registering app launch", error);
+        sendResponse({ success: false, error: error.message });
+      });
     return true;
   }
   if (message.action === "getAppSession") {
@@ -108,5 +112,3 @@ export function createContextMenus() {
     });
   });
 }
-
-log.info("Background script loaded");

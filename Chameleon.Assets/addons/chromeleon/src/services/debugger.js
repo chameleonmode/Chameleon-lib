@@ -50,7 +50,11 @@ const detach = async (tabId) => {
 };
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status !== "loading" || observers.has(tabId) || !tab.url.startsWith("http")) return;
+  if (changeInfo.status !== "loading" || observers.has(tabId) || !tab.url.startsWith("http")){
+    log.debug(`Tab ${tabId} is not loading or already monitored: ${tab.url}`);
+    return
+  } 
+
   log.log(`Tab ${tabId} is loading with URL: ${tab.url}`);
   await attach(tabId);
 });

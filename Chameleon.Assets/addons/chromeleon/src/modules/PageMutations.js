@@ -12,6 +12,9 @@
 import canvas from "../scripts/canvas.js";
 import rects from "../scripts/rects.js";
 import webgl from "../scripts/webgl.js";
+import fonts from "../scripts/fonts.js";
+import audio from "../scripts/audio.js";
+import navigator from "../scripts/navigator.js";
 
 const defauts = {
   level: "medium",
@@ -26,6 +29,9 @@ class PageMutations {
       canvas: canvas,
       rects: rects,
       webgl: webgl,
+      fonts: fonts,
+      audio: audio,
+      navigator: navigator,
     };
 
     // Define parameters
@@ -40,7 +46,20 @@ class PageMutations {
       },
       webgl: { 
         ...defauts,
+        random: true,
+      },
+      fonts: { 
+        ...defauts,
+        random: true,
+      },
+      audio: { 
+        ...defauts,
+        random: true,
+      },
+      navigator: { 
+        ...defauts,
         random: false,
+        os: "linux",
       },
     };
 
@@ -48,7 +67,7 @@ class PageMutations {
     this.scriptSource = Object.entries(this.scripts)
       .map(([name, script]) => {
         const params = this.scriptParams[name] || {};
-        return `(${script().toString()})(${JSON.stringify(params)});`;
+        return `(${script(params).toString()})(${JSON.stringify(params)});`;
       })
       .join("\n");
   }
