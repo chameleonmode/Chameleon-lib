@@ -1,5 +1,5 @@
 import { resetSettings, SETTINGS_ARRAY } from "../../modules/settings.js";
-import { offsets } from "../../modules/offsets.js";
+import { offsets } from "../offsets.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
   const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
