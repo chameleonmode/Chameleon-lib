@@ -14,15 +14,14 @@ async function monitorTabIframes(tabId) {
 
     // Attach debugger to the tab (as per requirements)
     await chrome.debugger.attach({ tabId }, "1.3");
+    // Enable required domains for Chrome Debugger API
+    await chrome.debugger.sendCommand({ tabId: tabId }, "DOM.enable");
+    await chrome.debugger.sendCommand({ tabId: tabId }, "Runtime.enable");
+    await chrome.debugger.sendCommand({ tabId: tabId }, "Page.enable");
 
     // Initialize the mutation mutator
-    const mutations = new WebpageMutations();
-    const success = await mutations.initialize(tabId);
-    if (!success) throw new Error("Failed to initialize WebpageMutations");
-    const unsubscribe = mutations.onElementCreated((data) => {
-      log.debug(`Element created: ${data.tagName} in ${data.frameLocation}`);
-      // ...
-    });
+    const mutations = new WebpageMutations(tabId);
+    await mutations.initialize();
 
     // Set up the emulation
     const { tzEmulation, timezone, tzSystem, tzLocale, tzRandomize } = await chrome.storage.local.get([
@@ -73,12 +72,7 @@ async function monitorTabIframes(tabId) {
     // Store reference to the mutations instance and unsubscribe function
     // so you can clean up later when the tab is closed
     observers.set(tabId, {
-      mutations,
-      unsubscribe,
-      cleanup: async () => {
-        unsubscribe();
-        await observers.cleanup();
-      },
+        mutations,
     });
   } catch (error) {
     log.error(`Error setting up iframe monitoring for tab ${tabId}:`, error);
@@ -97,34 +91,18 @@ async function monitorTabIframes(tabId) {
 }
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  const { url } = tab;
-  if (
-    changeInfo.status !== "loading" ||
-    url === "" ||
-    !url.startsWith("http") ||
-    url.startsWith("chrome://") ||
-    url.startsWith("chrome-extension://") ||
-    observers.has(tabId)
-  )
-    return;
-  log.log(`Tab ${tabId} is loading with URL: ${url}`);
+  if (changeInfo.status !== "loading" || observers.has(tabId) || !tab.url.startsWith("http")) return;
+  log.log(`Tab ${tabId} is loading with URL: ${tab.url}`);
   await monitorTabIframes(tabId);
 });
 
-// chrome.tabs.onActivated.addListener(async (activeInfo) => {
-//   const { tabId } = activeInfo;
-//   const { url } = await chrome.tabs.get(tabId);
-//   console.log(`Tab ${tabId} activated with URL: ${url}`);
-//   await maybeAttach(url, tabId);
-// });
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   const observer = observers.get(tabId);
   if (observer) {
     try {
-      await observer.cleanup();
-      log.info(`Cleaned up observer for tab ${tabId}`);
-    } catch (error) {
-      log.error(`Error cleaning up observer for tab ${tabId}:`, error);
+      await chrome.debugger.detach({ tabId });
+    } catch (e) {
+      // Ignore errors when detaching
     }
     observers.delete(tabId);
   }
