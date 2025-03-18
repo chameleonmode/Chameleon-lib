@@ -315,148 +315,171 @@ export default function (opts) {
     // Apply navigator property overrides
     Object.defineProperties(Navigator.prototype, navigatorProps);
 
-    // Override navigator.userAgentData properties if available
-    if ("userAgentData" in navigator) {
-      console.log("Patching userAgentData for Client Hints");
-
-      // Create a comprehensive set of client hints
-      const spoofedClientHints = {
-        // === DEVICE/PLATFORM RELATED HINTS ===
-        // Low entropy hints
-        platform: spoofedValues.clientHintsPlatform,
-        brands: spoofedValues.brandInfo,
-        mobile: true,
-
-        // High entropy hints for getHighEntropyValues() method
-        platformVersion: spoofedValues.os_ver,
-        architecture: spoofedValues.architecture,
-        bitness: spoofedValues.bitness,
-        model: spoofedValues.device,
-        wow64: spoofedValues.wow64,
-        fullVersionList: navigator.userAgentData.fullVersionList, //spoofedValues.fullVersionList,
-        formFactors: spoofedValues.formFactors,
-
-        // === USER PREFERENCES ===
-        // Reuse actual preferences (if available) or provide reasonable defaults
-        prefersColorScheme: window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light",
-        prefersReducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-          ? "reduce"
-          : "no-preference",
-        prefersReducedTransparency: false,
-        prefersContrast: "no-preference",
-        forcedColors: window.matchMedia?.("(forced-colors: active)").matches ? "active" : "none",
-
-        // === DEVICE CAPABILITIES/DISPLAY ===
-        // Keep some of the actual data since it's not OS-specific and would be suspicious if wrong
-        width: window.screen?.width || 1920,
-        viewportWidth: window.innerWidth || 1280,
-        viewportHeight: window.innerHeight || 720,
-        dpr: window.devicePixelRatio || 1.0,
-        deviceMemory: navigator.deviceMemory || 8,
-
-        // === NETWORK RELATED ===
-        // Use reasonable defaults
-        rtt: 50, // 50ms - typical broadband
-        downlink: 10, // 10 Mbps - typical broadband
-        ect: "4g", // 4G connection
-      };
-
-      // Method for high entropy hints
-      const getHighEntropyValues = function (hints) {
-        console.log("Intercepted getHighEntropyValues with hints:", hints);
-
-        // Create a result object with only the requested hints
-        return new Promise((resolve) => {
-          const result = {};
-
-          // Only include the requested hints
+// Override navigator.userAgentData properties if available
+if ("userAgentData" in navigator) {
+    console.log("Patching userAgentData for Client Hints");
+  
+    // Create a comprehensive set of client hints
+    const spoofedClientHints = {
+      // === DEVICE/PLATFORM RELATED HINTS ===
+      // Low entropy hints
+      platform: spoofedValues.clientHintsPlatform,
+      brands: navigator.userAgentData.brands, //spoofedValues.brandInfo,
+      mobile: true,
+  
+      // High entropy hints for getHighEntropyValues() method
+      platformVersion: spoofedValues.os_ver,
+      architecture: spoofedValues.architecture,
+      bitness: spoofedValues.bitness,
+      model: spoofedValues.device,
+      wow64: spoofedValues.wow64,
+      //fullVersionList: spoofedValues.fullVersionList,
+      formFactors: spoofedValues.formFactors,
+  
+      // === USER PREFERENCES ===
+      // Reuse actual preferences (if available) or provide reasonable defaults
+      prefersColorScheme: window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+      prefersReducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+        ? "reduce"
+        : "no-preference",
+      prefersReducedTransparency: false,
+      prefersContrast: "no-preference",
+      forcedColors: window.matchMedia?.("(forced-colors: active)").matches ? "active" : "none",
+  
+      // === DEVICE CAPABILITIES/DISPLAY ===
+      // Keep some of the actual data since it's not OS-specific and would be suspicious if wrong
+      width: window.screen?.width || 1920,
+      viewportWidth: window.innerWidth || 1280,
+      viewportHeight: window.innerHeight || 720,
+      dpr: window.devicePixelRatio || 1.0,
+      deviceMemory: navigator.deviceMemory || 8,
+  
+      // === NETWORK RELATED ===
+      // Use reasonable defaults
+      rtt: 50, // 50ms - typical broadband
+      downlink: 10, // 10 Mbps - typical broadband
+      ect: "4g", // 4G connection
+    };
+  
+    // Store the original method before we replace anything
+    const originalNavigatorUAData = navigator.userAgentData;
+    const originalGetHighEntropyValues = originalNavigatorUAData.getHighEntropyValues.bind(originalNavigatorUAData);
+    
+    // Method for high entropy hints
+    const getHighEntropyValues = function (hints) {
+      console.log("Intercepted getHighEntropyValues with hints:", hints);
+      
+      // Call the original method without causing recursion
+      return originalGetHighEntropyValues(hints)
+        .then((originalValues) => {
+          console.log("Original high entropy values:", originalValues);
+          
+          const result = { ...originalValues }; // Start with original values
+  
+          // Replace with spoofed values when available
           hints.forEach((hint) => {
             // Convert hint name to camelCase if needed
             const hintName = hint
               .replace(/^[A-Z]/, (c) => c.toLowerCase())
               .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-
+  
             // Add the hint if we have a value for it
             if (hintName in spoofedClientHints) {
               result[hintName] = spoofedClientHints[hintName];
             }
           });
-
+          
           console.log("Returning spoofed high entropy values:", result);
-          resolve(result);
-        });
-      };
-      console.log("chints", navigator.userAgentData);
-      // Create a complete userAgentData replacement with all required methods
-      const spoofedUserAgentData = {
-        // Low entropy hints (directly accessible)
-        platform: spoofedClientHints.platform,
-        brands: spoofedClientHints.brands,
-        mobile: spoofedClientHints.mobile,
-
-        // High entropy method
-        getHighEntropyValues: getHighEntropyValues,
-
-        // ToJSON method for serialization
-        toJSON: function () {
-          return {
-            brands: this.brands,
-            mobile: this.mobile,
-            platform: this.platform,
-          };
-        },
-      };
-
-      // Try to completely replace the userAgentData object
-      try {
-        Object.defineProperty(navigator, "userAgentData", {
-          get: function () {
-            return spoofedUserAgentData;
-          },
-          configurable: true,
-        });
-
-        console.log("Replaced userAgentData object:", navigator.userAgentData);
-      } catch (e) {
-        console.error("Failed to replace userAgentData object:", e);
-
-        // Fallback: try to override just the properties and methods
-        try {
-          // Override the basic properties
-          Object.defineProperties(navigator.userAgentData, {
-            platform: {
-              get: function () {
-                return spoofedClientHints.platform;
-              },
-              configurable: true,
-            },
-            brands: {
-              get: function () {
-                return spoofedClientHints.brands;
-              },
-              configurable: true,
-            },
-            mobile: {
-              get: function () {
-                return spoofedClientHints.mobile;
-              },
-              configurable: true,
-            },
+          return result;
+        })
+        .catch((error) => {
+          console.error("Error getting original high entropy values:", error);
+  
+          // Fallback to only spoofed values if original values can't be retrieved
+          const fallbackResult = {};
+          hints.forEach((hint) => {
+            const hintName = hint
+              .replace(/^[A-Z]/, (c) => c.toLowerCase())
+              .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  
+            if (hintName in spoofedClientHints) {
+              fallbackResult[hintName] = spoofedClientHints[hintName];
+            }
           });
-
-          // Override the getHighEntropyValues method
-          const originalGetHighEntropyValues = navigator.userAgentData.getHighEntropyValues;
-          navigator.userAgentData.getHighEntropyValues = function (hints) {
-            return getHighEntropyValues(hints);
-          };
-
-          console.log("Patched userAgentData properties and methods");
-        } catch (err) {
-          console.error("Failed to patch userAgentData properties:", err);
-        }
+  
+          console.log("Returning fallback spoofed values:", fallbackResult);
+          return fallbackResult;
+        });
+    };
+    
+    console.log("chints", navigator.userAgentData);
+    
+    // Create a complete userAgentData replacement with all required methods
+    const spoofedUserAgentData = {
+      // Low entropy hints (directly accessible)
+      platform: spoofedClientHints.platform,
+      brands: spoofedClientHints.brands,
+      mobile: spoofedClientHints.mobile,
+  
+      // High entropy method
+      getHighEntropyValues: getHighEntropyValues,
+  
+      // ToJSON method for serialization
+      toJSON: function () {
+        return {
+          brands: this.brands,
+          mobile: this.mobile,
+          platform: this.platform,
+        };
+      },
+    };
+  
+    // Try to completely replace the userAgentData object
+    try {
+      Object.defineProperty(navigator, "userAgentData", {
+        get: function () {
+          return spoofedUserAgentData;
+        },
+        configurable: true,
+      });
+  
+      console.log("Replaced userAgentData object:", navigator.userAgentData);
+    } catch (e) {
+      console.error("Failed to replace userAgentData object:", e);
+  
+      // Fallback: try to override just the properties and methods
+      try {
+        // Override the basic properties
+        Object.defineProperties(navigator.userAgentData, {
+          platform: {
+            get: function () {
+              return spoofedClientHints.platform;
+            },
+            configurable: true,
+          },
+          brands: {
+            get: function () {
+              return spoofedClientHints.brands;
+            },
+            configurable: true,
+          },
+          mobile: {
+            get: function () {
+              return spoofedClientHints.mobile;
+            },
+            configurable: true,
+          },
+        });
+  
+        // Override the getHighEntropyValues method
+        navigator.userAgentData.getHighEntropyValues = getHighEntropyValues;
+  
+        console.log("Patched userAgentData properties and methods");
+      } catch (err) {
+        console.error("Failed to patch userAgentData properties:", err);
       }
     }
-
+  }
     // Inject custom oscpu value for site-specific fingerprinting
     window.navigator.oscpu = `${spoofedValues.os} ${spoofedValues.os_ver}`;
 
