@@ -5,12 +5,11 @@ export const App = {
   config: {
     enabled: true,
     log: 'all',
+    dApi: 'disable_non_proxied_udp',
   },
   session: {
-    ready: false,
     sessionId: null,
     instanceId: null,
-    params: {},
   },
   launchedSessions: {},
 
@@ -24,15 +23,14 @@ export const App = {
   },
 
   // Register a new session launched by the app
-  initialize: async function (sessionId, instanceId, params = {}) {
+  initialize: async function (sessionId, instanceId) {
     if (!(await this.discoverServer())) return false
 
-    const { config } = await this.sendData({ type: "init" });
-    this.config = config;
+    const response = await this.sendData({ type: "init" });
+    this.config = response.config;
     this.session = {
       sessionId,
-      instanceId,
-      params,
+      instanceId
     };
     this.launchedSessions[sessionId] = this.session;
     await chrome.storage.local.set({ config: this.config, session: this.session, launchedSessions: this.launchedSessions });
@@ -67,17 +65,16 @@ export const App = {
       throw new Error("app not found");
     }
 
-    return await (
-      await fetch(`${this.server}/app/data`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-ID": this.session.sessionId,
-          "X-Instance-ID": this.session.instanceId,
-        },
-        body: JSON.stringify(data),
-      })
-    ).json();
+    const response = await fetch(`${this.server}/app/data`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-ID": this.session.sessionId,
+        "X-Instance-ID": this.session.instanceId,
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
   },
 
   // Get app state
@@ -86,6 +83,7 @@ export const App = {
       throw new Error("app not found");
     }
 
-    return await (await fetch(`${this.server}/app/state`)).json();
+    const response = await fetch(`${this.server}/app/state`);
+    return await response.json();
   },
 };

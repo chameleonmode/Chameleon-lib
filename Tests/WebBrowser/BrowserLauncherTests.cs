@@ -11,6 +11,7 @@ public class BrowserLauncherTests {
 // vUp6cZAY
 // mzBorsdy
 // N2Vb4Jvy
+//chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?sessionId=05bf7007-66cc-4e54-b01d-847942bfc37e&instanceId=3
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
 		var bi = await SystemBrowserService.Instance.Open(

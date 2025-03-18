@@ -11,8 +11,10 @@ document.addEventListener("DOMContentLoaded", function () {
       action: "registerAppLaunch",
       sessionId: urlParams.get("sessionId"),
       instanceId: urlParams.get("instanceId"),
-      data: Object.fromEntries(urlParams.entries()).filter(
-        ([key]) => !["sessionId", "instanceId"].includes(key)
+      data: Object.fromEntries(
+        Array.from(urlParams.entries()).filter(
+          ([key]) => !["sessionId", "instanceId"].includes(key)
+        )
       ),
     },
     (response) => {

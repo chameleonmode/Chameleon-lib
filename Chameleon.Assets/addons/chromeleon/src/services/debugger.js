@@ -1,7 +1,8 @@
-import WebpageMutationObserver from "../modules/WebpageMutationObserver.js";
+import WebpageMutations from "../modules/WebpageMutations.js";
+import { log } from "./logger.js";
 
-// Keep track of observers per tab
-const tabObservers = new Map();
+// Keep track of mutator per tab
+const observers = new Map();
 
 /**
  * Initialize iframe monitoring for a specific tab
@@ -9,19 +10,19 @@ const tabObservers = new Map();
  */
 async function monitorTabIframes(tabId) {
   try {
-    console.log(`Setting up iframe monitoring for tab ${tabId}`);
+    log.log(`Setting up iframe monitoring for tab ${tabId}`);
 
     // Attach debugger to the tab (as per requirements)
     await chrome.debugger.attach({ tabId }, "1.3");
 
-    // Initialize the mutation observer
-    const observer = new WebpageMutationObserver();
-    if (!await observer.initialize(tabId)) {
-      console.error(`Failed to initialize WebpageMutationObserver for tab ${tabId}`);
-      return null;
-    }
-    // Store the observer instance for later cleanup
-    tabObservers.set(tabId, observer);
+    // Initialize the mutation mutator
+    const mutations = new WebpageMutations();
+    const success = await mutations.initialize(tabId);
+    if (!success) throw new Error("Failed to initialize WebpageMutations");
+    const unsubscribe = mutations.onElementCreated((data) => {
+      log.debug(`Element created: ${data.tagName} in ${data.frameLocation}`);
+      // ...
+    });
 
     // Set up the emulation
     const { tzEmulation, timezone, tzSystem, tzLocale, tzRandomize } = await chrome.storage.local.get([
@@ -69,10 +70,18 @@ async function monitorTabIframes(tabId) {
       });
     }
 
-    console.log(`Successfully set up iframe monitoring for tab ${tabId}`);
-    return observer;
+    // Store reference to the mutations instance and unsubscribe function
+    // so you can clean up later when the tab is closed
+    observers.set(tabId, {
+      mutations,
+      unsubscribe,
+      cleanup: async () => {
+        unsubscribe();
+        await observers.cleanup();
+      },
+    });
   } catch (error) {
-    console.error(`Error setting up iframe monitoring for tab ${tabId}:`, error);
+    log.error(`Error setting up iframe monitoring for tab ${tabId}:`, error);
 
     // Try to clean up if we failed
     try {
@@ -87,45 +96,36 @@ async function monitorTabIframes(tabId) {
   }
 }
 
-/**
- * Clean up monitoring for a specific tab
- * @param {number} tabId - The ID of the tab to clean up
- */
-function cleanupTabMonitoring(tabId) {
-  try {
-    console.log(`Cleaning up iframe monitoring for tab ${tabId}`);
-
-    const observer = tabObservers.get(tabId);
-    if (observer) {
-      observer.cleanup();
-      tabObservers.delete(tabId);
-    }
-
-    // Detach debugger
-    chrome.debugger.detach({ tabId }).catch(() => {
-      // Ignore errors when detaching (tab might be gone already)
-    });
-
-    console.log(`Successfully cleaned up iframe monitoring for tab ${tabId}`);
-  } catch (error) {
-    console.error(`Error cleaning up iframe monitoring for tab ${tabId}:`, error);
-  }
-}
-
-// Example: Start monitoring when a tab is activated
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  const { tabId } = activeInfo;
-  const { url } = await chrome.tabs.get(tabId);
-
-  console.log(`Tab ${tabId} activated with URL: ${url}`);
-  if(url.startsWith("chrome://")) return;
-  // Only attach if not already monitoring this tab
-  if (!tabObservers.has(tabId)) {
-    await monitorTabIframes(tabId);
-  }
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  const { url } = tab;
+  if (
+    changeInfo.status !== "loading" ||
+    url === "" ||
+    !url.startsWith("http") ||
+    url.startsWith("chrome://") ||
+    url.startsWith("chrome-extension://") ||
+    observers.has(tabId)
+  )
+    return;
+  log.log(`Tab ${tabId} is loading with URL: ${url}`);
+  await monitorTabIframes(tabId);
 });
 
-// Cleanup when a tab is closed
-chrome.tabs.onRemoved.addListener((tabId) => {
-  cleanupTabMonitoring(tabId);
+// chrome.tabs.onActivated.addListener(async (activeInfo) => {
+//   const { tabId } = activeInfo;
+//   const { url } = await chrome.tabs.get(tabId);
+//   console.log(`Tab ${tabId} activated with URL: ${url}`);
+//   await maybeAttach(url, tabId);
+// });
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const observer = observers.get(tabId);
+  if (observer) {
+    try {
+      await observer.cleanup();
+      log.info(`Cleaned up observer for tab ${tabId}`);
+    } catch (error) {
+      log.error(`Error cleaning up observer for tab ${tabId}:`, error);
+    }
+    observers.delete(tabId);
+  }
 });

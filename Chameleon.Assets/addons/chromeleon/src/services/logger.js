@@ -77,9 +77,8 @@ export const log = {
   info: createLogMethod("INFO", 2),
   warn: createLogMethod("WARN", 3),
   error: createLogMethod("ERROR", 4),
+  setLogLevel: (level) => {
+    config.currentLogLevel = LOG_LEVELS[level];
+  }
 };
 
-// Example of setting the log level dynamically
-export function setLogLevel(level) {
-  config.currentLogLevel = LOG_LEVELS[level];
-}

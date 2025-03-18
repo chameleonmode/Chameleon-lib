@@ -1,4 +1,4 @@
-import { log } from "./logger.js";
+import { log } from "../services/logger.js";
 
 // Function to modify headers for Google search requests
 async function updateLocationRules() {
