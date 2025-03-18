@@ -11,6 +11,11 @@
 
 import canvas from "../scripts/canvas.js";
 import rects from "../scripts/rects.js";
+import webgl from "../scripts/webgl.js";
+
+const defauts = {
+  level: "medium",
+};
 
 class PageMutations {
   constructor(tabId) {
@@ -20,12 +25,23 @@ class PageMutations {
     this.scripts = {
       canvas: canvas,
       rects: rects,
+      webgl: webgl,
     };
 
     // Define parameters
     this.scriptParams = {
-      canvas: { noiseLevel: 1.5 },
-      rects: { random: false },
+      canvas: { 
+        ...defauts,
+        random: false,
+      },
+      rects: { 
+        ...defauts,
+        random: false,
+      },
+      webgl: { 
+        ...defauts,
+        random: false,
+      },
     };
 
     // Generate script source

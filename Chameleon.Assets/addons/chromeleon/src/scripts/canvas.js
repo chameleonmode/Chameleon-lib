@@ -5,7 +5,7 @@ export default function(opts) {
   return function canvas(params) {
     console.log(params);
     // params will be available here
-    const noiseLevel = params?.noiseLevel || 1.0;
+    const noiseLevel = params?.level || 1.0;
     console.log("Using noise level:", noiseLevel);
 
     // Store original methods
