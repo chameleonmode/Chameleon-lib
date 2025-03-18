@@ -59,7 +59,7 @@ class PageMutations {
       navigator: { 
         ...defauts,
         random: false,
-        os: "linux",
+        os: "windows",
       },
     };
 

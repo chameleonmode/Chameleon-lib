@@ -1,7 +1,7 @@
 // Enhanced Canvas Fingerprinting Protection
 // https://privacycheck.sec.lrz.de/active/fp_c/fp_canvas.html
 // https://www.browserleaks.com/canvas
-export default function(opts) {
+export default function (opts) {
   return function canvas(params) {
     console.log(params);
     // params will be available here
@@ -18,15 +18,15 @@ export default function(opts) {
     };
 
     // Override getContext to always set willReadFrequently for 2d contexts
-    HTMLCanvasElement.prototype.getContext = function (contextType, contextAttributes = {}) {
+    HTMLCanvasElement.prototype.getContext = function (contextId, options) {
       // If it's a 2d context, ensure willReadFrequently is set
-      if (contextType === "2d") {
-        contextAttributes = contextAttributes || {};
-        contextAttributes.willReadFrequently = true;
+      if (contextId === "2d") {
+        options = options || {};
+        options.willReadFrequently = true;
       }
 
       // Call the original method with our modified attributes
-      return originalMethods.getContext.call(this, contextType, contextAttributes);
+      return originalMethods.getContext.call(this, contextId, options);
     };
 
     // Helper function to add noise to image data
@@ -52,16 +52,18 @@ export default function(opts) {
 
     // Override toDataURL to add slight randomization
     HTMLCanvasElement.prototype.toDataURL = function (type, quality) {
-      // Get the original image data
-      const ctx = this.getContext("2d"); // No need to specify willReadFrequently here anymore
-      const imageData = ctx.getImageData(0, 0, this.width, this.height);
+      console.log("toDataURL called with type:", type, "quality:", quality);
+      if (type !== undefined && type.startsWith("image")) {
+        // Get the original image data
+        const ctx = this.getContext("2d"); // No need to specify willReadFrequently here anymore
+        const imageData = ctx.getImageData(0, 0, this.width, this.height);
 
-      // Modify the image data
-      const modifiedImageData = addNoiseToImageData(imageData);
+        // Modify the image data
+        const modifiedImageData = addNoiseToImageData(imageData);
 
-      // Apply the modified data back to the canvas
-      ctx.putImageData(modifiedImageData, 0, 0);
-
+        // Apply the modified data back to the canvas
+        ctx.putImageData(modifiedImageData, 0, 0);
+      }
       // Call the original method
       return originalMethods.toDataURL.apply(this, arguments);
     };
