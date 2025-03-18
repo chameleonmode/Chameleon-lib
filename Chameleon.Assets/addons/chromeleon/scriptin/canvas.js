@@ -3,11 +3,12 @@
 // https://www.browserleaks.com/canvas
 const originalGetContext = HTMLCanvasElement.prototype.getContext;
 const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
 const originalFillText = CanvasRenderingContext2D.prototype.fillText;
 const originalFillRect = CanvasRenderingContext2D.prototype.fillRect;
-const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
+
 const originalPutImageData = CanvasRenderingContext2D.prototype.putImageData;
+const originalToBlob = HTMLCanvasElement.prototype.toBlob;
 const originalDrawImage = CanvasRenderingContext2D.prototype.drawImage;
 const originalCreateLinearGradient = CanvasRenderingContext2D.prototype.createLinearGradient;
 const originalCreateRadialGradient = CanvasRenderingContext2D.prototype.createRadialGradient;

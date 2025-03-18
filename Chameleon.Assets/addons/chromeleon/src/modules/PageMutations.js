@@ -9,15 +9,32 @@
  * For use with Chrome Extensions Manifest V3 background service workers.
  */
 
-import elements from "../scripts/elements.js";
 import canvas from "../scripts/canvas.js";
+import rects from "../scripts/rects.js";
 
 class PageMutations {
   constructor(tabId) {
     this.tabId = tabId;
 
-    // Define injectable scripts as functions
-    this.scriptSource = `(${elements().toString()})();` + `(${canvas().toString()})();`;
+    // Define scripts as an object map
+    this.scripts = {
+      canvas: canvas,
+      rects: rects,
+    };
+
+    // Define parameters
+    this.scriptParams = {
+      canvas: { noiseLevel: 1.5 },
+      rects: { random: false },
+    };
+
+    // Generate script source
+    this.scriptSource = Object.entries(this.scripts)
+      .map(([name, script]) => {
+        const params = this.scriptParams[name] || {};
+        return `(${script().toString()})(${JSON.stringify(params)});`;
+      })
+      .join("\n");
   }
 
   /**

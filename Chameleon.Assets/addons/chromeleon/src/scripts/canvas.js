@@ -1,5 +1,13 @@
-export default function() {
-  return function canvas() {
+// Enhanced Canvas Fingerprinting Protection
+// https://privacycheck.sec.lrz.de/active/fp_c/fp_canvas.html
+// https://www.browserleaks.com/canvas
+export default function(opts) {
+  return function canvas(params) {
+    console.log(params);
+    // params will be available here
+    const noiseLevel = params?.noiseLevel || 1.0;
+    console.log("Using noise level:", noiseLevel);
+
     // Store original methods
     const originalMethods = {
       getContext: HTMLCanvasElement.prototype.getContext,
@@ -10,13 +18,13 @@ export default function() {
     };
 
     // Override getContext to always set willReadFrequently for 2d contexts
-    HTMLCanvasElement.prototype.getContext = function(contextType, contextAttributes = {}) {
+    HTMLCanvasElement.prototype.getContext = function (contextType, contextAttributes = {}) {
       // If it's a 2d context, ensure willReadFrequently is set
-      if (contextType === '2d') {
+      if (contextType === "2d") {
         contextAttributes = contextAttributes || {};
         contextAttributes.willReadFrequently = true;
       }
-      
+
       // Call the original method with our modified attributes
       return originalMethods.getContext.call(this, contextType, contextAttributes);
     };
@@ -45,7 +53,7 @@ export default function() {
     // Override toDataURL to add slight randomization
     HTMLCanvasElement.prototype.toDataURL = function (type, quality) {
       // Get the original image data
-      const ctx = this.getContext("2d");  // No need to specify willReadFrequently here anymore
+      const ctx = this.getContext("2d"); // No need to specify willReadFrequently here anymore
       const imageData = ctx.getImageData(0, 0, this.width, this.height);
 
       // Modify the image data
@@ -85,9 +93,9 @@ export default function() {
 
       return originalMethods.fillRect.call(this, newX, newY, newWidth, newHeight);
     };
-    
+
     console.log("[Canvas Fingerprint Protection] Initialized");
-    
+
     return true;
   };
 }

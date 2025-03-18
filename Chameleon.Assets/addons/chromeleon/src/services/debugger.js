@@ -1,3 +1,4 @@
+//https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
 import PageMutations from "../modules/PageMutations.js";
 import PageEmulations from "../modules/PageEmulations.js";
 import { log } from "./logger.js";
