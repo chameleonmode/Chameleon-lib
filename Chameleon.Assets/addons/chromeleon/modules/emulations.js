@@ -97,7 +97,7 @@ async function monitorTabIframes(tabId) {
       "tzSystem",
       "tzRandomize",
       "tzLocale",
-    ]);
+    ]); 
     if (tzEmulation) {
       log.info(`Applying timezone emulation for tab ${tab.id}`);
       log.info(`Timezone: ${timezone}`);
