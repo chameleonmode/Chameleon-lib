@@ -19,6 +19,7 @@ public class EmulationOptions {
 	public bool SpoofFontFingerprint { get; set; } = true;
 	public bool SpoofAudio { get; set; } = true;
 	public bool DisableWebRTC { get; set; } = true;
+	public bool SpoofNavigator { get; set; } = false;
 }
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
 public record class SysBrowserRecord(string Name, string Path) {

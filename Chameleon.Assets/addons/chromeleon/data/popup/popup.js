@@ -1,283 +1,466 @@
-import { resetSettings, SETTINGS_ARRAY } from "../../modules/settings.js";
-import { offsets } from "../offsets.js";
+// Timezone offsets data
+import timezoneOffsets from "../../data/offsets.js";
 
-document.addEventListener("DOMContentLoaded", async function () {
-  const settings = await chrome.storage.sync.get(SETTINGS_ARRAY);
-  const toggleExtension = document.getElementById("toggle-extension");
-  const statusText = document.getElementById("status-text");
-  const noiseLevelSlider = document.getElementById("noise-level-slider");
-  const webglSpoofing = document.getElementById("webgl-spoofing");
-  const randomWebGLSpoofing = document.getElementById("random-webgl-spoofing");
-  const canvasProtection = document.getElementById("canvas-protection");
-  const randomCanvasSpoofing = document.getElementById(
-    "random-canvas-spoofing"
-  );
-  const clientRectsSpoofing = document.getElementById("client-rects-spoofing");
-  const randomRectsSpoofing = document.getElementById("random-rects-spoofing");
-  const fontsSpoofing = document.getElementById("fonts-spoofing");
-  const randomFontsSpoofing = document.getElementById("random-fonts-spoofing");
-  const audioSpoofing = document.getElementById("audio-spoofing");
-  const randomAudioSpoofing = document.getElementById("random-audio-spoofing");
-  const blockedCount = document.getElementById("blocked-count");
-  const timezoneSpoofing = document.getElementById("timezone-spoofing");
-  const randomizeTimezone = document.getElementById("randomize-timezone");
-  const timezoneSelect = document.getElementById("timezone-select");
-  const timezoneOptions = document.getElementById("timezone-options");
-  const refreshButton = document.getElementById("refresh-button");
+// Current extension configuration
+let config = {
+  log: "all",
+  enabled: true,
+  dAPI: "disable_non_proxied_udp",
+  tz: {
+    enabled: true,
+    zone: "America/New_York",
+    locale: "en-US",
+    random: false,
+    useSystem: false,
+  },
+  geo: {
+    enabled: false,
+    lat: 40.7128,
+    lon: -74.0060,
+    accuracy: 64.0999,
+    random: false
+  },
+  canvas: {
+    enabled: true,
+    random: false
+  },
+  webgl: {
+    enabled: true,
+    random: false
+  },
+  rects: {
+    enabled: true,
+    random: false
+  },
+  fonts: {
+    enabled: true,
+    random: false
+  },
+  audio: {
+    enabled: true,
+    random: false
+  },
+  navi: {
+    enabled: true,
+    os: "default",
+    random: false
+  },
+  bypass: [],
+  history: [],
+  noise: "medium",
+};
 
-  // Geolocation elements
-  const geoSpoofing = document.getElementById("geo-spoofing");
-  const randomizeGeo = document.getElementById("randomize-geo");
-  const randomizeGeoValue = document.getElementById("randomize-geo-value");
-  const geoAccuracy = document.getElementById("geo-accuracy");
-  const geoAccuracyValue = document.getElementById("geo-accuracy-value");
-  const coordinates = document.getElementById("coordinates");
 
-  // Populate timezone datalist options
-  Object.keys(offsets).forEach((zone) => {
-    const offset = offsets[zone].offset;
-    const offsetHours = offset / 60;
-    const option = document.createElement("option");
-    option.value = zone;
-    option.text = `${zone} (GMT${offsetHours > 0 ? "+" : ""}${offsetHours})`;
-    timezoneOptions.appendChild(option);
-  });
+// Locale options
+const locales = [
+  "en-US",
+  "en-GB",
+  "fr-FR",
+  "es-ES",
+  "de-DE",
+  "ja-JP",
+  "zh-CN",
+  "ru-RU",
+  "pt-BR",
+  "it-IT"
+];
 
-  // Load saved settings
-  toggleExtension.checked = settings.enabled;
-  noiseLevelSlider.value = getNoiseLevelNumber(settings.noiseLevel);
-  blockedCount.textContent = settings.blockedCount || 0;
-  webglSpoofing.checked = settings.webglSpoofing;
-  canvasProtection.checked = settings.canvasProtection;
-  clientRectsSpoofing.checked = settings.clientRectsSpoofing;
-  fontsSpoofing.checked = settings.fontsSpoofing;
-  audioSpoofing.checked = settings.audioSpoofing;
-  randomAudioSpoofing.checked = settings.randomAudioSpoofing;
-  randomWebGLSpoofing.checked = settings.randomWebGLSpoofing;
-  randomCanvasSpoofing.checked = settings.randomCanvasSpoofing;
-  randomFontsSpoofing.checked = settings.randomFontsSpoofing;
-  randomRectsSpoofing.checked = settings.randomRectsSpoofing;
-  timezoneSpoofing.checked = settings.timezoneSpoofing;
-  randomizeTimezone.checked = settings.randomizeTZ;
-
-  // Load geolocation settings
-  geoSpoofing.checked = settings.geoSpoofing;
-  // Convert saved randomizeGeo value to slider value
-  const randomizeGeoValues = [
-    "false",
-    "0.1",
-    "0.01",
-    "0.001",
-    "0.0001",
-    "0.00001",
-  ];
-  const savedRandomizeGeo =
-    settings.randomizeGeo === false
-      ? "false"
-      : settings.randomizeGeo?.toString() || "false";
-  randomizeGeo.value = randomizeGeoValues.indexOf(savedRandomizeGeo);
-
-  // Convert saved accuracy value to slider value
-  geoAccuracy.value = settings.accuracy || 64.0999;
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize UI elements based on current config
+  initializeUI();
   
-  // Set coordinates value if both latitude and longitude exist
-  if (settings.lat !== null && settings.lon !== null) {
-    coordinates.value = `${settings.lat},${settings.lon}`;
+  // Set up event listeners
+  setupEventListeners();
+  
+  // Populate dropdown options
+  populateDropdowns();
+});
+
+function initializeUI() {
+  // Main extension toggle
+  document.getElementById('toggle-extension').checked = config.enabled;
+  document.getElementById('status-text').textContent = config.enabled ? 'Enabled' : 'Disabled';
+  
+  // Noise level
+  const noiseValue = getNoiseLevelValue(config.noise);
+  document.getElementById('noise-level-slider').value = noiseValue;
+  document.getElementById('noise-level-text').textContent = getNoiseLevelName(noiseValue);
+  
+  // Canvas protection
+  document.getElementById('canvas-protection').checked = config.canvas.enabled;
+  document.getElementById('random-canvas-spoofing').checked = config.canvas.random;
+  
+  // WebGL protection
+  document.getElementById('webgl-spoofing').checked = config.webgl.enabled;
+  document.getElementById('random-webgl-spoofing').checked = config.webgl.random;
+  
+  // Client Rects protection
+  document.getElementById('client-rects-spoofing').checked = config.rects.enabled;
+  document.getElementById('random-rects-spoofing').checked = config.rects.random;
+  
+  // Fonts protection
+  document.getElementById('fonts-spoofing').checked = config.fonts.enabled;
+  document.getElementById('random-fonts-spoofing').checked = config.fonts.random;
+  
+  // Audio protection
+  document.getElementById('audio-spoofing').checked = config.audio.enabled;
+  document.getElementById('random-audio-spoofing').checked = config.audio.random;
+  
+  // Navigation/OS spoofing
+  document.getElementById('navi-spoofing').checked = config.navi.enabled;
+  document.getElementById('randomize-navi').checked = config.navi.random;
+  document.getElementById('navi-select').value = config.navi.os;
+  
+  // Timezone spoofing
+  document.getElementById('timezone-spoofing').checked = config.tz.enabled;
+  document.getElementById('randomize-timezone').checked = config.tz.random;
+  document.getElementById('timezone-select').value = config.tz.zone;
+  document.getElementById('locale-select').value = config.tz.locale;
+  document.getElementById('use-system-timezone').checked = config.tz.useSystem;
+  
+  // Geolocation spoofing
+  document.getElementById('geo-spoofing').checked = config.geo.enabled;
+  document.getElementById('randomize-geo-toggle').checked = config.geo.random;
+  document.getElementById('coordinates').value = `${config.geo.lat},${config.geo.lon}`;
+  document.getElementById('geo-accuracy').value = config.geo.accuracy;
+  document.getElementById('geo-accuracy-value').textContent = config.geo.accuracy.toFixed(4);
+  
+  // Advanced settings
+  document.getElementById('dapi-select').value = config.dAPI;
+  document.getElementById('log-level').value = config.log;
+  
+  // Populate bypass list
+  populateBypassList();
+}
+
+function populateDropdowns() {
+  // Populate timezone options
+  const timezoneSelect = document.getElementById('timezone-select');
+  timezoneSelect.innerHTML = '';
+  
+  // Convert the timezone object to an array for sorting
+  const timezoneArray = Object.entries(timezoneOffsets).map(([zone, data]) => {
+    return {
+      zone: zone,
+      offset: data.offset
+    };
+  });
+  
+  // Sort by offset (from negative to positive)
+  timezoneArray.sort((a, b) => a.offset - b.offset);
+  
+  // Add each timezone to the dropdown
+  timezoneArray.forEach(timezone => {
+    const option = document.createElement('option');
+    option.value = timezone.zone;
+    
+    // Calculate UTC offset string (e.g. UTC-08:00, UTC+05:30)
+    const absOffset = Math.abs(timezone.offset);
+    const hours = Math.floor(absOffset / 60);
+    const minutes = absOffset % 60;
+    const sign = timezone.offset < 0 ? '-' : '+';
+    const offsetStr = `UTC${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    
+    option.textContent = `${timezone.zone} (${offsetStr})`;
+    
+    if (timezone.zone === config.tz.zone) {
+      option.selected = true;
+    }
+    
+    timezoneSelect.appendChild(option);
+  });
+  
+  // Populate locale options
+  const localeSelect = document.getElementById('locale-select');
+  localeSelect.innerHTML = '';
+  
+  locales.forEach(locale => {
+    const option = document.createElement('option');
+    option.value = locale;
+    option.textContent = locale;
+    if (locale === config.tz.locale) {
+      option.selected = true;
+    }
+    localeSelect.appendChild(option);
+  });
+}
+
+function populateBypassList() {
+  const bypassList = document.getElementById('bypass-list');
+  bypassList.innerHTML = '';
+  
+  if (config.bypass.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.className = 'bypass-item';
+    emptyMsg.textContent = 'No websites in bypass list';
+    bypassList.appendChild(emptyMsg);
+    return;
   }
+  
+  config.bypass.forEach(site => {
+    const item = document.createElement('div');
+    item.className = 'bypass-item';
+    
+    const siteSpan = document.createElement('span');
+    siteSpan.textContent = site;
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'bypass-delete';
+    deleteBtn.textContent = '✕';
+    deleteBtn.addEventListener('click', () => {
+      removeBypassSite(site);
+    });
+    
+    item.appendChild(siteSpan);
+    item.appendChild(deleteBtn);
+    bypassList.appendChild(item);
+  });
+}
 
-  // Set timezone value
-  timezoneSelect.value = settings.timezone;
-
-  // Update status text
-  function updateStatus() {
-    statusText.textContent = toggleExtension.checked ? "Enabled" : "Disabled";
-    updateSliderDisplays();
-    function updateChecked(element, toggle) {
-      const randomToggle = toggle.parentElement;
-      if (!element.checked) {
-        randomToggle.classList.add("disabled");
-        toggle.disabled = true;
-        if (toggle.type === "checkbox") {
-          toggle.checked = false;
-        }
-      } else {
-        randomToggle.classList.remove("disabled");
-        toggle.disabled = false;
+function setupEventListeners() {
+  // Main extension toggle
+  document.getElementById('toggle-extension').addEventListener('change', function(e) {
+    config.enabled = e.target.checked;
+    document.getElementById('status-text').textContent = config.enabled ? 'Enabled' : 'Disabled';
+    saveConfig();
+  });
+  
+  // Tab functionality
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const tabName = button.getAttribute('data-tab');
+      
+      // Remove active class from all buttons and contents
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      // Add active class to current button and content
+      button.classList.add('active');
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    });
+  });
+  
+  // Noise level slider
+  document.getElementById('noise-level-slider').addEventListener('input', function(e) {
+    const noiseValue = parseInt(e.target.value);
+    const noiseLevel = getNoiseLevelName(noiseValue);
+    document.getElementById('noise-level-text').textContent = noiseLevel;
+    config.noise = noiseLevel.toLowerCase();
+    saveConfig();
+  });
+  
+  // Feature toggles - setup for all features
+  setupFeatureToggle('canvas-protection', 'random-canvas-spoofing', 'canvas');
+  setupFeatureToggle('webgl-spoofing', 'random-webgl-spoofing', 'webgl');
+  setupFeatureToggle('client-rects-spoofing', 'random-rects-spoofing', 'rects');
+  setupFeatureToggle('fonts-spoofing', 'random-fonts-spoofing', 'fonts');
+  setupFeatureToggle('audio-spoofing', 'random-audio-spoofing', 'audio');
+  
+  // OS spoofing
+  document.getElementById('navi-spoofing').addEventListener('change', function(e) {
+    config.navi.enabled = e.target.checked;
+    saveConfig();
+  });
+  
+  document.getElementById('randomize-navi').addEventListener('change', function(e) {
+    config.navi.random = e.target.checked;
+    saveConfig();
+  });
+  
+  document.getElementById('navi-select').addEventListener('change', function(e) {
+    config.navi.os = e.target.value;
+    saveConfig();
+  });
+  
+  // Timezone spoofing
+  document.getElementById('timezone-spoofing').addEventListener('change', function(e) {
+    config.tz.enabled = e.target.checked;
+    saveConfig();
+  });
+  
+  document.getElementById('randomize-timezone').addEventListener('change', function(e) {
+    config.tz.random = e.target.checked;
+    saveConfig();
+  });
+  
+  // This function will be called when the timezone changes
+  document.getElementById('timezone-select').addEventListener('change', function(e) {
+    const selectedTimezone = e.target.value;
+    config.tz.zone = selectedTimezone;
+    
+    // Get the timezone offset for display purposes
+    const timezoneData = timezoneOffsets[selectedTimezone];
+    if (timezoneData) {
+      const offset = timezoneData.offset;
+      const absOffset = Math.abs(offset);
+      const hours = Math.floor(absOffset / 60);
+      const minutes = absOffset % 60;
+      const sign = offset < 0 ? '-' : '+';
+      console.log(`Timezone changed to: ${selectedTimezone} (UTC${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')})`);
+    }
+    
+    saveConfig();
+  });
+  
+  document.getElementById('locale-select').addEventListener('change', function(e) {
+    config.tz.locale = e.target.value;
+    saveConfig();
+  });
+  
+  document.getElementById('use-system-timezone').addEventListener('change', function(e) {
+    config.tz.useSystem = e.target.checked;
+    saveConfig();
+  });
+  
+  // Geolocation spoofing
+  document.getElementById('geo-spoofing').addEventListener('change', function(e) {
+    config.geo.enabled = e.target.checked;
+    saveConfig();
+  });
+  
+  document.getElementById('randomize-geo-toggle').addEventListener('change', function(e) {
+    config.geo.random = e.target.checked;
+    saveConfig();
+  });
+  
+  document.getElementById('coordinates').addEventListener('blur', function(e) {
+    const coords = e.target.value.split(',');
+    if (coords.length === 2) {
+      const lat = parseFloat(coords[0].trim());
+      const lon = parseFloat(coords[1].trim());
+      
+      if (!isNaN(lat) && !isNaN(lon)) {
+        config.geo.lat = lat;
+        config.geo.lon = lon;
+        saveConfig();
       }
     }
-    updateChecked(clientRectsSpoofing, randomRectsSpoofing);
-    updateChecked(webglSpoofing, randomWebGLSpoofing);
-    updateChecked(canvasProtection, randomCanvasSpoofing);
-    updateChecked(fontsSpoofing, randomFontsSpoofing);
-    updateChecked(audioSpoofing, randomAudioSpoofing);
-    updateChecked(timezoneSpoofing, randomizeTimezone);
-    updateChecked(timezoneSpoofing, timezoneSelect);
-    updateChecked(geoSpoofing, randomizeGeo);
-    updateChecked(geoSpoofing, geoAccuracy);
-    updateChecked(geoSpoofing, coordinates);
-  }
-
-  function getNoiseLevelLabel(value) {
-    switch (value) {
-      case "1":
-        return "micro";
-      case "2":
-        return "mini";
-      case "3":
-        return "low";
-      case "4":
-        return "medium";
-      case "5":
-        return "bold";
-      case "6":
-        return "high";
-      case "7":
-        return "heavy";
-      case "8":
-        return "ultra";
-      case "9":
-        return "super";
-      case "10":
-        return "max";
-      default:
-        return "medium";
+  });
+  
+  document.getElementById('geo-accuracy').addEventListener('input', function(e) {
+    const value = parseFloat(e.target.value);
+    config.geo.accuracy = value;
+    document.getElementById('geo-accuracy-value').textContent = value.toFixed(4);
+    saveConfig();
+  });
+  
+  // Advanced settings
+  document.getElementById('dapi-select').addEventListener('change', function(e) {
+    config.dAPI = e.target.value;
+    saveConfig();
+  });
+  
+  document.getElementById('log-level').addEventListener('change', function(e) {
+    config.log = e.target.value;
+    saveConfig();
+  });
+  
+  // Bypass list management
+  document.getElementById('add-bypass-btn').addEventListener('click', addBypassSite);
+  document.getElementById('new-bypass').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      addBypassSite();
     }
-  }
-
-  function getNoiseLevelNumber(label) {
-    switch (label.toString()) {
-      case "micro":
-        return "1";
-      case "mini":
-        return "2";
-      case "low":
-        return "3";
-      case "medium":
-        return "4";
-      case "bold":
-        return "5";
-      case "high":
-        return "6";
-      case "heavy":
-        return "7";
-      case "ultra":
-        return "8";
-      case "super":
-        return "9";
-      case "max":
-        return "10";
-      default:
-        return "4";
-    }
-  }
-
-  // Helper function to convert randomize-geo slider value to actual value
-  function getRandomizeGeoValue(value) {
-    const values = ["false", "0.1", "0.01", "0.001", "0.0001", "0.00001"];
-    return values[parseInt(value)];
-  }
-
-  // Helper function to get display text for randomize-geo value
-  function getRandomizeGeoDisplayValue(value) {
-    return value === "false" ? "Disabled" : value;
-  }
-
-  // Helper function to convert geo-accuracy slider value to actual value
-  function getGeoAccuracyValue(value) {
-    return value.toFixed(4);
-  }
-
-  // Helper function to parse coordinates string
-  function parseCoordinates(coordStr) {
-    if (!coordStr) return { lat: null, lng: null };
-    const [lat, lng] = coordStr.split(',').map(str => {
-      const num = parseFloat(str.trim());
-      return isNaN(num) ? null : num;
+  });
+  
+  // Refresh button
+  document.getElementById('refresh-button').addEventListener('click', function() {
+    // This would typically refresh data from storage or background page
+    chrome.runtime.sendMessage({ action: 'refreshConfig' }, function(response) {
+      if (response && response.config) {
+        config = response.config;
+        initializeUI();
+      }
     });
-    return { lat, lng };
+  });
+}
+
+function setupFeatureToggle(enableId, randomId, configKey) {
+  document.getElementById(enableId).addEventListener('change', function(e) {
+    config[configKey].enabled = e.target.checked;
+    saveConfig();
+  });
+  
+  document.getElementById(randomId).addEventListener('change', function(e) {
+    config[configKey].random = e.target.checked;
+    saveConfig();
+  });
+}
+
+function addBypassSite() {
+  const input = document.getElementById('new-bypass');
+  const site = input.value.trim();
+  
+  if (site && !config.bypass.includes(site)) {
+    config.bypass.push(site);
+    saveConfig();
+    populateBypassList();
+    input.value = '';
   }
+}
 
-  // Update slider display values
-  function updateSliderDisplays() {
-    randomizeGeoValue.textContent = getRandomizeGeoDisplayValue(
-      getRandomizeGeoValue(randomizeGeo.value)
-    );
-    geoAccuracyValue.textContent = getGeoAccuracyValue(
-      parseFloat(geoAccuracy.value)
-    );
-  }
+function removeBypassSite(site) {
+  config.bypass = config.bypass.filter(s => s !== site);
+  saveConfig();
+  populateBypassList();
+}
 
-  // Save settings and update content scripts
-  function saveSettings() {
-    settings.enabled = toggleExtension.checked;
-    settings.webglSpoofing = webglSpoofing.checked;
-    settings.canvasProtection = canvasProtection.checked;
-    settings.clientRectsSpoofing = clientRectsSpoofing.checked;
-    settings.fontsSpoofing = fontsSpoofing.checked;
-    settings.audioSpoofing = audioSpoofing.checked;
-    settings.randomAudioSpoofing = randomAudioSpoofing.checked;
-    settings.randomWebGLSpoofing = randomWebGLSpoofing.checked;
-    settings.randomCanvasSpoofing = randomCanvasSpoofing.checked;
-    settings.randomFontsSpoofing = randomFontsSpoofing.checked;
-    settings.randomRectsSpoofing = randomRectsSpoofing.checked;
-    settings.timezoneSpoofing = timezoneSpoofing.checked;
-    settings.myIP = !settings.timezoneSpoofing;
-    settings.randomizeTZ = randomizeTimezone.checked;
+function saveConfig() {
+  // Send updated config to background script
+  chrome.runtime.sendMessage({ action: 'updateConfig', config: config }, function(response) {
+    console.log('Config saved:', response);
+  });
+  
+  // You might also want to save to storage
+  chrome.storage.sync.set({ config: config }, function() {
+    console.log('Config saved to storage');
+  });
+}
 
-    // Save geolocation settings
-    settings.geoSpoofing = geoSpoofing.checked;
-    const randomizeGeoVal = getRandomizeGeoValue(randomizeGeo.value);
-    settings.randomizeGeo =
-      randomizeGeoVal === "false" ? false : parseFloat(randomizeGeoVal);
-    settings.accuracy = parseFloat(geoAccuracy.value);
-    
-    // Parse and save coordinates
-    const { lat, lng } = parseCoordinates(coordinates.value);
-    settings.lat = lat;
-    settings.lon = lng;
-
-    // Extract timezone value from input (remove GMT offset if present)
-    settings.timezone = timezoneSelect.value;
-
-    var noise = getNoiseLevelLabel(noiseLevelSlider.value);
-    if (settings.noiseLevel !== noise) {
-      settings.noiseLevel = noise;
-      noiseLevelSlider.value = getNoiseLevelNumber(settings.noiseLevel);
-      resetSettings(settings);
+// This function would be called when the popup is opened
+function loadConfigFromStorage() {
+  chrome.storage.sync.get('config', function(data) {
+    if (data.config) {
+      config = data.config;
+      initializeUI();
     }
+  });
+  
+  // Or get from background script
+  chrome.runtime.sendMessage({ action: 'getConfig' }, function(response) {
+    if (response && response.config) {
+      config = response.config;
+      initializeUI();
+    }
+  });
+}
 
-    chrome.storage.sync.set(settings, function () {
-      updateStatus();
-    });
-  }
+// Noise level mapping functions
+function getNoiseLevelName(value) {
+  const noiseNames = [
+    'Micro', 'Mini', 'Low', 'Medium', 'Bold', 
+    'High', 'Ultra', 'Super', 'Max'
+  ];
+  return noiseNames[value - 1] || 'Medium';
+}
 
-  updateStatus();
+function getNoiseLevelValue(name) {
+  const noiseLevels = {
+    'micro': 1,
+    'mini': 2,
+    'low': 3,
+    'medium': 4,
+    'bold': 5,
+    'high': 6,
+    'ultra': 7,
+    'super': 8,
+    'max': 9
+  };
+  return noiseLevels[name.toLowerCase()] || 4; // Default to Medium (4)
+}
 
-  // Event listeners
-  toggleExtension.addEventListener("change", saveSettings);
-  noiseLevelSlider.addEventListener("input", saveSettings);
-  webglSpoofing.addEventListener("change", saveSettings);
-  canvasProtection.addEventListener("change", saveSettings);
-  clientRectsSpoofing.addEventListener("change", saveSettings);
-  fontsSpoofing.addEventListener("change", saveSettings);
-  audioSpoofing.addEventListener("change", saveSettings);
-  randomAudioSpoofing.addEventListener("change", saveSettings);
-  randomWebGLSpoofing.addEventListener("change", saveSettings);
-  randomCanvasSpoofing.addEventListener("change", saveSettings);
-  randomFontsSpoofing.addEventListener("change", saveSettings);
-  randomRectsSpoofing.addEventListener("change", saveSettings);
-  timezoneSpoofing.addEventListener("change", saveSettings);
-  randomizeTimezone.addEventListener("change", saveSettings);
-  timezoneSelect.addEventListener("change", saveSettings);
-  timezoneSelect.addEventListener("input", saveSettings);
-
-  // Geolocation event listeners
-  geoSpoofing.addEventListener("change", saveSettings);
-  randomizeGeo.addEventListener("input", saveSettings);
-  geoAccuracy.addEventListener("input", saveSettings);
-  coordinates.addEventListener("change", saveSettings);
-  coordinates.addEventListener("input", saveSettings);
-
-  // Refresh button event listener
-  refreshButton.addEventListener("click", saveSettings);
-});
+// Call this on popup open
+loadConfigFromStorage();

@@ -3,21 +3,51 @@ const App = {
   server: null,
   port: null,
   config: {
+    log: "all",
     enabled: true,
-    log: 'all',
-    dAPI: 'disable_non_proxied_udp',
-    tzEmulation: false,
-    timezone: 'UTC',
-    tzSystem: '',
-    tzRandomize: false,
-    tzLocale: 'en-US',
-    geoEmulation: false,
-    lat: 0,
-    lon: 0,
-    geoRandomize: false,
-    geoAccuracy: 100,
-    naviRandomize: false,
-    naviOS: "default",
+    dAPI: "disable_non_proxied_udp",
+    tz: {
+      enabled: true,
+      zone: "America/New_York",
+      locale: "en-US",
+      random: false,
+      useSystem: false,
+    },
+    geo: {
+      enabled: true,
+      lat: 40.7128,
+      lon: -74.0060,
+      accuracy: 64.0999,
+      random: false
+    },
+    canvas: {
+      enabled: true,
+      random: false
+    },
+    webgl: {
+      enabled: true,
+      random: false
+    },
+    rects: {
+      enabled: true,
+      random: false
+    },
+    fonts: {
+      enabled: true,
+      random: false
+    },
+    audio: {
+      enabled: true,
+      random: false
+    },
+    navi: {
+      enabled: true,
+      os: "default",
+      random: false
+    },
+    bypass: [],
+    history: [],
+    noise: "medium",
   },
   session: {
     sessionId: null,
@@ -27,7 +57,11 @@ const App = {
 
   // Startup
   startup: async function () {
-    const { session, launchedSessions, config } = await chrome.storage.local.get(["session", "launchedSessions", "config"]);
+    const { session, launchedSessions, config } = await chrome.storage.local.get([
+      "session",
+      "launchedSessions",
+      "config",
+    ]);
     this.config = config || this.config;
     this.session = session || this.session;
     this.launchedSessions = launchedSessions || this.launchedSessions;
@@ -43,10 +77,14 @@ const App = {
 
     this.session = {
       sessionId,
-      instanceId
+      instanceId,
     };
     this.launchedSessions[sessionId] = this.session;
-    await chrome.storage.local.set({ session: this.session, launchedSessions: this.launchedSessions, config: this.config });
+    await chrome.storage.local.set({
+      session: this.session,
+      launchedSessions: this.launchedSessions,
+      config: this.config,
+    });
     return response.config;
   },
 
@@ -60,7 +98,7 @@ const App = {
           signal: AbortSignal.timeout(500), // 500ms timeout
         });
         if (!response.ok) continue;
-        
+
         this.port = port;
         this.server = url;
         return true;

@@ -1,6 +1,6 @@
 import App from "./src/app.js";
 import { log } from "./src/services/logger.js";
-import * as WebRTC from "./src/services/webrtc.js";
+import "./src/services/webrtc.js";
 import "./src/services/debugger.js";
 
 const startup = async () => {
@@ -8,7 +8,6 @@ const startup = async () => {
   await App.startup();
 
   log.setLogLevel(App.config.log);
-  createContextMenus();
 };
 
 // Fix the incomplete runtime event listener
@@ -26,6 +25,19 @@ chrome.runtime.onStartup.addListener(async () => {
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
+    case "getConfig":
+      sendResponse({ success: true, config: App.config });
+      break;
+    case "setConfig":
+      const { config } = message;
+      log.info("Updating config", config);
+      App.config = { ...App.config, ...config };
+      // Save the updated config to storage
+      chrome.storage.local.set({ config: App.config })
+        .then(() => log.info("Config saved to storage"))
+        .catch((error) => log.error("Error saving config to storage", error));
+      sendResponse({ success: true });
+      break;
     case "getAppState":
       App.getAppState()
         .then((state) => sendResponse({ success: true, data: state }))
@@ -75,21 +87,3 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
   return true;
 });
-
-export function createContextMenus() {
-  chrome.contextMenus.removeAll();
-  chrome.contextMenus.create({ title: "WebRTC", id: "webrtc-menu", contexts: ["action"] });
-
-  // create context menus
-  Object.keys(WebRTC.policies).forEach((key) => {
-    const policy = WebRTC.policies[key];
-    chrome.contextMenus.create({
-      parentId: "webrtc-menu",
-      type: "radio",
-      contexts: ["action"],
-      title: policy.title,
-      id: policy.id,
-      checked: App.config.dAPI === policy.id,
-    });
-  });
-}

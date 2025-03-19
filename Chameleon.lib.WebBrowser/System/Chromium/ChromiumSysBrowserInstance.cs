@@ -276,22 +276,53 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 			enabled = true,
 			log = Debugger.IsAttached ? "all" : "none",
 			dAPI = "disable_non_proxied_udp",
-			tzEmulation = Settings.Emulation.AutoTimezone,
-			ipapi.timezone,
-			ipapi.tzSystem,
-			tzLocale = "en-US",
-			tzRandomize = false,
-			geoEmulation = Settings.Emulation.SpoofGeoLocation,
-			ipapi.lat,
-			ipapi.lon,
-			geoAccuracy = 69.96,
-			geoRandomize = false,
-			canvasProtection = Settings.Emulation.SpoofCanvasFingerprint,
-			webglSpoofing = Settings.Emulation.SpoofWebGLFingerprint,
-			clientRectsSpoofing = Settings.Emulation.SpoofClientRects,
-			fontsSpoofing = Settings.Emulation.SpoofFontFingerprint,
-			audioSpoofing = Settings.Emulation.SpoofAudio,
-			noiseLevel = "medium",
+			tz = new
+			{
+				enabled = Settings.Emulation.AutoTimezone,
+				zone = ipapi.timezone,
+				locale = "en-US",
+				random = false,
+				useSystem = ipapi.tzSystem
+			},
+			geo = new
+			{
+				enabled = Settings.Emulation.SpoofGeoLocation,
+				ipapi.lat,
+				ipapi.lon,
+				accuracy = 64.0999,
+				random = false
+			},
+			canvas = new
+			{
+				enabled = Settings.Emulation.SpoofCanvasFingerprint,
+				random = false
+			},
+			webgl = new
+			{
+				enabled = Settings.Emulation.SpoofWebGLFingerprint,
+				random = false
+			},
+			rects = new
+			{
+				enabled = Settings.Emulation.SpoofClientRects,
+				random = false
+			},
+			fonts = new
+			{
+				enabled = Settings.Emulation.SpoofFontFingerprint,
+				random = false
+			},
+			audio = new
+			{
+				enabled = Settings.Emulation.SpoofAudio,
+				random = false
+			},
+			navi = new
+			{
+				enabled = Settings.Emulation.SpoofNavigator,
+				random = false
+			},
+			noise = "medium",
 			bypass = Array.Empty<string>(),
 			history = Array.Empty<string>()
 		};

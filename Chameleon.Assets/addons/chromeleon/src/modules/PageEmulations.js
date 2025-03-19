@@ -13,36 +13,45 @@ class PageEmulations {
    * @returns {Promise<boolean>} - Whether initialization was successful
    */
   async initialize() {
-    const { tzEmulation, timezone, tzSystem, tzLocale, tzRandomize } = App.config;
-    if (tzEmulation) {
+    if(!App.config.enabled) return;
+
+    await this.setupTimezoneEmulation();
+    await this.setupGeoEmulation();
+  }
+
+  async setupTimezoneEmulation() {  
+    const { enabled, zone, locale, random, useSystem } = App.config.tz;
+    if (enabled) {
       log.info(`Applying timezone emulation for tab ${this.tabId}`);
-      log.info(`Timezone: ${timezone}`);
-      log.info(`System timezone: ${tzSystem}`);
-      log.info(`Randomize timezone: ${tzRandomize}`);
-      log.info(`Locale: ${tzLocale}`);
+      log.info(`Timezone: ${zone}`);
+      log.info(`System timezone: ${useSystem}`);
+      log.info(`Randomize timezone: ${random}`);
+      log.info(`Locale: ${locale}`);
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setTimezoneOverride", {
-        timezoneId: tzSystem
+        timezoneId: useSystem
           ? Intl.DateTimeFormat().resolvedOptions().timeZone
-          : tzRandomize
+          : random
           ? Object.keys(offsets)[Math.floor(Math.random() * Object.keys(offsets).length)]
-          : timezone,
+          : zone,
       });
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setLocaleOverride", {
-        locale: tzLocale,
+        locale: locale,
       });
     }
+  }
 
-    const { geoEmulation, lat, lon, geoRandomize, geoAccuracy } = App.config;
-    if (geoEmulation) {
+  async setupGeoEmulation() {
+    const { enabled, lat, lon, random, accuracy } = App.config.geo;
+    if (enabled) {
       log.info(`Applying geolocation emulation for tab ${this.tabId}`);
       log.info(`Latitude: ${lat}`);
       log.info(`Longitude: ${lon}`);
-      log.info(`Randomize geolocation: ${geoRandomize}`);
-      log.info(`Accuracy: ${geoAccuracy}`);
+      log.info(`Randomize geolocation: ${random}`);
+      log.info(`Accuracy: ${accuracy}`);
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setGeolocationOverride", {
-        latitude: geoRandomize ? lat + (Math.random() - 0.5) * geoRandomize : lat,
-        longitude: geoRandomize ? lon + (Math.random() - 0.5) * geoRandomize : lon,
-        accuracy: geoAccuracy,
+        latitude: random ? lat + (Math.random() - 0.5) * random : lat,
+        longitude: random ? lon + (Math.random() - 0.5) * random : lon,
+        accuracy: accuracy,
       });
 
       const acceptLanguage = "en-US";
