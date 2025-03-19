@@ -1,4 +1,4 @@
-import App from "./app.js";
+import App from "./src/app.js";
 import { log } from "./src/services/logger.js";
 import * as WebRTC from "./src/services/webrtc.js";
 import "./src/services/debugger.js";
