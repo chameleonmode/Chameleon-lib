@@ -20,16 +20,18 @@ const attach = async (tabId) => {
 
     // Initialize the mutation mutator
     const mutations = new PageMutations(tabId);
-    await mutations.initialize();
 
     // Set up the emulation
     const emulations = new PageEmulations(tabId);
-    await emulations.initialize();
 
     // so you can clean up later when the tab is closed
     observers.set(tabId, {
       mutations,
       emulations,
+      initialize: async () => {
+        await mutations.initialize();
+        await emulations.initialize();
+      },
     });
   } catch (error) {
     log.error(`Error setting up iframe monitoring for tab ${tabId}:`, error);
@@ -50,13 +52,12 @@ const detach = async (tabId) => {
 };
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status !== "loading" || observers.has(tabId) || !tab.url.startsWith("http")){
-    log.debug(`Tab ${tabId} is not loading or already monitored: ${tab.url}`);
-    return
-  } 
-
-  log.log(`Tab ${tabId} is loading with URL: ${tab.url}`);
-  await attach(tabId);
+  log.info(`Tab ${tabId} is loading with URL: ${tab.url}`);
+  if (changeInfo.status !== "loading" || !tab.url.startsWith("http")) {
+    return;
+  }
+  if (!observers.has(tabId)) await attach(tabId);
+  await observers.get(tabId).initialize();
 });
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {

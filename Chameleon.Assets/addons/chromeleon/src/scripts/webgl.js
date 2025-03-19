@@ -1,8 +1,8 @@
 // https://browserleaks.com/webgl
 // https://privacycheck.sec.lrz.de/active/fp_wg/fp_webgl.html
 // https://gist.github.com/abrahamjuliot/7baf3be8c451d23f7a8693d7e28a35e2
-export default function (opts) {
-  return function webgl(params) {
+export default async function (opts) {
+  return function (params) {
     console.log(params);
     const { random, level } = params || {};
 

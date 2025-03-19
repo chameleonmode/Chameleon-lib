@@ -59,13 +59,18 @@ const createLogMethod = (level, levelValue) => {
       const logPrefix = `[Chromeleon] [${level}] [${caller.file}:${caller.line}]`;
       const consoleMethod = CONSOLE_METHODS[level];
 
-      // For browsers that support CSS styling in console
-      console[consoleMethod](
-        `%c${timestamp} ${logPrefix}%c ${message}`,
-        LOG_COLORS[level],
-        "color: inherit",
-        args
-      );
+      try {
+        // For browsers that support CSS styling in console
+        console[consoleMethod](
+          `%c${timestamp} ${logPrefix}%c ${message}`,
+          LOG_COLORS[level],
+          "color: inherit",
+          args
+        );
+      } catch (e) {
+        // Fallback for browsers that don't support console methods
+        console[consoleMethod](logPrefix, message);
+      }
     }
   };
 };
@@ -79,6 +84,5 @@ export const log = {
   error: createLogMethod("ERROR", 4),
   setLogLevel: (level) => {
     config.currentLogLevel = LOG_LEVELS[level];
-  }
+  },
 };
-

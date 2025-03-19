@@ -11,11 +11,11 @@ async function updateLocationRules() {
 
   chrome.declarativeNetRequest.updateSessionRules(
     {
-      removeRuleIds: [1],
+      removeRuleIds: [420],
       addRules: [
         {
-          id: 1,
-          priority: 1,
+          id: 420,
+          priority: 2,
           action: {
             type: "modifyHeaders",
             requestHeaders: [
@@ -35,21 +35,6 @@ async function updateLocationRules() {
         log.error(chrome.runtime.lastError.message);
       } else {
         log.log("Google search headers updated with new location.");
-      }
-    }
-  );
-}
-
-function removeLocationRules() {
-  chrome.declarativeNetRequest.updateSessionRules(
-    {
-      removeRuleIds: [1],
-    },
-    () => {
-      if (chrome.runtime.lastError) {
-        log.error(chrome.runtime.lastError.message);
-      } else {
-        log.log("Custom Google search location reset to default.");
       }
     }
   );

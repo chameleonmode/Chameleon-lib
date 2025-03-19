@@ -1,6 +1,6 @@
 // https://privacycheck.sec.lrz.de/active/fp_ac/fp_audiocontext.html
-export default function (opts) {
-  return function audio(params) {
+export default async function (opts) {
+  return function (params) {
     console.log(params);
     const { random, level } = params || {};
 

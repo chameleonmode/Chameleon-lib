@@ -1,11 +1,21 @@
 // app.js for Chrome Extension to communicate with the app server
-export const App = {
+const App = {
   server: null,
   port: null,
   config: {
     enabled: true,
     log: 'all',
-    dApi: 'disable_non_proxied_udp',
+    dAPI: 'disable_non_proxied_udp',
+    tzEmulation: false,
+    timezone: 'UTC',
+    tzSystem: '',
+    tzRandomize: false,
+    tzLocale: 'en-US',
+    geoEmulation: false,
+    lat: 0,
+    lon: 0,
+    geoRandomize: false,
+    geoAccuracy: 100,
   },
   session: {
     sessionId: null,
@@ -88,3 +98,5 @@ export const App = {
     return await response.json();
   },
 };
+
+export default App;

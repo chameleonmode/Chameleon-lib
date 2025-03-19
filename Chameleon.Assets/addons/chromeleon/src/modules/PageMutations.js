@@ -14,62 +14,81 @@ import rects from "../scripts/rects.js";
 import webgl from "../scripts/webgl.js";
 import fonts from "../scripts/fonts.js";
 import audio from "../scripts/audio.js";
-import navigator from "../scripts/navigator.js";
+import navigatorize from "../scripts/navigator.js";
 
-const defauts = {
+const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
+const defaults = {
   level: "medium",
+  chromeMajorVersion,
 };
 
 class PageMutations {
   constructor(tabId) {
     this.tabId = tabId;
+    this.scriptSource = "";
 
-    // Define scripts as an object map
-    this.scripts = {
-      canvas: canvas,
-      rects: rects,
-      webgl: webgl,
-      fonts: fonts,
-      audio: audio,
-      navigator: navigator,
+    // Define configurations for all scripts at once
+    this.scriptConfigs = {
+      canvas: {
+        script: canvas,
+        opts: { ...defaults, random: false },
+      },
+      rects: {
+        script: rects,
+        opts: { ...defaults, random: false },
+      },
+      webgl: {
+        script: webgl,
+        opts: { ...defaults, random: true },
+      },
+      fonts: {
+        script: fonts,
+        opts: { ...defaults, random: true },
+      },
+      audio: {
+        script: audio,
+        opts: { ...defaults, random: true },
+      },
+      navigatorize: {
+        script: navigatorize,
+        opts: {
+          ...defaults,
+          random: true,
+          os: "default",
+          configs: {
+            mac: {
+              "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+              "sec-ch-ua-platform": '"macOS"',
+              "sec-ch-ua-platform-version": '"15.3.1"',
+              "sec-ch-ua-model": '""',
+            },
+            windows: {
+              "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+              "sec-ch-ua-platform": '"Windows"',
+              "sec-ch-ua-platform-version": '"10.0.22621"',
+              "sec-ch-ua-model": '""',
+            },
+            linux: {
+              "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+              "sec-ch-ua-platform": '"Linux"',
+              "sec-ch-ua-platform-version": '"5.15.0"',
+              "sec-ch-ua-model": '""',
+            },
+          },
+        },
+      },
     };
+  }
 
-    // Define parameters
-    this.scriptParams = {
-      canvas: { 
-        ...defauts,
-        random: false,
-      },
-      rects: { 
-        ...defauts,
-        random: false,
-      },
-      webgl: { 
-        ...defauts,
-        random: true,
-      },
-      fonts: { 
-        ...defauts,
-        random: true,
-      },
-      audio: { 
-        ...defauts,
-        random: true,
-      },
-      navigator: { 
-        ...defauts,
-        random: false,
-        os: "windows",
-      },
-    };
+  // Instead of using map and join directly, use Promise.all
+  async generateScriptSource() {
+    const scriptPromises = Object.values(this.scriptConfigs).map(async ({ script, opts }) => {
+      return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
+    });
 
-    // Generate script source
-    this.scriptSource = Object.entries(this.scripts)
-      .map(([name, script]) => {
-        const params = this.scriptParams[name] || {};
-        return `(${script(params).toString()})(${JSON.stringify(params)});`;
-      })
-      .join("\n");
+    // Wait for all promises to resolve, then join
+    this.scriptSource = (await Promise.all(scriptPromises)).join("\n");
   }
 
   /**
@@ -78,6 +97,8 @@ class PageMutations {
    * @returns {Promise<boolean>} - Whether initialization was successful
    */
   async initialize() {
+    await this.generateScriptSource();
+
     // Set up script injection for new/current documents/frames
     await this.setupNewDocumentScriptInjection();
 

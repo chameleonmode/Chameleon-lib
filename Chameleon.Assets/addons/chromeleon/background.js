@@ -1,7 +1,6 @@
-import { App } from "./app.js";
+import App from "./app.js";
 import { log } from "./src/services/logger.js";
 import * as WebRTC from "./src/services/webrtc.js";
-import "./src/services/uule.js";
 import "./src/services/debugger.js";
 
 const startup = async () => {
@@ -26,63 +25,45 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "getSettings") {
-    chrome.storage.local.get(null, (settings) => {
-      sendResponse(settings);
-    });
-    return true; // Keep the message channel open for async response
+  switch (message.type) {
+    case "getAppState":
+      App.getAppState()
+        .then((state) => sendResponse({ success: true, data: state }))
+        .catch((error) => sendResponse({ success: false, error: error.message }));
+      break;
+    case "sendToApp":
+      App.sendData(message.data)
+        .then((response) => sendResponse({ success: true, data: response }))
+        .catch((error) => sendResponse({ success: false, error: error.message }));
+      break;
+    case "checkConnection":
+      App.discoverServer()
+        .then((running) => sendResponse({ connected: running }))
+        .catch(() => sendResponse({ connected: false }));
+      break;
+    case "registerAppLaunch":
+      const { sessionId, instanceId, data } = message;
+      log.info("Registering app launch", { sessionId, instanceId, data });
+      App.initialize(sessionId, instanceId)
+        .then(async (config) => {
+          if (config) {
+            log.debug("App connected", config);
+            await startup();
+          }
+          sendResponse({ success: true, config });
+        })
+        .catch((error) => {
+          log.error("Error registering app launch", error);
+          sendResponse({ success: false, error: error.message });
+        });
+      break;
+    default:
+      log.warn("Unknown message type:", message.type);
+      sendResponse({ success: false, error: "Unknown message type" });
+      break;
   }
-  if (message.action === "injectScript") {
-    // injectIntoAllFrames()
-    //   .then(() => {
-    //     sendResponse({ success: true });
-    //   })
-    //   .catch((error) => {
-    //     sendResponse({ success: false, error: error.message });
-    //   });
-    return true;
-  }
-  if (message.action === "sendToApp") {
-    App.sendData(message.data)
-      .then((response) => sendResponse({ success: true, data: response }))
-      .catch((error) => sendResponse({ success: false, error: error.message }));
-    return true;
-  }
-  if (message.action === "getAppState") {
-    App.getAppState()
-      .then((state) => sendResponse({ success: true, data: state }))
-      .catch((error) => sendResponse({ success: false, error: error.message }));
-    return true;
-  }
-  if (message.action === "checkConnection") {
-    App.discoverServer()
-      .then((running) => sendResponse({ connected: running }))
-      .catch(() => sendResponse({ connected: false }));
-    return true;
-  }
-  if (message.action === "registerAppLaunch") {
-    const { sessionId, instanceId, data } = message;
-    log.info("Registering app launch", { sessionId, instanceId, data });
-    App.initialize(sessionId, instanceId)
-      .then(async (config) => {
-        if (config) {
-          log.debug("App connected", config);
-          await startup();
-        }
-        sendResponse({ success: true, config });
-      })
-      .catch((error) => {
-        log.error("Error registering app launch", error);
-        sendResponse({ success: false, error: error.message });
-      });
-    return true;
-  }
-  if (message.action === "getAppSession") {
-    sendResponse({
-      session: App.session,
-    });
-    return true;
-  }
+
+  return true; // Keep the message channel open for async response
 });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {

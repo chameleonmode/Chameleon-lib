@@ -1,7 +1,7 @@
 // https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
 // https://browserleaks.com/rects
-export default function(opts) {
-  return function rects(params) {
+export default async function(opts) {
+  return function (params) {
     console.log(params);
     // params will be available here
     const random = params?.random || true;

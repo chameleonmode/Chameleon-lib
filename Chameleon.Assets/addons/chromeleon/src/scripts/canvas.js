@@ -1,8 +1,8 @@
 // Enhanced Canvas Fingerprinting Protection
 // https://privacycheck.sec.lrz.de/active/fp_c/fp_canvas.html
 // https://www.browserleaks.com/canvas
-export default function (opts) {
-  return function canvas(params) {
+export default async function (opts) {
+  return function (params) {
     console.log(params);
     // params will be available here
     const noiseLevel = params?.level || 1.0;

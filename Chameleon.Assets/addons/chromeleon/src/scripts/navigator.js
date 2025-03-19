@@ -1,196 +1,95 @@
-export default function (opts) {
-  const { os, random } = opts || {};
+export default async function (opts) {
+  const { os, random, configs } = opts || {};
   console.log("OS Spoofer with Client Hints Support - Starting" + JSON.stringify(opts));
 
-  // Configuration for different operating systems
-  const osConfigs = {
-    mac: {
-      userAgent:
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-      clientHints: {
-        "sec-ch-ua": '"Google Chrome";v="134", "Chromium";v="134", "Not.A/Brand";v="8"',
-        "sec-ch-ua-platform": '"macOS"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform-version": '"15.3.1"',
-        "sec-ch-ua-arch": '"arm64"',
-        "sec-ch-ua-bitness": '"64"',
-        "sec-ch-ua-wow64": "?0",
-        "sec-ch-ua-model": '"MacBookPro"',
-        "sec-ch-ua-full-version-list":
-          '"Google Chrome";v="134.0.6998.89", "Chromium";v="134.0.6998.89", "Not.A/Brand";v="8.0.0.0"',
-      },
-    },
-    windows: {
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-      clientHints: {
-        "sec-ch-ua": '"Google Chrome";v="134", "Chromium";v="134", "Not.A/Brand";v="8"',
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform-version": '"10.0.22621"',
-        "sec-ch-ua-arch": '"x86-64"',
-        "sec-ch-ua-bitness": '"64"',
-        "sec-ch-ua-wow64": "?0",
-        "sec-ch-ua-model": '"PC"',
-        "sec-ch-ua-full-version-list":
-          '"Google Chrome";v="134.0.6998.89", "Chromium";v="134.0.6998.89", "Not.A/Brand";v="8.0.0.0"',
-      },
-    },
-    linux: {
-      userAgent:
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-      clientHints: {
-        "sec-ch-ua": '"Google Chrome";v="134", "Chromium";v="134", "Not.A/Brand";v="8"',
-        "sec-ch-ua-platform": '"Linux"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform-version": '"5.15.0"',
-        "sec-ch-ua-arch": '"x86-64"',
-        "sec-ch-ua-bitness": '"64"',
-        "sec-ch-ua-wow64": "?0",
-        "sec-ch-ua-model": '"PC"',
-        "sec-ch-ua-full-version-list":
-          '"Google Chrome";v="134.0.6998.89", "Chromium";v="134.0.6998.89", "Not.A/Brand";v="8.0.0.0"',
-      },
-    },
+  const RULE_ID_START = 1000;
+  const type = "modifyHeaders";
+  const condition = {
+    urlFilter: "*",
+    resourceTypes: [
+      "main_frame",
+      "sub_frame",
+      "stylesheet",
+      "script",
+      "image",
+      "font",
+      "object",
+      "xmlhttprequest",
+      "ping",
+      "csp_report",
+      "media",
+      "websocket",
+      "other",
+    ],
   };
 
-  // Store rule IDs to manage them later
-  let activeRuleIds = [];
-  const RULE_ID_START = 1000;
-
   // Function to update rules based on current config
-  function updateHeaderRules() {
-    const config = osConfigs[os];
-    if (!config) return;
 
-    // Remove only existing dynamic rules with IDs >= 1000
-    chrome.declarativeNetRequest.getDynamicRules((existingRules) => {
-      const existingRuleIds = existingRules.filter((rule) => rule.id >= 1000).map((rule) => rule.id);
+  // Remove only existing dynamic rules with IDs >= RULE_ID_START
+  const rules = await chrome.declarativeNetRequest.getDynamicRules();
+  console.log("Existing rules:", rules);
+  const existingRuleIds = rules.filter((rule) => rule.id >= RULE_ID_START).map((rule) => rule.id);
+  console.log("Existing rule IDs:", existingRuleIds);
+  // Remove all existing rules with IDs >= RULE_ID_START
+  await chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: existingRuleIds,
+  });
 
-      // Prepare new rules to add
-      const addRules = [];
-      let ruleId = RULE_ID_START;
+  if (random || os !== "default") {
+    const config =
+      configs[!random ? os : Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)]];
 
-      // User-Agent rule
+    // Prepare new rules to add
+    const addRules = [];
+    let ruleId = RULE_ID_START + existingRuleIds.length;
+
+    // First, create a rule to remove all existing client hint headers
+    addRules.push({
+      id: ruleId,
+      priority: 1,
+      action: {
+        type,
+        requestHeaders: Object.keys(config).map((hint) => ({
+          header: hint,
+          operation: "remove",
+        })),
+      },
+      condition,
+    });
+
+    // Reset activeRuleIds and start tracking
+    const activeRuleIds = [ruleId++];
+
+    // Then add each client hint with the spoofed value
+    for (const [name, value] of Object.entries(config)) {
       addRules.push({
         id: ruleId,
-        priority: 1,
+        priority: 2, // Higher priority than the removal rule
         action: {
-          type: "modifyHeaders",
+          type,
           requestHeaders: [
             {
-              header: "User-Agent",
+              header: name,
               operation: "set",
-              value: config.userAgent,
+              value: value,
             },
           ],
         },
-        condition: {
-          urlFilter: "*",
-          resourceTypes: [
-            "main_frame",
-            "sub_frame",
-            "stylesheet",
-            "script",
-            "image",
-            "font",
-            "object",
-            "xmlhttprequest",
-            "ping",
-            "csp_report",
-            "media",
-            "websocket",
-            "other",
-          ],
-        },
-      });
-      activeRuleIds = [ruleId++]; // Reset activeRuleIds and start tracking
-
-      // Client Hints rules
-      // First, create a rule to remove all existing client hint headers
-      const removeHeaders = Object.keys(config.clientHints).map((hint) => ({
-        header: hint,
-        operation: "remove",
-      }));
-
-      addRules.push({
-        id: ruleId,
-        priority: 1,
-        action: {
-          type: "modifyHeaders",
-          requestHeaders: removeHeaders,
-        },
-        condition: {
-          urlFilter: "*",
-          resourceTypes: [
-            "main_frame",
-            "sub_frame",
-            "stylesheet",
-            "script",
-            "image",
-            "font",
-            "object",
-            "xmlhttprequest",
-            "ping",
-            "csp_report",
-            "media",
-            "websocket",
-            "other",
-          ],
-        },
+        condition,
       });
       activeRuleIds.push(ruleId++);
+    }
 
-      // Then add each client hint with the spoofed value
-      for (const [name, value] of Object.entries(config.clientHints)) {
-        addRules.push({
-          id: ruleId,
-          priority: 2, // Higher priority than the removal rule
-          action: {
-            type: "modifyHeaders",
-            requestHeaders: [
-              {
-                header: name,
-                operation: "set",
-                value: value,
-              },
-            ],
-          },
-          condition: {
-            urlFilter: "*",
-            resourceTypes: [
-              "main_frame",
-              "sub_frame",
-              "stylesheet",
-              "script",
-              "image",
-              "font",
-              "object",
-              "xmlhttprequest",
-              "ping",
-              "csp_report",
-              "media",
-              "websocket",
-              "other",
-            ],
-          },
-        });
-        activeRuleIds.push(ruleId++);
-      }
-
-      // Remove all existing rules and add the new ones
-      chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: existingRuleIds,
-        addRules: addRules,
-      });
+    // Remove all existing rules and add the new ones
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingRuleIds,
+      addRules: addRules,
     });
   }
 
-  updateHeaderRules();
-
-  return function navigatorization(params) {
-    console.log("OS Spoofer with Client Hints Support - Starting");
-    const { os, random } = params || {};
+  return function (params) {
+    const { os, random, configs } = params || {};
+    console.log("OS Spoofer with Client Hints Support - Starting", JSON.stringify(params));
 
     // Define configurations for different operating systems with focused properties
     const osConfigs = {
@@ -315,171 +214,172 @@ export default function (opts) {
     // Apply navigator property overrides
     Object.defineProperties(Navigator.prototype, navigatorProps);
 
-// Override navigator.userAgentData properties if available
-if ("userAgentData" in navigator) {
-    console.log("Patching userAgentData for Client Hints");
-  
-    // Create a comprehensive set of client hints
-    const spoofedClientHints = {
-      // === DEVICE/PLATFORM RELATED HINTS ===
-      // Low entropy hints
-      platform: spoofedValues.clientHintsPlatform,
-      brands: navigator.userAgentData.brands, //spoofedValues.brandInfo,
-      mobile: true,
-  
-      // High entropy hints for getHighEntropyValues() method
-      platformVersion: spoofedValues.os_ver,
-      architecture: spoofedValues.architecture,
-      bitness: spoofedValues.bitness,
-      model: spoofedValues.device,
-      wow64: spoofedValues.wow64,
-      //fullVersionList: spoofedValues.fullVersionList,
-      formFactors: spoofedValues.formFactors,
-  
-      // === USER PREFERENCES ===
-      // Reuse actual preferences (if available) or provide reasonable defaults
-      prefersColorScheme: window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light",
-      prefersReducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-        ? "reduce"
-        : "no-preference",
-      prefersReducedTransparency: false,
-      prefersContrast: "no-preference",
-      forcedColors: window.matchMedia?.("(forced-colors: active)").matches ? "active" : "none",
-  
-      // === DEVICE CAPABILITIES/DISPLAY ===
-      // Keep some of the actual data since it's not OS-specific and would be suspicious if wrong
-      width: window.screen?.width || 1920,
-      viewportWidth: window.innerWidth || 1280,
-      viewportHeight: window.innerHeight || 720,
-      dpr: window.devicePixelRatio || 1.0,
-      deviceMemory: navigator.deviceMemory || 8,
-  
-      // === NETWORK RELATED ===
-      // Use reasonable defaults
-      rtt: 50, // 50ms - typical broadband
-      downlink: 10, // 10 Mbps - typical broadband
-      ect: "4g", // 4G connection
-    };
-  
-    // Store the original method before we replace anything
-    const originalNavigatorUAData = navigator.userAgentData;
-    const originalGetHighEntropyValues = originalNavigatorUAData.getHighEntropyValues.bind(originalNavigatorUAData);
-    
-    // Method for high entropy hints
-    const getHighEntropyValues = function (hints) {
-      console.log("Intercepted getHighEntropyValues with hints:", hints);
-      
-      // Call the original method without causing recursion
-      return originalGetHighEntropyValues(hints)
-        .then((originalValues) => {
-          console.log("Original high entropy values:", originalValues);
-          
-          const result = { ...originalValues }; // Start with original values
-  
-          // Replace with spoofed values when available
-          hints.forEach((hint) => {
-            // Convert hint name to camelCase if needed
-            const hintName = hint
-              .replace(/^[A-Z]/, (c) => c.toLowerCase())
-              .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-  
-            // Add the hint if we have a value for it
-            if (hintName in spoofedClientHints) {
-              result[hintName] = spoofedClientHints[hintName];
-            }
+    // Override navigator.userAgentData properties if available
+    if ("userAgentData" in navigator) {
+      console.log("Patching userAgentData for Client Hints");
+
+      // Create a comprehensive set of client hints
+      const spoofedClientHints = {
+        // === DEVICE/PLATFORM RELATED HINTS ===
+        // Low entropy hints
+        platform: spoofedValues.clientHintsPlatform,
+        brands: navigator.userAgentData.brands, //spoofedValues.brandInfo,
+        mobile: true,
+
+        // High entropy hints for getHighEntropyValues() method
+        platformVersion: spoofedValues.os_ver,
+        architecture: spoofedValues.architecture,
+        bitness: spoofedValues.bitness,
+        model: spoofedValues.device,
+        wow64: spoofedValues.wow64,
+        //fullVersionList: spoofedValues.fullVersionList,
+        formFactors: spoofedValues.formFactors,
+
+        // === USER PREFERENCES ===
+        // Reuse actual preferences (if available) or provide reasonable defaults
+        prefersColorScheme: window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+        prefersReducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+          ? "reduce"
+          : "no-preference",
+        prefersReducedTransparency: false,
+        prefersContrast: "no-preference",
+        forcedColors: window.matchMedia?.("(forced-colors: active)").matches ? "active" : "none",
+
+        // === DEVICE CAPABILITIES/DISPLAY ===
+        // Keep some of the actual data since it's not OS-specific and would be suspicious if wrong
+        width: window.screen?.width || 1920,
+        viewportWidth: window.innerWidth || 1280,
+        viewportHeight: window.innerHeight || 720,
+        dpr: window.devicePixelRatio || 1.0,
+        deviceMemory: navigator.deviceMemory || 8,
+
+        // === NETWORK RELATED ===
+        // Use reasonable defaults
+        rtt: 50, // 50ms - typical broadband
+        downlink: 10, // 10 Mbps - typical broadband
+        ect: "4g", // 4G connection
+      };
+
+      // Store the original method before we replace anything
+      const originalNavigatorUAData = navigator.userAgentData;
+      const originalGetHighEntropyValues =
+        originalNavigatorUAData.getHighEntropyValues.bind(originalNavigatorUAData);
+
+      // Method for high entropy hints
+      const getHighEntropyValues = function (hints) {
+        console.log("Intercepted getHighEntropyValues with hints:", hints);
+
+        // Call the original method without causing recursion
+        return originalGetHighEntropyValues(hints)
+          .then((originalValues) => {
+            console.log("Original high entropy values:", originalValues);
+
+            const result = { ...originalValues }; // Start with original values
+
+            // Replace with spoofed values when available
+            hints.forEach((hint) => {
+              // Convert hint name to camelCase if needed
+              const hintName = hint
+                .replace(/^[A-Z]/, (c) => c.toLowerCase())
+                .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+
+              // Add the hint if we have a value for it
+              if (hintName in spoofedClientHints) {
+                result[hintName] = spoofedClientHints[hintName];
+              }
+            });
+
+            console.log("Returning spoofed high entropy values:", result);
+            return result;
+          })
+          .catch((error) => {
+            console.error("Error getting original high entropy values:", error);
+
+            // Fallback to only spoofed values if original values can't be retrieved
+            const fallbackResult = {};
+            hints.forEach((hint) => {
+              const hintName = hint
+                .replace(/^[A-Z]/, (c) => c.toLowerCase())
+                .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+
+              if (hintName in spoofedClientHints) {
+                fallbackResult[hintName] = spoofedClientHints[hintName];
+              }
+            });
+
+            console.log("Returning fallback spoofed values:", fallbackResult);
+            return fallbackResult;
           });
-          
-          console.log("Returning spoofed high entropy values:", result);
-          return result;
-        })
-        .catch((error) => {
-          console.error("Error getting original high entropy values:", error);
-  
-          // Fallback to only spoofed values if original values can't be retrieved
-          const fallbackResult = {};
-          hints.forEach((hint) => {
-            const hintName = hint
-              .replace(/^[A-Z]/, (c) => c.toLowerCase())
-              .replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-  
-            if (hintName in spoofedClientHints) {
-              fallbackResult[hintName] = spoofedClientHints[hintName];
-            }
-          });
-  
-          console.log("Returning fallback spoofed values:", fallbackResult);
-          return fallbackResult;
-        });
-    };
-    
-    console.log("chints", navigator.userAgentData);
-    
-    // Create a complete userAgentData replacement with all required methods
-    const spoofedUserAgentData = {
-      // Low entropy hints (directly accessible)
-      platform: spoofedClientHints.platform,
-      brands: spoofedClientHints.brands,
-      mobile: spoofedClientHints.mobile,
-  
-      // High entropy method
-      getHighEntropyValues: getHighEntropyValues,
-  
-      // ToJSON method for serialization
-      toJSON: function () {
-        return {
-          brands: this.brands,
-          mobile: this.mobile,
-          platform: this.platform,
-        };
-      },
-    };
-  
-    // Try to completely replace the userAgentData object
-    try {
-      Object.defineProperty(navigator, "userAgentData", {
-        get: function () {
-          return spoofedUserAgentData;
+      };
+
+      console.log("chints", navigator.userAgentData);
+
+      // Create a complete userAgentData replacement with all required methods
+      const spoofedUserAgentData = {
+        // Low entropy hints (directly accessible)
+        platform: spoofedClientHints.platform,
+        brands: spoofedClientHints.brands,
+        mobile: spoofedClientHints.mobile,
+
+        // High entropy method
+        getHighEntropyValues: getHighEntropyValues,
+
+        // ToJSON method for serialization
+        toJSON: function () {
+          return {
+            brands: this.brands,
+            mobile: this.mobile,
+            platform: this.platform,
+          };
         },
-        configurable: true,
-      });
-  
-      console.log("Replaced userAgentData object:", navigator.userAgentData);
-    } catch (e) {
-      console.error("Failed to replace userAgentData object:", e);
-  
-      // Fallback: try to override just the properties and methods
+      };
+
+      // Try to completely replace the userAgentData object
       try {
-        // Override the basic properties
-        Object.defineProperties(navigator.userAgentData, {
-          platform: {
-            get: function () {
-              return spoofedClientHints.platform;
-            },
-            configurable: true,
+        Object.defineProperty(navigator, "userAgentData", {
+          get: function () {
+            return spoofedUserAgentData;
           },
-          brands: {
-            get: function () {
-              return spoofedClientHints.brands;
-            },
-            configurable: true,
-          },
-          mobile: {
-            get: function () {
-              return spoofedClientHints.mobile;
-            },
-            configurable: true,
-          },
+          configurable: true,
         });
-  
-        // Override the getHighEntropyValues method
-        navigator.userAgentData.getHighEntropyValues = getHighEntropyValues;
-  
-        console.log("Patched userAgentData properties and methods");
-      } catch (err) {
-        console.error("Failed to patch userAgentData properties:", err);
+
+        console.log("Replaced userAgentData object:", navigator.userAgentData);
+      } catch (e) {
+        console.error("Failed to replace userAgentData object:", e);
+
+        // Fallback: try to override just the properties and methods
+        try {
+          // Override the basic properties
+          Object.defineProperties(navigator.userAgentData, {
+            platform: {
+              get: function () {
+                return spoofedClientHints.platform;
+              },
+              configurable: true,
+            },
+            brands: {
+              get: function () {
+                return spoofedClientHints.brands;
+              },
+              configurable: true,
+            },
+            mobile: {
+              get: function () {
+                return spoofedClientHints.mobile;
+              },
+              configurable: true,
+            },
+          });
+
+          // Override the getHighEntropyValues method
+          navigator.userAgentData.getHighEntropyValues = getHighEntropyValues;
+
+          console.log("Patched userAgentData properties and methods");
+        } catch (err) {
+          console.error("Failed to patch userAgentData properties:", err);
+        }
       }
     }
-  }
     // Inject custom oscpu value for site-specific fingerprinting
     window.navigator.oscpu = `${spoofedValues.os} ${spoofedValues.os_ver}`;
 

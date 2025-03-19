@@ -1,5 +1,5 @@
-export default function (opts) {
-    return function fonts(params) {
+export default async function (opts) {
+    return function (params) {
       console.log(params);
       const { random, level } = params || {};
       
