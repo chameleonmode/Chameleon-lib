@@ -15,6 +15,7 @@
 
 import App from "../app.js";
 import canvas from "../scripts/canvas.js";
+import { log } from "../services/logger.js";
 import rects from "../scripts/rects.js";
 import webgl from "../scripts/webgl.js";
 import fonts from "../scripts/fonts.js";
@@ -34,18 +35,25 @@ class PageMutations {
     this.scriptConfigs = {
       canvi: (() => {
         const { enabled, random } = App.config.canvas;
-        const amplitutdes = {
-          micro: 0.1, // Very subtle changes
-          mini: 0.4, // Minor changes
-          low: 0.8, // Low noise level
-          medium: 0.14, // Standard protection
-          bold: 0.18, // Stronger noise
-          high: 0.24, // High protection
-          ultra: 0.25, // Very high protection
-          super: 0.34, // Super high protection
-          max: 0.38, // Maximum protection
+        // Define a global object to store the amplitude-specific rect values
+        const FINGERPRINT_CONSTANTS = {
+          // Each level has carefully chosen values to produce unique hashes
+          micro: { width: 11, height: 17 }, // Prime numbers
+          mini: { width: 13, height: 23 }, // Different prime numbers
+          low: { width: 19, height: 29 }, // More primes
+          medium: { width: 37, height: 41 }, // Larger primes
+          bold: { width: 43, height: 53 }, // Even larger
+          high: { width: 61, height: 67 }, // Larger still
+          ultra: { width: 73, height: 79 }, // Getting bigger
+          super: { width: 89, height: 97 }, // Almost there
+          max: { width: 101, height: 107 }, // Maximum primes
         };
-        const noiseLevel = amplitutdes[App.config.noise] || amplitutdes.medium;
+        const noises = ["micro", "mini", "low", "medium", "bold", "high", "ultra", "super", "max"];
+        const randomNoise = noises[Math.floor(Math.random() * noises.length)];
+        const fingerprint =
+          FINGERPRINT_CONSTANTS[random ? randomNoise : App.config.noise] ||
+          FINGERPRINT_CONSTANTS.medium;
+
         if (!App.config.canvas.pixels || random) {
           App.config.canvas.pixels = {
             r: Math.random(),
@@ -63,18 +71,26 @@ class PageMutations {
           App.config.canvas.rects = {
             x: Math.random(),
             y: Math.random(),
-            width: Math.random(),
-            height: Math.random(),
+            width: fingerprint.width,
+            height: fingerprint.height,
           };
         }
+        log.log("Canvas script config", {
+          random,
+          randomNoise,
+          noise: App.config.noise,
+          w: fingerprint.width,
+          h: fingerprint.height,
+        });
         return {
           enabled,
           init: async () => {},
           script: canvas,
           opts: {
-            rects: App.config.canvas.rects,
+            noise: "micro", //random ? random : App.config.noise,
+            w: 61, //fingerprint.width,
+            h: 67, //fingerprint.height,
             pixels: App.config.canvas.pixels,
-            positions: App.config.canvas.positions,
           },
         };
       })(),
