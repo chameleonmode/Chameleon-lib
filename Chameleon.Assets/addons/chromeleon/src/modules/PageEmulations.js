@@ -1,4 +1,4 @@
-import App from "../../app.js";
+import App from "../app.js";
 import { log } from "../services/logger.js";
 import { offsets } from "../../data/offsets.js";
 

@@ -9,7 +9,7 @@
  * For use with Chrome Extensions Manifest V3 background service workers.
  */
 
-import App from "../../app.js";
+import App from "../app.js";
 import canvas from "../scripts/canvas.js";
 import rects from "../scripts/rects.js";
 import webgl from "../scripts/webgl.js";
