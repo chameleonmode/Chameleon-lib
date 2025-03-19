@@ -47,40 +47,6 @@ public class HtmlProcessingPipelineService(
 		return finalSelectors;
 	}
 
-	public async Task<string> ProcessUrlAndGenerateScriptAsync(
-			string url,
-			string automationDescription,
-			ExtractionOptions extractionOptions,
-			HtmlChunkingOptions chunkingOptions,
-			SelectorExtractionOptions selectorOptions,
-			AiIntegrationOptions aiOptions,
-			CancellationToken cancellationToken = default) {
-
-		var selectors = await ProcessUrlAsync(url, extractionOptions, chunkingOptions, selectorOptions, cancellationToken);
-
-		selectors = selectors.Where(x => !string.IsNullOrEmpty(x.InnerText) && x.InnerText.Length > 3)
-			.ToList();
-
-		var promptBuilder = new StringBuilder();
-		promptBuilder.AppendLine("Automation Script Requirements:");
-		promptBuilder.AppendLine(automationDescription);
-		promptBuilder.AppendLine();
-		promptBuilder.AppendLine("Extracted DOM Information:");
-		foreach (var info in selectors) {
-			promptBuilder.AppendLine($"- Selector: {info.Selector} (Tag: {info.TagName})" +
-					(string.IsNullOrWhiteSpace(info.InnerText) ? "" : $", InnerText: \"{info.InnerText}\""));
-		}
-		promptBuilder.AppendLine();
-		promptBuilder.AppendLine("Based on the above information, generate a complete JavaScript automation script using Playwright. " +
-															"The script should fulfill the specified requirements and follow best practices for automation, " +
-															"including error handling and structured logging.");
-
-		var prompt = promptBuilder.ToString();
-
-		var generatedScript = await aiIntegrationService.GenerateScriptAsync(prompt, aiOptions, cancellationToken);
-		return generatedScript;
-	}
-
 	public async Task<string> ProcessUrlAndGenerateScriptInChunksChatAsync(
 						string url,
 						string automationDescription,
@@ -96,7 +62,7 @@ public class HtmlProcessingPipelineService(
 		var chunkedHtml = await htmlChunker.ChunkHtmlAsync(fullHtml, chunkingOptions, cancellationToken);
 
 		var conversation = new List<ChatMessage> {
-			new(ChatRole.System, "You are a helpful assistant generating automation scripts using Playwright."),
+			new(ChatRole.System, "You are a helpful assistant generating automation scripts using Playwright Javascript."),
 			new(ChatRole.User, $"Automation Requirements:\n{automationDescription}")
 		};
 
@@ -107,14 +73,18 @@ public class HtmlProcessingPipelineService(
 			var selectors = await selectorExtractor.ExtractSelectorsAsync(chunk, selectorOptions, cancellationToken);
 
 			selectors = selectors.Where(s => !string.IsNullOrWhiteSpace(s.InnerText) && s.InnerText.Length > 3)
+														.DistinctBy(d => d.InnerText)
+														.DistinctBy(d => d.Selector)
 													 .ToList();
 
 			var selectorBatches = htmlChunker.ChunkSelectors(selectors, maxSelectorsPerChunk);
 
 			foreach (var batch in selectorBatches) {
-				var partialPrompt = BuildPartialPrompt(automationDescription, batch);
+				var partialPrompt = BuildPartialPrompt(batch);
 				conversation.Add(new ChatMessage(ChatRole.User, partialPrompt));
+			}
 
+			if(selectorBatches.Count > 0) {
 				var partialResponse = await aiIntegrationService.GenerateScriptChatResponseAsync(conversation, chatOptions, cancellationToken);
 				conversation.Add(new ChatMessage(ChatRole.Assistant, partialResponse.Text));
 			}
@@ -130,14 +100,14 @@ public class HtmlProcessingPipelineService(
 	}
 
 
-	private string BuildPartialPrompt(string automationDescription, IList<SelectorInfo> selectors) {
+	private string BuildPartialPrompt(IList<SelectorInfo> selectors) {
 		var sb = new StringBuilder();
 		sb.AppendLine("Partial DOM Information:");
 		foreach (var info in selectors) {
 			sb.AppendLine($"- Selector: {info.Selector}, Tag: {info.TagName}" +
 										(string.IsNullOrWhiteSpace(info.InnerText) ? "" : $", InnerText: \"{info.InnerText}\""));
 		}
-		sb.AppendLine("Based on this subset, provide a concise summary or a partial script section that addresses these elements in the context of the overall automation requirements.");
+		sb.AppendLine("Based on this subset, provide a concise summary or a partial script section that addresses these elements in the context of the overall automation requirements. Ignore if the section is not relevant to the Automation Requirements");
 		return sb.ToString();
 	}
 

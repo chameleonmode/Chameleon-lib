@@ -32,8 +32,8 @@ public class HtmlProcessingPipelineServiceTests: IAsyncLifetime {
 		ISelectorExtractor selectorExtractor = new SelectorExtractionService();
 
 		var aiOptions = new AiIntegrationOptions {
-			ApiKey = "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",
-			ModelName = "o3-mini",
+			ApiKey = "",
+			ModelName = "gemini-2.0-flash",
 			MaxTokens = 500
 		};
 		IAiIntegrationService aiIntegrationService = new AiExtensionsIntegrationService(aiOptions);

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.AI;
+using Mscc.GenerativeAI.Microsoft;
 using OpenAI;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
@@ -15,8 +16,9 @@ public class AiExtensionsIntegrationService : IAiIntegrationService {
 			throw new ArgumentException("Model name must be provided in options.", nameof(options));
 
 
-		var openAiClient = new OpenAIClient(options.ApiKey);
-		chatClient = openAiClient.AsChatClient(options.ModelName);
+		//var openAiClient = new OpenAIClient(options.ApiKey);
+		//chatClient = openAiClient.AsChatClient(options.ModelName);
+		chatClient = new GeminiChatClient(options.ApiKey, options.ModelName);
 	}
 
 	public async Task<string> GenerateScriptAsync(string prompt, AiIntegrationOptions options, CancellationToken cancellationToken = default) {
