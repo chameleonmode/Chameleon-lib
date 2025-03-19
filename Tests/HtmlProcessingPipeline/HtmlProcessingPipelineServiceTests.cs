@@ -34,7 +34,7 @@ public class HtmlProcessingPipelineServiceTests: IAsyncLifetime {
 		var aiOptions = new AiIntegrationOptions {
 			ApiKey = "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",
 			ModelName = "o3-mini",
-			MaxTokens = 150
+			MaxTokens = 500
 		};
 		IAiIntegrationService aiIntegrationService = new AiExtensionsIntegrationService(aiOptions);
 
@@ -56,13 +56,14 @@ public class HtmlProcessingPipelineServiceTests: IAsyncLifetime {
 				"- Reply Functionality: Clicks 'Reply,' types the provided message, and submits if publish is true.\n" +
 				"- Error Handling: Uses Playwright's waiting mechanisms and structured logging.";
 
-		var generatedScript = await pipelineService.ProcessUrlAndGenerateScriptAsync(
+		var generatedScript = await pipelineService.ProcessUrlAndGenerateScriptInChunksChatAsync(
 				"https://www.reddit.com/r/SatisfactoryGame/comments/1ihoih5/what_use_if_any_is_any_undefined/",
 				automationDescription,
 				extractionOptions,
 				chunkingOptions,
 				selectorOptions,
 				aiOptions,
+				3,
 				CancellationToken.None
 		);
 

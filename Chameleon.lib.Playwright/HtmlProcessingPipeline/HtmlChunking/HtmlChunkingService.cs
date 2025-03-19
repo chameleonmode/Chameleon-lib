@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using Chameleon.lib.Playwright.HtmlProcessingPipeline.SelectorExtraction;
+using System.Text.RegularExpressions;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlChunking;
 public partial class HtmlChunkingService : IHtmlChunker {
@@ -81,4 +82,13 @@ public partial class HtmlChunkingService : IHtmlChunker {
 	private static partial Regex GetSelectorInChunckRegex();
 	[GeneratedRegex(@"<\s*(\w+)(?:\s+[^>]*?(?:id\s*=\s*[""']([^""']+)[""']|class\s*=\s*[""']([^""']+)[""']))", RegexOptions.IgnoreCase, "en-US")]
 	private static partial Regex GetDetailedSelectorInChunckRegex();
+
+	public IList<IList<SelectorInfo>> ChunkSelectors(IList<SelectorInfo> selectors, int maxSelectorsPerChunk) {
+		var result = new List<IList<SelectorInfo>>();
+		for (var i = 0; i < selectors.Count; i += maxSelectorsPerChunk) {
+			var chunk = selectors.Skip(i).Take(maxSelectorsPerChunk).ToList();
+			result.Add(chunk);
+		}
+		return result;
+	}
 }

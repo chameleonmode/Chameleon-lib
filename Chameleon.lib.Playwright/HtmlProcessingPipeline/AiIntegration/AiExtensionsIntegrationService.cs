@@ -28,12 +28,17 @@ public class AiExtensionsIntegrationService : IAiIntegrationService {
 		var chatOptions = new ChatOptions {
 			MaxOutputTokens = options.MaxTokens
 		};
-		if(options.Temperature is not null) {
+		if (options.Temperature is not null) {
 			chatOptions.Temperature = options.Temperature.Value;
 		}
 
 		var response = await chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
 
 		return response.Text;
+	}
+
+	public async Task<ChatResponse> GenerateScriptChatResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default) {
+		ArgumentNullException.ThrowIfNull(messages);
+		return await chatClient.GetResponseAsync(messages, options, cancellationToken);
 	}
 }
