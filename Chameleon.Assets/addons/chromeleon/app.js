@@ -16,6 +16,8 @@ const App = {
     lon: 0,
     geoRandomize: false,
     geoAccuracy: 100,
+    naviRandomize: false,
+    naviOS: "default",
   },
   session: {
     sessionId: null,

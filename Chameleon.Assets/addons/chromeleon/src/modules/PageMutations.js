@@ -9,6 +9,7 @@
  * For use with Chrome Extensions Manifest V3 background service workers.
  */
 
+import App from "../../app.js";
 import canvas from "../scripts/canvas.js";
 import rects from "../scripts/rects.js";
 import webgl from "../scripts/webgl.js";
@@ -16,11 +17,8 @@ import fonts from "../scripts/fonts.js";
 import audio from "../scripts/audio.js";
 import navigatorize from "../scripts/navigator.js";
 
-const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
-const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
 const defaults = {
   level: "medium",
-  chromeMajorVersion,
 };
 
 class PageMutations {
@@ -32,59 +30,99 @@ class PageMutations {
     this.scriptConfigs = {
       canvas: {
         script: canvas,
+        init: async () => {},
+        enabled: true,
         opts: { ...defaults, random: false },
       },
       rects: {
         script: rects,
+        init: async () => {},
+        enabled: true,
         opts: { ...defaults, random: false },
       },
       webgl: {
         script: webgl,
+        init: async () => {},
+        enabled: true,
         opts: { ...defaults, random: true },
       },
       fonts: {
         script: fonts,
+        init: async () => {},
+        enabled: true,
         opts: { ...defaults, random: true },
       },
       audio: {
         script: audio,
+        init: async () => {},
+        enabled: true,
         opts: { ...defaults, random: true },
       },
-      navigatorize: {
-        script: navigatorize,
-        opts: {
-          ...defaults,
-          random: true,
-          os: "default",
-          configs: {
-            mac: {
-              "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-              "sec-ch-ua-platform": '"macOS"',
-              "sec-ch-ua-platform-version": '"15.3.1"',
-              "sec-ch-ua-model": '""',
-            },
-            windows: {
-              "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-              "sec-ch-ua-platform": '"Windows"',
-              "sec-ch-ua-platform-version": '"10.0.22621"',
-              "sec-ch-ua-model": '""',
-            },
-            linux: {
-              "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-              "sec-ch-ua-platform": '"Linux"',
-              "sec-ch-ua-platform-version": '"5.15.0"',
-              "sec-ch-ua-model": '""',
-            },
+      navi: (() => {
+        //const { naviOS, naviRandomize: random } = App.config;
+        const naviOS = "windows"; // For testing purposes
+        const random = false; // For testing purposes
+
+        const RULE_ID_START = 1000;
+        const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+        const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
+
+        // Create the configs object first
+        const configs = {
+          mac: {
+            "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"macOS"',
+            "sec-ch-ua-platform-version": '"15.3.1"',
+            "sec-ch-ua-model": '""',
           },
-        },
-      },
+          windows: {
+            "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-ch-ua-platform-version": '"10.0.22621"',
+            "sec-ch-ua-model": '""',
+          },
+          linux: {
+            "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"Linux"',
+            "sec-ch-ua-platform-version": '"5.15.0"',
+            "sec-ch-ua-model": '""',
+          },
+        };
+        //const config = !random ? configs[naviOS] : Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)];
+        // Return the complete configuration object
+        return {
+          script: navigatorize,
+          init: async () => {
+            // Remove only existing dynamic rules with IDs >= RULE_ID_START
+            const rules = await chrome.declarativeNetRequest.getDynamicRules();
+            await chrome.declarativeNetRequest.updateDynamicRules({
+              removeRuleIds: rules.filter((rule) => rule.id >= RULE_ID_START).map((rule) => rule.id),
+            });
+          },
+          enabled: true, //random || naviOS !== "default",
+          opts: {
+            os: naviOS,
+            configs,
+            RULE_ID_START,
+            chromeMajorVersion,
+            config:
+              configs[
+                random
+                  ? Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)]
+                  : naviOS
+              ],
+          },
+        };
+      })(),
     };
   }
 
   // Instead of using map and join directly, use Promise.all
   async generateScriptSource() {
-    const scriptPromises = Object.values(this.scriptConfigs).map(async ({ script, opts }) => {
-      return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
+    const scriptPromises = Object.values(this.scriptConfigs).map(async ({ script, init, opts, enabled }) => {
+      await init();
+      if (!enabled) return "";
+      else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
     });
 
     // Wait for all promises to resolve, then join

@@ -18,20 +18,9 @@ const attach = async (tabId) => {
     await chrome.debugger.sendCommand({ tabId: tabId }, "Runtime.enable");
     await chrome.debugger.sendCommand({ tabId: tabId }, "Page.enable");
 
-    // Initialize the mutation mutator
-    const mutations = new PageMutations(tabId);
-
-    // Set up the emulation
-    const emulations = new PageEmulations(tabId);
-
-    // so you can clean up later when the tab is closed
-    observers.set(tabId, {
-      mutations,
-      emulations,
-      initialize: async () => {
-        await mutations.initialize();
-        await emulations.initialize();
-      },
+    observers.set(tabId, async () => {
+      await new PageMutations(tabId).initialize();
+      await new PageEmulations(tabId).initialize();
     });
   } catch (error) {
     log.error(`Error setting up iframe monitoring for tab ${tabId}:`, error);
@@ -57,7 +46,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     return;
   }
   if (!observers.has(tabId)) await attach(tabId);
-  await observers.get(tabId).initialize();
+  await observers.get(tabId)();
 });
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {
