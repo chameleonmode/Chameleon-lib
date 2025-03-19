@@ -1,5 +1,9 @@
 /**
  * WebpageMutations
+ * -----------------
+ * Enhanced Canvas Fingerprinting Protection
+ * https://privacycheck.sec.lrz.de/active/fp_c/fp_canvas.html
+ * https://www.browserleaks.com/canvas
  *
  * A module for monitoring element creation in web pages, including:
  * - Main content page
@@ -28,102 +32,152 @@ class PageMutations {
 
     // Define configurations for all scripts at once
     this.scriptConfigs = {
-      canvas: {
-        script: canvas,
-        init: async () => {},
-        enabled: true,
-        opts: { ...defaults, random: false },
-      },
-      rects: {
-        script: rects,
-        init: async () => {},
-        enabled: true,
-        opts: { ...defaults, random: false },
-      },
-      webgl: {
-        script: webgl,
-        init: async () => {},
-        enabled: true,
-        opts: { ...defaults, random: true },
-      },
-      fonts: {
-        script: fonts,
-        init: async () => {},
-        enabled: true,
-        opts: { ...defaults, random: true },
-      },
-      audio: {
-        script: audio,
-        init: async () => {},
-        enabled: true,
-        opts: { ...defaults, random: true },
-      },
-      navi: (() => {
-        //const { naviOS, naviRandomize: random } = App.config;
-        const naviOS = "windows"; // For testing purposes
-        const random = false; // For testing purposes
-
-        const RULE_ID_START = 1000;
-        const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
-        const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
-
-        // Create the configs object first
-        const configs = {
-          mac: {
-            "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-            "sec-ch-ua-platform": '"macOS"',
-            "sec-ch-ua-platform-version": '"15.3.1"',
-            "sec-ch-ua-model": '""',
-          },
-          windows: {
-            "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-            "sec-ch-ua-platform": '"Windows"',
-            "sec-ch-ua-platform-version": '"10.0.22621"',
-            "sec-ch-ua-model": '""',
-          },
-          linux: {
-            "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-            "sec-ch-ua-platform": '"Linux"',
-            "sec-ch-ua-platform-version": '"5.15.0"',
-            "sec-ch-ua-model": '""',
-          },
+      canvi: (() => {
+        const { enabled, random } = App.config.canvas;
+        const amplitutdes = {
+          micro: 0.1, // Very subtle changes
+          mini: 0.4, // Minor changes
+          low: 0.8, // Low noise level
+          medium: 0.14, // Standard protection
+          bold: 0.18, // Stronger noise
+          high: 0.24, // High protection
+          ultra: 0.25, // Very high protection
+          super: 0.34, // Super high protection
+          max: 0.38, // Maximum protection
         };
-        //const config = !random ? configs[naviOS] : Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)];
-        // Return the complete configuration object
+        const noiseLevel = amplitutdes[App.config.noise] || amplitutdes.medium;
+        if (!App.config.canvas.pixels || random) {
+          App.config.canvas.pixels = {
+            r: Math.random(),
+            g: Math.random(),
+            b: Math.random(),
+          };
+        }
+        if (!App.config.canvas.positions || random) {
+          App.config.canvas.positions = {
+            x: Math.random(),
+            y: Math.random(),
+          };
+        }
+        if (!App.config.canvas.rects || random) {
+          App.config.canvas.rects = {
+            x: Math.random(),
+            y: Math.random(),
+            width: Math.random(),
+            height: Math.random(),
+          };
+        }
         return {
-          script: navigatorize,
-          init: async () => {
-            // Remove only existing dynamic rules with IDs >= RULE_ID_START
-            const rules = await chrome.declarativeNetRequest.getDynamicRules();
-            await chrome.declarativeNetRequest.updateDynamicRules({
-              removeRuleIds: rules.filter((rule) => rule.id >= RULE_ID_START).map((rule) => rule.id),
-            });
-          },
-          enabled: true, //random || naviOS !== "default",
+          enabled,
+          init: async () => {},
+          script: canvas,
           opts: {
-            os: naviOS,
-            configs,
-            RULE_ID_START,
-            chromeMajorVersion,
-            config:
-              configs[
-                random
-                  ? Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)]
-                  : naviOS
-              ],
+            rects: App.config.canvas.rects,
+            pixels: App.config.canvas.pixels,
+            positions: App.config.canvas.positions,
           },
         };
       })(),
+      // rects: (() => {
+      //   return {
+      //     script: rects,
+      //     init: async () => {},
+      //     enabled: true,
+      //     opts: { ...defaults, random: false },
+      //   };
+      // })(),
+      // webgl: (() => {
+      //   return {
+      //     script: webgl,
+      //     init: async () => {},
+      //     enabled: true,
+      //     opts: { ...defaults, random: true },
+      //   };
+      // })(),
+      // fonts: (() => {
+      //   return {
+      //     script: fonts,
+      //     init: async () => {},
+      //     enabled: true,
+      //     opts: { ...defaults, random: true },
+      //   };
+      // })(),
+      // audio: (() => {
+      //   return {
+      //     script: audio,
+      //     init: async () => {},
+      //     enabled: true,
+      //     opts: { ...defaults, random: true },
+      //   };
+      // })(),
+      // navi: (() => {
+      //   //const { naviOS, naviRandomize: random } = App.config;
+      //   const naviOS = "windows"; // For testing purposes
+      //   const random = false; // For testing purposes
+
+      //   const RULE_ID_START = 1000;
+      //   const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+      //   const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
+
+      //   // Create the configs object first
+      //   const configs = {
+      //     mac: {
+      //       "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+      //       "sec-ch-ua-platform": '"macOS"',
+      //       "sec-ch-ua-platform-version": '"15.3.1"',
+      //       "sec-ch-ua-model": '""',
+      //     },
+      //     windows: {
+      //       "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+      //       "sec-ch-ua-platform": '"Windows"',
+      //       "sec-ch-ua-platform-version": '"10.0.22621"',
+      //       "sec-ch-ua-model": '""',
+      //     },
+      //     linux: {
+      //       "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+      //       "sec-ch-ua-platform": '"Linux"',
+      //       "sec-ch-ua-platform-version": '"5.15.0"',
+      //       "sec-ch-ua-model": '""',
+      //     },
+      //   };
+      //   //const config = !random ? configs[naviOS] : Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)];
+      //   // Return the complete configuration object
+      //   return {
+      //     init: async () => {
+      //       // Remove only existing dynamic rules with IDs >= RULE_ID_START
+      //       const rules = await chrome.declarativeNetRequest.getDynamicRules();
+      //       await chrome.declarativeNetRequest.updateDynamicRules({
+      //         removeRuleIds: rules.filter((rule) => rule.id >= RULE_ID_START).map((rule) => rule.id),
+      //       });
+      //     },
+      //     script: navigatorize,
+      //     enabled: true, //random || naviOS !== "default",
+      //     opts: {
+      //       os: naviOS,
+      //       configs,
+      //       RULE_ID_START,
+      //       chromeMajorVersion,
+      //       config:
+      //         configs[
+      //           random
+      //             ? Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)]
+      //             : naviOS
+      //         ],
+      //     },
+      //   };
+      // })(),
     };
   }
 
   // Instead of using map and join directly, use Promise.all
   async generateScriptSource() {
-    const scriptPromises = Object.values(this.scriptConfigs).map(async ({ script, init, opts, enabled }) => {
-      await init();
-      if (!enabled) return "";
-      else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
-    });
+    const scriptPromises = Object.values(this.scriptConfigs).map(
+      async ({ script, init, opts, enabled }) => {
+        await init();
+        if (!enabled) return "";
+        else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
+      }
+    );
 
     // Wait for all promises to resolve, then join
     this.scriptSource = (await Promise.all(scriptPromises)).join("\n");

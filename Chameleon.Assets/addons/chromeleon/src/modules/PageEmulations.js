@@ -1,6 +1,6 @@
 import App from "../app.js";
 import { log } from "../services/logger.js";
-import { offsets } from "../../data/offsets.js";
+import offsets from "../../data/offsets.js";
 
 class PageEmulations {
   constructor(tabId) {
@@ -13,13 +13,13 @@ class PageEmulations {
    * @returns {Promise<boolean>} - Whether initialization was successful
    */
   async initialize() {
-    if(!App.config.enabled) return;
+    if (!App.config.enabled) return;
 
     await this.setupTimezoneEmulation();
     await this.setupGeoEmulation();
   }
 
-  async setupTimezoneEmulation() {  
+  async setupTimezoneEmulation() {
     const { enabled, zone, locale, random, useSystem } = App.config.tz;
     if (enabled) {
       log.info(`Applying timezone emulation for tab ${this.tabId}`);

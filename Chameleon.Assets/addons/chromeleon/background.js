@@ -24,11 +24,11 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  switch (message.type) {
+  switch (message.action) {
     case "getConfig":
       sendResponse({ success: true, config: App.config });
       break;
-    case "setConfig":
+    case "updateConfig":
       const { config } = message;
       log.info("Updating config", config);
       App.config = { ...App.config, ...config };
@@ -37,6 +37,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then(() => log.info("Config saved to storage"))
         .catch((error) => log.error("Error saving config to storage", error));
       sendResponse({ success: true });
+      break;
+    case "refreshConfig":
+      log.info("Refreshing config");
+      App.startup()
+        .then(() => sendResponse({ success: true }))
+        .catch((error) => sendResponse({ success: false, error: error.message }));
       break;
     case "getAppState":
       App.getAppState()
@@ -70,7 +76,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       break;
     default:
-      log.warn("Unknown message type:", message.type);
+      log.warn("Unknown message action:", message.action);
       sendResponse({ success: false, error: "Unknown message type" });
       break;
   }

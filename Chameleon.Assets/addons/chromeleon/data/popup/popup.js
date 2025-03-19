@@ -1,11 +1,11 @@
 // Timezone offsets data
-import timezoneOffsets from "../../data/offsets.js";
+import timezoneOffsets from "../offsets.js";
 
 // Current extension configuration
 let config = {
   log: "all",
   enabled: true,
-  dAPI: "disable_non_proxied_udp",
+  noise: "medium",
   tz: {
     enabled: true,
     zone: "America/New_York",
@@ -47,7 +47,7 @@ let config = {
   },
   bypass: [],
   history: [],
-  noise: "medium",
+  dAPI: "disable_non_proxied_udp",
 };
 
 
@@ -422,13 +422,6 @@ function saveConfig() {
 
 // This function would be called when the popup is opened
 function loadConfigFromStorage() {
-  chrome.storage.sync.get('config', function(data) {
-    if (data.config) {
-      config = data.config;
-      initializeUI();
-    }
-  });
-  
   // Or get from background script
   chrome.runtime.sendMessage({ action: 'getConfig' }, function(response) {
     if (response && response.config) {

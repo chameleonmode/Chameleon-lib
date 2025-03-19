@@ -5,7 +5,7 @@ const App = {
   config: {
     log: "all",
     enabled: true,
-    dAPI: "disable_non_proxied_udp",
+    noise: "medium",
     tz: {
       enabled: true,
       zone: "America/New_York",
@@ -47,7 +47,7 @@ const App = {
     },
     bypass: [],
     history: [],
-    noise: "medium",
+    dAPI: "disable_non_proxied_udp",
   },
   session: {
     sessionId: null,
