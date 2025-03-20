@@ -22,11 +22,7 @@ class PageEmulations {
   async setupTimezoneEmulation() {
     const { enabled, zone, locale, random, useSystem } = App.config.tz;
     if (enabled) {
-      // log.info(`Applying timezone emulation for tab ${this.tabId}`);
-      // log.info(`Timezone: ${zone}`);
-      // log.info(`System timezone: ${useSystem}`);
-      // log.info(`Randomize timezone: ${random}`);
-      // log.info(`Locale: ${locale}`);
+      log.info(`Applying timezone emulation for tab ${this.tabId}`, App.config.tz);
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setTimezoneOverride", {
         timezoneId: useSystem
           ? Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -43,11 +39,7 @@ class PageEmulations {
   async setupGeoEmulation() {
     const { enabled, lat, lon, random, accuracy } = App.config.geo;
     if (enabled) {
-      // log.info(`Applying geolocation emulation for tab ${this.tabId}`);
-      // log.info(`Latitude: ${lat}`);
-      // log.info(`Longitude: ${lon}`);
-      // log.info(`Randomize geolocation: ${random}`);
-      // log.info(`Accuracy: ${accuracy}`);
+      log.info(`Applying geolocation emulation for tab ${this.tabId}`, App.config.geo);
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setGeolocationOverride", {
         latitude: random ? lat + (Math.random() - 0.5) * random : lat,
         longitude: random ? lon + (Math.random() - 0.5) * random : lon,

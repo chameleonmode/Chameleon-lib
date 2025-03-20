@@ -1,11 +1,11 @@
 // https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
 // https://browserleaks.com/rects
-export default async function(opts) {
+export default async function (opts) {
+  console.log("Rectangles Spoofer - Starting", JSON.stringify(opts));
+
   return function (params) {
-    console.log(params);
     // params will be available here
     const random = params?.random || true;
-    console.log("Using random:", random);
 
     // Define noise levels for rectangle spoofing
     const noiseLevels = {
@@ -88,27 +88,18 @@ export default async function(opts) {
       },
     };
 
+    // Apply noise to a random property or based on noiseLevel
+    const rectProp = rectProperties.DOMRect.sort(() => (random ? 0.5 - Math.random() : 0))[0];
 
-    // Function to apply spoofing
-    function applySpoofing() {
-      // Apply noise to a random property or based on noiseLevel
-      const rectProp = rectProperties.DOMRect.sort(() =>
-        random ? 0.5 - Math.random() : 0
-      )[0];
+    const rectReadOnlyProp = rectProperties.DOMRectReadOnly.sort(() =>
+      random ? 0.5 - Math.random() : 0
+    )[0];
 
-      const rectReadOnlyProp = rectProperties.DOMRectReadOnly.sort(() =>
-        random ? 0.5 - Math.random() : 0
-      )[0];
+    // Apply noise to selected properties
+    applyNoiseMethods.DOMRect(rectProp);
+    applyNoiseMethods.DOMRectReadOnly(rectReadOnlyProp);
 
-      // Apply noise to selected properties
-      applyNoiseMethods.DOMRect(rectProp);
-      applyNoiseMethods.DOMRectReadOnly(rectReadOnlyProp);
-
-      console.log(`Applied spoofing to DOMRect.${rectProp} and DOMRectReadOnly.${rectReadOnlyProp}`);
-    }
-
-    // Apply spoofing immediately
-    applySpoofing();
+    console.log(`Applied spoofing to DOMRect.${rectProp} and DOMRectReadOnly.${rectReadOnlyProp}`);
 
     return true;
   };

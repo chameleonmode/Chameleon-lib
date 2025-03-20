@@ -27,11 +27,11 @@ public class BrowserLauncherTests {
 				}),
 				"https://example.com",
 				new () {
-					DisableWebRTC = true,
-					SpoofClientRects = true,
-					SpoofFontFingerprint = true,
-					SpoofCanvasFingerprint = true,
+					SpoofClientRects = false,
+					SpoofFontFingerprint = false,
+					SpoofCanvasFingerprint = false,
 					SpoofWebGLFingerprint = false,
+					SpoofAudio = false,
 					SpoofGeoLocation = true,
 					AutoTimezone = true,
 				}

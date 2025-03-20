@@ -6,6 +6,9 @@ let config = {
   log: "all",
   enabled: true,
   noise: "medium",
+  noises: ["micro", "mini", "low", "medium", "bold", "high", "ultra", "super", "max"],
+  url: "https://example.com",
+  // Default timezone and geolocation settings
   tz: {
     enabled: true,
     zone: "America/New_York",
@@ -49,7 +52,6 @@ let config = {
   history: [],
   dAPI: "disable_non_proxied_udp",
 };
-
 
 // Locale options
 const locales = [
@@ -163,6 +165,7 @@ function populateDropdowns() {
     
     option.textContent = `${timezone.zone} (${offsetStr})`;
     
+    console.log(config.tz.zone , timezone.zone);
     if (timezone.zone === config.tz.zone) {
       option.selected = true;
     }
@@ -408,36 +411,9 @@ function removeBypassSite(site) {
   populateBypassList();
 }
 
-function saveConfig() {
-  // Send updated config to background script
-  chrome.runtime.sendMessage({ action: 'updateConfig', config: config }, function(response) {
-    console.log('Config saved:', response);
-  });
-  
-  // You might also want to save to storage
-  chrome.storage.sync.set({ config: config }, function() {
-    console.log('Config saved to storage');
-  });
-}
-
-// This function would be called when the popup is opened
-function loadConfigFromStorage() {
-  // Or get from background script
-  chrome.runtime.sendMessage({ action: 'getConfig' }, function(response) {
-    if (response && response.config) {
-      config = response.config;
-      initializeUI();
-    }
-  });
-}
-
 // Noise level mapping functions
 function getNoiseLevelName(value) {
-  const noiseNames = [
-    'Micro', 'Mini', 'Low', 'Medium', 'Bold', 
-    'High', 'Ultra', 'Super', 'Max'
-  ];
-  return noiseNames[value - 1] || 'Medium';
+  return config.noises[value - 1] || 'Medium';
 }
 
 function getNoiseLevelValue(name) {
@@ -454,6 +430,24 @@ function getNoiseLevelValue(name) {
   };
   return noiseLevels[name.toLowerCase()] || 4; // Default to Medium (4)
 }
+
+function saveConfig() {
+  // Send updated config to background script
+  chrome.runtime.sendMessage({ action: 'updateConfig', config: config }, function(response) {
+    console.log('Config saved:', response);
+  });
+}
+
+// This function would be called when the popup is opened
+function loadConfigFromStorage() {
+  chrome.runtime.sendMessage({ action: 'getConfig' }, function(response) {
+    if (response && response.config) {
+      config = response.config;
+      initializeUI();
+    }
+  });
+}
+
 
 // Call this on popup open
 loadConfigFromStorage();

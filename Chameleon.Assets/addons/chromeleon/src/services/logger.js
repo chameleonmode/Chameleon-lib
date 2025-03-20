@@ -1,3 +1,5 @@
+import App from "../app.js";
+
 const LOG_LEVELS = {
   none: -1,
   log: 0,
@@ -9,7 +11,7 @@ const LOG_LEVELS = {
 };
 
 const config = {
-  currentLogLevel: LOG_LEVELS["all"],
+  currentLogLevel: LOG_LEVELS.all,
 };
 
 // Define colors for different log levels with more distinct differences
@@ -53,7 +55,7 @@ const CONSOLE_METHODS = {
 // Logger factory function with fixed console method mapping
 const createLogMethod = (level, levelValue) => {
   return (message, args = {}) => {
-    if (levelValue <= config.currentLogLevel) {
+    if (levelValue <= LOG_LEVELS[App.config.log]) {
       const caller = getCallerInfo();
       const timestamp = new Date().toISOString();
       const logPrefix = `[Chromeleon] [${level}] [${caller.file}:${caller.line}]`;

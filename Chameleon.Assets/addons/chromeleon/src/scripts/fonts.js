@@ -1,6 +1,6 @@
 export default async function (opts) {
+  console.log("Font Spoofer - Starting", JSON.stringify(opts));
     return function (params) {
-      console.log(params);
       const { random, level } = params || {};
       
       // Define noise levels for different protection intensities

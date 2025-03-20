@@ -6,8 +6,7 @@ import "./src/services/debugger.js";
 const startup = async () => {
   // Restore session from storage
   await App.startup();
-
-  log.setLogLevel(App.config.log);
+  log.info("App started", App.config);
 };
 
 // Fix the incomplete runtime event listener
@@ -24,23 +23,30 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  log.info("Received message:", message);
   switch (message.action) {
     case "getConfig":
       sendResponse({ success: true, config: App.config });
       break;
     case "updateConfig":
-      const { config } = message;
-      log.info("Updating config", config);
-      App.config = { ...App.config, ...config };
+      App.config = { ...App.config, ...message.config };
+
       // Save the updated config to storage
-      chrome.storage.local.set({ config: App.config })
+      chrome.storage.local
+        .set({ config: App.config })
         .then(() => log.info("Config saved to storage"))
         .catch((error) => log.error("Error saving config to storage", error));
+
+      // You might also want to save to sync storage
+      chrome.storage.sync
+        .set({ config: App.config })
+        .then(() => log.info("Config saved to sync storage"))
+        .catch((error) => log.error("Error saving config to sync storage", error));
+
       sendResponse({ success: true });
       break;
     case "refreshConfig":
-      log.info("Refreshing config");
-      App.startup()
+      App.initialize(App.session.sessionId, App.session.instanceId)
         .then(() => sendResponse({ success: true }))
         .catch((error) => sendResponse({ success: false, error: error.message }));
       break;
@@ -54,21 +60,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then((response) => sendResponse({ success: true, data: response }))
         .catch((error) => sendResponse({ success: false, error: error.message }));
       break;
-    case "checkConnection":
-      App.discoverServer()
-        .then((running) => sendResponse({ connected: running }))
-        .catch(() => sendResponse({ connected: false }));
-      break;
     case "registerAppLaunch":
       const { sessionId, instanceId, data } = message;
-      log.info("Registering app launch", { sessionId, instanceId, data });
       App.initialize(sessionId, instanceId)
-        .then(async (config) => {
-          if (config) {
-            log.debug("App connected", config);
-            await startup();
-          }
-          sendResponse({ success: true, config });
+        .then(async (result) => {
+          await startup();
+          sendResponse({ success: true, url: App.config.urls.start });
         })
         .catch((error) => {
           log.error("Error registering app launch", error);

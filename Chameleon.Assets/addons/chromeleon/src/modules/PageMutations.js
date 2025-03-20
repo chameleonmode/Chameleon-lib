@@ -4,6 +4,10 @@
  * Enhanced Canvas Fingerprinting Protection
  * https://privacycheck.sec.lrz.de/active/fp_c/fp_canvas.html
  * https://www.browserleaks.com/canvas
+ * https://browserleaks.com/webgl
+ * https://privacycheck.sec.lrz.de/active/fp_wg/fp_webgl.html
+ * https://gist.github.com/abrahamjuliot/7baf3be8c451d23f7a8693d7e28a35e2
+ * https://privacycheck.sec.lrz.de/active/fp_ac/fp_audiocontext.html
  *
  * A module for monitoring element creation in web pages, including:
  * - Main content page
@@ -15,16 +19,11 @@
 
 import App from "../app.js";
 import canvas from "../scripts/canvas.js";
-import { log } from "../services/logger.js";
 import rects from "../scripts/rects.js";
 import webgl from "../scripts/webgl.js";
 import fonts from "../scripts/fonts.js";
 import audio from "../scripts/audio.js";
 import navigatorize from "../scripts/navigator.js";
-
-const defaults = {
-  level: "medium",
-};
 
 class PageMutations {
   constructor(tabId) {
@@ -34,169 +33,134 @@ class PageMutations {
     // Define configurations for all scripts at once
     this.scriptConfigs = {
       canvi: (() => {
-        const { enabled, random } = App.config.canvas;
-        // Define a global object to store the amplitude-specific rect values
-        const FINGERPRINT_CONSTANTS = {
-          // Each level has carefully chosen values to produce unique hashes
-          micro: { width: 11, height: 17 }, // Prime numbers
-          mini: { width: 13, height: 23 }, // Different prime numbers
-          low: { width: 19, height: 29 }, // More primes
-          medium: { width: 37, height: 41 }, // Larger primes
-          bold: { width: 43, height: 53 }, // Even larger
-          high: { width: 61, height: 67 }, // Larger still
-          ultra: { width: 73, height: 79 }, // Getting bigger
-          super: { width: 89, height: 97 }, // Almost there
-          max: { width: 101, height: 107 }, // Maximum primes
-        };
-        const noises = ["micro", "mini", "low", "medium", "bold", "high", "ultra", "super", "max"];
-        const randomNoise = noises[Math.floor(Math.random() * noises.length)];
-        const fingerprint =
-          FINGERPRINT_CONSTANTS[random ? randomNoise : App.config.noise] ||
-          FINGERPRINT_CONSTANTS.medium;
-
-        if (!App.config.canvas.pixels || random) {
+        if (!App.config.canvas.pixels) {
           App.config.canvas.pixels = {
             r: Math.random(),
             g: Math.random(),
             b: Math.random(),
           };
         }
-        if (!App.config.canvas.positions || random) {
+        if (!App.config.canvas.positions) {
           App.config.canvas.positions = {
             x: Math.random(),
             y: Math.random(),
           };
         }
-        if (!App.config.canvas.rects || random) {
+        if (!App.config.canvas.rects) {
           App.config.canvas.rects = {
             x: Math.random(),
             y: Math.random(),
-            width: fingerprint.width,
-            height: fingerprint.height,
+            width: Math.random(),
+            height: Math.random(),
           };
         }
-        log.log("Canvas script config", {
-          random,
-          randomNoise,
-          noise: App.config.noise,
-          w: fingerprint.width,
-          h: fingerprint.height,
-        });
+        const opts = {
+          noise: App.config.canvas.random
+            ? App.config.noises[Math.floor(Math.random() * App.config.noises.length)]
+            : App.config.noise,
+          positions: App.config.canvas.positions,
+          rects: App.config.canvas.rects,
+          pixels: App.config.canvas.pixels,
+        };
         return {
-          enabled,
-          init: async () => {},
+          init: async () => {
+            return App.config.canvas.enabled;
+          },
           script: canvas,
+          opts,
+        };
+      })(),
+      rects: (() => {
+        return {
+          script: rects,
+          init: async () => {
+            return App.config.rects.enabled;
+          },
+          opts: { random: false },
+        };
+      })(),
+      webgl: (() => {
+        return {
+          script: webgl,
+          init: async () => {
+            return App.config.webgl.enabled;
+          },
+          opts: { random: true },
+        };
+      })(),
+      fonts: (() => {
+        return {
+          script: fonts,
+          init: async () => {
+            return App.config.fonts.enabled;
+          },
+          opts: { random: true },
+        };
+      })(),
+      audio: (() => {
+        return {
+          script: audio,
+          init: async () => {
+            return App.config.audio.enabled;
+          },
+          opts: { random: true },
+        };
+      })(),
+      navi: (() => {
+        const os = App.config.navi.os;
+        const random = false; // For testing purposes
+
+        const RULE_ID_START = 1000;
+        const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+        const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
+
+        // Create the configs object first
+        const configs = {
+          mac: {
+            "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"macOS"',
+            "sec-ch-ua-platform-version": '"15.3.1"',
+            "sec-ch-ua-model": '""',
+          },
+          windows: {
+            "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-ch-ua-platform-version": '"10.0.22621"',
+            "sec-ch-ua-model": '""',
+          },
+          linux: {
+            "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"Linux"',
+            "sec-ch-ua-platform-version": '"5.15.0"',
+            "sec-ch-ua-model": '""',
+          },
+        };
+        const config = !random
+          ? configs[os]
+          : Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)];
+
+        // Return the complete configuration object
+        return {
+          init: async () => {
+            // Remove only existing dynamic rules with IDs >= RULE_ID_START
+            const rules = await chrome.declarativeNetRequest.getDynamicRules();
+            await chrome.declarativeNetRequest.updateDynamicRules({
+              removeRuleIds: rules.filter((rule) => rule.id >= RULE_ID_START).map((rule) => rule.id),
+            });
+
+            return App.config.navi.enabled && App.config.navi.os !== "default";
+          },
+          script: navigatorize,
           opts: {
-            noise: "micro", //random ? random : App.config.noise,
-            w: 61, //fingerprint.width,
-            h: 67, //fingerprint.height,
-            pixels: App.config.canvas.pixels,
+            os,
+            configs,
+            RULE_ID_START,
+            chromeMajorVersion,
+            config,
           },
         };
       })(),
-      // rects: (() => {
-      //   return {
-      //     script: rects,
-      //     init: async () => {},
-      //     enabled: true,
-      //     opts: { ...defaults, random: false },
-      //   };
-      // })(),
-      // webgl: (() => {
-      //   return {
-      //     script: webgl,
-      //     init: async () => {},
-      //     enabled: true,
-      //     opts: { ...defaults, random: true },
-      //   };
-      // })(),
-      // fonts: (() => {
-      //   return {
-      //     script: fonts,
-      //     init: async () => {},
-      //     enabled: true,
-      //     opts: { ...defaults, random: true },
-      //   };
-      // })(),
-      // audio: (() => {
-      //   return {
-      //     script: audio,
-      //     init: async () => {},
-      //     enabled: true,
-      //     opts: { ...defaults, random: true },
-      //   };
-      // })(),
-      // navi: (() => {
-      //   //const { naviOS, naviRandomize: random } = App.config;
-      //   const naviOS = "windows"; // For testing purposes
-      //   const random = false; // For testing purposes
-
-      //   const RULE_ID_START = 1000;
-      //   const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
-      //   const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
-
-      //   // Create the configs object first
-      //   const configs = {
-      //     mac: {
-      //       "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-      //       "sec-ch-ua-platform": '"macOS"',
-      //       "sec-ch-ua-platform-version": '"15.3.1"',
-      //       "sec-ch-ua-model": '""',
-      //     },
-      //     windows: {
-      //       "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-      //       "sec-ch-ua-platform": '"Windows"',
-      //       "sec-ch-ua-platform-version": '"10.0.22621"',
-      //       "sec-ch-ua-model": '""',
-      //     },
-      //     linux: {
-      //       "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-      //       "sec-ch-ua-platform": '"Linux"',
-      //       "sec-ch-ua-platform-version": '"5.15.0"',
-      //       "sec-ch-ua-model": '""',
-      //     },
-      //   };
-      //   //const config = !random ? configs[naviOS] : Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)];
-      //   // Return the complete configuration object
-      //   return {
-      //     init: async () => {
-      //       // Remove only existing dynamic rules with IDs >= RULE_ID_START
-      //       const rules = await chrome.declarativeNetRequest.getDynamicRules();
-      //       await chrome.declarativeNetRequest.updateDynamicRules({
-      //         removeRuleIds: rules.filter((rule) => rule.id >= RULE_ID_START).map((rule) => rule.id),
-      //       });
-      //     },
-      //     script: navigatorize,
-      //     enabled: true, //random || naviOS !== "default",
-      //     opts: {
-      //       os: naviOS,
-      //       configs,
-      //       RULE_ID_START,
-      //       chromeMajorVersion,
-      //       config:
-      //         configs[
-      //           random
-      //             ? Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)]
-      //             : naviOS
-      //         ],
-      //     },
-      //   };
-      // })(),
     };
-  }
-
-  // Instead of using map and join directly, use Promise.all
-  async generateScriptSource() {
-    const scriptPromises = Object.values(this.scriptConfigs).map(
-      async ({ script, init, opts, enabled }) => {
-        await init();
-        if (!enabled) return "";
-        else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
-      }
-    );
-
-    // Wait for all promises to resolve, then join
-    this.scriptSource = (await Promise.all(scriptPromises)).join("\n");
   }
 
   /**
@@ -214,6 +178,27 @@ class PageMutations {
     await this.injectIntoExistingFrames();
   }
 
+  /**
+   * Generate the script source by executing each script and combining the results
+   * @returns {Promise<void>}
+   */
+  async generateScriptSource() {
+    const scriptPromises = Object.values(this.scriptConfigs).map(
+      async ({ script, init, opts }) => {
+        const enabled = await init();
+        if (!enabled) return "";
+        else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
+      }
+    );
+
+    // Wait for all promises to resolve, then join
+    this.scriptSource = (await Promise.all(scriptPromises)).filter(script => script).join("");
+  }
+
+  /**
+   * Set up script injection for new documents
+   * @returns {Promise<void>}
+   */
   async setupNewDocumentScriptInjection() {
     await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.addScriptToEvaluateOnNewDocument", {
       source: this.scriptSource,
@@ -224,6 +209,10 @@ class PageMutations {
     });
   }
 
+  /**
+   * Inject the script into existing frames
+   * @returns {Promise<void>}
+   */
   async injectIntoExistingFrames() {
     // Get the frame tree
     const { frameTree } = await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.getFrameTree");
@@ -231,7 +220,23 @@ class PageMutations {
     // Recursive function to process frames
     const processFrame = async (frame) => {
       // Inject into this frame
-      await this._injectScriptIntoFrame(frame.id);
+      await chrome.debugger
+        .sendCommand({ tabId: this.tabId }, "Page.createIsolatedWorld", {
+          frameId: frame.id,
+          worldName: `${Math.random().toString(36).substring(7)}`,
+        })
+        .then(async ({ executionContextId }) => {
+          await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.addScriptToEvaluateOnNewDocument", {
+            source: this.scriptSource,
+            contextId: executionContextId,
+            returnByValue: true,
+          });
+          await chrome.debugger.sendCommand({ tabId: this.tabId }, "Runtime.evaluate", {
+            expression: this.scriptSource,
+            contextId: executionContextId,
+            returnByValue: true,
+          });
+        });
 
       // Process child frames if any
       if (frame.childFrames) {
@@ -243,26 +248,6 @@ class PageMutations {
 
     // Start with the main frame
     await processFrame(frameTree.frame);
-  }
-
-  /**
-   * Inject script into a specific frame
-   * @private
-   * @param {string} frameId - The frame ID
-   */
-  async _injectScriptIntoFrame(frameId) {
-    await chrome.debugger
-      .sendCommand({ tabId: this.tabId }, "Page.createIsolatedWorld", {
-        frameId: frameId,
-        worldName: `${Math.random().toString(36).substring(7)}`,
-      })
-      .then(async ({ executionContextId }) => {
-        await chrome.debugger.sendCommand({ tabId: this.tabId }, "Runtime.evaluate", {
-          expression: this.scriptSource,
-          contextId: executionContextId,
-          returnByValue: true,
-        });
-      });
   }
 }
 

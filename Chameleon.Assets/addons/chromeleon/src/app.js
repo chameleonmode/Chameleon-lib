@@ -1,53 +1,59 @@
 // app.js for Chrome Extension to communicate with the app server
+
+// Default configuration for the app
 const App = {
   server: null,
   port: null,
   config: {
-    log: "all",
     enabled: true,
+    log: "all",
     noise: "medium",
+    noises: ["micro", "mini", "low", "medium", "bold", "high", "ultra", "super", "max"],
+    bypass: [],
+    history: [],
+    dAPI: "disable_non_proxied_udp",
+    urls: {
+      start: "https://example.com/start",
+    },
     tz: {
       enabled: true,
-      zone: "America/New_York",
-      locale: "en-US",
       random: false,
+      zone: "Pacific/Honolulu",
+      locale: "en-US",
       useSystem: false,
     },
     geo: {
       enabled: true,
+      random: false,
       lat: 40.7128,
-      lon: -74.0060,
+      lon: -74.006,
       accuracy: 64.0999,
-      random: false
     },
     canvas: {
       enabled: true,
-      random: false
+      random: false,
     },
     webgl: {
       enabled: true,
-      random: false
+      random: false,
     },
     rects: {
       enabled: true,
-      random: false
+      random: false,
     },
     fonts: {
       enabled: true,
-      random: false
+      random: false,
     },
     audio: {
       enabled: true,
-      random: false
+      random: false,
     },
     navi: {
       enabled: true,
+      random: false,
       os: "default",
-      random: false
     },
-    bypass: [],
-    history: [],
-    dAPI: "disable_non_proxied_udp",
   },
   session: {
     sessionId: null,
@@ -62,30 +68,44 @@ const App = {
       "launchedSessions",
       "config",
     ]);
-    this.config = config || this.config;
+    for (const [key, value] of Object.entries(config)) {
+      if (typeof value === "object" && !Array.isArray(value)) {
+        this.config[key] = { ...this.config[key], ...value };
+      } else {
+        this.config[key] = value;
+      }
+    }
     this.session = session || this.session;
     this.launchedSessions = launchedSessions || this.launchedSessions;
-    return true;
+
+    return {
+      session: this.session,
+      launchedSessions: this.launchedSessions,
+      config: this.config,
+    };
   },
 
   // Register a new session launched by the app
   initialize: async function (sessionId, instanceId) {
     if (!(await this.discoverServer())) return undefined;
+    this.session = { sessionId, instanceId };
+    this.launchedSessions[sessionId] = this.session;
+
+    const sync = await chrome.storage.sync.get(["config"]);
+    if (sync.config) {
+      this.config = { ...this.config, ...sync.config };
+    }
 
     const response = await this.sendData({ type: "init" });
-    this.config = response.config;
+    for (const [key, value] of Object.entries(response.config)) {
+      this.config[key] = { ...this.config[key], ...value };
+    }
 
-    this.session = {
-      sessionId,
-      instanceId,
-    };
-    this.launchedSessions[sessionId] = this.session;
-    await chrome.storage.local.set({
+    return await chrome.storage.local.set({
       session: this.session,
       launchedSessions: this.launchedSessions,
       config: this.config,
     });
-    return response.config;
   },
 
   // Find the app server

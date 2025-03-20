@@ -1,4 +1,6 @@
 // Version: 2.0
+import App from "../app.js";
+
 export const policies = {
   default: { title: "default", id: "default" },
   default_public_and_private_interfaces: {
@@ -16,11 +18,11 @@ export const policies = {
 };
 
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
-  if (!changes.dAPI || !changes.dAPI.newValue) return;
+  if (changes.config && changes.config.oldValue && changes.config.oldValue.dAPI === changes.config.newValue.dAPI) return;
 
   await chrome.privacy.network.webRTCIPHandlingPolicy.clear({});
   await chrome.privacy.network.webRTCIPHandlingPolicy.set({
-    value: changes.dAPI.newValue,
+    value: App.config.dAPI,
   });
 });
 

@@ -1,5 +1,5 @@
 export default async function (opts) {
-  const { os, random, configs, config, RULE_ID_START } = opts || {};
+  const { configs, config, RULE_ID_START } = opts || {};
   console.log("OS Spoofer with Client Hints Support - Starting", JSON.stringify(opts));
 
   const type = "modifyHeaders";
@@ -60,8 +60,47 @@ export default async function (opts) {
   await chrome.declarativeNetRequest.updateDynamicRules({ addRules });
 
   return function (params) {
-    const { os, random, configs, config, chromeMajorVersion } = params || {};
-    console.log("OS Spoofer with Client Hints Support - Starting", JSON.stringify(params));
+    var t = !1,
+      n = !1,
+      i = !1,
+      a = window.document,
+      o = window.navigator,
+      l = o.languages,
+      c = window.external;
+    [
+      "Buffer",
+      "_Selenium_IDE_Recorder",
+      "__nightmare",
+      "_phantom",
+      "_selenium",
+      "callPhantom",
+      "callSelenium",
+      "domAutomation",
+      "domAutomationController",
+      "emit",
+      "fmget_targets",
+      "phantom",
+      "spawn",
+      "webdriver",
+    ].forEach(function (e) {
+      console.log("Checking for:", e, window[e] && (t = !0));
+    });
+      [
+        "__driver_evaluate",
+        "__driver_unwrapped",
+        "__fxdriver_evaluate",
+        "__fxdriver_unwrapped",
+        "__selenium_evaluate",
+        "__selenium_unwrapped",
+        "__webdriver_evaluate",
+        "__webdriver_script_fn",
+        "__webdriver_script_func",
+        "__webdriver_script_function",
+        "__webdriver_unwrapped",
+      ].forEach(function (e) {
+        console.log("Checking for:", e, a[e] && (n = !0));
+      });
+    const { config } = params || {};
 
     // Store original descriptors to restore if needed
     const originalDescriptors = {
@@ -69,8 +108,6 @@ export default async function (opts) {
       platform: Object.getOwnPropertyDescriptor(Navigator.prototype, "platform"),
       appVersion: Object.getOwnPropertyDescriptor(Navigator.prototype, "appVersion"),
     };
-    console.log("Original descriptors:", originalDescriptors);
-    console.log("Original descriptors:", originalDescriptors.appVersion);
 
     // Override only the specified navigator properties
     const navigatorProps = {
@@ -95,8 +132,6 @@ export default async function (opts) {
 
     // Override navigator.userAgentData properties if available
     if ("userAgentData" in navigator) {
-      console.log("Patching userAgentData for Client Hints");
-
       // Create a comprehensive set of client hints
       const clientHints = {
         // === DEVICE/PLATFORM RELATED HINTS ===
@@ -153,13 +188,9 @@ export default async function (opts) {
 
             // High entropy method
             getHighEntropyValues: function (hints) {
-              console.log("Intercepted getHighEntropyValues with hints:", hints);
-
               // Call the original method without causing recursion
               return highEntropyValues(hints)
                 .then((originalValues) => {
-                  console.log("Original high entropy values:", originalValues);
-
                   const result = { ...originalValues }; // Start with original values
 
                   // Replace with spoofed values when available
@@ -174,8 +205,6 @@ export default async function (opts) {
                       result[hintName] = clientHints[hintName];
                     }
                   });
-
-                  console.log("Returning spoofed high entropy values:", result);
                   return result;
                 })
                 .catch((error) => {
@@ -192,8 +221,6 @@ export default async function (opts) {
                       fallbackResult[hintName] = clientHints[hintName];
                     }
                   });
-
-                  console.log("Returning fallback spoofed values:", fallbackResult);
                   return fallbackResult;
                 });
             },
@@ -210,7 +237,6 @@ export default async function (opts) {
         },
         configurable: true,
       });
-      console.log("Replaced userAgentData object:", navigator.userAgentData);
     }
     // Inject custom oscpu value for site-specific fingerprinting
     window.navigator.oscpu = `${config["sec-ch-ua-platform"]} ${config["sec-ch-ua-platform-version"]}`;

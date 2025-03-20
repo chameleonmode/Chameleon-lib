@@ -9,8 +9,7 @@ using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
-public class ChromiumSysBrowserInstance : SysBrowserInstance
-{
+public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(
 		Settings.SysBrowserProfileCachePath,
 		"Default",
@@ -21,15 +20,14 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 	public override string ExePath => SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
 
 	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?" +
-		$"sessionId={SessionId}" +
-		$"&instanceId={Settings.Profile.Id}";
+		$"instanceId={Settings.Profile.Id}" +
+		$"&sessionId=";
 
 	// ...
-	protected override string GetCommandLineArguments()
-	{
+	protected override string GetCommandLineArguments() {
 		var exts = new[] {
-			Settings.CachedExtentionsDir,
 			Settings.DestExtentionsDir,
+			Settings.CachedExtentionsDir,
 			Settings.SysBrowseUserExtDir,
 		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories).ToCommaSeparatedString();
 
@@ -159,37 +157,37 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 			//	"ReduceUserAgentPlatformOsCpu",
 			//	"ReduceAcceptLanguage",
 			//]),
-			"--disable-features=" + string.Join(",", [
-				//"PreciseMemoryInfo",
-				//"SharedArrayBuffer",
-				//"WebBluetooth",
-				//"WebUsb",
-				//"WebRtcHWDecoding",
-				//"WebRtcHWEncoding",
-				//"FractionalScrollOffsets",
-				//"Canvas2DLayers",
-				// Disable the default browser check, do not prompt to set it as such
-				"InstalledApp",
-				"InstalledAppProvider",
-        // Disable built-in Google Translate service
-        "Translate",
-        // Disable the Chrome Optimization Guide background networking
-        "OptimizationHints",
-        //  Disable the Chrome Media Router (cast target discovery) background networking
-        "MediaRouter",
-        /// Avoid the startup dialog for _Do you want the application “Chromium.app” to accept incoming network connections?_. This is a sub-component of the MediaRouter.
-        "DialMediaRouteProvider",
-        // Disable the feature of: Calculate window occlusion on Windows will be used in the future to throttle and potentially unload foreground tabs in occluded windows.
-        "CalculateNativeWinOcclusion",
-        // Disables the Discover feed on NTP
-        "InterestFeedContentSuggestions",
-        // Don't update the CT lists
-        "CertificateTransparencyComponentUpdater",
-        // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
-        "AutofillServerCommunication",
-        // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
-        "PrivacySandboxSettings4",
-			]),
+			// "--disable-features=" + string.Join(",", [
+			// 	//"PreciseMemoryInfo",
+			// 	//"SharedArrayBuffer",
+			// 	//"WebBluetooth",
+			// 	//"WebUsb",
+			// 	//"WebRtcHWDecoding",
+			// 	//"WebRtcHWEncoding",
+			// 	//"FractionalScrollOffsets",
+			// 	//"Canvas2DLayers",
+			// 	// Disable the default browser check, do not prompt to set it as such
+			// 	"InstalledApp",
+			// 	"InstalledAppProvider",
+      //   // Disable built-in Google Translate service
+      //   "Translate",
+      //   // Disable the Chrome Optimization Guide background networking
+      //   "OptimizationHints",
+      //   //  Disable the Chrome Media Router (cast target discovery) background networking
+      //   "MediaRouter",
+      //   /// Avoid the startup dialog for _Do you want the application “Chromium.app” to accept incoming network connections?_. This is a sub-component of the MediaRouter.
+      //   "DialMediaRouteProvider",
+      //   // Disable the feature of: Calculate window occlusion on Windows will be used in the future to throttle and potentially unload foreground tabs in occluded windows.
+      //   "CalculateNativeWinOcclusion",
+      //   // Disables the Discover feed on NTP
+      //   "InterestFeedContentSuggestions",
+      //   // Don't update the CT lists
+      //   "CertificateTransparencyComponentUpdater",
+      //   // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
+      //   "AutofillServerCommunication",
+      //   // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
+      //   "PrivacySandboxSettings4",
+			// ]),
 			// Disable all chrome extensions
 			//"--disable-extensions",
 			// Disable some extensions that aren't affected by --disable-extensions
@@ -249,87 +247,64 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 			"--restore-last-session",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
-			//Settings.Profile.Proxy.CanUse ? $"--proxy-server={Settings.Profile.Proxy.ServerForRequest}" : "",
+			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			//Settings.Profile.Proxy.HasLogin ? $"--proxy-auth={Settings.Profile.Proxy.UserName}:{Settings.Profile.Proxy.Password}" : "",
 			#if DEBUG
 				$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
 			#else
 				$"--load-extension=\"{exts}\"",
 			#endif
-			ExtUrl
+			ExtUrl + SessionId,
 			//"about:blank"
 		}.Where(x => !string.IsNullOrWhiteSpace(x)));
 	}
 
 	// ...
-	protected override async Task InitializeExtensionPath()
-	{
+	protected override async Task InitializeExtensionPath() {
 		Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
-		var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new(){
-			timezone = "America/Los_Angeles",
+		var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
+			timezone = "Pacific/Honolulu",
 			lat = 34.052235,
 			lon = -118.243683,
 			tzSystem = true
 		};
-		AddonsServer.Instance.AddonInstances[SessionId] = new
-		{
-			enabled = true,
-			log = Debugger.IsAttached ? "all" : "none",
-			dAPI = "disable_non_proxied_udp",
-			tz = new
-			{
+		AddonsServer.Instance.AddonInstances[SessionId] = new {
+			urls = new {
+				start = Settings.StartUrl,
+			},
+			tz = new {
 				enabled = Settings.Emulation.AutoTimezone,
 				zone = ipapi.timezone,
-				locale = "en-US",
-				random = false,
 				useSystem = ipapi.tzSystem
 			},
-			geo = new
-			{
+			geo = new {
 				enabled = Settings.Emulation.SpoofGeoLocation,
 				ipapi.lat,
 				ipapi.lon,
-				accuracy = 64.0999,
-				random = false
 			},
-			canvas = new
-			{
+			canvas = new {
 				enabled = Settings.Emulation.SpoofCanvasFingerprint,
-				random = false
 			},
-			webgl = new
-			{
+			webgl = new {
 				enabled = Settings.Emulation.SpoofWebGLFingerprint,
-				random = false
 			},
-			rects = new
-			{
+			rects = new {
 				enabled = Settings.Emulation.SpoofClientRects,
-				random = false
 			},
-			fonts = new
-			{
+			fonts = new {
 				enabled = Settings.Emulation.SpoofFontFingerprint,
-				random = false
 			},
-			audio = new
-			{
+			audio = new {
 				enabled = Settings.Emulation.SpoofAudio,
-				random = false
 			},
-			navi = new
-			{
+			navi = new {
 				enabled = Settings.Emulation.SpoofNavigator,
-				random = false
 			},
-			noise = "medium",
-			bypass = Array.Empty<string>(),
-			history = Array.Empty<string>()
 		};
 
 		await File.WriteAllTextAsync(
 			Path.Combine(
-				await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir), 
+				await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir),
 				"settings.js"
 			),
 			@$"export const settings = {{
@@ -339,16 +314,13 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance
 			   	port: {Settings.Profile.Proxy.Port},
 			   	username: '{Settings.Profile.Proxy.UserName}',
 			   	password: '{Settings.Profile.Proxy.Password}',
-			   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")},
-			  	url: '{Settings.StartUrl}',
-					ext: '{ExtUrl}'
+			   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
 			}};"
 		);
 	}
 
 	[SupportedOSPlatform("windows")]
-	protected override async Task WaitForWinHandle()
-	{
+	protected override async Task WaitForWinHandle() {
 		_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
 	}
 }

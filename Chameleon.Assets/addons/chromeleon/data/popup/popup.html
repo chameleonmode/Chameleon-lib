@@ -597,10 +597,6 @@
           <div class="setting-subitem">
             <div class="dropdown">
               <select id="timezone-select" class="searchable-select">
-                <option value="America/New_York" selected>America/New_York</option>
-                <option value="Europe/London">Europe/London</option>
-                <option value="Asia/Tokyo">Asia/Tokyo</option>
-                <option value="Australia/Sydney">Australia/Sydney</option>
                 <!-- More options will be populated dynamically -->
               </select>
             </div>
@@ -674,7 +670,6 @@
             <option value="disable_non_proxied_udp" selected>Disable Non-Proxied UDP</option>
             <option value="default_public_and_private_interfaces">Default Public and Private Interfaces</option>
             <option value="default_public_interface_only">Default Public Interface Only</option>
-            <option value="disable">Disable WebRTC</option>
           </select>
         </div>
         
@@ -683,9 +678,12 @@
           <label class="dropdown-label">Logging Level:</label>
           <select id="log-level" class="searchable-select">
             <option value="none">None</option>
-            <option value="errors">Errors Only</option>
-            <option value="warnings">Warnings and Errors</option>
-            <option value="all" selected>All</option>
+            <option value="log">Log</option>
+            <option value="debug">Debug</option>
+            <option value="info">Info</option>
+            <option value="warn">Warn</option>
+            <option value="error">Error</option>
+            <option value="all">All</option>
           </select>
         </div>
       </div>

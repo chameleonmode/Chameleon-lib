@@ -1,7 +1,7 @@
-// https://privacycheck.sec.lrz.de/active/fp_ac/fp_audiocontext.html
 export default async function (opts) {
+  console.log("Audio Spoofer - Starting", JSON.stringify(opts));
+  // Default settings
   return function (params) {
-    console.log(params);
     const { random, level } = params || {};
 
     // Define noise levels for AudioBuffer.getChannelData with slight variations
@@ -64,7 +64,6 @@ export default async function (opts) {
     let lastProcessedBuffer = null;
 
     // Override AudioBuffer.prototype.getChannelData to add subtle noise
-    try {
       AudioBuffer.prototype.getChannelData = new Proxy(originalMethods.getChannelData, {
         apply(target, self, args) {
           // Call the original method
@@ -94,11 +93,6 @@ export default async function (opts) {
           return buffer;
         },
       });
-
-      console.log("AudioBuffer.prototype.getChannelData successfully protected");
-    } catch (error) {
-      console.error("Failed to protect AudioBuffer.prototype.getChannelData:", error);
-    }
 
     // Helper function to protect analyzer nodes
     const protectAnalyser = function (analyserNode) {
@@ -141,13 +135,11 @@ export default async function (opts) {
 
         return analyserNode;
       } catch (error) {
-        console.error("Failed to protect analyser node:", error);
         return analyserNode;
       }
     };
 
     // Override AudioContext.prototype.createAnalyser
-    try {
       AudioContext.prototype.createAnalyser = new Proxy(originalMethods.createAnalyserAudioContext, {
         apply(target, self, args) {
           // Call the original method to create the analyser
@@ -158,13 +150,7 @@ export default async function (opts) {
         },
       });
 
-      console.log("AudioContext.prototype.createAnalyser successfully protected");
-    } catch (error) {
-      console.error("Failed to protect AudioContext.prototype.createAnalyser:", error);
-    }
-
     // Override OfflineAudioContext.prototype.createAnalyser
-    try {
       OfflineAudioContext.prototype.createAnalyser = new Proxy(
         originalMethods.createAnalyserOfflineAudioContext,
         {
@@ -177,11 +163,6 @@ export default async function (opts) {
           },
         }
       );
-
-      console.log("OfflineAudioContext.prototype.createAnalyser successfully protected");
-    } catch (error) {
-      console.error("Failed to protect OfflineAudioContext.prototype.createAnalyser:", error);
-    }
 
     console.log(`Applied fluid audio protection with level: ${level}, using dynamic noise ranges`);
     return true;

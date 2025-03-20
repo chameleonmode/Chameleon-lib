@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -84,6 +85,7 @@ public class AddonsServer {
           if(body.TryGetProperty("data", out var data)){
             // TODO: Handle the data
           }
+          Debug.WriteLine($"Received data from instance {instanceId} with session {sessionId}");
 
           return Results.Json(type switch {
             "init" => new { config = AddonInstances[sessionId!] },
@@ -91,8 +93,8 @@ public class AddonsServer {
             "action" => new { status = "ok", message = "Action received" },
             _ => new { status = "error", message = "Invalid type" }
           });
-        } catch {
-          return Results.BadRequest(new { error = "Invalid JSON" });
+        } catch(Exception e) {
+          return Results.BadRequest(new { error = "Invalid", e});
         }
       });
 

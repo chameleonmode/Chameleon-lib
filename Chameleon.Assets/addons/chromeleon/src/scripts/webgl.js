@@ -1,9 +1,6 @@
-// https://browserleaks.com/webgl
-// https://privacycheck.sec.lrz.de/active/fp_wg/fp_webgl.html
-// https://gist.github.com/abrahamjuliot/7baf3be8c451d23f7a8693d7e28a35e2
 export default async function (opts) {
+  console.log("WebGL Spoofer - Starting", JSON.stringify(opts));
   return function (params) {
-    console.log(params);
     const { random, level } = params || {};
 
     // PRNG configuration
@@ -146,9 +143,7 @@ export default async function (opts) {
               }
             }
           }
-        } catch (error) {
-          console.error("Error in bufferData spoofing:", error);
-        }
+        } catch (error) { }
 
         // Call original method with potentially modified data
         return originalMethods[
@@ -204,7 +199,6 @@ export default async function (opts) {
           return originalValue;
         } catch (error) {
           // If anything goes wrong, return the original method's result
-          console.error("Error in getParameter spoofing:", error);
           return originalMethods[
             contextType === WebGLRenderingContext ? "WebGLGetParameter" : "WebGL2GetParameter"
           ].call(this, pname);
