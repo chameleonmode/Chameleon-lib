@@ -1,8 +1,8 @@
 // This file is responsible for managing the Chrome Debugger API
 
 import App from "../app.js";
-import PageMutations from "../modules/PageMutations.js";
-import PageEmulations from "../modules/PageEmulations.js";
+import PageMutations from "../modules/mutations.js";
+import PageEmulations from "../modules/emulations.js";
 import { log } from "./logger.js";
 
 // Keep track of mutator per tab

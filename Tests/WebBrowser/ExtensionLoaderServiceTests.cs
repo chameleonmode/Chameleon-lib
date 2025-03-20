@@ -8,7 +8,7 @@ public class ExtensionLoaderServiceTests {
 		// Arrange
 		var extensionType = ExtensionType.chromeleon;
 		var destinationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-		var settings = "{}";
+		//var settings = "{}";
 
 		Debug.WriteLine($"Testing LoadExtension with destination path: {destinationPath}");
 		try {
@@ -19,7 +19,7 @@ public class ExtensionLoaderServiceTests {
 			//}
 
 			// Act
-			_ = await ExtensionLoader.LoadExtension(extensionType, destinationPath, settings);
+			_ = await ExtensionLoader.LoadExtension(extensionType, destinationPath);
 
 			// Assert
 			var dest = Path.Combine(destinationPath, extensionType.ToString());
