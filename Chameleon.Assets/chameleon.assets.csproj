@@ -12,4 +12,8 @@
 		<EmbeddedResource Include="json\**" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="addons/foxyproxy/" />
+	</ItemGroup>
+
 </Project>

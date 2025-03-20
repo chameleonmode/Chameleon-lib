@@ -1,23 +1,17 @@
 {
     "name": "Chroxy Proxy",
     "description": "A Chroxy Proxy is one of the Chromeleon adaptations.",
-    "version": "2025.3.11",
+    "version": "2025.3.20",
     "manifest_version": 3,
     "permissions": [
-        "management",
-        "proxy",
-        "storage",
-        "tabs",
-        "webRequest", 
-        "webRequestAuthProvider"
+      "proxy",
+      "tabs",
+      "webRequest", 
+      "webRequestAuthProvider"
     ],
-    "host_permissions": [ "<all_urls>" ],
+    "host_permissions": ["<all_urls>"],
     "background": {
       "service_worker": "background.js",
-      "type": "module" 
-    },
-    "externally_connectable": {
-      "ids": ["onmphcpdlamnigcccfcpikhihfaffapp"],
-      "matches": ["<all_urls>"]
+      "type": "module"
     }
   }

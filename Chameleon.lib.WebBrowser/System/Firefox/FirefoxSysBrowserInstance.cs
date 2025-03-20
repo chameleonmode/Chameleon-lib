@@ -49,6 +49,22 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			}
 		}
 
+		//
+		// var groxyDir = await ExtensionLoader.LoadExtension(ExtensionType.foxyproxy, Settings.DestExtentionsDir);
+		// await File.WriteAllTextAsync(Path.Combine(groxyDir,"settings.js"),
+		// 	@$"export const settings = {{
+		// 	   	type: 'http',
+		// 		 	server: '{Settings.Profile.Proxy.Server}',
+		// 	   	host: '{Settings.Profile.Proxy.HostForRequest}',
+		// 	   	port: {Settings.Profile.Proxy.Port},
+		// 	   	username: '{Settings.Profile.Proxy.UserName}',
+		// 	   	password: '{Settings.Profile.Proxy.Password}',
+		// 	   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
+		// 	}};"
+		// );
+		// await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid().ToString() + ".xpi"), groxyDir);
+		// await IOtil.DeleteDExistsAsync(Settings.DestExtentionsDir);
+
 		//var policy =
 		//@$"
 		//{{

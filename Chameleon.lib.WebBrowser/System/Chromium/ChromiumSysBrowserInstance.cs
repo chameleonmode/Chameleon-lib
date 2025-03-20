@@ -148,46 +148,45 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			// 	"bypassCSP=false",
 			// 	"inForcedColors=true",
 			// ]),
-			//"--enable-features=" + string.Join(",", [
-			//	"NoThrowForCSPBlockedWorker",
-			//	"UserAgentReduction",
-			//	"NetworkQualityEstimatorWebHoldback",
-			//	"StrictOriginIsolation",
-			//	"ReduceUserAgentMinorVersion",
-			//	"ReduceUserAgentPlatformOsCpu",
-			//	"ReduceAcceptLanguage",
-			//]),
-			// "--disable-features=" + string.Join(",", [
-			// 	//"PreciseMemoryInfo",
-			// 	//"SharedArrayBuffer",
-			// 	//"WebBluetooth",
-			// 	//"WebUsb",
-			// 	//"WebRtcHWDecoding",
-			// 	//"WebRtcHWEncoding",
-			// 	//"FractionalScrollOffsets",
-			// 	//"Canvas2DLayers",
-			// 	// Disable the default browser check, do not prompt to set it as such
-			// 	"InstalledApp",
-			// 	"InstalledAppProvider",
-      //   // Disable built-in Google Translate service
-      //   "Translate",
-      //   // Disable the Chrome Optimization Guide background networking
-      //   "OptimizationHints",
-      //   //  Disable the Chrome Media Router (cast target discovery) background networking
-      //   "MediaRouter",
-      //   /// Avoid the startup dialog for _Do you want the application “Chromium.app” to accept incoming network connections?_. This is a sub-component of the MediaRouter.
-      //   "DialMediaRouteProvider",
-      //   // Disable the feature of: Calculate window occlusion on Windows will be used in the future to throttle and potentially unload foreground tabs in occluded windows.
-      //   "CalculateNativeWinOcclusion",
-      //   // Disables the Discover feed on NTP
-      //   "InterestFeedContentSuggestions",
-      //   // Don't update the CT lists
-      //   "CertificateTransparencyComponentUpdater",
-      //   // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
-      //   "AutofillServerCommunication",
-      //   // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
-      //   "PrivacySandboxSettings4",
-			// ]),
+			"--enable-features=" + string.Join(",", [
+				"UserAgentReduction",
+				"NetworkQualityEstimatorWebHoldback",
+				"StrictOriginIsolation",
+				"ReduceUserAgentMinorVersion",
+				"ReduceUserAgentPlatformOsCpu",
+				"ReduceAcceptLanguage",
+			]),
+			"--disable-features=" + string.Join(",", [
+				"PreciseMemoryInfo",
+				"SharedArrayBuffer",
+				"WebBluetooth",
+				"WebUsb",
+				"WebRtcHWDecoding",
+				"WebRtcHWEncoding",
+				"FractionalScrollOffsets",
+				"Canvas2DLayers",
+				// Disable the default browser check, do not prompt to set it as such
+				"InstalledApp",
+				"InstalledAppProvider",
+        // Disable built-in Google Translate service
+        "Translate",
+        // Disable the Chrome Optimization Guide background networking
+        "OptimizationHints",
+        //  Disable the Chrome Media Router (cast target discovery) background networking
+        "MediaRouter",
+        /// Avoid the startup dialog for _Do you want the application “Chromium.app” to accept incoming network connections?_. This is a sub-component of the MediaRouter.
+        "DialMediaRouteProvider",
+        // Disable the feature of: Calculate window occlusion on Windows will be used in the future to throttle and potentially unload foreground tabs in occluded windows.
+        "CalculateNativeWinOcclusion",
+        // Disables the Discover feed on NTP
+        "InterestFeedContentSuggestions",
+        // Don't update the CT lists
+        "CertificateTransparencyComponentUpdater",
+        // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
+        "AutofillServerCommunication",
+        // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
+        "PrivacySandboxSettings4",
+			]),
 			// Disable all chrome extensions
 			//"--disable-extensions",
 			// Disable some extensions that aren't affected by --disable-extensions
@@ -244,7 +243,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--disable-hyperlink-auditing",
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
-			"--restore-last-session",
+			//"--restore-last-session",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
@@ -301,6 +300,10 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 				enabled = Settings.Emulation.SpoofNavigator,
 			},
 		};
+		var chromeleon = Path.Combine(Settings.CachedExtentionsDir, ExtensionType.chromeleon.ToString());
+		if (!Directory.Exists(chromeleon)) {
+			_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+		}
 
 		await File.WriteAllTextAsync(
 			Path.Combine(

@@ -154,22 +154,22 @@ export default async function (opts) {
       // Override getParameter to modify returned values
       proto.getParameter = function (pname) {
         try {
-          // Special handling for UNMASKED_VENDOR_WEBGL and UNMASKED_RENDERER_WEBGL
-          if (pname === 37445) { // UNMASKED_VENDOR_WEBGL
-            // Return one of the most common vendor values
-            // return "Google Inc.";
-            return "";
-          }
-          if (pname === 37446) { // UNMASKED_RENDERER_WEBGL
-            // Return an appropriate ANGLE implementation based on common platforms
-            // For maximum compatibility, use one of these common configurations:
-            // return "ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)";
-            // Other common options:
-            // "ANGLE (Intel, Intel(R) HD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)"
-            // "ANGLE (NVIDIA, NVIDIA GeForce GTX 1060 Direct3D11 vs_5_0 ps_5_0, D3D11)"
-            // "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)"
-            return "";
-          }
+          // // Special handling for UNMASKED_VENDOR_WEBGL and UNMASKED_RENDERER_WEBGL
+          // if (pname === 37445) { // UNMASKED_VENDOR_WEBGL
+          //   // Return one of the most common vendor values
+          //   // return "Google Inc.";
+          //   return "";
+          // }
+          // if (pname === 37446) { // UNMASKED_RENDERER_WEBGL
+          //   // Return an appropriate ANGLE implementation based on common platforms
+          //   // For maximum compatibility, use one of these common configurations:
+          //   // return "ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)";
+          //   // Other common options:
+          //   // "ANGLE (Intel, Intel(R) HD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)"
+          //   // "ANGLE (NVIDIA, NVIDIA GeForce GTX 1060 Direct3D11 vs_5_0 ps_5_0, D3D11)"
+          //   // "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)"
+          //   return "";
+          // }
           // Get the original value first
           const originalValue = originalMethods[
             contextType === WebGLRenderingContext ? "WebGLGetParameter" : "WebGL2GetParameter"
@@ -177,12 +177,12 @@ export default async function (opts) {
 
           // Only proceed with modification if we got a valid response
           if (originalValue !== null && originalValue !== undefined) {
-            // // Special handling for debug info extension
-            // if (pname === 37445 || pname === 37446) {
-            //   // UNMASKED_VENDOR_WEBGL or UNMASKED_RENDERER_WEBGL
-            //   // Don't modify vendor/renderer strings as they might break compatibility
-            //   return originalValue;
-            // }
+            // Special handling for debug info extension
+            if (pname === 37445 || pname === 37446) {
+              // UNMASKED_VENDOR_WEBGL or UNMASKED_RENDERER_WEBGL
+              // Don't modify vendor/renderer strings as they might break compatibility
+              return originalValue;
+            }
 
             // Only apply noise to important numeric parameters that affect fingerprinting
             if (IMPORTANT_PARAMS_ENUM.includes(pname)) {

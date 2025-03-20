@@ -8,6 +8,7 @@
  * https://privacycheck.sec.lrz.de/active/fp_wg/fp_webgl.html
  * https://gist.github.com/abrahamjuliot/7baf3be8c451d23f7a8693d7e28a35e2
  * https://privacycheck.sec.lrz.de/active/fp_ac/fp_audiocontext.html
+ * https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
  *
  * A module for monitoring element creation in web pages, including:
  * - Main content page

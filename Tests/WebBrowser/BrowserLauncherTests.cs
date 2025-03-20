@@ -27,11 +27,12 @@ public class BrowserLauncherTests {
 				}),
 				"https://example.com",
 				new () {
-					SpoofClientRects = false,
-					SpoofFontFingerprint = false,
-					SpoofCanvasFingerprint = false,
-					SpoofWebGLFingerprint = false,
-					SpoofAudio = false,
+					SpoofClientRects = true,
+					SpoofFontFingerprint = true,
+					SpoofCanvasFingerprint = true,
+					SpoofWebGLFingerprint = true,
+					SpoofAudio = true,
+					SpoofNavigator = false,
 					SpoofGeoLocation = true,
 					AutoTimezone = true,
 				}
@@ -84,22 +85,29 @@ public class BrowserLauncherTests {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
-		IoC.SetJsonValue(new EmulationOptions {
-			DisableWebRTC = true,
-			SpoofClientRects = true,
-			SpoofFontFingerprint = true,
-			SpoofCanvasFingerprint = true,
-			SpoofWebGLFingerprint = true,
-			SpoofGeoLocation = true,
-			AutoTimezone = true,
-		}, nameof(EmulationOptions));
-		var bi = await  SystemBrowserService.Instance.Open(
-			new SysBrowserOpenOptions(
-				SystemBrowserType.Firefox,
+		var bi = await SystemBrowserService.Instance.Open(
+			new SysBrowserOpenOptions(SystemBrowserType.Firefox,
 				new SysBrowserProfile() {
-					Id = 2
-				})
-				,"https://example.com"
-			);
+					Id = 3,
+					Proxy = new SysBrowserProxy() {
+						Host = "proxy.chameleonmode.com",
+						Port = 31112,
+						UserName = "elimdadia_gmail_com",
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
+					}
+				}),
+				"https://example.com",
+				new () {
+					SpoofClientRects = true,
+					SpoofFontFingerprint = true,
+					SpoofCanvasFingerprint = true,
+					SpoofWebGLFingerprint = true,
+					SpoofAudio = true,
+					SpoofNavigator = false,
+					SpoofGeoLocation = true,
+					AutoTimezone = true,
+				}
+		);
+		Assert.NotNull(bi);
 	}
 }

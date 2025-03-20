@@ -23,12 +23,13 @@ class PageEmulations {
     const { enabled, zone, locale, random, useSystem } = App.config.tz;
     if (enabled) {
       log.info(`Applying timezone emulation for tab ${this.tabId}`, App.config.tz);
+      const timezoneId = useSystem
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : random
+        ? Object.keys(offsets)[Math.floor(Math.random() * Object.keys(offsets).length)]
+        : zone;
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setTimezoneOverride", {
-        timezoneId: useSystem
-          ? Intl.DateTimeFormat().resolvedOptions().timeZone
-          : random
-          ? Object.keys(offsets)[Math.floor(Math.random() * Object.keys(offsets).length)]
-          : zone,
+        timezoneId,
       });
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setLocaleOverride", {
         locale: locale,
@@ -40,16 +41,22 @@ class PageEmulations {
     const { enabled, lat, lon, random, accuracy } = App.config.geo;
     if (enabled) {
       log.info(`Applying geolocation emulation for tab ${this.tabId}`, App.config.geo);
+      const latitude = random ? lat + (Math.random() - 0.5) * random : lat;
+      const longitude = random ? lon + (Math.random() - 0.5) * random : lon;
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setGeolocationOverride", {
-        latitude: random ? lat + (Math.random() - 0.5) * random : lat,
-        longitude: random ? lon + (Math.random() - 0.5) * random : lon,
-        accuracy: accuracy,
+        latitude,
+        longitude,
+        accuracy,
       });
 
       const acceptLanguage = "en-US";
-      const latitude = `latitude_e7: ${Math.floor(lat * 1e7)}`;
-      const longitude = `longitude_e7: ${Math.floor(lon * 1e7)}`;
-      const locationString = `role: CURRENT_LOCATION\nproducer: DEVICE_LOCATION\nradius: 65000\nlatlng <\n  ${latitude}\n  ${longitude}\n>`;
+      const locationString = `role: CURRENT_LOCATION
+         producer: DEVICE_LOCATION
+         radius: 65000
+         latlng <
+           latitude_e7: ${Math.floor(lat * 1e7)}
+           longitude_e7: ${Math.floor(lon * 1e7)}
+         >`;
       const uule = `a ${btoa(locationString)}`;
       await chrome.declarativeNetRequest.updateSessionRules({
         removeRuleIds: [1, 420],
@@ -71,6 +78,11 @@ class PageEmulations {
           },
         ],
       });
+    }else{
+      await chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [1, 420],
+      });
+      await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.clearGeolocationOverride");
     }
   }
 }
