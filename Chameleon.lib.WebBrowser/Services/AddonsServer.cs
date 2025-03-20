@@ -52,7 +52,7 @@ public class AddonsServer {
 
 			// Configure to listen on all available interfaces, not just localhost
 			_ = builder.WebHost.ConfigureKestrel(options => {
-				options.Listen(IPAddress.Any, Port);
+				options.Listen(IPAddress.Loopback, Port);
 			});
       app = builder.Build();
       // Use minimal middleware
@@ -107,7 +107,7 @@ public class AddonsServer {
         try {
           using var httpClient = new HttpClient();
           httpClient.Timeout = TimeSpan.FromMilliseconds(500);
-          var response = await httpClient.GetAsync($"http://localhost:{Port}/ping");
+          var response = await httpClient.GetAsync($"http://127.0.0.1:{Port}/ping");
           _ = response.EnsureSuccessStatusCode();
           break;
         } catch (Exception e) {
