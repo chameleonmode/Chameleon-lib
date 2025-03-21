@@ -17,7 +17,29 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 
 		if (!string.IsNullOrEmpty(options.WaitForSelector)) _ = await page.WaitForSelectorAsync(options.WaitForSelector, new PageWaitForSelectorOptions { Timeout = options.WaitTimeout });
 
-		var html = await page.EvaluateAsync<string>("() => document.documentElement.outerHTML");
+		var html = await page.EvaluateAsync<string>(@"() => {
+        function getShadowHTML(el) {
+            let shadow = el.shadowRoot;
+            if (!shadow) return '';
+            let html = '';
+            shadow.childNodes.forEach(child => {
+                html += getFullHTML(child);
+            });
+            return html;
+        }
+        function getFullHTML(node) {
+            if (node.nodeType === Node.TEXT_NODE)
+                return node.textContent;
+            let html = node.outerHTML || '';
+            if (node.shadowRoot) {
+                // Insert shadow content before closing tag.
+                let shadowHTML = getShadowHTML(node);
+                html = html.replace(/(<\/[^>]+>)$/, shadowHTML + '$1');
+            }
+            return html;
+        }
+        return getFullHTML(document.documentElement);
+    }");
 		return html;
 	}
 

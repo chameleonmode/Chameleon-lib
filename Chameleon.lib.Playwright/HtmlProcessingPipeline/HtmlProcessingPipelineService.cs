@@ -47,12 +47,8 @@ public class HtmlProcessingPipelineService(
 		return finalSelectors;
 	}
 
-	public async Task<string> ProcessUrlAndGenerateScriptInChunksChatAsync(
-						string url,
-						string automationDescription,
-						ExtractionOptions extractionOptions,
-						HtmlChunkingOptions chunkingOptions,
-						SelectorExtractionOptions selectorOptions,
+	public async Task<string> ProcessUrlAndGenerateScriptInChunksChatAsync(string url, string automationDescription,
+						ExtractionOptions extractionOptions, HtmlChunkingOptions chunkingOptions, SelectorExtractionOptions selectorOptions,
 						AiIntegrationOptions aiOptions,
 						int maxSelectorsPerChunk = 200,
 						CancellationToken cancellationToken = default) {
@@ -77,6 +73,11 @@ public class HtmlProcessingPipelineService(
 														.DistinctBy(d => d.Selector)
 													 .ToList();
 
+			var hasShadowSelectors = selectors.Where(x => x.Selector.Contains("shreddit"));
+			if (hasShadowSelectors.Any()) {
+				Console.WriteLine($"Test:{System.Text.Json.JsonSerializer.Serialize(hasShadowSelectors)}");
+			}
+
 			var selectorBatches = htmlChunker.ChunkSelectors(selectors, maxSelectorsPerChunk);
 
 			foreach (var batch in selectorBatches) {
@@ -84,7 +85,7 @@ public class HtmlProcessingPipelineService(
 				conversation.Add(new ChatMessage(ChatRole.User, partialPrompt));
 			}
 
-			if(selectorBatches.Count > 0) {
+			if (selectorBatches.Count > 0) {
 				var partialResponse = await aiIntegrationService.GenerateScriptChatResponseAsync(conversation, chatOptions, cancellationToken);
 				conversation.Add(new ChatMessage(ChatRole.Assistant, partialResponse.Text));
 			}
@@ -98,6 +99,51 @@ public class HtmlProcessingPipelineService(
 
 		return finalResponse.Text;
 	}
+
+	public async Task<string> ProcessUrlAndGenerateScriptWithRetrievalAsync(string url, string automationDescription, ExtractionOptions extractionOptions,
+		HtmlChunkingOptions chunkingOptions, SelectorExtractionOptions selectorOptions, AiIntegrationOptions aiOptions,
+		int topNChunks = 5, CancellationToken cancellationToken = default) {
+
+		var fullHtml = await htmlExtractor.ExtractHtmlAsync(url, extractionOptions, cancellationToken);
+
+		var chunkedHtmlWithSelectors = await htmlChunker.ChunkHtmlAsync(fullHtml, chunkingOptions, cancellationToken);
+
+		var chunkSummaries = new Dictionary<string, string>();
+		foreach (var chunk in chunkedHtmlWithSelectors) {
+			var selectors = await selectorExtractor.ExtractSelectorsAsync(chunk, selectorOptions, cancellationToken);
+			selectors = selectors.Where(s => !string.IsNullOrWhiteSpace(s.InnerText) && s.InnerText.Length > 3)
+													 .ToList();
+			var sb = new StringBuilder();
+			sb.AppendLine("Chunk Summary:");
+			foreach (var info in selectors) {
+				sb.AppendLine($"- Selector: {info.Selector}, Tag: {info.TagName}" +
+											(string.IsNullOrWhiteSpace(info.InnerText) ? "" : $", InnerText: \"{info.InnerText}\""));
+			}
+			var summary = sb.ToString();
+			chunkSummaries[summary] = summary;
+		}
+
+		var embeddings = await aiIntegrationService.GenerateEmbeddingsForChunksAsync(chunkSummaries.Values, cancellationToken);
+
+		var relevantChunkSummaries = await aiIntegrationService.RetrieveRelevantChunksAsync(automationDescription, embeddings, topNChunks, cancellationToken);
+
+		var finalPromptBuilder = new StringBuilder();
+		finalPromptBuilder.AppendLine("Automation Script Requirements:");
+		finalPromptBuilder.AppendLine(automationDescription);
+		finalPromptBuilder.AppendLine();
+		finalPromptBuilder.AppendLine("Relevant DOM Summaries:");
+		foreach (var summary in relevantChunkSummaries) {
+			finalPromptBuilder.AppendLine(summary);
+		}
+		finalPromptBuilder.AppendLine();
+		finalPromptBuilder.AppendLine("Based on the above, generate a complete JavaScript automation script using Playwright that meets the requirements.");
+
+		var finalPrompt = finalPromptBuilder.ToString();
+
+		var finalScript = await aiIntegrationService.GenerateScriptAsync(finalPrompt, aiOptions, cancellationToken);
+		return finalScript;
+	}
+
 
 
 	private string BuildPartialPrompt(IList<SelectorInfo> selectors) {
