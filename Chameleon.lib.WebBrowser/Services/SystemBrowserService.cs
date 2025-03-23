@@ -27,12 +27,6 @@ public class SystemBrowserService {
 		}
 	}
 	public int TimeOut { get; } = 26;
-	public static ISysBrowserInstance Create(SysBrowserSettings launchOptions) => launchOptions.BrowserType switch {
-		SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = launchOptions },
-		SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = launchOptions },
-		SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = launchOptions },
-		_ => throw new NotImplementedException(),
-	};
 
 	private readonly WindowEventHandler? windowEventHandler;
 
@@ -94,20 +88,45 @@ public class SystemBrowserService {
 	#endregion
 
 	public async Task<ISysBrowserInstance?> OpenWithSettings(SysBrowserSettings launchSettings) {
-		var browser = Create(launchSettings);
-		browser.OnEvent += Browser_OnEvent;
-		Instances[launchSettings.OpenOptions] = browser;
-		var initTask = browser.InitializeAsync();
+		//await NodeServerLauncher.Instance.StartServer();
+		await AddonsServer.Instance.Start();
+		var browser = Instances[launchSettings.OpenOptions] = launchSettings.BrowserType switch {
+			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = launchSettings },
+			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = launchSettings },
+			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = launchSettings },
+			_ => throw new NotImplementedException(),
+		};
+		browser.OnEvent += async (sender, args) => {
+			switch (args.EventType) {
+				case SysBrowserEventType.Closed:
+					do {
+						if (Instances.TryGetValue(args.OpenOptions, out var browser)) {
+							_ = await browser.LoadedTCS.Task;
+							_ = Instances.TryRemove(args.OpenOptions, out _);
+							break;
+						}
+						await Task.Delay(250);
+					}
+					while (IsBusy);
+					break;
+				default:
+					break;
+			}
+		};
+		_ = browser.InitializeAsync();
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
 			browser.InvokeEvent(SysBrowserEventType.Foreground);
 			browser.InvokeEvent(SysBrowserEventType.Opened);
 		} else {
 			throw new Exception("Browser Load Failed");
 		}
-
-		return browser;
+		return Instances[launchSettings.OpenOptions];
 	}
-	public async Task<ISysBrowserInstance?> Open(SysBrowserOpenOptions options, Func<string> @startUrl, EmulationOptions? emulations = null) {
+	public async Task<ISysBrowserInstance?> Open(
+		SysBrowserOpenOptions options, 
+		string startUrl,
+		EmulationOptions? emulations = null
+	) {
 		if (!Instances.TryGetValue(options, out var browser)) {
 			OpenTaskCompletionSource = new TaskCompletionSource<ISysBrowserInstance?>();
 			try {
@@ -122,7 +141,12 @@ public class SystemBrowserService {
 						: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
 					}
 				}
-				browser = await OpenWithSettings(new(options, emulations ?? IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new(), startUrl(), TcpUtil.NextFreePort(9613)));
+				browser = await OpenWithSettings(new(
+					options, 
+					emulations ?? IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new(), 
+					startUrl,
+					TcpUtil.NextFreePort(9613))
+				);
 			} catch (Exception e) {
 				browser?.InvokeEvent(SysBrowserEventType.Error);
 				Toaster.Error(e.Message);
@@ -139,7 +163,7 @@ public class SystemBrowserService {
 			if (browser.Brocess?.HasExited == true) {
 				browser.Close();
 				await Task.Delay(250);
-				_ = Open(options, @startUrl);
+				_ = Open(options, startUrl);
 			} else {
 				browser.InvokeEvent(SysBrowserEventType.Foreground);
 			}
@@ -149,26 +173,6 @@ public class SystemBrowserService {
 		return browser;
 	}
 
-	private async void Browser_OnEvent(object sender, SysBrowserEvent args) {
-		switch (args.EventType) {
-			case SysBrowserEventType.Closed:
-				do {
-					if (Instances.TryGetValue(args.OpenOptions, out var browser)) {
-						_ = await browser.LoadedTCS.Task;
-						_ = Instances.TryRemove(args.OpenOptions, out _);
-						break;
-					}
-
-					await Task.Delay(250);
-				}
-				while (IsBusy);
-				break;
-
-			default:
-				break;
-		}
-	}
-
 	// Singleton
-	public static SystemBrowserService Instance { get;} = new();
+	public static SystemBrowserService Instance { get; } = new();
 }

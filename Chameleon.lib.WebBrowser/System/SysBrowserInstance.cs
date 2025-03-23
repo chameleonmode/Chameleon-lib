@@ -1,7 +1,6 @@
 ﻿using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Constants;
-using static Chameleon.lib.Common.Constants.Enums;
 using Chameleon.lib.Common.Interfaces.Sys;
 using Chameleon.lib.Common.Models;
 using System.Diagnostics;
@@ -10,11 +9,10 @@ using System.Runtime.Versioning;
 namespace Chameleon.lib.WebBrowser.System;
 public abstract class SysBrowserInstance
 		: ISysBrowserInstance {
-
+	public required SysBrowserSettings Settings { get; init; }
 	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public Process? Brocess { get; set; }
-	public required SysBrowserSettings Settings { get; init; }
 
 	public async Task InitializeAsync(object? param = null) {
 		if (Brocess is null) {
@@ -47,8 +45,8 @@ public abstract class SysBrowserInstance
 		}
 	}
 
-	public void InvokeEvent(SysBrowserEventType eventType) {
-		if (eventType == SysBrowserEventType.Foreground)
+	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
+		if (eventType == Enums.SysBrowserEventType.Foreground)
 			_ = ProUtil.TrySetForeground(Brocess);
 
 		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
@@ -68,6 +66,9 @@ public abstract class SysBrowserInstance
 
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
+
+	public string SessionId { get; } = Guid.NewGuid().ToString();
+
 	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments();
 

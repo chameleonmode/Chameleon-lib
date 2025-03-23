@@ -8,7 +8,7 @@ public class Toaster {
 	private Toaster() { }
 	public static Toaster Instance { get; } = new Toaster();
 	//
-	static string Format(params string[] msg) => string.Join(": ", msg);
+	static string Format(params string[] msg) => string.Join('\n', msg);
 	//
 	public static void Error(params string[] err) {
 		var txt = Format(err);

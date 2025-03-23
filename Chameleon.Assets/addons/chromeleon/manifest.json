@@ -1,71 +1,45 @@
 {
-  "version": "2024.9.6.1",
-  "manifest_version": 3,
-  "offline_enabled": true,
   "name": "Chromeleon",
-  "description": "A Chrome addon for Chameleon - Enhance your browser privacy and security",
+  "description": "A Chromeleon is the extension that can change its behavior to blend into the environment of any websites fishing attempts.",
+  "version": "2025.3.20",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["data/web/register.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_popup": "data/popup/popup.html"
+  },
   "permissions": [
-    "storage",
-    "contextMenus",
-    "notifications",
     "activeTab",
+    "contextMenus",
     "debugger",
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
+    "geolocation",
+    "notifications",
     "privacy",
     "scripting",
-    "userScripts",
+    "storage",
     "tabs",
+    "userScripts",
     "webNavigation",
-    "webRequest",
-    "geolocation"
+    "webRequest"
   ],
-  "host_permissions": [
-    "*://*/*"
+  "host_permissions": [ 
+    "<all_urls>"
   ],
-  "commands": {
-    "_execute_action": {}
-  },
   "icons": {
     "16": "data/icons/16.png",
     "32": "data/icons/32.png",
     "64": "data/icons/icon_32x32_2x.png",
     "128": "data/icons/icon_128x128.png"
   },
-  "options_ui": {
-    "page": "/data/options/options.html"
-  },
-  "action": {
-    "default_popup": "data/popup/popup.html"
-  },
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "content_scripts": [
-    {
-      "world": "ISOLATED",
-      "matches": [ "*://*/*" ],
-      "all_frames": true,
-      "match_about_blank": true,
-      "run_at": "document_start",
-      "match_origin_as_fallback": true,
-      "js": [ 
-        "scriptin/isolated.js" 
-      ]
-    },
-    {
-      "matches": [ "<all_urls>" ],
-      "js": [ "scriptin/content-script.js" ]
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "modules/*.js"
-      ],
-      "matches": [ "<all_urls>" ]
-    }
-  ],
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqiE+Ii2nQx8zV8oOedrhqASrq5/X/fag/uiIT77r9miVKUHWkeBxGBnP1Egz80OLG9fGkQT7MNI29vSIGDzBMO3li74KcpVQKBx634/JXpai/LcE378KIiKFYG8kIC175904goxDazJIAL5/9e94Ri5yT88C023WHTrPrzxwq6OC5t4gMMx3ulHjZ9p1XLn8O34T4GdCNSJKaOJuVcLft8saUyxUzi5ZDqPObr/PeBUryYFgjwFnF08aLq0e4d0eHliBkf7ZNhFfNs8gIx46Iun2LmdqxFPytGPLZ4lS1qF+UDMyCT6/JO4CS9YT10/stwcxsKlVVca6yoU3DrgUbQIDAQAB"
+  "key": "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDMvFvbpx8SU6tmjAWsdYJA9t/BK3w4tmSRbw7bHDvVcmilLFGPuJ31+R48IQ/1HtnRxFs3wPRusJun/PsY6dWpONgGwIEqjiOKyjf7b6tl4blUVi3qsgTv0heJREeAYohoWnaVN/Q0oLhZtASsYfxjQfNuY6Opi+Gs2bCxgI1TDPOGrNeFu0Wamoez6Q2lDW9xJxtzw3ROhOtxaaLza6/M9eGp7xpZjPYtPVRr7deBjsKKoiRGKRhnrlmUU2mBrhBTX1ozP5jhEbhi00hSYlAiMXXIqoPLqe46fVxZ6dHoP8xF+LcKmQ0DGjcmx6ZUwIZTHQCWv1sUTQIF2cBSQ0ofAgMBAAECggEAB0YmrPt0cChYULlnNu3Ya7MCeifeLv4CgxLUmmH031qhWEOJeTdKm/2lO6EguexRrn/OGd5fP2oUkJqO2DaS/8j7gynmfmORh4YzlEIu+tywH/sNUgos9Rc/K19vNXRtqYsfcufFwJZhPxx4KJU1Mh5U6+Taj0lIAoj5G7EA67BQOoBlXQWKHj93W0MaGyab9xtqg1HzcOXLvC7HonIHJkqOzfEneMchTcExgBBQIwRuGz/SFNC4GfwngIXaX5XXJMTyyxUOJ/gkHeFi1CNZa7RCM7HNfzgvOybo6DWNewzWNKgbFsnBogwnJv3s7PlxKjutVWG2os9t9N+Kp58rkQKBgQD61d/Us8QMZExe5KQJyrL51YndsFJH8OIEhjkd/OE3zUV8LZ+QHPqDK0j2kpGAvNiXTNJAyzq1la1cD0dzRvFDtE4XDDmOI+oCBLzr"
 }

@@ -19,6 +19,7 @@ public class EmulationOptions {
 	public bool SpoofFontFingerprint { get; set; } = true;
 	public bool SpoofAudio { get; set; } = true;
 	public bool DisableWebRTC { get; set; } = true;
+	public bool SpoofNavigator { get; set; } = false;
 }
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
 public record class SysBrowserRecord(string Name, string Path) {
@@ -27,7 +28,7 @@ public record class SysBrowserRecord(string Name, string Path) {
 		return Name ?? Path;
 	}
 }
-public record SysBrowserOpenOptions(Enums.SystemBrowserType BrowserType, SysBrowserProfile Profile);
+public record SysBrowserOpenOptions(SystemBrowserType BrowserType, SysBrowserProfile Profile);
 public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOptions Emulation, string StartUrl, int Port) {
 	public Enums.SystemBrowserType BrowserType => OpenOptions.BrowserType;
 	public SysBrowserProfile Profile => OpenOptions.Profile;
@@ -43,7 +44,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 	public string DestExtentionsDir {
 		get {
 			if (destextPath == null) {
-				destextPath = Path.Combine(Consts.Addons.AddonExtentionDir, BrowserType.ToString(), Profile.Id.ToString());
+				destextPath = Path.Combine(FilePaths.AppTempDir, "Addons", BrowserType.ToString(), Profile.Id.ToString());
 				IOtil.DeleteDir(destextPath);
 				destextPath = IOtil.EnsureDirectoryExists(Path.Combine(destextPath, Guid.NewGuid().ToString()));
 			}
@@ -53,7 +54,9 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 	private string? cachedExtentionsDir;
 	public string CachedExtentionsDir {
 		get {
-			cachedExtentionsDir ??= IOtil.EnsureDirectoryExists(Path.Combine(Consts.Addons.CachedExtentionDir, BrowserType.ToString(), Profile.Id.ToString()));
+			cachedExtentionsDir ??= IOtil.EnsureDirectoryExists(
+				Path.Combine(FilePaths.AppDataDir, "cache", BrowserType.ToString(), Profile.Id.ToString())
+			);
 			return cachedExtentionsDir;
 		}
 	}
@@ -82,11 +85,15 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		foreach (var o in options) {
 			_ = settingsBuilder.AppendLine($"\"{o.Key}\": {o.Value},");
 		}
-		var ipapi = tzSpoofing && await GeoIpApi.GetIpapi(Profile.Proxy, e => Toaster.Error(e)) is Ipapi papi 
-			? papi 
-			: new Ipapi() { 
-				timezone = "America/Los_Angeles", lat = 34.052235, lon = -118.243683 
-			};
+		var ipapi = await GeoIpApi.GetIpapi(
+			proxy: Profile.Proxy.WebProxy,
+			onretry: e => Toaster.Error(e)
+		) ?? new () {	
+			timezone = "America/Los_Angeles", 
+			lat = 34.052235,
+			lon = -118.243683,
+			tzSystem = true
+		};
 		_ = settingsBuilder.AppendLine($"\"timezone\": \"{ipapi.timezone}\",");
 		_ = settingsBuilder.AppendLine($"\"latitude\": {ipapi.lat},");
 		_ = settingsBuilder.AppendLine($"\"longitude\":{ipapi.lon},");

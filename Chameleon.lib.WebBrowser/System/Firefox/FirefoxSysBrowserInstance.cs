@@ -28,7 +28,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await File.WriteAllTextAsync(versionFile, version);
 
 		//
-		var geckoextDir = await ExtensionLoader.LoadExtension(ExtensionType.foxameleon, Settings.CachedExtentionsDir);
+		var geckoextDir = await ExtensionLoader.LoadExtension(ExtensionType.geckolean, Settings.CachedExtentionsDir);
 		_ = await Settings.BuildMeleonExtSettings(geckoextDir);
 		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.GeckoleonCache);
 		await IOtil.DC(inDirCached);
@@ -48,6 +48,22 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 				await IOtil.DeleteDExistsAsync(destDir);
 			}
 		}
+
+		//
+		// var groxyDir = await ExtensionLoader.LoadExtension(ExtensionType.foxyproxy, Settings.DestExtentionsDir);
+		// await File.WriteAllTextAsync(Path.Combine(groxyDir,"settings.js"),
+		// 	@$"export const settings = {{
+		// 	   	type: 'http',
+		// 		 	server: '{Settings.Profile.Proxy.Server}',
+		// 	   	host: '{Settings.Profile.Proxy.HostForRequest}',
+		// 	   	port: {Settings.Profile.Proxy.Port},
+		// 	   	username: '{Settings.Profile.Proxy.UserName}',
+		// 	   	password: '{Settings.Profile.Proxy.Password}',
+		// 	   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
+		// 	}};"
+		// );
+		// await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid().ToString() + ".xpi"), groxyDir);
+		// await IOtil.DeleteDExistsAsync(Settings.DestExtentionsDir);
 
 		//var policy =
 		//@$"

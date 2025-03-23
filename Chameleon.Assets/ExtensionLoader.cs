@@ -4,6 +4,22 @@ using System.Text.Json;
 namespace chameleon.assets;
 public static class ExtensionLoader {
 	public const string AddonsEmbeddedDir = "embedded://chameleon.assets/addons";
+	public const string JSEmbeddedDir = "embedded://chameleon.assets/js";
+
+	public static async Task LoadFiles(string directory, string destination) {
+		var assetUri = new Uri($"{AddonsEmbeddedDir}/{directory}");
+		var assets = Loader.Instance.GetAssets(assetUri);
+
+		foreach (var asset in assets) {
+			var relativePath = GetRelativePathFromAuthority(asset.Authority.Split('.'), directory);
+			var tempFilePath = Path.GetTempFileName();
+
+			using var stream = Loader.Instance.Open(asset);
+			using var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+			await stream.CopyToAsync(tempFileStream);
+			File.Copy(tempFilePath, Path.Combine(destination, relativePath), true);
+		}
+	}
 
 	public static async Task<string> LoadExtension(ExtensionType extensionType, string destinationPath, string? settings = null, string? version = null) {
 		try {
@@ -16,10 +32,12 @@ public static class ExtensionLoader {
 				var relativePath = GetRelativePathFromAuthority(authorityParts, extensionName);
 
 				await CopyFromStream(
-						Loader.Instance.Open(asset),
-						destinationPath, relativePath,
-						relativePath.EndsWith("background.js") ? settings : null,
-						relativePath.EndsWith("manifest.json") ? version : null);
+					Loader.Instance.Open(asset),
+					destinationPath,
+					relativePath,
+					relativePath.EndsWith("background.js") ? settings : null,
+					relativePath.EndsWith("manifest.json") ? version : null
+				);
 			}
 		} catch (Exception ex) {
 			Console.WriteLine($"Unexpected error: {ex.Message}");
@@ -43,7 +61,8 @@ public static class ExtensionLoader {
 		var destDir = Path.GetDirectoryName(desPath);
 		ArgumentNullException.ThrowIfNull(destDir);
 
-		if (!Directory.Exists(destDir)) 			_ = Directory.CreateDirectory(destDir);
+		if (!Directory.Exists(destDir)) 			
+		  _ = Directory.CreateDirectory(destDir);
 
 		var tempFilePath = Path.GetTempFileName();
 		try {
@@ -74,6 +93,7 @@ public static class ExtensionLoader {
 			}
 		} finally {
 			File.Delete(tempFilePath);
+			inputStream.Dispose();
 		}
 	}
 }

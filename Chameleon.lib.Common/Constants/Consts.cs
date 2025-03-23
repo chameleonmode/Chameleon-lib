@@ -32,22 +32,12 @@ public static class Consts {
 			public const string BrowserSettings = $"{ServicesPath}userdefaultsettings/";
 		}
 	}
-
-	public static class Http {
-		public const string ChameleonModeHost = "proxy.chameleonmode.com";
-		public const string PacketStreamHost = "proxy.packetstream.io";
-		public const string HttpScheme = "http://";
-		public const string HttpsScheme = "https://";
-		public const string UrlSchemeEnd = "://";
-		public const string DomainLevelDelimiter = ".";
-	}
+	
 	public static class Json {
 		public const string JsonFontsEmbeddedDir = "embedded://chameleon.assets.json.fa_symbolfonts.json";
 	}
 
 	public static class Addons {
-		public static string AddonExtentionDir => Path.Combine(FilePaths.AppTempDir, "Addons");
-		public static string CachedExtentionDir => Path.Combine(FilePaths.AppTempDir, "eleonextcache");
 		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..Resources/BrowserExtensions")
 			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources\\BrowserExtensions");
