@@ -87,7 +87,7 @@ public class PlaywrightRunnerTests : TestSetup {
 			BundledScript = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
 				Parameters: new() {
-					{"search", "pulombo bumbo"}
+					{"search", "mumbo jumbo"}
 				}
 			)
 		});
@@ -95,8 +95,8 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestBundledGsiteJsScriptScript() {
-		var port = await OpenBrowser();
-
+		var port = 9613; 
+		//var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new RunScriptOptions {
 			Port = port,
 			BundledScript = repo!.BundledJSScripts[nameof(Gsites)],
@@ -106,11 +106,11 @@ public class PlaywrightRunnerTests : TestSetup {
 					{ "name", "Site Name" },
 					{ "title", "Title" },
 					{ "content", "Content" },
-					{ "textContent", "Post Content" },
-					{ "link", "http://example.com" },
-					{ "linkText", "Link Text" },
-					{ "youtubeSearch", "aii" },
-					{ "locationSearch", "Hawaii" }
+					{ "youtube", "aii" },
+					//{ "textContent", "Post Content" },
+				  //{ "link", "http://example.com" },
+					//{ "linkText", "Link Text" },
+					//{ "locationSearch", "Hawaii" }
 				}
 			)
 		});
