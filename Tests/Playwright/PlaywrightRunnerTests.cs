@@ -80,14 +80,14 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestRedditCommentScript() {
-		var port = 9613; 
-		//var port = await OpenBrowser();
+		//var port = 9613; 
+		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
 			BundledScript = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
 				Parameters: new() {
-					{"search", "mumbo jumbo"}
+					{"search", "plumbus"}
 				}
 			)
 		});
