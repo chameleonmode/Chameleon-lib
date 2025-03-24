@@ -87,7 +87,7 @@ public class PlaywrightRunnerTests : TestSetup {
 			BundledScript = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
 				Parameters: new() {
-					{"search", "plumbus"}
+					{"search", "christopher walken"}
 				}
 			)
 		});

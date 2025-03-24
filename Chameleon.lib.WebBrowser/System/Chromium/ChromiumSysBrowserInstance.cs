@@ -32,9 +32,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories).ToCommaSeparatedString();
 
 		// Construct URL with parameters for extension
-		// --enable-blink-features=WebRtcHideLocalIpsWithMdns,ReducedReferrerGranularity,PartitionVisitedLinkDatabase,QuoteEmptySecChUaStringHeadersConsistently,FencedFrames,ReduceUserAgentMinorVersion,ParkableImagesToDisk,SetIntervalWithoutClamp,WebCryptoCurve25519,BackForwardCacheNotRestoredReasons,LowerHighResolutionTimerThreshold
-		// --disable-blink-features=WebGL1,WebGL2,Canvas2dImageChromium,WebGLImageChromium,CreateImageBitmapOrientationNone,ComputePressure,DeviceAttributes,ClientHintsDPR_DEPRECATED,ClientHintsDeviceMemory_DEPRECATED,ClientHintsViewportWidth_DEPRECATED,ClientHintsResourceWidth_DEPRECATED,PreciseMemoryInfo,CaptureJSExecutionLocation,IntensiveWakeUpThrottling
-		// --blink-settings=webGL1Enabled=false,webGL2Enabled=false,navigatorPlatformOverride="Linux x86_64",deviceScaleAdjustment=1.0,forceDarkModeEnabled=true,inForcedColors=true,prefersReducedMotion=true,prefersReducedTransparency=true,antialiased2dCanvasEnabled=false,primaryPointerType=mojom::blink::PointerType::kPointerCoarse,primaryHoverType=mojom::blink::HoverType::kHoverHoverable
+
 		return string.Join(" ", new[] {
 			// "--enable-blink-features=" + string.Join(",", [
 			// 	"WebRtcHideLocalIpsWithMdns",
@@ -186,6 +184,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
         "AutofillServerCommunication",
         // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
         "PrivacySandboxSettings4",
+// webrtc-hw-decoding Enables HW decode acceleration for WebRTC. ✅
+// webrtc-hw-encoding	Enables HW encode acceleration for WebRTC. ✅
 			]),
 			// Disable all chrome extensions
 			//"--disable-extensions",
@@ -249,8 +249,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			//Settings.Profile.Proxy.HasLogin ? $"--proxy-auth={Settings.Profile.Proxy.UserName}:{Settings.Profile.Proxy.Password}" : "",
 			#if DEBUG
-				//$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
-				$"--load-extension=\"{exts}\"",
+				$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
+				//$"--load-extension=\"{exts}\"",
 			#else
 				$"--load-extension=\"{exts}\"",
 			#endif
@@ -301,10 +301,10 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 				enabled = Settings.Emulation.SpoofNavigator,
 			},
 		};
-		var chromeleon = Path.Combine(Settings.CachedExtentionsDir, ExtensionType.chromeleon.ToString());
-		if (!Directory.Exists(chromeleon)) {
-			_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-		}
+		// var chromeleon = Path.Combine(Settings.CachedExtentionsDir, ExtensionType.chromeleon.ToString());
+		// if (!Directory.Exists(chromeleon)) {
+		// 	_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+		// }
 
 		await File.WriteAllTextAsync(
 			Path.Combine(

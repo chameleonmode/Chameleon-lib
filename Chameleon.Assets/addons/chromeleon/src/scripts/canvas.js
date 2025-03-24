@@ -257,18 +257,26 @@ export default async function (opts) {
     // });
 
     // Override getContext to always set willReadFrequently for 2d contexts
-    HTMLCanvasElement.prototype.getContext = function (contextId, options) {
-      // return originalMethods.getContext.call(this, contextId, options);
+    HTMLCanvasElement.prototype.getContext = new Proxy(originalMethods.getContext, {
+      apply(target, thisArg, argumentsList) {
+        const [contextId] = argumentsList;
+        const options = {...argumentsList[1], willReadFrequently: true};
 
-      // If it's a 2d context, ensure willReadFrequently is set
-      if (contextId === "2d") {
-        options = options || {};
-        options.willReadFrequently = true;
-      }
+        return Reflect.apply(target, thisArg, [contextId, options]);
+      },
+    });
+    // HTMLCanvasElement.prototype.getContext = function (contextId, options) {
+    //   // return originalMethods.getContext.call(this, contextId, options);
 
-      // Call the original method with our modified attributes
-      return originalMethods.getContext.call(this, contextId, options);
-    };
+    //   // If it's a 2d context, ensure willReadFrequently is set
+    //   if (contextId === "2d") {
+    //     options = options || {};
+    //     options.willReadFrequently = true;
+    //   }
+
+    //   // Call the original method with our modified attributes
+    //   return originalMethods.getContext.call(this, contextId, options);
+    // };
 
     console.log("Canvas Spoofer - Finished");
 

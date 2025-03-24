@@ -36,15 +36,15 @@ public class BrowserLauncherTests {
 		var bi = await SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(SystemBrowserType.Chrome,
 				new SysBrowserProfile() {
-					Id = 4,
-					Proxy = new SysBrowserProxy() {
-						Host = "proxy.chameleonmode.com",
-						Port = 31112,
-						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
-					}
+					Id = 5,
+					// Proxy = new SysBrowserProxy() {
+					// 	Host = "proxy.chameleonmode.com",
+					// 	Port = 31112,
+					// 	UserName = "elimdadia_gmail_com",
+					// 	Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
+					// }
 				}),
-				"https://example.com",
+				"https://browserleaks.com",
 				new () {
 					SpoofClientRects = true,
 					SpoofFontFingerprint = true,
