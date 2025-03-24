@@ -30,6 +30,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
     case "updateConfig":
       App.config = { ...App.config, ...message.config };
+      App.eventSystem.notify("configUpdated");
 
       // Save the updated config to storage
       chrome.storage.local

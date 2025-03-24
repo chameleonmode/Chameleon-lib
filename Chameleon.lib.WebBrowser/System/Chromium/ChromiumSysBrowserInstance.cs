@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using chameleon.assets;
 
 using Chameleon.lib.Common.Extensions;
@@ -148,8 +147,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			// ]),
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
-				"NetworkQualityEstimatorWebHoldback",
-				"StrictOriginIsolation",
+				//"NetworkQualityEstimatorWebHoldback",
+				//"StrictOriginIsolation",
 				"ReduceUserAgentMinorVersion",
 				"ReduceUserAgentPlatformOsCpu",
 				"ReduceAcceptLanguage",
@@ -159,8 +158,6 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 				"SharedArrayBuffer",
 				"WebBluetooth",
 				"WebUsb",
-				"WebRtcHWDecoding",
-				"WebRtcHWEncoding",
 				"FractionalScrollOffsets",
 				"Canvas2DLayers",
 				// Disable the default browser check, do not prompt to set it as such
@@ -184,8 +181,10 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
         "AutofillServerCommunication",
         // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
         "PrivacySandboxSettings4",
-// webrtc-hw-decoding Enables HW decode acceleration for WebRTC. ✅
-// webrtc-hw-encoding	Enables HW encode acceleration for WebRTC. ✅
+				// webrtc-hw-decoding Enables HW decode acceleration for WebRTC. ✅
+				// webrtc-hw-encoding	Enables HW encode acceleration for WebRTC. ✅
+				// "WebRtcHWDecoding",
+				// "WebRtcHWEncoding",
 			]),
 			// Disable all chrome extensions
 			//"--disable-extensions",
@@ -268,6 +267,9 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			lon = -118.243683,
 			tzSystem = true
 		};
+		Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");
+
+		// set the extension settings
 		AddonsServer.Instance.AddonInstances[SessionId] = new {
 			urls = new {
 				start = Settings.StartUrl,

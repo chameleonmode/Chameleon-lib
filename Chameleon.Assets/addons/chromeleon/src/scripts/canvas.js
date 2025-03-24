@@ -1,8 +1,7 @@
 export default async function (opts) {
-  console.log("Canvas Spoofer - Starting", JSON.stringify(opts));
   // Default settings
   return function (params) {
-    const { noise, w, h } = params || {};
+    const { noise } = params || {};
 
     // Store original methods
     const originalMethods = {
@@ -277,8 +276,6 @@ export default async function (opts) {
     //   // Call the original method with our modified attributes
     //   return originalMethods.getContext.call(this, contextId, options);
     // };
-
-    console.log("Canvas Spoofer - Finished");
 
     return true;
   };

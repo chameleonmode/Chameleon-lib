@@ -31,56 +31,39 @@ class PageMutations {
   constructor(tabId) {
     this.tabId = tabId;
     this.scriptSource = "";
+    this.scriptIdentifier = undefined;
+    this.uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
 
     // Define configurations for all scripts at once
     this.scriptConfigs = {
-      // canvi: (() => {
-      //   if (!App.config.canvas.pixels) {
-      //     App.config.canvas.pixels = {
-      //       r: Math.random(),
-      //       g: Math.random(),
-      //       b: Math.random(),
-      //     };
-      //   }
-      //   if (!App.config.canvas.positions) {
-      //     App.config.canvas.positions = {
-      //       x: Math.random(),
-      //       y: Math.random(),
-      //     };
-      //   }
-      //   if (!App.config.canvas.rects) {
-      //     App.config.canvas.rects = {
-      //       x: Math.random(),
-      //       y: Math.random(),
-      //       width: Math.random(),
-      //       height: Math.random(),
-      //     };
-      //   }
-      //   const opts = {
-      //     noise: App.config.canvas.random
-      //       ? App.config.noises[Math.floor(Math.random() * App.config.noises.length)]
-      //       : App.config.noise,
-      //     positions: App.config.canvas.positions,
-      //     rects: App.config.canvas.rects,
-      //     pixels: App.config.canvas.pixels,
-      //   };
-      //   return {
-      //     init: async () => {
-      //       return App.config.canvas.enabled;
-      //     },
-      //     script: canvas,
-      //     opts,
-      //   };
-      // })(),
+      canvi: (() => {
+        return {
+          init: async () => {
+            return App.config.canvas.enabled;
+          },
+          script: canvas,
+          opts: {
+            uuid: App.session.sessionId,
+            noise: App.config.canvas.random
+              ? App.config.noises[Math.floor(Math.random() * App.config.noises.length)]
+              : App.config.noise
+          },
+        };
+      })(),
       rects: (() => {
         return {
           script: rects,
           init: async () => {
             return App.config.rects.enabled;
           },
-          opts: { 
-            random: App.config.rects.random,
+          opts: {
+            uuid: App.session.sessionId,
             noise: App.config.noise,
+            random: App.config.rects.random
           },
         };
       })(),
@@ -180,7 +163,7 @@ class PageMutations {
     await this.setupNewDocumentScriptInjection();
 
     // Inject script into all existing frames
-    await this.injectIntoExistingFrames();
+    //await this.injectIntoExistingFrames();
   }
 
   /**
@@ -188,16 +171,14 @@ class PageMutations {
    * @returns {Promise<void>}
    */
   async generateScriptSource() {
-    const scriptPromises = Object.values(this.scriptConfigs).map(
-      async ({ script, init, opts }) => {
-        const enabled = await init();
-        if (!enabled) return "";
-        else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
-      }
-    );
+    const scriptPromises = Object.values(this.scriptConfigs).map(async ({ script, init, opts }) => {
+      const enabled = await init();
+      if (!enabled) return "";
+      else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
+    });
 
     // Wait for all promises to resolve, then join
-    this.scriptSource = (await Promise.all(scriptPromises)).filter(script => script).join("");
+    this.scriptSource = (await Promise.all(scriptPromises)).filter((script) => script).join("");
   }
 
   /**
@@ -205,9 +186,13 @@ class PageMutations {
    * @returns {Promise<void>}
    */
   async setupNewDocumentScriptInjection() {
-    await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.addScriptToEvaluateOnNewDocument", {
-      source: this.scriptSource,
-    });
+    this.scriptIdentifier = await chrome.debugger.sendCommand(
+      { tabId: this.tabId },
+      "Page.addScriptToEvaluateOnNewDocument",
+      {
+        source: this.scriptSource,
+      }
+    );
 
     await chrome.debugger.sendCommand({ tabId: this.tabId }, "Runtime.evaluate", {
       expression: this.scriptSource,
@@ -231,11 +216,15 @@ class PageMutations {
           worldName: `${Math.random().toString(36).substring(7)}`,
         })
         .then(async ({ executionContextId }) => {
-          await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.addScriptToEvaluateOnNewDocument", {
-            source: this.scriptSource,
-            contextId: executionContextId,
-            returnByValue: true,
-          });
+          await chrome.debugger.sendCommand(
+            { tabId: this.tabId },
+            "Page.addScriptToEvaluateOnNewDocument",
+            {
+              source: this.scriptSource,
+              contextId: executionContextId,
+              returnByValue: true,
+            }
+          );
           await chrome.debugger.sendCommand({ tabId: this.tabId }, "Runtime.evaluate", {
             expression: this.scriptSource,
             contextId: executionContextId,
@@ -253,6 +242,26 @@ class PageMutations {
 
     // Start with the main frame
     await processFrame(frameTree.frame);
+  }
+
+  /**
+   * Remove the script from the page
+   * @returns {Promise<void>}
+   */
+  async remove() {
+    if (this.scriptIdentifier) {
+      await chrome.debugger.sendCommand(
+        { tabId: this.tabId },
+        "Page.removeScriptToEvaluateOnNewDocument",
+        {
+          identifier: this.scriptIdentifier,
+        }
+      );
+    }
+
+    // Remove the script from all existing frames
+    const { frameTree } = await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.getFrameTree");
+    await this.removeFromFrames(frameTree.frame); 
   }
 }
 
