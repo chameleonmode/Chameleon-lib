@@ -69,8 +69,8 @@ const App = {
   config: {
     enabled: true,
     log: "all",
-    noise: "medium",
-    noises: ["micro", "mini", "low", "medium", "bold", "high", "ultra", "super", "max"],
+    noise: "mid",
+    noises: ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"],
     bypass: [],
     history: [],
     dAPI: "disable_non_proxied_udp",
@@ -135,6 +135,7 @@ const App = {
     this.launchedSessions = launchedSessions || this.launchedSessions;
 
     if (config) {
+      config["noises"] = this.config["noises"];
       for (const [key, value] of Object.entries(config)) {
         if (typeof value === "object" && !Array.isArray(value)) {
           this.config[key] = { ...this.config[key], ...value };

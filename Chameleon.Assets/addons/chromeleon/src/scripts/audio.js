@@ -6,10 +6,10 @@ export default async function (opts) {
 
     // Define noise levels for AudioBuffer.getChannelData with slight variations
     const channelDataNoiseLevels = {
-      micro: [0.00000005, 0.00000015], // Range instead of fixed value
+      nano: [0.00000005, 0.00000015], // Range instead of fixed value
       mini: [0.00000015, 0.00000025],
       low: [0.00000025, 0.00000035],
-      medium: [0.00000035, 0.00000045],
+      mid: [0.00000035, 0.00000045],
       bold: [0.00000045, 0.00000055],
       high: [0.00000055, 0.00000065],
       ultra: [0.00000065, 0.00000075],
@@ -19,10 +19,10 @@ export default async function (opts) {
 
     // Define noise levels for Analyzer.getFloatFrequencyData with ranges
     const analyzerNoiseLevels = {
-      micro: [0.05, 0.15],
+      nano: [0.05, 0.15],
       mini: [0.15, 0.25],
       low: [0.25, 0.35],
-      medium: [0.35, 0.45],
+      mid: [0.35, 0.45],
       bold: [0.45, 0.55],
       high: [0.55, 0.65],
       ultra: [0.65, 0.75],
@@ -42,13 +42,13 @@ export default async function (opts) {
 
     // Get noise levels based on selected protection level with fluid randomization
     const getChannelDataNoiseLevel = () => {
-      const range = channelDataNoiseLevels[level] || channelDataNoiseLevels.medium;
+      const range = channelDataNoiseLevels[level] || channelDataNoiseLevels.mid;
       // Return a random value within the specified range
       return range[0] + prngConfig.generateRandom() * (range[1] - range[0]);
     };
 
     const getAnalyzerNoiseLevel = () => {
-      const range = analyzerNoiseLevels[level] || analyzerNoiseLevels.medium;
+      const range = analyzerNoiseLevels[level] || analyzerNoiseLevels.mid;
       // Return a random value within the specified range
       return range[0] + prngConfig.generateRandom() * (range[1] - range[0]);
     };

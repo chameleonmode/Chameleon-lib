@@ -65,10 +65,10 @@ export default async function (opts) {
         
         // Map noise levels to intensity
         const noiseMap = {
-          "micro": { intensity: 0, points: 1 },
+          "nano":  { intensity: 0, points: 1 },
           "mini":  { intensity: 1, points: 2 },
           "low":   { intensity: 2, points: 2 },
-          "medium":{ intensity: 3, points: 3 },
+          "mid":   { intensity: 3, points: 3 },
           "bold":  { intensity: 4, points: 3 },
           "high":  { intensity: 5, points: 4 },
           "ultra": { intensity: 6, points: 4 },

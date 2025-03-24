@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       case "3":
         return "low";
       case "4":
-        return "medium";
+        return "mid";
       case "5":
         return "bold";
       case "6":
@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       case "10":
         return "max";
       default:
-        return "medium";
+        return "mid";
     }
   }
 
@@ -152,7 +152,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         return "2";
       case "low":
         return "3";
-      case "medium":
+      case "mid":
         return "4";
       case "bold":
         return "5";

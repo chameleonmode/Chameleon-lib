@@ -5,8 +5,8 @@ import timezoneOffsets from "../offsets.js";
 let config = {
   log: "all",
   enabled: true,
-  noise: "medium",
-  noises: ["micro", "mini", "low", "medium", "bold", "high", "ultra", "super", "max"],
+  noise: "mid",
+  noises: ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"],
   url: "https://example.com",
   // Default timezone and geolocation settings
   tz: {
@@ -465,10 +465,11 @@ function getNoiseLevelName(value) {
 
 function getNoiseLevelValue(name) {
   const noiseLevels = {
-    micro: 1,
+    //nano: 0,
+    nano: 1,
     mini: 2,
     low: 3,
-    medium: 4,
+    mid: 4,
     bold: 5,
     high: 6,
     ultra: 7,

@@ -76,15 +76,19 @@ class PageMutations {
       //     opts: { random: true },
       //   };
       // })(),
-      // fonts: (() => {
-      //   return {
-      //     script: fonts,
-      //     init: async () => {
-      //       return App.config.fonts.enabled;
-      //     },
-      //     opts: { random: true },
-      //   };
-      // })(),
+      fonts: (() => {
+        return {
+          script: fonts,
+          init: async () => {
+            return App.config.fonts.enabled;
+          },
+          opts: {
+            uuid: App.session.sessionId,
+            noise: App.config.noise,
+            random: App.config.fonts.random
+          },
+        };
+      })(),
       // audio: (() => {
       //   return {
       //     script: audio,
