@@ -3,6 +3,7 @@ using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlChunking;
 using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlExtraction;
 using Chameleon.lib.Playwright.HtmlProcessingPipeline.SelectorExtraction;
 using Microsoft.Extensions.AI;
+using Microsoft.Playwright;
 using System.Text;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline;
@@ -157,4 +158,17 @@ public class HtmlProcessingPipelineService(
 		return sb.ToString();
 	}
 
+	public async Task<string> ProcessPageAsync(IPage page, string automationRequest, AiIntegrationOptions aiOptions, CancellationToken cancellationToken = default) {
+
+		var rootId = await htmlExtractor.InitializeCrawlerContextAsync(page);
+
+		var relevantNodes = await htmlExtractor.GetRelevantNodesAsync(page,rootId,automationRequest,aiOptions,
+				aiIntegrationService.QueryLLMAsync,
+				cancellationToken
+		);
+
+		var finalScript = await aiIntegrationService.GenerateAutomationScriptAsync(relevantNodes,automationRequest);
+
+		return finalScript;
+	}
 }

@@ -32,7 +32,7 @@ public class HtmlProcessingPipelineServiceTests : IAsyncLifetime {
 		ISelectorExtractor selectorExtractor = new SelectorExtractionService();
 
 		var aiOptions = new AiIntegrationOptions {
-			ApiKey = "AIzaSyD7THGyxSb5qE60bKmFqdgGr8JTN0xY904",
+			ApiKey = "",
 			ModelName = "gemini-2.0-flash",
 			MaxTokens = 500
 		};
@@ -110,6 +110,57 @@ public class HtmlProcessingPipelineServiceTests : IAsyncLifetime {
 
 			return fullHTML;
 		}
+
+		public Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IPage page, string rootId, string automationRequest, AiIntegrationOptions options, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation) => throw new NotImplementedException();
+		public Task<string> InitializeCrawlerContextAsync(IPage page) => throw new NotImplementedException();
+	}
+
+	[Fact]
+	public async Task BFS_IntegrationTest_GeneratesNonEmptyScript() {
+
+		var page = await browser.NewPageAsync();
+
+		var fileHtmlPath = Path.Combine(
+				Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location),
+				"Files", // Example subfolder
+				"redditPostHtmlPage.txt"
+		);
+
+		var fakeHtml = await File.ReadAllTextAsync(fileHtmlPath);
+		await page.SetContentAsync(fakeHtml);
+
+		var extractorService = new HtmlExtractorService(browser);
+
+		var aiOptions = new AiIntegrationOptions {
+			ApiKey = "",
+			ModelName = "gemini-2.0-flash",
+			MaxTokens = 500
+		};
+		var aiService = new AiExtensionsIntegrationService(aiOptions);
+
+		IHtmlChunker htmlChunker = new HtmlChunkingService();
+		ISelectorExtractor selectorExtractor = new SelectorExtractionService();
+		var pipelineService = new HtmlProcessingPipelineService(extractorService,htmlChunker, selectorExtractor, aiService);
+
+		var automationDescription =
+				"Reddit Interaction Plugin script:\n" +
+				"- Subreddit Membership Check: Joins subreddit if not already a member.\n" +
+				"- Comment Extraction: Finds and logs the first comment.\n" +
+				"- Reply Functionality: Clicks 'Reply,' types the provided message, and submits if publish is true.\n" +
+				"- Error Handling: Uses Playwright's waiting mechanisms and structured logging.";
+
+		var generatedScript = await pipelineService.ProcessPageAsync(
+				page,
+				automationDescription,
+				aiOptions,
+				CancellationToken.None
+		);
+
+		Console.WriteLine("Generated BFS-Based Script:");
+		Console.WriteLine(generatedScript);
+
+		Assert.False(string.IsNullOrWhiteSpace(generatedScript),
+				"The generated script should not be empty.");
 	}
 
 }

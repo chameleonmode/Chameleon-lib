@@ -21,6 +21,7 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 		<PackageReference Include="DynamicData" />
 		<PackageReference Include="Mscc.GenerativeAI.Microsoft" />
+		<PackageReference Include="Newtonsoft.Json" />
 	</ItemGroup>
 
 	<ItemGroup>

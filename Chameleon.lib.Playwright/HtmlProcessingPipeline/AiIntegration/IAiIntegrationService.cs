@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.AI;
+﻿using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlExtraction;
+using Microsoft.Extensions.AI;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
 public interface IAiIntegrationService {
@@ -6,4 +7,8 @@ public interface IAiIntegrationService {
 	Task<ChatResponse> GenerateScriptChatResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default);
 	Task<IDictionary<string, Embedding<float>>> GenerateEmbeddingsForChunksAsync(IEnumerable<string> chunks, CancellationToken cancellationToken = default);
 	Task<IList<string>> RetrieveRelevantChunksAsync(string queryText, IDictionary<string, Embedding<float>> chunkEmbeddings, int topN = 5, CancellationToken cancellationToken = default);
+
+	Task<string> QueryLLMAsync(string prompt, AiIntegrationOptions options, CancellationToken cancellationToken = default);
+
+	Task<string> GenerateAutomationScriptAsync(List<HtmlChildSummary> relevantNodes, string automationRequest);
 }
