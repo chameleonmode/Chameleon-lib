@@ -335,7 +335,7 @@
       color: var(--text-muted);
       text-align: right;
     }
-    
+
     /* Noise level slider styling */
     .slider-labels {
       display: flex;
@@ -344,7 +344,7 @@
       font-size: 0.8em;
       color: var(--text-muted);
     }
-    
+
     #noise-level-text {
       font-weight: 600;
       color: var(--primary-color);
@@ -453,6 +453,77 @@
       background-color: var(--primary-hover);
     }
 
+    #save-button {
+  width: 24px;
+  height: 24px;
+  background-color: transparent;
+  border: none;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+#save-button:hover {
+  background-color: var(--button-hover);
+}
+
+/* Floppy disk base */
+#save-button::before {
+  content: "";
+  position: absolute;
+  width: 13.5px;
+  height: 15px;
+  background-color: var(--text-color);
+  border-radius: 2px;
+}
+
+/* The notch in the floppy disk */
+#save-button::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  width: 3px;
+  height: 3px;
+  background-color: var(--container-bg);
+  border-radius: 1px;
+}
+
+/* The inner rectangle of the floppy disk */
+#save-button:before {
+  content: "";
+  position: absolute;
+  width: 13.5px;
+  height: 15px;
+  background-color: var(--text-color);
+  border-radius: 2px;
+}
+
+/* The 'rectangle' inside */
+#save-button:after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7.5px;
+  height: 4.5px;
+  background-color: var(--container-bg);
+}
+
+/* Active/clicked effect */
+#save-button:active {
+  background-color: var(--primary-color);
+  opacity: 0.7;
+}
+
+/* Dark mode adjustments happen automatically through CSS variables */
+
     /* Dark mode SVG filter for icons */
     @media (prefers-color-scheme: dark) {
       .refresh-icon {
@@ -484,9 +555,7 @@
       <div id="settings-tab" class="tab-content active">
         <h2 class="subtitle">
           Protection Settings
-          <button id="refresh-button" type="button" class="refresh-button">
-            <img src="refresh-icon.svg" alt="Refresh" class="refresh-icon">
-          </button>
+          <button id="save-button" type="button" title="Save"></button>
         </h2>
 
         <!-- Noise Level Slider -->
@@ -533,7 +602,7 @@
             WebGL
             <label class="toggle inline" title="Random">
               <input type="checkbox" id="random-webgl-spoofing" hidden>
-              <span class="toggle-switch" hidden></span>
+              <span class="toggle-switch"></span>
             </label>
           </label>
         </div>
@@ -557,7 +626,7 @@
             Audio
             <label class="toggle inline" title="Random">
               <input type="checkbox" id="random-audio-spoofing" hidden>
-              <span class="toggle-switch" hidden></span>
+              <span class="toggle-switch"></span>
             </label>
           </label>
         </div>
@@ -628,7 +697,8 @@
           </label>
           <div class="setting-subitem">
             <label for="coordinates">Coordinates (latitude,longitude):</label>
-            <input type="text" id="coordinates" class="searchable-select" placeholder="e.g. 40.7128,-74.0060" value="40.7128,-74.0060">
+            <input type="text" id="coordinates" class="searchable-select" placeholder="e.g. 40.7128,-74.0060"
+              value="40.7128,-74.0060">
             <div class="slider-container">
               <label for="geo-accuracy">Accuracy Level:</label>
               <input type="range" id="geo-accuracy" min="10" max="100" step="1" value="64"
@@ -643,7 +713,7 @@
       <div id="bypass-tab" class="tab-content">
         <h2 class="subtitle">Bypass List</h2>
         <p>Websites listed here will not have any protection applied.</p>
-        
+
         <div class="bypass-list" id="bypass-list">
           <!-- Bypass items will be populated here -->
           <div class="bypass-item">
@@ -651,7 +721,7 @@
             <button class="bypass-delete">✕</button>
           </div>
         </div>
-        
+
         <div class="add-bypass">
           <input type="text" id="new-bypass" placeholder="Enter website domain...">
           <button id="add-bypass-btn">Add</button>
@@ -661,7 +731,7 @@
       <!-- Advanced Tab -->
       <div id="advanced-tab" class="tab-content">
         <h2 class="subtitle">Advanced Settings</h2>
-        
+
         <!-- WebRTC Policy -->
         <div class="setting-item">
           <label class="dropdown-label">WebRTC IP Handling Policy:</label>
@@ -672,7 +742,7 @@
             <option value="default_public_interface_only">Default Public Interface Only</option>
           </select>
         </div>
-        
+
         <!-- Logging -->
         <div class="setting-item">
           <label class="dropdown-label">Logging Level:</label>

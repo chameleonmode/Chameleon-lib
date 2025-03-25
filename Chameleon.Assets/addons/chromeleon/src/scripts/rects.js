@@ -1,6 +1,7 @@
 export default async function (opts) {
   return function (params = { uuid: "bloop", noise: "mid", random: false }) {
     const { uuid, noise, random } = params;
+    window[uuid] = window[uuid] || {};
 
     // Map different noise levels from smallest to largest
     const noises = {
@@ -16,6 +17,7 @@ export default async function (opts) {
       max: 0.00000001, // 1e-8
     };
 
+    // Get noise level for random or fixed noise setting
     const noiseify = () => {
       return noises[
         random ? Object.keys(noises)[Math.floor(Math.random() * Object.keys(noises).length)] : noise
@@ -34,8 +36,8 @@ export default async function (opts) {
     };
 
     // Define property lists for each rectangle type
-    if (!window[uuid]) {
-      window[uuid] = true;
+    if (!window[uuid]["rects"]) {
+      window[uuid]["rects"] = true;
       // Apply noise to all selected properties
       ["x", "y", "width", "height"].forEach((property) => {
         define(DOMRect.prototype, property);

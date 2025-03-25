@@ -369,27 +369,7 @@ function setupEventListeners() {
     }
   });
 
-  // Add input event to save on typing (with debounce)
-  let typingTimer;
-  coordsInput.addEventListener("input", function (e) {
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => {
-      processCoordinates(e.target.value);
-    }, 500); // Save after 1 second of inactivity
-  });
-
-  // Handle popup closing
-  window.addEventListener("beforeunload", function () {
-    // Save current value when popup is about to close
-    processCoordinates(coordsInput.value);
-  });
-
-  // For Chrome extension popups specifically
-  chrome.runtime.onSuspend.addListener(function () {
-    // This event fires when the extension is about to be unloaded
-    processCoordinates(coordsInput.value);
-  });
-
+  // Geolocation accuracy
   document.getElementById("geo-accuracy").addEventListener("input", function (e) {
     const value = parseFloat(e.target.value);
     config.geo.accuracy = value;
@@ -417,14 +397,8 @@ function setupEventListeners() {
   });
 
   // Refresh button
-  document.getElementById("refresh-button").addEventListener("click", function () {
-    // This would typically refresh data from storage or background page
-    chrome.runtime.sendMessage({ action: "refreshConfig" }, function (response) {
-      if (response && response.config) {
-        config = response.config;
-        initializeUI();
-      }
-    });
+  document.getElementById("save-button").addEventListener("click", function () {
+    saveConfig();
   });
 }
 

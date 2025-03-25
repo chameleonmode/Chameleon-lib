@@ -10,6 +10,7 @@
  * https://privacycheck.sec.lrz.de/active/fp_ac/fp_audiocontext.html
  * https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
  * https://browserleaks.com/rects
+ * https://iphey.com/
  *
  * A module for monitoring element creation in web pages, including:
  * - Main content page
@@ -38,6 +39,10 @@ class PageMutations {
       return v.toString(16);
     });
 
+    const defaults = {
+      uuid: App.session.sessionId,
+      noise: App.config.noise,
+    };
     // Define configurations for all scripts at once
     this.scriptConfigs = {
       canvi: (() => {
@@ -47,10 +52,8 @@ class PageMutations {
           },
           script: canvas,
           opts: {
-            uuid: App.session.sessionId,
-            noise: App.config.canvas.random
-              ? App.config.noises[Math.floor(Math.random() * App.config.noises.length)]
-              : App.config.noise
+            ...defaults,
+            random: App.config.canvas.random,
           },
         };
       })(),
@@ -61,21 +64,23 @@ class PageMutations {
             return App.config.rects.enabled;
           },
           opts: {
-            uuid: App.session.sessionId,
-            noise: App.config.noise,
-            random: App.config.rects.random
+            ...defaults,
+            random: App.config.rects.random,
           },
         };
       })(),
-      // webgl: (() => {
-      //   return {
-      //     script: webgl,
-      //     init: async () => {
-      //       return App.config.webgl.enabled;
-      //     },
-      //     opts: { random: true },
-      //   };
-      // })(),
+      webgl: (() => {
+        return {
+          script: webgl,
+          init: async () => {
+            return App.config.webgl.enabled;
+          },
+          opts: {
+            ...defaults,
+            random: App.config.webgl.random,
+          },
+        };
+      })(),
       fonts: (() => {
         return {
           script: fonts,
@@ -83,75 +88,137 @@ class PageMutations {
             return App.config.fonts.enabled;
           },
           opts: {
-            uuid: App.session.sessionId,
-            noise: App.config.noise,
-            random: App.config.fonts.random
+            ...defaults,
+            random: App.config.fonts.random,
           },
         };
       })(),
-      // audio: (() => {
-      //   return {
-      //     script: audio,
-      //     init: async () => {
-      //       return App.config.audio.enabled;
-      //     },
-      //     opts: { random: true },
-      //   };
-      // })(),
-      // navi: (() => {
-      //   const os = App.config.navi.os;
-      //   const random = false; // For testing purposes
+      audio: (() => {
+        return {
+          script: audio,
+          init: async () => {
+            return App.config.audio.enabled;
+          },
+          opts: {
+            ...defaults,
+            random: App.config.audio.random,
+          },
+        };
+      })(),
+      navi: (() => {
+        const os = App.config.navi.os;
+        const random = App.config.navi.random; // For testing purposes
 
-      //   const RULE_ID_START = 1000;
-      //   const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
-      //   const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
+        const RULE_ID_START = 1000;
+        const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+        const chromeMajorVersion = chromeVersionMatch ? parseInt(chromeVersionMatch[1], 10) : 134;
 
-      //   // Create the configs object first
-      //   const configs = {
-      //     mac: {
-      //       "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-      //       "sec-ch-ua-platform": '"macOS"',
-      //       "sec-ch-ua-platform-version": '"15.3.1"',
-      //       "sec-ch-ua-model": '""',
-      //     },
-      //     windows: {
-      //       "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-      //       "sec-ch-ua-platform": '"Windows"',
-      //       "sec-ch-ua-platform-version": '"10.0.22621"',
-      //       "sec-ch-ua-model": '""',
-      //     },
-      //     linux: {
-      //       "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
-      //       "sec-ch-ua-platform": '"Linux"',
-      //       "sec-ch-ua-platform-version": '"5.15.0"',
-      //       "sec-ch-ua-model": '""',
-      //     },
-      //   };
-      //   const config = !random
-      //     ? configs[os]
-      //     : Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)];
+        // Create the configs object first
+        const configs = {
+          mac: {
+            "User-Agent": `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"macOS"',
+            "sec-ch-ua-platform-version": '"15.3.1"',
+            "sec-ch-ua-model": '""',
+          },
+          windows: {
+            "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-ch-ua-platform-version": '"10.0.22621"',
+            "sec-ch-ua-model": '""',
+          },
+          linux: {
+            "User-Agent": `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeMajorVersion}.0.0.0 Safari/537.36`,
+            "sec-ch-ua-platform": '"Linux"',
+            "sec-ch-ua-platform-version": '"5.15.0"',
+            "sec-ch-ua-model": '""',
+          },
+        };
+        const config =
+          configs[
+            random ? Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)] : os
+          ];
 
-      //   // Return the complete configuration object
-      //   return {
-      //     init: async () => {
-      //       // Remove only existing dynamic rules with IDs >= RULE_ID_START
-      //       const rules = await chrome.declarativeNetRequest.getDynamicRules();
-      //       await chrome.declarativeNetRequest.updateDynamicRules({
-      //         removeRuleIds: rules.filter((rule) => rule.id >= RULE_ID_START).map((rule) => rule.id),
-      //       });
+        // Return the complete configuration object
+        return {
+          init: async () => {
+            const enabled = App.config.navi.enabled && App.config.navi.os !== "default";
 
-      //       return App.config.navi.enabled && App.config.navi.os !== "default";
-      //     },
-      //     script: navigatorize,
-      //     opts: {
-      //       os,
-      //       configs,
-      //       RULE_ID_START,
-      //       chromeMajorVersion,
-      //       config,
-      //     },
-      //   };
-      // })(),
+            // Add new rules
+            const rules = [];
+            if (enabled) {
+              const type = "modifyHeaders";
+              const condition = {
+                urlFilter: "*",
+                resourceTypes: [
+                  "main_frame",
+                  "sub_frame",
+                  "stylesheet",
+                  "script",
+                  "image",
+                  "font",
+                  "object",
+                  "xmlhttprequest",
+                  "ping",
+                  "csp_report",
+                  "media",
+                  "websocket",
+                  "other",
+                ],
+              };
+
+              rules.push({
+                id: RULE_ID_START,
+                priority: 1,
+                condition,
+                action: {
+                  type,
+                  requestHeaders: Object.keys(config).map((hint) => ({
+                    header: hint,
+                    operation: "remove",
+                  })),
+                },
+              });
+              // Then add each client hint with the spoofed value
+              for (const [name, value] of Object.entries(config)) {
+                rules.push({
+                  id: RULE_ID_START + rules.length + 1,
+                  priority: 2, // Higher priority than the removal rule
+                  condition,
+                  action: {
+                    type,
+                    requestHeaders: [
+                      {
+                        header: name,
+                        value: value,
+                        operation: "set",
+                      },
+                    ],
+                  },
+                });
+              }
+            }
+
+            // Remove only existing dynamic rules with IDs >= RULE_ID_START
+            await chrome.declarativeNetRequest.updateDynamicRules({
+              removeRuleIds: (await chrome.declarativeNetRequest.getDynamicRules())
+                .filter((rule) => rule.id >= RULE_ID_START)
+                .map((rule) => rule.id),
+              addRules: rules,
+            });
+
+            return enabled;
+          },
+          script: navigatorize,
+          opts: {
+            os,
+            configs,
+            RULE_ID_START,
+            chromeMajorVersion,
+            config,
+          },
+        };
+      })(),
     };
   }
 
@@ -254,18 +321,14 @@ class PageMutations {
    */
   async remove() {
     if (this.scriptIdentifier) {
-      await chrome.debugger.sendCommand(
-        { tabId: this.tabId },
-        "Page.removeScriptToEvaluateOnNewDocument",
-        {
-          identifier: this.scriptIdentifier,
-        }
-      );
+      await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.removeScriptToEvaluateOnNewDocument", {
+        identifier: this.scriptIdentifier,
+      });
     }
 
     // Remove the script from all existing frames
     const { frameTree } = await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.getFrameTree");
-    await this.removeFromFrames(frameTree.frame); 
+    await this.removeFromFrames(frameTree.frame);
   }
 }
 

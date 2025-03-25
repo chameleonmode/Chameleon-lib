@@ -37,12 +37,12 @@ public class BrowserLauncherTests {
 			new SysBrowserOpenOptions(SystemBrowserType.Chrome,
 				new SysBrowserProfile() {
 					Id = 7,
-					Proxy = new SysBrowserProxy() {
-						Host = "proxy.chameleonmode.com",
-						Port = 31112,
-						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
-					}
+					// Proxy = new SysBrowserProxy() {
+					// 	Host = "proxy.chameleonmode.com",
+					// 	Port = 31112,
+					// 	UserName = "elimdadia_gmail_com",
+					// 	Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
+					// }
 				}),
 				"https://browserleaks.com",
 				new () {

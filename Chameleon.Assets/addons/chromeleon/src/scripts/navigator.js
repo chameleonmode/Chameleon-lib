@@ -1,114 +1,6 @@
 export default async function (opts) {
-  const { configs, config, RULE_ID_START } = opts || {};
-  console.log("OS Spoofer with Client Hints Support - Starting", JSON.stringify(opts));
-
-  const type = "modifyHeaders";
-  const condition = {
-    urlFilter: "*",
-    resourceTypes: [
-      "main_frame",
-      "sub_frame",
-      "stylesheet",
-      "script",
-      "image",
-      "font",
-      "object",
-      "xmlhttprequest",
-      "ping",
-      "csp_report",
-      "media",
-      "websocket",
-      "other",
-    ],
-  };
-
-  // First, create a rule to remove all existing client hint headers
-  const addRules = [
-    {
-      id: RULE_ID_START,
-      priority: 1,
-      condition,
-      action: {
-        type,
-        requestHeaders: Object.keys(config).map((hint) => ({
-          header: hint,
-          operation: "remove",
-        })),
-      },
-    },
-  ];
-  // Then add each client hint with the spoofed value
-  for (const [name, value] of Object.entries(config)) {
-    addRules.push({
-      id: RULE_ID_START + addRules.length + 1,
-      priority: 2, // Higher priority than the removal rule
-      condition,
-      action: {
-        type,
-        requestHeaders: [
-          {
-            header: name,
-            value: value,
-            operation: "set",
-          },
-        ],
-      },
-    });
-  }
-
-  // Remove all existing rules and add the new ones
-  await chrome.declarativeNetRequest.updateDynamicRules({ addRules });
-
   return function (params) {
-    var t = !1,
-      n = !1,
-      i = !1,
-      a = window.document,
-      o = window.navigator,
-      l = o.languages,
-      c = window.external;
-    [
-      "Buffer",
-      "_Selenium_IDE_Recorder",
-      "__nightmare",
-      "_phantom",
-      "_selenium",
-      "callPhantom",
-      "callSelenium",
-      "domAutomation",
-      "domAutomationController",
-      "emit",
-      "fmget_targets",
-      "phantom",
-      "spawn",
-      "webdriver",
-    ].forEach(function (e) {
-      console.log("Checking for:", e, window[e] && (t = !0));
-    });
-      [
-        "__driver_evaluate",
-        "__driver_unwrapped",
-        "__fxdriver_evaluate",
-        "__fxdriver_unwrapped",
-        "__selenium_evaluate",
-        "__selenium_unwrapped",
-        "__webdriver_evaluate",
-        "__webdriver_script_fn",
-        "__webdriver_script_func",
-        "__webdriver_script_function",
-        "__webdriver_unwrapped",
-      ].forEach(function (e) {
-        console.log("Checking for:", e, a[e] && (n = !0));
-      });
     const { config } = params || {};
-
-    // Store original descriptors to restore if needed
-    const originalDescriptors = {
-      userAgent: Object.getOwnPropertyDescriptor(Navigator.prototype, "userAgent"),
-      platform: Object.getOwnPropertyDescriptor(Navigator.prototype, "platform"),
-      appVersion: Object.getOwnPropertyDescriptor(Navigator.prototype, "appVersion"),
-    };
-
     // Override only the specified navigator properties
     const navigatorProps = {
       userAgent: {
@@ -240,18 +132,6 @@ export default async function (opts) {
     }
     // Inject custom oscpu value for site-specific fingerprinting
     window.navigator.oscpu = `${config["sec-ch-ua-platform"]} ${config["sec-ch-ua-platform-version"]}`;
-
-    // Important note about limitations
-    console.log(`
-        === IMPORTANT LIMITATIONS ===
-        This script successfully modifies JavaScript-accessible properties 
-        but cannot modify Client Hints HTTP headers sent by the browser.
-        
-        To spoof HTTP headers like Sec-CH-UA-Platform, you would need:
-        1. A browser extension with webRequest permissions
-        2. A proxy or network-level interceptor
-        3. A modified browser build
-        `);
     return true;
   };
 }

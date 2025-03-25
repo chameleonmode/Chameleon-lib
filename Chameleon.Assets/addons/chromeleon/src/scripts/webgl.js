@@ -1,7 +1,7 @@
 export default async function (opts) {
-  console.log("WebGL Spoofer - Starting", JSON.stringify(opts));
-  return function (params) {
-    const { random, level } = params || {};
+  return function (params = { uuid: "bloop", noise: "mid", random: false }) {
+    const { uuid, noise: level, random } = params;
+    window[uuid] = window[uuid] || {};
 
     // PRNG configuration
     const prngConfig = {
@@ -143,7 +143,7 @@ export default async function (opts) {
               }
             }
           }
-        } catch (error) { }
+        } catch (error) {}
 
         // Call original method with potentially modified data
         return originalMethods[
@@ -292,14 +292,12 @@ export default async function (opts) {
       };
     }
 
-    // Apply spoofing to both WebGL contexts
-    applyBufferSpoofing(WebGLRenderingContext);
-    applyBufferSpoofing(WebGL2RenderingContext);
-
-    console.log(
-      `Applied WebGL spoofing with noise amplitude: ${WebGLnoiseAmplitude}, noise level: ${level}`
-    );
-
+    if (!window[uuid]["webgl"]) {
+      window[uuid]["webgl"] = true;
+      // Apply spoofing to both WebGL contexts
+      applyBufferSpoofing(WebGLRenderingContext);
+      applyBufferSpoofing(WebGL2RenderingContext);
+    }
     return true;
   };
 }
