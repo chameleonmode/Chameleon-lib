@@ -1,10 +1,8 @@
 ﻿using System.Net;
-using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Util;
 
-namespace Chameleon.lib.Common.Models;
-
-public class SysBrowserProxy {
+namespace Chameleon.lib.WebBrowser.Models;
+public class BrowserProxy {
 	public string? HostForRequest => Host?.Contains("proxy.chameleonmode.com") == true ?
 		"proxy.packetstream.io" 
 		: Host;
@@ -40,9 +38,7 @@ public class SysBrowserProxy {
 	public int Port {
 		get => _port;
 		set {
-			if (value is < 0 or > 65535) {
-				value = 0;
-			}
+			if (value is < 0 or > 65535) 				value = 0;
 			_port = value;
 		}
 	}

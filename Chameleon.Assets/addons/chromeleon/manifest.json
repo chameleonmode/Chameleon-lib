@@ -28,7 +28,6 @@
     "scripting",
     "storage",
     "tabs",
-    "userScripts",
     "webNavigation",
     "webRequest"
   ],

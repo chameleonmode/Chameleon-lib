@@ -272,35 +272,35 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		// set the extension settings
 		AddonsServer.Instance.AddonInstances[SessionId] = new {
 			urls = new {
-				start = Settings.StartUrl,
+				start = Settings.Profile.StartUrl,
 			},
 			tz = new {
-				enabled = Settings.Emulation.AutoTimezone,
+				enabled = Settings.Profile.Emulations.AutoTimezone,
 				zone = ipapi.timezone,
 				useSystem = ipapi.tzSystem
 			},
 			geo = new {
-				enabled = Settings.Emulation.SpoofGeoLocation,
+				enabled = Settings.Profile.Emulations.SpoofGeoLocation,
 				ipapi.lat,
 				ipapi.lon,
 			},
 			canvas = new {
-				enabled = Settings.Emulation.SpoofCanvasFingerprint,
+				enabled = Settings.Profile.Emulations.SpoofCanvasFingerprint,
 			},
 			webgl = new {
-				enabled = Settings.Emulation.SpoofWebGLFingerprint,
+				enabled = Settings.Profile.Emulations.SpoofWebGLFingerprint,
 			},
 			rects = new {
-				enabled = Settings.Emulation.SpoofClientRects,
+				enabled = Settings.Profile.Emulations.SpoofClientRects,
 			},
 			fonts = new {
-				enabled = Settings.Emulation.SpoofFontFingerprint,
+				enabled = Settings.Profile.Emulations.SpoofFontFingerprint,
 			},
 			audio = new {
-				enabled = Settings.Emulation.SpoofAudio,
+				enabled = Settings.Profile.Emulations.SpoofAudio,
 			},
 			navi = new {
-				enabled = Settings.Emulation.SpoofNavigator,
+				enabled = Settings.Profile.Emulations.SpoofNavigator,
 			},
 		};
 		// var chromeleon = Path.Combine(Settings.CachedExtentionsDir, ExtensionType.chromeleon.ToString());

@@ -1,13 +1,11 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Versioning;
-
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Models;
-
+using Chameleon.lib.WebBrowser.Models;
 using Microsoft.Win32;
 
-namespace Chameleon.lib.Common.Util;
+namespace Chameleon.lib.WebBrowser.Services;
 public static class SysBrowserInfoUtil {
 
 	[SupportedOSPlatform("windows")]
@@ -68,25 +66,25 @@ public static class SysBrowserInfoUtil {
 		return (false, string.Empty);
 	}
 
-	public static SysBrowserRecord FindByName(string browserName)
+	public static BrowserRecord FindByName(string browserName)
 	{
-		SysBrowserRecord? inf = null;
+		BrowserRecord? inf = null;
 		if (OperatingSystem.IsMacOS()) {
 			var chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 			var bravePath = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
 			var firefoxPath = "/Applications/firefox.app/Contents/MacOS/firefox";
 
 			inf = browserName switch {
-				"chrome.exe" => File.Exists(chromePath) ? new SysBrowserRecord("chrome", chromePath) : null,
-				"brave.exe" => File.Exists(bravePath) ? new SysBrowserRecord("brave", bravePath) : null,
-				"firefox.exe" => File.Exists(firefoxPath) ? new SysBrowserRecord("brave", firefoxPath) : null,
+				"chrome.exe" => File.Exists(chromePath) ? new BrowserRecord("chrome", chromePath) : null,
+				"brave.exe" => File.Exists(bravePath) ? new BrowserRecord("brave", bravePath) : null,
+				"firefox.exe" => File.Exists(firefoxPath) ? new BrowserRecord("brave", firefoxPath) : null,
 				_ => null
 			};
 		} else {
 #pragma warning disable CA1416 // Validate platform compatibility
 
 			var (isinstalled, filepath) = CheckApplication(browserName);
-			if (isinstalled && filepath.Is()) inf = new SysBrowserRecord(browserName, filepath);
+			if (isinstalled && filepath.Is()) inf = new BrowserRecord(browserName, filepath);
 
 #pragma warning restore CA1416 // Validate platform compatibility
 		}
@@ -95,7 +93,7 @@ public static class SysBrowserInfoUtil {
 				$"{char.ToUpper(browserName[0]) + browserName[1..]} browser is not installed.");
 	}
 
-	public static SysBrowserRecord FindByType(Enums.SystemBrowserType BrowserType) => BrowserType switch {
+	public static BrowserRecord FindByType(Enums.SystemBrowserType BrowserType) => BrowserType switch {
 		Enums.SystemBrowserType.Chrome => FindByName("chrome.exe"),
 		Enums.SystemBrowserType.Brave => FindByName("brave.exe"),
 		Enums.SystemBrowserType.Firefox => FindByName("firefox.exe"),
@@ -105,6 +103,7 @@ public static class SysBrowserInfoUtil {
 #pragma warning disable IDE1006 // Naming Styles
 	public static KeyValuePair<string, string> user_pref(string name, object val) => new(name, $"user_pref(\"{name}\", {val.ParseValue()});");
 #pragma warning restore IDE1006 // Naming Styles
+
 	public static string[] FirefoxDepricatedPrefs => [
 	/* DEPRECATED */
 	/* 116-128 */
@@ -1734,9 +1733,7 @@ pref("general.config.sandbox_enabled", false);
 		var ucp = Path.Combine(dir, "userChrome.js");
 		var cppd = Path.Combine(dir, "defaults", "pref");
       if(!Directory.Exists(cppd))
-      {
 			_ = Directory.CreateDirectory(cppd);
-      }
 		var cpp = Path.Combine(cppd, "config-prefs.js");
 		await File.WriteAllTextAsync(ucp, userChrome);
 		await File.WriteAllTextAsync(cpp, configPrefs);

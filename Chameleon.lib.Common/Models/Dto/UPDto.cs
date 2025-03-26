@@ -1,10 +1,7 @@
 ﻿using System.Text.Json;
-using System.Text.Json.Serialization;
 
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Interfaces.Sys;
 
-using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.Common.Models.Dto;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
@@ -32,12 +29,12 @@ public class UserProfileDto : Interfaces.Dto {
 	public ProxDto proxy { get; set; } = new();
 	public WebrowserDto webBrowser { get; set; } = new();
 
-	[JsonIgnore]
-	public Dictionary<SystemBrowserType, ISysBrowserInstance?> SBI { get; set; } = new Dictionary<SystemBrowserType, ISysBrowserInstance?>(){
-			{ SystemBrowserType.Chrome, null },
-			{ SystemBrowserType.Firefox, null },
-			{ SystemBrowserType.Brave, null }
-		};
+	// [JsonIgnore]
+	// public Dictionary<SystemBrowserType, object?> SBI { get; set; } = new Dictionary<SystemBrowserType, object?>(){
+	// 		{ SystemBrowserType.Chrome, default },
+	// 		{ SystemBrowserType.Firefox, default },
+	// 		{ SystemBrowserType.Brave, default }
+	// 	};
 }
 public abstract class UP : Interfaces.Dto {
 	public int? ProfileId { get; set; }

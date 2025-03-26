@@ -1,18 +1,40 @@
 ﻿using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Interfaces.Sys;
-using Chameleon.lib.Common.Models;
 using System.Diagnostics;
 using System.Runtime.Versioning;
+using Chameleon.lib.WebBrowser.Models;
+using Chameleon.lib.WebBrowser.Interfaces;
 
 namespace Chameleon.lib.WebBrowser.System;
 public abstract class SysBrowserInstance
-		: ISysBrowserInstance {
-	public required SysBrowserSettings Settings { get; init; }
-	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
+		: IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
+	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 	public Process? Brocess { get; set; }
+	public required SysBrowserSettings Settings { get; init; }
+	public string SessionId { get; } = Guid.NewGuid().ToString();
+
+	public virtual Task Start() => Task.CompletedTask;
+
+	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
+		if (eventType == Enums.SysBrowserEventType.Foreground)
+			_ = ProUtil.TrySetForeground(Brocess);
+
+		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
+	}
+
+	public void Close() {
+		if (OperatingSystem.IsMacOS()) {
+			if (Brocess?.Id is int id)
+				MacOSWindowListener.Instance.RemPid(id);
+		}
+
+		_ = LoadedTCS.TrySetResult(false);
+		Brocess?.Dispose();
+		Brocess = null;
+		InvokeEvent(Enums.SysBrowserEventType.Closed);
+	}
 
 	public async Task InitializeAsync(object? param = null) {
 		if (Brocess is null) {
@@ -45,33 +67,12 @@ public abstract class SysBrowserInstance
 		}
 	}
 
-	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
-		if (eventType == Enums.SysBrowserEventType.Foreground)
-			_ = ProUtil.TrySetForeground(Brocess);
-
-		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
-	}
-
-	public void Close() {
-		if (OperatingSystem.IsMacOS()) {
-			if (Brocess?.Id is int id)
-				MacOSWindowListener.Instance.RemPid(id);
-		}
-
-		_ = LoadedTCS.TrySetResult(false);
-		Brocess?.Dispose();
-		Brocess = null;
-		InvokeEvent(Enums.SysBrowserEventType.Closed);
-	}
-
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
-
-	public string SessionId { get; } = Guid.NewGuid().ToString();
-
 	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments();
-
+	
 	[SupportedOSPlatform("windows")]
 	protected abstract Task WaitForWinHandle();
+
 }

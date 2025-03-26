@@ -6,12 +6,28 @@ using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
+using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
+using Chameleon.lib.WebBrowser.Services;
+using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
 	public override string ExePath { get; } = Consts.Browser.LocalFirefoxExePath;
+
+	public override async Task Start() {
+		var systempath = SysBrowserInfoUtil.FindByType(SystemBrowserType.Firefox).Path;
+		if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath)) {
+			Toaster.Info("Updating Firefox browser...");
+			IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
+			IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
+			IOtil.DeleteDir(Consts.Browser.LocalFirefoxDirPath);
+			await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS() ? "/Applications/firefox.app"
+			: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
+		}
+		await base.Start();
+	}
 
 	protected override async Task InitializeExtensionPath() {
 		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
@@ -35,19 +51,20 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
 
 		//
-		Settings.ExtentionsDirs.Add(ExtensionType.foxyproxy, (
-			Settings.BuildProxyExtSettings(),
-			Guid.NewGuid().ToString(),
-			Settings.DestExtentionsDir)
-		);
-
-		foreach (var (ext, (setting, guid, destDir)) in Settings.ExtentionsDirs) {
-			var extDir = await ExtensionLoader.LoadExtension(ext, destDir, setting, version);
-			if (Directory.Exists(extDir)) {
-				await IOtil.CreateZipAsync(Path.Combine(inDir, guid + ".xpi"), extDir);
-				await IOtil.DeleteDExistsAsync(destDir);
-			}
-		}
+		var foxyproxyDir = await ExtensionLoader.LoadExtension(ExtensionType.foxyproxy, Settings.DestExtentionsDir, 
+		@$"let settings = {{
+			enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")},
+			type: 'http',
+			server: '{Settings.Profile.Proxy.Server}',
+			host: '{Settings.Profile.Proxy.Host}',
+			port: {Settings.Profile.Proxy.Port},
+			username: '{Settings.Profile.Proxy.UserName}',
+			password: '{Settings.Profile.Proxy.Password}',
+			url: '{Settings.Profile.StartUrl}',
+			debug: true,
+		}};");
+		await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid() + ".xpi"), foxyproxyDir);
+		await IOtil.DeleteDExistsAsync(Settings.DestExtentionsDir);
 
 		//
 		// var groxyDir = await ExtensionLoader.LoadExtension(ExtensionType.foxyproxy, Settings.DestExtentionsDir);
@@ -403,9 +420,9 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["extensions.blocklist.enabled"] = false,
 			//
 			["app.update.service.enabled"] = false,
-			["browser.startup.homepage"] = !File.Exists(PrefsFile) ? "https://example.com/" : Settings.StartUrl,
+			["browser.startup.homepage"] = Settings.Profile.StartUrl,
 			["browser.contentblocking.category"] = "strict",
-			["privacy.fingerprintingProtection.overrides"] = Settings.Emulation.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+JSDateTimeUTC" : "",
+			["privacy.fingerprintingProtection.overrides"] = Settings.Profile.Emulations.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+JSDateTimeUTC" : "",
 			["network.http.referer.XOriginTrimmingPolicy"] = "0",
 			["browser.startup.page"] = Debugger.IsAttached ? 3 : 1,
 			//SysBrowserInfoUtil.user_pref("extensions.webextensions.uuids", ""),

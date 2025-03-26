@@ -9,29 +9,12 @@ using System.Text;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Const;
 using chameleon.assets;
-namespace Chameleon.lib.Common.Models;
-public class EmulationOptions {
-	public bool AutoTimezone { get; set; } = true;
-	public bool SpoofGeoLocation { get; set; } = true;
-	public bool SpoofWebGLFingerprint { get; set; } = true;
-	public bool SpoofCanvasFingerprint { get; set; } = true;
-	public bool SpoofClientRects { get; set; } = true;
-	public bool SpoofFontFingerprint { get; set; } = true;
-	public bool SpoofAudio { get; set; } = true;
-	public bool DisableWebRTC { get; set; } = true;
-	public bool SpoofNavigator { get; set; } = false;
-}
+namespace Chameleon.lib.WebBrowser.Models;
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
-public record class SysBrowserRecord(string Name, string Path) {
-	public override string ToString()
-	{
-		return Name ?? Path;
-	}
-}
-public record SysBrowserOpenOptions(SystemBrowserType BrowserType, SysBrowserProfile Profile);
-public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOptions Emulation, string StartUrl, int Port) {
-	public Enums.SystemBrowserType BrowserType => OpenOptions.BrowserType;
-	public SysBrowserProfile Profile => OpenOptions.Profile;
+public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile);
+public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port) {
+	public SystemBrowserType BrowserType => OpenOptions.BrowserType;
+	public BrowserProfile Profile => OpenOptions.Profile;
 	public string SysBrowseUserExtDir => Path.Combine(
 		Consts.Addons.DefaultExtensionsFolderPath, BrowserType.GetDescription()
 		);
@@ -61,20 +44,20 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 		}
 	}
 
-	public SysBrowserEvent CreateEvent(Enums.SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
+	public SysBrowserEvent CreateEvent(SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
 
 	public Dictionary<ExtensionType, (string? settings, string guid, string destDir)> ExtentionsDirs { get; } = [];
 
 	public async Task<string> BuildMeleonExtSettings(string extDir)
 	{
-		var tzSpoofing = Emulation.AutoTimezone || Emulation.SpoofGeoLocation;
+		var tzSpoofing = Profile.Emulations.AutoTimezone || Profile.Emulations.SpoofGeoLocation;
 
 		var options = new HashSet<KeyValuePair<string, string>>() {
-			new ("webglSpoofing", Emulation.SpoofWebGLFingerprint.Tlwr()),
-			new ("canvasProtection", Emulation.SpoofCanvasFingerprint.Tlwr()),
-			new ("clientRectsSpoofing",Emulation.SpoofClientRects.Tlwr()),
-			new ("fontsSpoofing", Emulation.SpoofFontFingerprint.Tlwr()),
-			new ("audioSpoofing", Emulation.SpoofAudio.Tlwr()),
+			new ("webglSpoofing", Profile.Emulations.SpoofWebGLFingerprint.Tlwr()),
+			new ("canvasProtection", Profile.Emulations.SpoofCanvasFingerprint.Tlwr()),
+			new ("clientRectsSpoofing",Profile.Emulations.SpoofClientRects.Tlwr()),
+			new ("fontsSpoofing", Profile.Emulations.SpoofFontFingerprint.Tlwr()),
+			new ("audioSpoofing", Profile.Emulations.SpoofAudio.Tlwr()),
 			new ("geoSpoofing", tzSpoofing.Tlwr()),
 			new ("timezoneSpoofing", tzSpoofing.Tlwr())
 		}; 
@@ -131,7 +114,7 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, EmulationOpt
 			   port: {Profile.Proxy.Port},
 			   username: '{Profile.Proxy.UserName}',
 			   password: '{Profile.Proxy.Password}',
-			   url: '{StartUrl}',
+			   url: '{Profile.StartUrl}',
 			   debug: true,
 			}};";
 	}

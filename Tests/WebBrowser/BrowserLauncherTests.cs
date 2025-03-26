@@ -1,13 +1,12 @@
-﻿using Chameleon.lib;
-using Chameleon.lib.Common.Interfaces.Sys;
-using Chameleon.lib.Common.Models;
+﻿using Chameleon.lib.WebBrowser.Interfaces;
+using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.WebBrowser;
 public class BrowserLauncherTests {
 
-	void KeepAlive(ISysBrowserInstance bi){
+	void KeepAlive(IBrowserInstance bi){
 				// Create a manual reset event that will keep the test running
     var testCompletionEvent = new ManualResetEventSlim(false);
 
@@ -35,26 +34,25 @@ public class BrowserLauncherTests {
 	public async Task Test_LaunchBrowserInstance_Chrome() {
 		var bi = await SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(SystemBrowserType.Chrome,
-				new SysBrowserProfile() {
+				new BrowserProfile() {
 					Id = 8,
-					Proxy = new SysBrowserProxy() {
+					Proxy = new BrowserProxy() {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
 						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-CYpEvUqY"
-					}
-				}),
-				"https://browserleaks.com",
-				new () {
-					SpoofClientRects = true,
-					SpoofFontFingerprint = true,
-					SpoofCanvasFingerprint = true,
-					SpoofWebGLFingerprint = true,
-					SpoofAudio = true,
-					SpoofNavigator = false,
-					SpoofGeoLocation = true,
-					AutoTimezone = true,
-				}
+					},
+					Emulations = new () {
+						AutoTimezone = true,
+						SpoofGeoLocation = true,
+						SpoofWebGLFingerprint = true,
+						SpoofCanvasFingerprint = true,
+						SpoofFontFingerprint = true,
+						SpoofAudio = true,
+						SpoofClientRects = true
+					},
+					StartUrl = "https://example.com",
+				})
 		);
 		Assert.NotNull(bi);
 		KeepAlive(bi);
@@ -64,26 +62,25 @@ public class BrowserLauncherTests {
 	public async Task Test_LaunchBrowserInstance_Brave() {
 		var bi = await SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(SystemBrowserType.Brave,
-				new SysBrowserProfile() {
-					Id = 3,
-					Proxy = new SysBrowserProxy() {
+				new BrowserProfile() {
+					Id = 8,
+					Proxy = new BrowserProxy() {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
 						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-CYpEvUqY"
-					}
-				}),
-				"https://example.com",
-				new () {
-					SpoofClientRects = true,
-					SpoofFontFingerprint = true,
-					SpoofCanvasFingerprint = true,
-					SpoofWebGLFingerprint = true,
-					SpoofAudio = true,
-					SpoofNavigator = false,
-					SpoofGeoLocation = true,
-					AutoTimezone = true,
-				}
+					},
+					Emulations = new () {
+						AutoTimezone = true,
+						SpoofGeoLocation = true,
+						SpoofWebGLFingerprint = true,
+						SpoofCanvasFingerprint = true,
+						SpoofFontFingerprint = true,
+						SpoofAudio = true,
+						SpoofClientRects = true
+					},
+					StartUrl = "https://example.com",
+				})
 		);
 		Assert.NotNull(bi);
 		KeepAlive(bi);
@@ -92,27 +89,25 @@ public class BrowserLauncherTests {
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await SystemBrowserService.Instance.Open(
-			new SysBrowserOpenOptions(SystemBrowserType.Firefox,
-				new SysBrowserProfile() {
-					Id = 3,
-					Proxy = new SysBrowserProxy() {
+			new (SystemBrowserType.Firefox, new () {
+					Id = 8,
+					Proxy = new BrowserProxy() {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
-					}
-				}),
-				"https://example.com",
-				new () {
-					SpoofClientRects = true,
-					SpoofFontFingerprint = true,
-					SpoofCanvasFingerprint = true,
-					SpoofWebGLFingerprint = true,
-					SpoofAudio = true,
-					SpoofNavigator = false,
-					SpoofGeoLocation = true,
-					AutoTimezone = true,
-				}
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-CYpEvUqY"
+					},
+					Emulations = new () {
+						AutoTimezone = true,
+						SpoofGeoLocation = true,
+						SpoofWebGLFingerprint = true,
+						SpoofCanvasFingerprint = true,
+						SpoofFontFingerprint = true,
+						SpoofAudio = true,
+						SpoofClientRects = true
+					},
+					StartUrl = "https://example.com",
+				})
 		);
 		Assert.NotNull(bi);
 	}

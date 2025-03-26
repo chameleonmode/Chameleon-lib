@@ -1,6 +1,6 @@
 ﻿using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Models;
+using Chameleon.lib.WebBrowser.Models;
 using Microsoft.Playwright;
 using Chameleon.lib.Const;
 

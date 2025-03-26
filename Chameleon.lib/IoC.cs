@@ -62,7 +62,7 @@ public class IoC {
 	public static object? GetService(Type t) => Instance.Services?.GetService(t);
 
 	//
-	public static T? GetValue<T>(string key) => Instance.Config!.GetValue<T>(key.Replace(' ', '_'));
+	public static T? GetValue<T>(string key) where T : class => Instance.Config?.GetValue<T>(key.Replace(' ', '_'));
 	public static string? GetValue(params string[] keys) => GetValue<string>(string.Join('_', keys));
 	//
 	public static void SetValue<T>(T value, params string[] keys) {
