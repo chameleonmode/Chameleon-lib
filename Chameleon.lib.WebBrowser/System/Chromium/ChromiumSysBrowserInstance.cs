@@ -261,54 +261,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	// ...
 	protected override async Task InitializeExtensionPath() {
-		Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
-		var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
-			timezone = "Pacific/Honolulu",
-			lat = 34.052235,
-			lon = -118.243683,
-			tzSystem = true
-		};
-		Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");
-
-		// set the extension settings
-		AddonsServer.Instance.AddonInstances[SessionId] = new {
-			urls = new {
-				start = Settings.Profile.StartUrl,
-				homePages = Settings.Profile.DefaultHomePageSettings,
-			},
-			tz = new {
-				enabled = Settings.Profile.Emulations.AutoTimezone,
-				zone = ipapi.timezone,
-				useSystem = ipapi.tzSystem
-			},
-			geo = new {
-				enabled = Settings.Profile.Emulations.SpoofGeoLocation,
-				ipapi.lat,
-				ipapi.lon,
-			},
-			canvas = new {
-				enabled = Settings.Profile.Emulations.SpoofCanvasFingerprint,
-			},
-			webgl = new {
-				enabled = Settings.Profile.Emulations.SpoofWebGLFingerprint,
-			},
-			rects = new {
-				enabled = Settings.Profile.Emulations.SpoofClientRects,
-			},
-			fonts = new {
-				enabled = Settings.Profile.Emulations.SpoofFontFingerprint,
-			},
-			audio = new {
-				enabled = Settings.Profile.Emulations.SpoofAudio,
-			},
-			navi = new {
-				enabled = Settings.Profile.Emulations.SpoofNavigator,
-			},
-		};
-		// var chromeleon = Path.Combine(Settings.CachedExtentionsDir, ExtensionType.chromeleon.ToString());
-		// if (!Directory.Exists(chromeleon)) {
-		// 	_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-		// }
+		_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
 
 		await File.WriteAllTextAsync(
 			Path.Combine(

@@ -1,6 +1,5 @@
 // Timezone offsets data
 import timezoneOffsets from "../offsets.js";
-
 // Current extension configuration
 let config = {
   log: "all",
@@ -153,8 +152,8 @@ function populateDropdowns() {
     const offsetStr = `UTC${sign}${hours.toString().padStart(2, "0")}:${minutes
       .toString()
       .padStart(2, "0")}`;
+
     option.textContent = `${timezone.zone} (${offsetStr})`;
-    
     if (timezone.zone === config.tz.zone) {
       option.selected = true;
     }

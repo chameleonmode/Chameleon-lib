@@ -101,21 +101,4 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port) {
 
 		return settingsBuilder.ToString();
 	}
-
-	public string BuildProxyExtSettings()
-	{
-		var enabled = Profile.Proxy.CanUse ? "true" : "false";
-
-		return @$"let settings = {{
-			   enabled: {enabled},
-			   type: 'http',
-				 server: '{Profile.Proxy.Server}',
-			   host: '{Profile.Proxy.Host}',
-			   port: {Profile.Proxy.Port},
-			   username: '{Profile.Proxy.UserName}',
-			   password: '{Profile.Proxy.Password}',
-			   url: '{Profile.StartUrl}',
-			   debug: true,
-			}};";
-	}
 }

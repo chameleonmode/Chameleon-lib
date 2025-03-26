@@ -42,7 +42,7 @@ public partial class Jsonz : JsonSerializerContext {
 }
 
 public class Icons {
-	public const string JsonFontsEmbeddedDir = "embedded://chameleon.assets.json.fa_symbolfonts.json";
+	public const string JsonFontsEmbeddedDir = "chameleon.assets.json.fa_symbolfonts.json";
 
 	public static Icons Instance { get; } = new Icons();
 
@@ -53,7 +53,7 @@ public class Icons {
 	private static async Task<List<FontIconInfo>> LoadFontIcons()
 	{
 		return await Task.Run(() => {
-			using var s = Loader.Instance.Open(new Uri(JsonFontsEmbeddedDir));
+			using var s = Loader.Instance.Open(JsonFontsEmbeddedDir);
 			var icons = JsonSerializer.Deserialize(s, Jsonz.Default.ListFontIconInfo);
 
 			return icons ?? [];

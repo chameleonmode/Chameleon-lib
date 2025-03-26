@@ -1,21 +1,8 @@
 {
   "name": "Chromeleon",
-  "description": "A Chromeleon is the extension that can change its behavior to blend into the environment of any websites fishing attempts.",
-  "version": "2025.3.25",
+  "description": "A Chromeleon can change its behavior to blend into the environment of any website troller.",
+  "version": "2025.3.26",
   "manifest_version": 3,
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["data/web/register.html"],
-      "matches": ["<all_urls>"]
-    }
-  ],
-  "action": {
-    "default_popup": "data/popup/popup.html"
-  },
   "permissions": [
     "activeTab",
     "bookmarks",
@@ -34,6 +21,19 @@
   ],
   "host_permissions": [ 
     "<all_urls>"
+  ],
+  "background": {
+    "type": "module",
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "data/popup/popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["data/web/register.html"],
+      "matches": ["<all_urls>"]
+    }
   ],
   "icons": {
     "16": "data/icons/16x16.png",

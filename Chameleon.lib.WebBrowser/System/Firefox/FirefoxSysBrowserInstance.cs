@@ -32,37 +32,28 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	protected override async Task InitializeExtensionPath() {
 		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
 		await InitializePrefsJs();
-		//await InitializeExtensions();
-		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Geckoleon);
-		var versionFile = Path.Combine(inDir, "version.txt");
-		var version = "2024.1.7.2";
-		if (File.Exists(versionFile)) {
-			var fileVersion = await File.ReadAllTextAsync(versionFile);
-			if (fileVersion.Is()) version = IOtil.IncrementVersion(fileVersion);
-		}
-		await IOtil.DC(inDir);
-		await File.WriteAllTextAsync(versionFile, version);
 
 		//
-		var geckoextDir = await ExtensionLoader.LoadExtension(ExtensionType.geckolean, Settings.CachedExtentionsDir);
-		_ = await Settings.BuildMeleonExtSettings(geckoextDir);
-		var inDirCached = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.GeckoleonCache);
+		var geckoextDir = await ExtensionLoader.LoadExtension(ExtensionType.geckoleon, Settings.CachedExtentionsDir);
+		var inDirCached = Path.Combine(FilePaths.AppDataLocalDir, "ext");
 		await IOtil.DC(inDirCached);
 		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
 
 		//
 		var foxyproxyDir = await ExtensionLoader.LoadExtension(ExtensionType.foxyproxy, Settings.DestExtentionsDir, 
 		@$"let settings = {{
-			enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")},
 			type: 'http',
 			server: '{Settings.Profile.Proxy.Server}',
 			host: '{Settings.Profile.Proxy.Host}',
 			port: {Settings.Profile.Proxy.Port},
 			username: '{Settings.Profile.Proxy.UserName}',
 			password: '{Settings.Profile.Proxy.Password}',
-			url: '{Settings.Profile.StartUrl}',
-			debug: true,
+			enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")},
+			instanceId: '{Settings.Profile.Id}',
+			sessionId: '{SessionId}',
 		}};");
+		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Geckoleon);
+		await IOtil.DC(inDir);
 		await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid() + ".xpi"), foxyproxyDir);
 		await IOtil.DeleteDExistsAsync(Settings.DestExtentionsDir);
 
@@ -110,11 +101,11 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		return string.Join(" ", [
 			"-allow-downgrade",
 			"-no-remote",
-			"-wait-for-browser",
-			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
 			#if DEBUG
-			,"-devtools"
+			//"-devtools",
+			"-jsconsole",
 			#endif
+			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
 		]);
 	}
 
@@ -168,7 +159,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["privacy.resistFingerprinting"] = true,
 			["privacy.resistFingerprinting.autoDeclineNoUserInputCanvasPrompts"] = true,
 			//["privacy.resistFingerprinting.block_mozAddonManager"] = true,
-			["privacy.resistFingerprinting.exemptedDomains"] = "*.example.invalid",
+			["privacy.resistFingerprinting.exemptedDomains"] = "",
 			["privacy.resistFingerprinting.jsmloglevel"] = "Warn",
 			["privacy.resistFingerprinting.letterboxing"] = true,
 			["privacy.resistFingerprinting.randomDataOnCanvasExtract"] = true,
@@ -235,9 +226,9 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			//pref("dom.disable_open_during_load", false);
 			// Disable the ProcessHangMonitor        
 			["dom.ipc.reportProcessHangs"] = false,
-			["hangmonitor.timeou"] = 0,
+			["hangmonitor.timeout"] = 0,
 			// Allow the application to have focus even it runs in the background 
-			["focusmanager.testmode"] = true,
+			//["focusmanager.testmode"] = true,
 			// No ICC color correction. We need this for reproducible screenshots.
 			// See https://developer.mozilla.org/en/docs/Mozilla/Firefox/Releases/3.5/ICC_color_correction_in_Firefox.
 			//pref("gfx.color_management.mode", 0);
@@ -292,11 +283,12 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			// Disable updater
 			["app.update.enabled"] = false,
 			// Disable Firefox old build background check   
-			["app.update.checkInstallTim"] = false,
+			["app.update.checkInstallTime"] = false,
 			// Disable automatically upgrading Firefox     
 			["app.update.disabledForTesting"] = true,
 			// make absolutely sure it is really off
 			["app.update.auto"] = false,
+			["app.update.silent"] = true,
 			["app.update.mode"] = 0,
 			// Do not redirect user when a milstone upgrade of Firefox is detected
 			//["browser.startup.homepage_override.mstone"] = "ignore",
@@ -424,9 +416,11 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["browser.contentblocking.category"] = "strict",
 			["privacy.fingerprintingProtection.overrides"] = Settings.Profile.Emulations.AutoTimezone && Settings.Profile.Proxy.CanUse ? "+JSDateTimeUTC" : "",
 			["network.http.referer.XOriginTrimmingPolicy"] = "0",
-			["browser.startup.page"] = Debugger.IsAttached ? 3 : 1,
-			//SysBrowserInfoUtil.user_pref("extensions.webextensions.uuids", ""),
-			//SysBrowserInfoUtil.user_pref("browser.uiCustomization.state", ""),
+			/* 0102: set startup page [SETUP-CHROME]
+ 			 * 0=blank, 1=home, 2=last visited page, 3=resume previous session
+ 			 * [NOTE] Session Restore is cleared with history (2811), and not used in Private Browsing mode
+ 			 * [SETTING] General>Startup>Restore previous session ***/
+			["browser.startup.page"] = 3,
 		}) {
 			var up = $"user_pref(\"{p.Key}\", {p.Value.ParseValue()});";
 			if (prefs.Contains(up) || SysBrowserInfoUtil.FirefoxDepricatedPrefs.Contains(p.Key)) {

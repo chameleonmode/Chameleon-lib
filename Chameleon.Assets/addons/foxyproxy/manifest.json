@@ -1,9 +1,10 @@
 {
+  "name": "Foxy Proxy",
+  "description": "Because a proxy is foxy",
+  "version": "2025.3.26",
   "manifest_version": 2,
-  "name": "Proxameleon",
-  "description": "A Chameleon firefox addon to set proxy | username | password.",
-  "version": "2024.1.7.2",
   "permissions": [
+    "management",
     "proxy",
     "storage",
     "webRequest",
@@ -18,7 +19,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "foxproxameleon@chameleonmode.com",
+      "id": "foxyproxy@chameleonmode.com",
       "strict_min_version": "109.0"
     }
   }
