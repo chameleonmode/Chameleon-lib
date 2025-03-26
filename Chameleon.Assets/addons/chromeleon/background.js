@@ -1,5 +1,6 @@
 import App from "./src/app.js";
 import { log } from "./src/services/logger.js";
+import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import "./src/services/webrtc.js";
 import "./src/services/debugger.js";
 
@@ -7,6 +8,8 @@ const startup = async () => {
   // Restore session from storage
   await App.startup();
   log.info("App started", App.config);
+
+  await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
 };
 
 // Fix the incomplete runtime event listener

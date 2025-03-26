@@ -248,6 +248,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			//Settings.Profile.Proxy.HasLogin ? $"--proxy-auth={Settings.Profile.Proxy.UserName}:{Settings.Profile.Proxy.Password}" : "",
 			#if DEBUG
+				"--restore-last-session",
 				$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
 				//$"--load-extension=\"{exts}\"",
 			#else
@@ -273,6 +274,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		AddonsServer.Instance.AddonInstances[SessionId] = new {
 			urls = new {
 				start = Settings.Profile.StartUrl,
+				homePages = Settings.Profile.DefaultHomePageSettings,
 			},
 			tz = new {
 				enabled = Settings.Profile.Emulations.AutoTimezone,

@@ -76,6 +76,10 @@ const App = {
     dAPI: "disable_non_proxied_udp",
     urls: {
       start: "https://example.com/start",
+      homePages: [
+        "https://example.com/home",
+        "https://example.com/dashboard",
+      ],
     },
     tz: {
       enabled: true,
