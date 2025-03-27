@@ -15,7 +15,7 @@ using static Chameleon.lib.Common.Constants.Enums;
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
-	public override string ExePath { get; } = Consts.Browser.LocalFirefoxExePath;
+	public override string ExePath { get; } = SysBrowserInfoUtil.FindByType(SystemBrowserType.Firefox).Path;
 
 	public override async Task Start() {
 		var system = OperatingSystem.IsMacOS() 
@@ -41,13 +41,258 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 
 	protected override async Task InitializeExtensionPath() {
 		//await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF();
+		 var chrome = Path.Combine(Settings.SysBrowserProfileCachePath, "chrome");
+		 await IOtil.DC(chrome);
+
+		 var userChromecss = Path.Combine(chrome, "userChrome.css");
+		 await File.WriteAllTextAsync(userChromecss, @$"@import url(./userChrome.js.css);");
+
+		 var serChromejscss = Path.Combine(chrome, "userChrome.js.css");
+		 await File.WriteAllTextAsync(serChromejscss, @$"
+		 	@charset ""UTF-8"";
+@namespace url(""http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"");
+
+#userChrome-js {{
+  display: none !important;
+}}
+");
+
+var userChromexml = Path.Combine(chrome, "userChrome.js");
+		 await File.WriteAllTextAsync(userChromexml, 
+"""
+<?xml version="1.0"?>
+<bindings xmlns="http://www.mozilla.org/xbl" xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <binding id="userChrome">
+    <implementation>
+      <constructor>
+        <![CDATA[
+          if(window.userChromeJsMod) return;
+          window.userChromeJsMod = true;
+          
+          const MY_SCRIPT = "userChrome.js";
+          
+          try {
+            const profD = Components.classes["@mozilla.org/file/directory_service;1"]
+                        .getService(Components.interfaces.nsIProperties)
+                        .get("ProfD", Components.interfaces.nsIFile);
+            
+            const chromeDir = profD.clone();
+            chromeDir.append("chrome");
+            
+            if(!chromeDir.exists() || !chromeDir.isDirectory()) return;
+            
+            const scriptFile = chromeDir.clone();
+            scriptFile.append(MY_SCRIPT);
+            
+            if(!scriptFile.exists() || scriptFile.isDirectory()) return;
+            
+            const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+                        .getService(Components.interfaces.mozIJSSubScriptLoader);
+                        
+            loader.loadSubScript(`chrome://userchrome/content/${MY_SCRIPT}?${Math.random()}`, window);
+          } catch(ex) {
+            Components.utils.reportError(ex);
+          }
+        ]]>
+      </constructor>
+    </implementation>
+  </binding>
+</bindings>
+""");
+ var userChromejs = Path.Combine(chrome, "userChrome.js");
+		 await File.WriteAllTextAsync(userChromejs,
+"""
+// ==UserScript==
+// @name           Extension Installer
+// @version        1.0
+// @description    Install and manage extensions for Firefox 133+
+// ==/UserScript==
+
+(function() {
+  const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+  
+  try {
+    const Services = Cu.import("resource://gre/modules/Services.jsm").Services;
+    
+    // Import required modules
+    let FileUtils;
+    try {
+      FileUtils = ChromeUtils.importESModule("resource://gre/modules/FileUtils.sys.mjs");
+    } catch (e) {
+      // Fallback for older versions
+      FileUtils = ChromeUtils.import("resource://gre/modules/FileUtils.jsm", {}).FileUtils;
+    }
+    
+    let AddonManager;
+    try {
+      AddonManager = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs").AddonManager;
+    } catch (e) {
+      AddonManager = ChromeUtils.import("resource://gre/modules/AddonManager.jsm", {}).AddonManager;
+    }
+    
+    let ExtensionPermissions;
+    try {
+      ExtensionPermissions = ChromeUtils.importESModule("resource://gre/modules/ExtensionPermissions.sys.mjs").ExtensionPermissions;
+    } catch (e) {
+      ExtensionPermissions = ChromeUtils.import("resource://gre/modules/ExtensionPermissions.jsm", {}).ExtensionPermissions;
+    }
+    
+    // Define private browsing permissions
+    const PRIVATE_BROWSING_PERMS = {
+      permissions: ["internal:privateBrowsingAllowed"],
+      origins: [],
+    };
+    
+    function log(text) {
+      Services.console.logStringMessage("[Extension Installer] " + text);
+    }
+    
+    // We need to modify the installation approach to work with newer Firefox
+    async function installExtension(path, temporary = true) {
+      try {
+        // Use nsIFile for compatibility
+        let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+        file.initWithPath(path);
+        
+        if (!file.exists()) {
+          log(`No such file or directory: ${path}`);
+          return null;
+        }
+
+        log(`Installing addon from: ${path}`);
+        
+        try {
+          let addon = await AddonManager.installTemporaryAddon(file);
+          log(`Temporary add-on installed: ${addon.name} (ID: ${addon.id})`);
+          return addon;
+        } catch (tempEx) {
+          log(`Temporary installation failed: ${tempEx.message}`);
+          
+          if (!temporary) {
+            let install = await AddonManager.getInstallForFile(file);
+            await install.install();
+            log(`Regular installation successful`);
+            return await AddonManager.getAddonByID(install.addon.id);
+          }
+        }
+        
+        return null;
+      } catch (ex) {
+        log(`Could not install add-on: ${path} - ${ex.message}`);
+        return null;
+      }
+    }
+    
+    async function setPermission(addonId) {
+      try {
+        const addon = await AddonManager.getAddonByID(addonId);
+        if (!addon) {
+          log(`Addon not found: ${addonId}`);
+          return false;
+        }
+        
+        await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
+        log(`Permission set for: ${addon.id}`);
+        
+        if (addon.isActive) {
+          addon.reload();
+          log(`Addon reloaded: ${addon.id}`);
+        }
+        
+        return true;
+      } catch (ex) {
+        log(`Error setting permission for ${addonId}: ${ex.message}`);
+        return false;
+      }
+    }
+    
+    async function installFromDirectory(dirPath) {
+      try {
+        let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+        dir.initWithPath(dirPath);
+        
+        if (!dir.exists() || !dir.isDirectory()) {
+          log(`Directory not found or not a directory: ${dirPath}`);
+          return 0;
+        }
+        
+        let entries = dir.directoryEntries;
+        let installedCount = 0;
+        
+        while (entries.hasMoreElements()) {
+          let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+          if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {
+            log(`Attempting to install: ${entry.leafName}`);
+            let addon = await installExtension(entry.path, true);
+            if (addon) {
+              installedCount++;
+              await setPermission(addon.id);
+            }
+          }
+        }
+        
+        return installedCount;
+      } catch (ex) {
+        log(`Error installing from directory ${dirPath}: ${ex.message}`);
+        return 0;
+      }
+    }
+    
+    // Install extensions when browser is fully loaded
+    if (!Services.appinfo.inSafeMode) {
+      window.addEventListener("load", function() {
+        setTimeout(async function() {
+          try {
+            log("Starting extension installation process");
+            
+            // Update these paths to match your environment
+            const paths = [
+              `/Users/dev/src/Chameleon-lib/Tests/bin/Debug/net8.0/..Resources/BrowserExtensions/firefox`,
+              `/Users/dev/Library/Application Support/Chameleon/gecko`,
+              `${Services.dirsvc.get("ProfD", Ci.nsIFile).path}/Geckoleon`
+            ];
+            
+            let totalInstalled = 0;
+            
+            for (const path of paths) {
+              log(`Looking for extensions in: ${path}`);
+              const count = await installFromDirectory(path);
+              log(`Installed ${count} extensions from: ${path}`);
+              totalInstalled += count;
+            }
+            
+            // Try to enable permissions for specific extensions
+            const extensionsToEnable = [
+              "geckoleon@chameleonmode.com",
+              "foxyproxy@chameleonmode.com"
+            ];
+            
+            for (const extId of extensionsToEnable) {
+              await setPermission(extId);
+            }
+            
+            log(`Extension installation complete. Total installed: ${totalInstalled}`);
+          } catch (ex) {
+            log(`Error in extension installation: ${ex.message}`);
+          }
+        }, 3000);
+      }, { once: true });
+    }
+  } catch (ex) {
+    Cu.reportError(`Error in userChrome.js: ${ex.message}`);
+  }
+})();
+""");
+
+		//await File.WriteAllTextAsync(Path.Combine(dir, "firefox.cfg");
+
 		await InitializePrefsJs();
 
 		//
-		// await IOtil.CreateZipAsync(
-		// 	await ExtensionLoader.LoadExtension(ExtensionType.geckoleon, Settings.CachedExtentionsDir),
-		// 	Path.Combine(FilePaths.AppDataLocalDir, "gecko")
-		// );
+		await IOtil.CreateZipAsync(
+			await ExtensionLoader.LoadExtension(ExtensionType.geckoleon, Settings.CachedExtentionsDir),
+			Path.Combine(FilePaths.AppDataLocalDir, "gecko")
+		);
 
 		//
 		// await IOtil.CreateZipAsync(
@@ -431,6 +676,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
  			 * [NOTE] Session Restore is cleared with history (2811), and not used in Private Browsing mode
  			 * [SETTING] General>Startup>Restore previous session ***/
 			["browser.startup.page"] = 3,
+			["toolkit.legacyUserProfileCustomizations.stylesheets"] = true,
 		}) {
 			var up = $"user_pref(\"{p.Key}\", {p.Value.ParseValue()});";
 			if (prefs.Contains(up) || SysBrowserInfoUtil.FirefoxDepricatedPrefs.Contains(p.Key)) {

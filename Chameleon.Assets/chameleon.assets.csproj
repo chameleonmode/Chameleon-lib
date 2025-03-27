@@ -15,6 +15,7 @@
 	<ItemGroup>
 	  <Folder Include="addons/foxyproxy/" />
 	  <Folder Include="addons/geckoleon/" />
+	  <Folder Include="addons/geckoleon/src/scripts/" />
 	</ItemGroup>
 
 </Project>

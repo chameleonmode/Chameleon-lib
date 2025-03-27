@@ -9,103 +9,101 @@ using Microsoft.Win32;
 namespace Chameleon.lib.WebBrowser.Services;
 public static class SysBrowserInfoUtil {
 
-	[SupportedOSPlatform("windows")]
-	private static (bool IsInstalled, string FilePath) CheckApplication(string executableName)
-	{
-		// Check common installation paths
-		string[] commonPaths = [
-						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), executableName),
-						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), executableName)
-				];
+   [SupportedOSPlatform("windows")]
+   private static (bool IsInstalled, string FilePath) CheckApplication(string executableName) {
+      // Check common installation paths
+      string[] commonPaths = [
+                  Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), executableName),
+                  Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), executableName)
+            ];
 
-		foreach (var path in commonPaths) {
-			if (File.Exists(path)) return (true, path);
-		}
+      foreach (var path in commonPaths) {
+         if (File.Exists(path)) return (true, path);
+      }
 
-		// Check registry
-		string[] registryKeys = [
-						@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
-						@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths"
-		];
+      // Check registry
+      string[] registryKeys = [
+                  @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
+                  @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths"
+      ];
 
-		foreach (var registryKey in registryKeys) {
-			using var key = Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executableName));
-			if (key != null) {
-				var path = key.GetValue(null) as string;
-				if (!string.IsNullOrEmpty(path) && File.Exists(path)) return (true, path);
-			}
-		}
+      foreach (var registryKey in registryKeys) {
+         using var key = Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executableName));
+         if (key != null) {
+            var path = key.GetValue(null) as string;
+            if (!string.IsNullOrEmpty(path) && File.Exists(path)) return (true, path);
+         }
+      }
 
-		// Check for user-specific installation
-		var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-		var userSpecificPaths = Directory.GetFiles(appDataPath, executableName, SearchOption.AllDirectories);
-		if (userSpecificPaths.Length != 0) return (true, userSpecificPaths.First());
+      // Check for user-specific installation
+      var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+      var userSpecificPaths = Directory.GetFiles(appDataPath, executableName, SearchOption.AllDirectories);
+      if (userSpecificPaths.Length != 0) return (true, userSpecificPaths.First());
 
-		// Check uninstall registry keys
-		string[] uninstallKeys = [
-						@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-						@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-				];
+      // Check uninstall registry keys
+      string[] uninstallKeys = [
+                  @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                  @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+            ];
 
-		foreach (var uninstallKey in uninstallKeys) {
-			using var key = Registry.LocalMachine.OpenSubKey(uninstallKey);
-			if (key != null) {
-				foreach (var subKeyName in key.GetSubKeyNames()) {
-					using var subKey = key.OpenSubKey(subKeyName);
-					var displayName = subKey?.GetValue("DisplayName") as string;
-					if (!string.IsNullOrEmpty(displayName) && displayName.Contains(Path.GetFileNameWithoutExtension(executableName), StringComparison.OrdinalIgnoreCase)) {
-						var installLocation = subKey?.GetValue("InstallLocation") as string;
-						if (!string.IsNullOrEmpty(installLocation)) {
-							var fullPath = Path.Combine(installLocation, executableName);
-							if (File.Exists(fullPath)) return (true, fullPath);
-						}
-					}
-				}
-			}
-		}
+      foreach (var uninstallKey in uninstallKeys) {
+         using var key = Registry.LocalMachine.OpenSubKey(uninstallKey);
+         if (key != null) {
+            foreach (var subKeyName in key.GetSubKeyNames()) {
+               using var subKey = key.OpenSubKey(subKeyName);
+               var displayName = subKey?.GetValue("DisplayName") as string;
+               if (!string.IsNullOrEmpty(displayName) && displayName.Contains(Path.GetFileNameWithoutExtension(executableName), StringComparison.OrdinalIgnoreCase)) {
+                  var installLocation = subKey?.GetValue("InstallLocation") as string;
+                  if (!string.IsNullOrEmpty(installLocation)) {
+                     var fullPath = Path.Combine(installLocation, executableName);
+                     if (File.Exists(fullPath)) return (true, fullPath);
+                  }
+               }
+            }
+         }
+      }
 
-		return (false, string.Empty);
-	}
+      return (false, string.Empty);
+   }
 
-	public static BrowserRecord FindByName(string browserName)
-	{
-		BrowserRecord? inf = null;
-		if (OperatingSystem.IsMacOS()) {
-			var chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-			var bravePath = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
-			var firefoxPath = "/Applications/firefox.app/Contents/MacOS/firefox";
+   public static BrowserRecord FindByName(string browserName) {
+      BrowserRecord? inf = null;
+      if (OperatingSystem.IsMacOS()) {
+         var chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+         var bravePath = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
+         var firefoxPath = "/Applications/firefox.app/Contents/MacOS/firefox";
 
-			inf = browserName switch {
-				"chrome.exe" => File.Exists(chromePath) ? new BrowserRecord("chrome", chromePath) : null,
-				"brave.exe" => File.Exists(bravePath) ? new BrowserRecord("brave", bravePath) : null,
-				"firefox.exe" => File.Exists(firefoxPath) ? new BrowserRecord("brave", firefoxPath) : null,
-				_ => null
-			};
-		} else {
+         inf = browserName switch {
+            "chrome.exe" => File.Exists(chromePath) ? new BrowserRecord("chrome", chromePath) : null,
+            "brave.exe" => File.Exists(bravePath) ? new BrowserRecord("brave", bravePath) : null,
+            "firefox.exe" => File.Exists(firefoxPath) ? new BrowserRecord("brave", firefoxPath) : null,
+            _ => null
+         };
+      } else {
 #pragma warning disable CA1416 // Validate platform compatibility
 
-			var (isinstalled, filepath) = CheckApplication(browserName);
-			if (isinstalled && filepath.Is()) inf = new BrowserRecord(browserName, filepath);
+         var (isinstalled, filepath) = CheckApplication(browserName);
+         if (isinstalled && filepath.Is()) inf = new BrowserRecord(browserName, filepath);
 
 #pragma warning restore CA1416 // Validate platform compatibility
-		}
+      }
 
-		return inf ?? throw new NotSupportedException(
-				$"{char.ToUpper(browserName[0]) + browserName[1..]} browser is not installed.");
-	}
+      return inf ?? throw new NotSupportedException(
+            $"{char.ToUpper(browserName[0]) + browserName[1..]} browser is not installed.");
+   }
 
-	public static BrowserRecord FindByType(Enums.SystemBrowserType BrowserType) => BrowserType switch {
-		Enums.SystemBrowserType.Chrome => FindByName("chrome.exe"),
-		Enums.SystemBrowserType.Brave => FindByName("brave.exe"),
-		Enums.SystemBrowserType.Firefox => FindByName("firefox.exe"),
-		_ => throw new NotSupportedException("Browser type not found."),
-	};
+   public static BrowserRecord FindByType(Enums.SystemBrowserType BrowserType) => BrowserType switch {
+      Enums.SystemBrowserType.Chrome => FindByName("chrome.exe"),
+      Enums.SystemBrowserType.Brave => FindByName("brave.exe"),
+      Enums.SystemBrowserType.Firefox => FindByName("firefox.exe"),
+      _ => throw new NotSupportedException("Browser type not found."),
+   };
 
 #pragma warning disable IDE1006 // Naming Styles
-	public static KeyValuePair<string, string> user_pref(string name, object val) => new(name, $"user_pref(\"{name}\", {val.ParseValue()});");
+   public static KeyValuePair<string, string> user_pref(string name, object val) => new(name, $"user_pref(\"{name}\", {val.ParseValue()});");
 #pragma warning restore IDE1006 // Naming Styles
 
-	public static string[] FirefoxDepricatedPrefs => [
+   public static string[] FirefoxDepricatedPrefs => [
 	/* DEPRECATED */
 	/* 116-128 */
 	"browser.contentanalysis.default_allow", // 127
@@ -134,9 +132,9 @@ public static class SysBrowserInfoUtil {
 		"dom.storage.next_gen", // 102
 		"network.http.spdy.enabled", // 100
 		"network.http.spdy.enabled.deps",
-		"network.http.spdy.enabled.http2",
-		"network.http.spdy.websockets",
-		"layout.css.font-visibility.level", // 94
+      "network.http.spdy.enabled.http2",
+      "network.http.spdy.websockets",
+      "layout.css.font-visibility.level", // 94
 		"security.ask_for_password", // 102
 		"security.csp.enable", // 99
 		"security.password_lifetime", // 102
@@ -144,64 +142,64 @@ public static class SysBrowserInfoUtil {
 		/* REMOVED */
 		/* 116-128 */
 		"browser.fixup.alternate.enabled",
-		"browser.taskbar.previews.enable",
-		"browser.urlbar.dnsResolveSingleWordsAfterSearch",
-		"geo.provider.network.url",
-		"geo.provider.network.logging.enabled",
-		"geo.provider.use_gpsd",
-		"media.gmp-widevinecdm.enabled",
-		"network.protocol-handler.external.ms-windows-store",
-		"privacy.partition.always_partition_third_party_non_cookie_storage",
-		"privacy.partition.always_partition_third_party_non_cookie_storage.exempt_sessionstorage",
-		"privacy.partition.serviceWorkers",
+      "browser.taskbar.previews.enable",
+      "browser.urlbar.dnsResolveSingleWordsAfterSearch",
+      "geo.provider.network.url",
+      "geo.provider.network.logging.enabled",
+      "geo.provider.use_gpsd",
+      "media.gmp-widevinecdm.enabled",
+      "network.protocol-handler.external.ms-windows-store",
+      "privacy.partition.always_partition_third_party_non_cookie_storage",
+      "privacy.partition.always_partition_third_party_non_cookie_storage.exempt_sessionstorage",
+      "privacy.partition.serviceWorkers",
 		/* 103-115 */
 		"beacon.enabled",
-		"browser.startup.blankWindow",
-		"browser.newtab.preload",
-		"browser.newtabpage.activity-stream.feeds.discoverystreamfeed",
-		"browser.newtabpage.activity-stream.feeds.snippets",
-		"browser.region.network.url",
-		"browser.region.update.enabled",
-		"browser.search.region",
-		"browser.ssl_override_behavior",
-		"browser.tabs.warnOnClose",
-		"devtools.chrome.enabled",
-		"dom.disable_beforeunload",
-		"dom.disable_open_during_load",
-		"dom.netinfo.enabled",
-		"dom.vr.enabled",
-		"extensions.formautofill.addresses.supported",
-		"extensions.formautofill.available",
-		"extensions.formautofill.creditCards.available",
-		"extensions.formautofill.creditCards.supported",
-		"middlemouse.contentLoadURL",
-		"network.http.altsvc.oe",
+      "browser.startup.blankWindow",
+      "browser.newtab.preload",
+      "browser.newtabpage.activity-stream.feeds.discoverystreamfeed",
+      "browser.newtabpage.activity-stream.feeds.snippets",
+      "browser.region.network.url",
+      "browser.region.update.enabled",
+      "browser.search.region",
+      "browser.ssl_override_behavior",
+      "browser.tabs.warnOnClose",
+      "devtools.chrome.enabled",
+      "dom.disable_beforeunload",
+      "dom.disable_open_during_load",
+      "dom.netinfo.enabled",
+      "dom.vr.enabled",
+      "extensions.formautofill.addresses.supported",
+      "extensions.formautofill.available",
+      "extensions.formautofill.creditCards.available",
+      "extensions.formautofill.creditCards.supported",
+      "middlemouse.contentLoadURL",
+      "network.http.altsvc.oe",
 		/* 92-102 */
 		"browser.urlbar.trimURLs",
-		"dom.caches.enabled",
-		"dom.storageManager.enabled",
-		"dom.storage_access.enabled",
-		"dom.targetBlankNoOpener.enabled",
-		"network.cookie.thirdparty.sessionOnly",
-		"network.cookie.thirdparty.nonsecureSessionOnly",
-		"privacy.firstparty.isolate.block_post_message",
-		"privacy.firstparty.isolate.restrict_opener_access",
-		"privacy.firstparty.isolate.use_site",
-		"privacy.window.name.update.enabled",
-		"security.insecure_connection_text.enabled",
+      "dom.caches.enabled",
+      "dom.storageManager.enabled",
+      "dom.storage_access.enabled",
+      "dom.targetBlankNoOpener.enabled",
+      "network.cookie.thirdparty.sessionOnly",
+      "network.cookie.thirdparty.nonsecureSessionOnly",
+      "privacy.firstparty.isolate.block_post_message",
+      "privacy.firstparty.isolate.restrict_opener_access",
+      "privacy.firstparty.isolate.use_site",
+      "privacy.window.name.update.enabled",
+      "security.insecure_connection_text.enabled",
 		/* IMPORTANT: last active pref must not have a trailing comma */
 		/* reset parrot: check your open about:config after running the script */
 		"_user.js.parrot",
 		//
 		"general.appname.override",
-		"general.appversion.override",
-		"general.buildID.override",
-		"general.oscpu.override",
-		"general.platform.override",
-		"general.useragent.override",
-		"media.navigator.enabled",
+      "general.appversion.override",
+      "general.buildID.override",
+      "general.oscpu.override",
+      "general.platform.override",
+      "general.useragent.override",
+      "media.navigator.enabled",
 ];
-	public static List<KeyValuePair<string, string>> FirefoxUserPrefs => [
+   public static List<KeyValuePair<string, string>> FirefoxUserPrefs => [
 /* START: internal custom pref to test for syntax errors
  * [NOTE] Not all syntax errors cause parsing to abort i.e. reaching the last debug pref
  * no longer necessarily means that all prefs have been applied. Check the console right
@@ -1308,15 +1306,15 @@ user_pref("extensions.quarantinedDomains.enabled", true), // [DEFAULT: true]
 //user_pref("_user.js.parrot", "8000 syntax error: the parrot's crossed the Jordan"),
 /* 8001: prefsCleaner: reset items useless for anti-fingerprinting ***/
    user_pref("browser.display.use_document_fonts", ""),
-	 user_pref("browser.zoom.siteSpecific", ""),
-	 user_pref("device.sensors.enabled", ""),
-	 user_pref("dom.enable_performance", ""),
-	 user_pref("dom.enable_resource_timing", ""),
-	 user_pref("dom.gamepad.enabled", ""),
-	 user_pref("dom.maxHardwareConcurrency", ""),
-	 user_pref("dom.w3c_touch_events.enabled", ""),
-	 user_pref("dom.webaudio.enabled", ""),
-	 user_pref("font.system.whitelist", ""),
+    user_pref("browser.zoom.siteSpecific", ""),
+    user_pref("device.sensors.enabled", ""),
+    user_pref("dom.enable_performance", ""),
+    user_pref("dom.enable_resource_timing", ""),
+    user_pref("dom.gamepad.enabled", ""),
+    user_pref("dom.maxHardwareConcurrency", ""),
+    user_pref("dom.w3c_touch_events.enabled", ""),
+    user_pref("dom.webaudio.enabled", ""),
+    user_pref("font.system.whitelist", ""),
 	 //user_pref("general.appname.override", ""),
 	 //user_pref("general.appversion.override", ""),
 	 //user_pref("general.buildID.override", ""),
@@ -1325,10 +1323,10 @@ user_pref("extensions.quarantinedDomains.enabled", true), // [DEFAULT: true]
 	 //user_pref("general.useragent.override", ""),
 	 //user_pref("media.navigator.enabled", ""),
 	 user_pref("media.ondevicechange.enabled", ""),
-	 user_pref("media.video_stats.enabled", ""),
-	 user_pref("media.webspeech.synth.enabled", ""),
-	 user_pref("ui.use_standins_for_native_colors", ""),
-	 user_pref("webgl.enable-debug-renderer-info", ""),
+    user_pref("media.video_stats.enabled", ""),
+    user_pref("media.webspeech.synth.enabled", ""),
+    user_pref("ui.use_standins_for_native_colors", ""),
+    user_pref("webgl.enable-debug-renderer-info", ""),
 
 /*** [SECTION 9000]: NON-PROJECT RELATED ***/
 //user_pref("_user.js.parrot", "9000 syntax error: the parrot's cashed in 'is chips!"),
@@ -1415,8 +1413,7 @@ user_pref("widget.non-native-theme.enabled", true) // [DEFAULT: true]
 //user_pref("_user.js.parrot", "SUCCESS: No no he's not dead, he's, he's restin'!"),
 	];
 
-	public static async Task AddAutoloadTemporaryAddonFF()
-	{
+   public static async Task AddAutoloadTemporaryAddonFF() {
       //var profileDirPath = Path.Combine(directory, Consts.Browser.Geckoleon).Replace("\\", "\\\\");
       var browserExtensions = Path.Combine(Consts.Addons.DefaultExtensionsFolderPath_FF).Replace("\\", "\\\\");
       var cachedExtensions = Path.Combine(FilePaths.AppDataLocalDir, "gecko").Replace("\\", "\\\\");
@@ -1424,270 +1421,283 @@ user_pref("widget.non-native-theme.enabled", true) // [DEFAULT: true]
 #if DEBUG
          "true";
 #else
-         "false";
+       "false";
 #endif
 
-      var userChrome =
-$@"// First line is always a comment
-lockPref(""a.b.c.d"", ""1.2.3.4""); // Debugging Firefox AutoConfig Problems
-
-const {{ FileUtils }} = ChromeUtils.import(""resource://gre/modules/FileUtils.jsm"", {{}});
-const {{ AddonManager }} = ChromeUtils.import(""resource://gre/modules/AddonManager.jsm"", {{}});
-const {{ ExtensionPermissions }} = ChromeUtils.import(""resource://gre/modules/ExtensionPermissions.jsm"");
-
-// Define private browsing permissions
-const PRIVATE_BROWSING_PERMS = {{
-    permissions: [""internal:privateBrowsingAllowed""],
-    origins: [],
-}};
-
-const ERRORS = {{
-    [-1]: ""ERROR_NETWORK_FAILURE: A network error occurred."",
-    [-2]: ""ERROR_INCORRECT_HASH: The downloaded file did not match the expected hash."",
-    [-3]: ""ERROR_CORRUPT_FILE: The file appears to be corrupt."",
-    [-4]: ""ERROR_FILE_ACCESS: There was an error accessing the filesystem."",
-    [-5]: ""ERROR_SIGNEDSTATE_REQUIRED: The addon must be signed and isn't."",
-}};
-
-function reportError(ex, emex) {{
-   printDebug(""Error: "" + ex + "" - "" + emex);
-}}
-
-function printDebug(text) {{
-	if({debug}) {{
-    var consoleService = Components.classes[""@mozilla.org/consoleservice;1""].getService(Components.interfaces.nsIConsoleService);
-    consoleService.logStringMessage(""userChrome.js "" + text);
-	}}
-}}
-
-async function installExtension(path, temporary) {{
-    try {{
-        let file = new FileUtils.File(path);
-        if (!file.exists()) {{
-            reportError(`No such file or directory: ${{path}}`);
-            return;
-        }}
-
-        if (temporary) {{
-            await AddonManager.installTemporaryAddon(file);
-        }} else {{
-            let install = await AddonManager.getInstallForFile(file, null, {{ source: ""internal"" }});
-            if (install.error) {{
-                reportError(ERRORS[install.error]);
-            }}
-            return install.install();
-        }}
-    }} catch (ex) {{
-        reportError(`Could not install add-on: ${{path}}: ${{ex.message}}`);
-    }}
-}}
-
-
-const ADDON_ID = ""geckoleon@chameleonmode.com"";
-const PROXY_EXTENSION_ID = ""foxyproxy@chameleonmode.com"";
-/**
- * Function to install an unsigned add-on as a temporary extension and set specific permissions.
- * @param {{string}} filePath - The absolute path to the .xpi file of the add-on.
- */
-async function installTemporaryAddonWithPermissions(filePath) {{
-    try {{
-        // Step 1: Configure Firefox to allow temporary add-ons (if not already configured)
-        // Note: This step might be optional depending on your Firefox version and setup
-
-        // Step 2: Initialize the file object with the provided path
-        let file = Components.classes[""@mozilla.org/file/local;1""].createInstance(Components.interfaces.nsIFile);
-        file.initWithPath(filePath);
-
-        // Verify that the file exists
-        if (!file.exists()) {{
-            reportError(`The file at path ""${{filePath}}"" does not exist.`);
-            return;
-        }}
-
-        // Step 3: Install the add-on as a temporary extension
-        let addon = await AddonManager.installTemporaryAddon(file);
-        if (!addon) {{
-            reportError(""Failed to install the temporary add-on."");
-            return;
-        }}
-
-        printDebug(`Temporary add-on installed: ${{addon.name}} (ID: ${{addon.id}})`);
-
-        // Step 4: Add the specified permissions to the newly installed add-on
-        // Note: 'internal:' permissions are privileged and may not be settable by regular extensions
-        // Ensure that your environment permits setting such internal permissions
-        try {{
-            await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
-            printDebug(`Permissions added to add-on: ${{addon.id}}`);
-        }} catch (permError) {{
-            reportError(`Error adding permissions to add-on ${{addon.id}}:`, permError);
-        }}
-
-        // Step 5: (Optional) Perform additional actions if the add-on is active
-        if (addon.isActive) {{
-            // Add-on is already active; no need to reload
-            printDebug(`Add-on ""${{addon.name}}"" is active.`);
-        }} else {{
-            // If needed, activate the add-on
-            try {{
-                await addon.enable();
-                printDebug(`Add-on ""${{addon.name}}"" has been enabled.`);
-            }} catch (enableError) {{
-                reportError(`Error enabling add-on ""${{addon.name}}"":`, enableError);
-            }}
-        }}
-
-        // Define a listener for extension events
-        const listener = {{
-            onEnabled(enabledAddon) {{
-                if (enabledAddon.id === ADDON_ID) {{
-                    printDebug(`Add-on ${{ADDON_ID}} enabled.`);
-                }}
-            }},
-            onDisabled(disabledAddon) {{
-                if (disabledAddon.id === ADDON_ID) {{
-                    printDebug(`Add-on ${{ADDON_ID}} disabled.`);
-                }}
-            }},
-            onUninstalled(uninstalledAddon) {{
-                if (uninstalledAddon.id === ADDON_ID) {{
-                    printDebug(`Add-on ${{ADDON_ID}} uninstalled.`);
-                }}
-            }},
-            // Add other necessary listener methods here
-        }};
-
-        // Register the listener
-        AddonManager.addAddonListener(listener);
-    }} catch (error) {{
-        reportError(""An unexpected error occurred during add-on installation:"", error);
-    }}
-}}
-
-async function installExtensions() {{
-   try {{
-      const BrowserExtensionsFolderPath = `{browserExtensions}`;
-      let dir = new FileUtils.File(BrowserExtensionsFolderPath);
-      if (dir.exists() && dir.isDirectory()) {{
-         let entries = dir.directoryEntries;
-         while (entries.hasMoreElements()) {{
-            let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-            if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
-               printDebug(`Attempting to install: ${{entry.leafName}}`);
-               await installExtension(entry.path, false);
-            }}
-         }}
-      }}
-
-      const ExtensionsFolderPath = `{cachedExtensions}`;
-      let dir2 = new FileUtils.File(ExtensionsFolderPath);
-      if (dir2.exists() && dir2.isDirectory()) {{
-         let entries = dir2.directoryEntries;
-         while (entries.hasMoreElements()) {{
-            let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-            if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
-               printDebug(`Attempting to install: ${{entry.leafName}}`);
-               await installTemporaryAddonWithPermissions(entry.path);
-            }}
-         }}
-      }}
-
-      let folder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
-      folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.Geckoleon}`;
-      let pdirDir = new FileUtils.File(folder);
-      if (pdirDir.exists() && pdirDir.isDirectory()) {{
-         let entries = pdirDir.directoryEntries;
-         while (entries.hasMoreElements()) {{
-            let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-            if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
-               printDebug(`Attempting to install: ${{entry.leafName}}`);
-               await installTemporaryAddonWithPermissions(entry.path);
-            }}
-         }}
-      }}
-
-     // let cachedfolder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
-     // cachedfolder = `${{cachedfolder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.GeckoleonCache}`;
-     // let pdirDirCached = new FileUtils.File(cachedfolder);
-     // if (pdirDirCached.exists() && pdirDirCached.isDirectory()) {{
-     //   let entries = pdirDirCached.directoryEntries;
-     //   while (entries.hasMoreElements()) {{
-     //     let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-     //     if (entry.isFile() && entry.leafName.endsWith("".xpi"")) {{
-     //       printDebug(`Attempting to install: ${{entry.leafName}}`);
-     //       await installTemporaryAddonWithPermissions(entry.path);
-     //     }}
-     //   }}
-     // }}
-  }} catch (ex) {{
-       reportError(`Error: ${{ex.message}}`);
-  }}
-   await setPermission(PROXY_EXTENSION_ID);
-   await setPermission(ADDON_ID);
-}}
-
-async function setPermission(addonId) {{
-    const PRIVATE_BROWSING_PERMS = {{
-        permissions: [""internal:privateBrowsingAllowed""],
-        origins: [],
-    }};
-    const {{ExtensionPermissions}} = ChromeUtils.import(""resource://gre/modules/ExtensionPermissions.jsm"");
-    const myaddons = await AddonManager.getAddonsByTypes([""extension""]);
-    for(let addon of myaddons){{
-        if (addon.id !== addonId){{
-            continue;
-        }}
-        await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
-        if (addon.isActive)
-            addon.reload();
-    }}
-}}
-
+      // Create firefox.cfg file content with proper namespace protection
+      // This is critical for Firefox 133+ compatibility
+      var firefoxCfg =
+  $@"// First line must be a comment
 try {{
-    let {{ classes: Cc, interfaces: Ci, manager: Cm }} = Components;
+    const {{ classes: Cc, interfaces: Ci, utils: Cu }} = Components;
+    const Services = Cu.import(""resource://gre/modules/Services.jsm"").Services;
 
-    function ConfigJS() {{
-        Services.obs.addObserver(this, 'final-ui-startup', false);
-    }}
+    // Create a loader function that avoids leaking privileged objects
+    function loadUserScript() {{
+        // Import required modules within this function's scope
+        try {{
+            // Import the modules we need
+            const {{ FileUtils }} = ChromeUtils.import(""resource://gre/modules/FileUtils.jsm"", {{}});
+            const {{ AddonManager }} = ChromeUtils.import(""resource://gre/modules/AddonManager.jsm"", {{}});
+            const {{ ExtensionPermissions }} = ChromeUtils.import(""resource://gre/modules/ExtensionPermissions.jsm"");
 
-    ConfigJS.prototype = {{
-        observe: async function(subject, topic, data) {{
-        printDebug(topic);
-            if (topic === 'final-ui-startup') {{
-                await installExtensions();
+            // Define private browsing permissions
+            const PRIVATE_BROWSING_PERMS = {{
+                permissions: [""internal:privateBrowsingAllowed""],
+                origins: [],
+            }};
+
+            const ERRORS = {{
+                [-1]: ""ERROR_NETWORK_FAILURE: A network error occurred."",
+                [-2]: ""ERROR_INCORRECT_HASH: The downloaded file did not match the expected hash."",
+                [-3]: ""ERROR_CORRUPT_FILE: The file appears to be corrupt."",
+                [-4]: ""ERROR_FILE_ACCESS: There was an error accessing the filesystem."",
+                [-5]: ""ERROR_SIGNEDSTATE_REQUIRED: The addon must be signed and isn't."",
+            }};
+
+            function reportError(ex, emex) {{
+                printDebug(""Error: "" + ex + (emex ? "" - "" + emex : """"));
             }}
+
+            function printDebug(text) {{
+                if({debug}) {{
+                    console.log(""userChrome.js "" + text);
+                    // Also log to console service for visibility in Browser Console
+                    let consoleService = Cc[""@mozilla.org/consoleservice;1""].getService(Ci.nsIConsoleService);
+                    consoleService.logStringMessage(""userChrome.js "" + text);
+                }}
+            }}
+
+            // We need to modify the installation approach to work with newer Firefox
+            async function installExtension(path, temporary = true) {{
+                try {{
+                    // Use nsIFile for compatibility
+                    let file = Cc[""@mozilla.org/file/local;1""].createInstance(Ci.nsIFile);
+                    file.initWithPath(path);
+                    
+                    if (!file.exists()) {{
+                        reportError(`No such file or directory: ${{path}}`);
+                        return null;
+                    }}
+
+                    printDebug(`Installing addon from: ${{path}}`);
+                    
+                    // First try temporary installation, which works in Developer Edition
+                    try {{
+                        let addon = await AddonManager.installTemporaryAddon(file);
+                        printDebug(`Temporary add-on installed: ${{addon.name}} (ID: ${{addon.id}})`);
+                        return addon;
+                    }} catch (tempEx) {{
+                        reportError(`Temporary installation failed, trying regular: ${{tempEx.message}}`);
+                        
+                        // Fall back to regular installation (only works for signed add-ons)
+                        if (!temporary) {{
+                            let install = await AddonManager.getInstallForFile(file, null, {{ source: ""internal"" }});
+                            if (install.error) {{
+                                reportError(ERRORS[install.error] || `Unknown error: ${{install.error}}`);
+                                return null;
+                            }}
+                            
+                            await install.install();
+                            printDebug(`Regular installation successful`);
+                            return await AddonManager.getAddonByID(install.addon.id);
+                        }}
+                    }}
+                    
+                    return null;
+                }} catch (ex) {{
+                    reportError(`Could not install add-on: ${{path}}`, ex.message);
+                    return null;
+                }}
+            }}
+
+            const ADDON_ID = ""geckoleon@chameleonmode.com"";
+            const PROXY_EXTENSION_ID = ""foxyproxy@chameleonmode.com"";
+
+            async function setPermission(addonId) {{
+                try {{
+                    printDebug(`Setting permissions for: ${{addonId}}`);
+                    
+                    // Find the addon first
+                    const myaddons = await AddonManager.getAddonsByTypes([""extension""]);
+                    for(let addon of myaddons) {{
+                        if (addon.id !== addonId) {{
+                            continue;
+                        }}
+                        
+                        // Request the permission
+                        await ExtensionPermissions.add(addon.id, PRIVATE_BROWSING_PERMS);
+                        printDebug(`Permission set for: ${{addon.id}}`);
+                        
+                        // Reload if active
+                        if (addon.isActive) {{
+                            addon.reload();
+                            printDebug(`Addon reloaded: ${{addon.id}}`);
+                        }}
+                        
+                        return true;
+                    }}
+                    
+                    printDebug(`Addon not found: ${{addonId}}`);
+                    return false;
+                }} catch (ex) {{
+                    reportError(`Error setting permission for ${{addonId}}`, ex.message);
+                    return false;
+                }}
+            }}
+
+            async function installExtensions() {{
+                try {{
+                    printDebug(""Starting extension installation process"");
+                    
+                    // Primary extensions folder
+                    const BrowserExtensionsFolderPath = `{browserExtensions}`;
+                    printDebug(`Looking for extensions in: ${{BrowserExtensionsFolderPath}}`);
+                    
+                    // Use nsIFile for directory operations
+                    let dir = Cc[""@mozilla.org/file/local;1""].createInstance(Ci.nsIFile);
+                    dir.initWithPath(BrowserExtensionsFolderPath);
+                    
+                    if (dir.exists() && dir.isDirectory()) {{
+                        let entries = dir.directoryEntries;
+                        let installedCount = 0;
+                        
+                        while (entries.hasMoreElements()) {{
+                            let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+                            if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
+                                printDebug(`Attempting to install: ${{entry.leafName}}`);
+                                let addon = await installExtension(entry.path, true);
+                                if (addon) {{
+                                    installedCount++;
+                                    await setPermission(addon.id);
+                                }}
+                            }}
+                        }}
+                        
+                        printDebug(`Installed ${{installedCount}} extensions from primary folder`);
+                    }} else {{
+                        printDebug(`Primary extensions directory not found or not a directory`);
+                    }}
+
+                   const ExtensionsFolderPath = `{cachedExtensions}`;
+                   let dir2 = Cc[""@mozilla.org/file/local;1""].createInstance(Ci.nsIFile);
+                   dir2.initWithPath(BrowserExtensionsFolderPath);
+                   if (dir2.exists() && dir2.isDirectory()) {{
+                        let entries = dir2.directoryEntries;
+                        let installedCount = 0;
+                        
+                        while (entries.hasMoreElements()) {{
+                            let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+                            if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
+                                printDebug(`Attempting to install: ${{entry.leafName}}`);
+                                let addon = await installExtension(entry.path, true);
+                                if (addon) {{
+                                    installedCount++;
+                                    await setPermission(addon.id);
+                                }}
+                            }}
+                        }}
+                        
+                        printDebug(`Installed ${{installedCount}} extensions from primary folder`);
+                    }} else {{
+                        printDebug(`Primary extensions directory not found or not a directory`);
+                    }}
+             
+                   let folder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
+                   folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.Geckoleon}`;
+                   let pdirDir = new FileUtils.File(folder);
+                   if (pdirDir.exists() && pdirDir.isDirectory()) {{
+                      let entries = pdirDir.directoryEntries;
+                      while (entries.hasMoreElements()) {{
+                         let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+                         if (entry.isFile() && entry.leafName.endsWith('.xpi')) {{
+                            printDebug(`Attempting to install: ${{entry.leafName}}`);
+                            await installTemporaryAddonWithPermissions(entry.path);
+                         }}
+                      }}
+                   }}
+
+                    // Ensure specific extensions have permissions (if already installed)
+                    await setPermission(PROXY_EXTENSION_ID);
+                    await setPermission(ADDON_ID);
+                    
+                    printDebug(""Extension installation process completed"");
+                }} catch (ex) {{
+                    reportError(`Error in installExtensions`, ex.message);
+                }}
+            }}
+
+            // Set up the initialization observer
+            if (!Services.appinfo.inSafeMode) {{
+                printDebug(""Firefox not in safe mode, setting up extension loader"");
+                
+                // Use modern observer pattern
+                const initObserver = {{
+                    observe: function(subject, topic, data) {{
+                        if (topic === 'final-ui-startup') {{
+                            printDebug(""Firefox UI started, installing extensions"");
+                            Services.obs.removeObserver(this, 'final-ui-startup');
+                            
+                            // Give Firefox a moment to fully initialize
+                            setTimeout(async function() {{
+                                await installExtensions();
+                            }}, 2000);
+                        }}
+                    }}
+                }};
+                
+                // Register the observer
+                Services.obs.addObserver(initObserver, 'final-ui-startup', false);
+                printDebug(""Observer registered for final-ui-startup"");
+            }} else {{
+                printDebug(""Firefox in safe mode, skipping extension installation"");
+            }}
+            
+        }} catch (innerEx) {{
+            console.error(""Error in userChrome.js inner scope:"", innerEx);
         }}
-    }};
-
-    if (!Services.appinfo.inSafeMode) {{
-        new ConfigJS();
     }}
-
+    
+    // Execute the loader function
+    loadUserScript();
+    
 }} catch (ex) {{
-    reportError(ex);
-}}
+    console.error(""Error in firefox.cfg:"", ex);
+}}";
 
-lockPref(""e.f.g.h"", ""5.6.7.8""); // Debugging Firefox AutoConfig Problems";
+      // The config-prefs.js must point to firefox.cfg now, not userChrome.js
+      var configPrefs =
+  @"// config-prefs.js file for Firefox
+pref(""general.config.obscure_value"", 0);
+// The filename must be firefox.cfg in recent Firefox versions
+pref(""general.config.filename"", ""firefox.cfg"");
+// Note: sandbox_enabled can no longer be disabled in Firefox 133+
+// Our firefox.cfg is designed to work within the sandbox
+";
 
-		var configPrefs =
-"""
-// config-prefs.js file for [Firefox program folder]\defaults\pref
-pref("general.config.obscure_value", 0);
-// the file named in the following line must be in [Firefox program folder]
-pref("general.config.filename", "userChrome.js");
-// disable the sandbox to run unsafe code
-pref("general.config.sandbox_enabled", false);
-""";
+      // Get the Firefox directory
+      var dir = OperatingSystem.IsMacOS()
+          ? Path.Combine(Consts.Browser.LocalFirefoxDirPath, "Contents", "Resources")
+          : Consts.Browser.LocalFirefoxDirPath;
 
-		var dir = OperatingSystem.IsMacOS() ? Path.Combine(Consts.Browser.LocalFirefoxDirPath, "Contents", "Resources") : Consts.Browser.LocalFirefoxDirPath;
-		var ucp = Path.Combine(dir, "userChrome.js");
-		var cppd = Path.Combine(dir, "defaults", "pref");
-      if(!Directory.Exists(cppd))
-			_ = Directory.CreateDirectory(cppd);
-		var cpp = Path.Combine(cppd, "config-prefs.js");
-		await File.WriteAllTextAsync(ucp, userChrome);
-		await File.WriteAllTextAsync(cpp, configPrefs);
-	}
+      // Write the firefox.cfg file to the Firefox root directory
+      var ucpPath = Path.Combine(dir, "firefox.cfg");
+
+      // Ensure the defaults/pref directory exists
+      var cppd = Path.Combine(dir, "defaults", "pref");
+      if (!Directory.Exists(cppd))
+         _ = Directory.CreateDirectory(cppd);
+
+      // Write the config-prefs.js file
+      var cppPath = Path.Combine(cppd, "config-prefs.js");
+
+      // Write the files
+      await File.WriteAllTextAsync(ucpPath, firefoxCfg);
+      await File.WriteAllTextAsync(cppPath, configPrefs);
+
+      // Log success message
+      Console.WriteLine($"Firefox configuration files created at {ucpPath} and {cppPath}");
+   }
 }
 
 //TODO
