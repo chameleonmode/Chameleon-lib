@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics;
-using System.Management;
 using System.Runtime.InteropServices;
 
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
+using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Common.Util;
@@ -64,17 +64,21 @@ public static class ProUtil {
 		});
 	}
 
-	public static Process Createa(string fileName, string arguments) =>
-			new() {
-				StartInfo = new ProcessStartInfo {
-					FileName = fileName,
-					Arguments = arguments,
-					UseShellExecute = false,
-					ErrorDialog = true,
-					CreateNoWindow = true,
-				},
-				EnableRaisingEvents = true,
-			};
+	public static Process Start(string fileName, string arguments) {
+		var p = new Process {
+			StartInfo = new ProcessStartInfo {
+				FileName = fileName,
+				Arguments = arguments,
+				UseShellExecute = false,
+				ErrorDialog = true,
+				CreateNoWindow = true,
+			},
+			EnableRaisingEvents = true,
+		};
+		_ = p.Start();
+		return p;
+	}
+
 
 	public static bool TrySetForeground(Process? p)
 	{

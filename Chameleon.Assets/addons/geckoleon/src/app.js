@@ -21,15 +21,13 @@ class EventObserver {
     if (!this.observers[event]) {
       this.observers[event] = [];
     }
-    
+
     // Add the callback to the event's observers
     this.observers[event].push(callback);
-    
+
     // Return an unsubscribe function
     return () => {
-      this.observers[event] = this.observers[event].filter(
-        subscriber => subscriber !== callback
-      );
+      this.observers[event] = this.observers[event].filter((subscriber) => subscriber !== callback);
     };
   }
 
@@ -40,9 +38,7 @@ class EventObserver {
    */
   unsubscribe(event, callback) {
     if (this.observers[event]) {
-      this.observers[event] = this.observers[event].filter(
-        subscriber => subscriber !== callback
-      );
+      this.observers[event] = this.observers[event].filter((subscriber) => subscriber !== callback);
     }
   }
 
@@ -53,13 +49,12 @@ class EventObserver {
    */
   notify(event, data) {
     if (this.observers[event]) {
-      this.observers[event].forEach(callback => {
+      this.observers[event].forEach((callback) => {
         callback(data);
       });
     }
   }
 }
-
 
 // Default configuration for the app
 const App = {
@@ -76,10 +71,7 @@ const App = {
     dAPI: "disable_non_proxied_udp",
     urls: {
       start: "https://example.com/start",
-      homePages: [
-        "https://example.com/home",
-        "https://example.com/dashboard",
-      ],
+      homePages: ["https://example.com/home", "https://example.com/dashboard"],
     },
     tz: {
       enabled: true,
@@ -127,26 +119,29 @@ const App = {
   },
   launchedSessions: {},
 
-
   // Startup
   startup: async function () {
-    const { session, launchedSessions, config } = await chrome.storage.local.get([
-      "session",
-      "launchedSessions",
-      "config",
-    ]);
-    this.session = session || this.session;
-    this.launchedSessions = launchedSessions || this.launchedSessions;
+    try {
+      const { session, launchedSessions, config } = await chrome.storage.local.get([
+        "session",
+        "launchedSessions",
+        "config",
+      ]);
+      this.session = session || this.session;
+      this.launchedSessions = launchedSessions || this.launchedSessions;
 
-    if (config) {
-      config["noises"] = this.config["noises"];
-      for (const [key, value] of Object.entries(config)) {
-        if (typeof value === "object" && !Array.isArray(value)) {
-          this.config[key] = { ...this.config[key], ...value };
-        } else {
-          this.config[key] = value;
+      if (config) {
+        config["noises"] = this.config["noises"];
+        for (const [key, value] of Object.entries(config)) {
+          if (typeof value === "object" && !Array.isArray(value)) {
+            this.config[key] = { ...this.config[key], ...value };
+          } else {
+            this.config[key] = value;
+          }
         }
       }
+    } catch (error) {
+      console.warn("Error during startup:", error);
     }
 
     return {

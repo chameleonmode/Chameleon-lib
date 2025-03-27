@@ -10,8 +10,7 @@ using Chameleon.lib.WebBrowser.Services;
 using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 
 namespace Chameleon.lib.WebBrowser.System;
-public abstract class SysBrowserInstance
-		: IBrowserInstance {
+public abstract class SysBrowserInstance : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 	public Process? Brocess { get; set; }
@@ -90,8 +89,7 @@ public abstract class SysBrowserInstance
 				return;
 
 			// StartProcess
-			Brocess = ProUtil.Createa(ExePath, GetCommandLineArguments());
-			_ = Brocess.Start();
+			Brocess = ProUtil.Start(ExePath, GetCommandLineArguments());
 			await Task.Delay(1800);
 
 			//

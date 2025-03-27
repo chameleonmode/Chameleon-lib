@@ -19,12 +19,17 @@ public static class IOtil {
 		return FilePaths.EnsureDirectoryExists(path);
 	}
 
-	public static Task CreateZipAsync(string zipFilePath, string directoryPath) => Task.Run(() => {
-		if (!Directory.Exists(directoryPath)) {
-			throw new DirectoryNotFoundException($"The directory '{directoryPath}' does not exist.");
+	public static Task CreateZipAsync(string sourceDir, string zipDir, string? zipFile = null, bool dc = true) => Task.Run(async () => {
+		if (!Directory.Exists(sourceDir)) {
+			throw new DirectoryNotFoundException($"The directory '{sourceDir}' does not exist.");
 		}
 
-		ZipFile.CreateFromDirectory(directoryPath, zipFilePath, CompressionLevel.Fastest, false);
+		if (dc) await DC(zipDir);
+		else if (!Directory.Exists(zipDir)) _ = Directory.CreateDirectory(zipDir);
+
+		zipFile ??= Guid.NewGuid() + ".zip";
+
+		ZipFile.CreateFromDirectory(sourceDir, Path.Combine(zipDir, zipFile), CompressionLevel.Fastest, false);
 	});
 
 	public static Task CreateZipAsync(string filePath, Dictionary<string, string> files)
@@ -84,14 +89,26 @@ public static class IOtil {
 		}
 	}
 
-	public static bool IsNeedUpdate(string newer, string older)
-	{
-		if (!Path.Exists(older)) {
+	public static bool NeedUpdate(string system, string local) {
+		if (!Path.Exists(local)) {
 			return true;
 		}
 
-		var systemFirefoxInfo = FileVersionInfo.GetVersionInfo(newer);
-		var chamelonFirefoxInfo = FileVersionInfo.GetVersionInfo(older);
+		if (OperatingSystem.IsMacOS()) {
+			// Get Info.plist path (contains application metadata)
+			var infoPlistPath = Path.Combine(system, "Contents", "Info.plist");
+			var localInfoPlistPath = Path.Combine(local, "Contents", "Info.plist");
+			var plistInfo = new FileInfo(infoPlistPath);
+			var localPlistInfo = new FileInfo(localInfoPlistPath);
+			var plistContent = File.ReadAllText(infoPlistPath);
+			var localPlistContent = File.ReadAllText(localInfoPlistPath);
+
+			// Compare the Info.plist files
+			return plistInfo.Length != localPlistInfo.Length || plistContent != localPlistContent;
+		}
+
+		var systemFirefoxInfo = FileVersionInfo.GetVersionInfo(system);
+		var chamelonFirefoxInfo = FileVersionInfo.GetVersionInfo(local);
 
 		var isEqual = chamelonFirefoxInfo.ProductMajorPart == systemFirefoxInfo.ProductMajorPart
 						&& chamelonFirefoxInfo.ProductMinorPart == systemFirefoxInfo.ProductMinorPart;

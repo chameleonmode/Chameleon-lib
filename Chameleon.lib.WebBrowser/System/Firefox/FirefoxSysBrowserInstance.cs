@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Data.Common;
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using chameleon.assets;
 using Chameleon.lib.Common.Constants;
@@ -17,44 +18,53 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	public override string ExePath { get; } = Consts.Browser.LocalFirefoxExePath;
 
 	public override async Task Start() {
-		var systempath = SysBrowserInfoUtil.FindByType(SystemBrowserType.Firefox).Path;
-		if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath)) {
+		var system = OperatingSystem.IsMacOS() 
+			? "/Applications/firefox.app" 
+			: SysBrowserInfoUtil.FindByType(SystemBrowserType.Firefox).Path;
+
+		var local = OperatingSystem.IsMacOS()
+		 ? Consts.Browser.LocalFirefoxDirPath 
+		 : ExePath;
+
+		if (IOtil.NeedUpdate(system, local)) {
 			Toaster.Info("Updating Firefox browser...");
 			IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
 			IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
 			IOtil.DeleteDir(Consts.Browser.LocalFirefoxDirPath);
-			await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS() ? "/Applications/firefox.app"
-			: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
+			await IOtil.CopyFolderAsync(
+				OperatingSystem.IsMacOS() ? system : Path.GetDirectoryName(system)!, 
+				Consts.Browser.LocalFirefoxDirPath
+			);
 		}
 		await base.Start();
 	}
 
 	protected override async Task InitializeExtensionPath() {
-		await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF(Settings.SysBrowserProfileCachePath);
+		//await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF();
 		await InitializePrefsJs();
 
 		//
-		var geckoextDir = await ExtensionLoader.LoadExtension(ExtensionType.geckoleon, Settings.CachedExtentionsDir);
-		var inDirCached = Path.Combine(FilePaths.AppDataLocalDir, "ext");
-		await IOtil.DC(inDirCached);
-		await IOtil.CreateZipAsync(Path.Combine(inDirCached, Guid.NewGuid().ToString() + ".xpi"), geckoextDir);
+		// await IOtil.CreateZipAsync(
+		// 	await ExtensionLoader.LoadExtension(ExtensionType.geckoleon, Settings.CachedExtentionsDir),
+		// 	Path.Combine(FilePaths.AppDataLocalDir, "gecko")
+		// );
 
 		//
-		var foxyproxyDir = await ExtensionLoader.LoadExtension(ExtensionType.foxyproxy, Settings.DestExtentionsDir, 
-		@$"let settings = {{
-			type: 'http',
-			server: '{Settings.Profile.Proxy.Server}',
-			host: '{Settings.Profile.Proxy.Host}',
-			port: {Settings.Profile.Proxy.Port},
-			username: '{Settings.Profile.Proxy.UserName}',
-			password: '{Settings.Profile.Proxy.Password}',
-			enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")},
-			instanceId: '{Settings.Profile.Id}',
-			sessionId: '{SessionId}',
-		}};");
-		var inDir = Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Geckoleon);
-		await IOtil.DC(inDir);
-		await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid() + ".xpi"), foxyproxyDir);
+		// await IOtil.CreateZipAsync(
+		// 	await ExtensionLoader.LoadExtension(ExtensionType.foxyproxy, Settings.DestExtentionsDir, 
+		// 		@$"const settings = {{
+		// 			type: 'http',
+		// 			server: '{Settings.Profile.Proxy.Server}',
+		// 			host: '{Settings.Profile.Proxy.Host}',
+		// 			port: {Settings.Profile.Proxy.Port},
+		// 			username: '{Settings.Profile.Proxy.UserName}',
+		// 			password: '{Settings.Profile.Proxy.Password}',
+		// 			enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")},
+		// 			instanceId: '{Settings.Profile.Id}',
+		// 			sessionId: '{SessionId}',
+		// 		}};"), 
+		// 	Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Geckoleon)
+		// );
 		await IOtil.DeleteDExistsAsync(Settings.DestExtentionsDir);
 
 		//
@@ -448,8 +458,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		TaskCompletionSource tcs = new();
 		new Thread(async () => {
 			try {
-				using var p = ProUtil.Createa(ExePath, GetCommandLineArguments());
-				_ = p.Start();
+				using var p = ProUtil.Start(ExePath, GetCommandLineArguments());
 				await Task.Delay(1800);
 				p.Exited += (sender, e) => {
 					_ = tcs.TrySetResult();
@@ -460,10 +469,10 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 					if (OperatingSystem.IsMacOS()) {
 						if (MacOSUtil.FindWindowByPID(p.Id) == null)
 							return false;
+
 						// Use a shell command to send SIGTERM (graceful termination)
 						using var killprocess = Process.Start("kill", $"-SIGTERM {p.Id}");
-						// Wait for the process to exit
-						_ = killprocess.WaitForExit(1);
+						_ = killprocess.WaitForExit(1); // Wait for the process to exit
 					} else {
 						// Attempt to close the browser gracefully
 						_ = p.CloseMainWindow();
@@ -478,8 +487,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 				}
 				p.Dispose();
 			} catch (Exception ex) {
-				// Handle or log the exception as needed
-				_ = tcs.TrySetException(ex);
+				_ = tcs.TrySetException(ex); // Handle or log the exception as needed
 			} finally {
 				_ = tcs.TrySetResult();
 			}

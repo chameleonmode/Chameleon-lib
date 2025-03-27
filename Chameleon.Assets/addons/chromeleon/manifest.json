@@ -6,13 +6,9 @@
   "permissions": [
     "activeTab",
     "bookmarks",
-    "contextMenus",
     "debugger",
     "declarativeNetRequest",
-    "declarativeNetRequestFeedback",
     "geolocation",
-    "notifications",
-    "privacy",
     "scripting",
     "storage",
     "tabs",

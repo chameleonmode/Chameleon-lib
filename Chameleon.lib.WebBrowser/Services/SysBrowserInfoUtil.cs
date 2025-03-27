@@ -1415,11 +1415,11 @@ user_pref("widget.non-native-theme.enabled", true) // [DEFAULT: true]
 //user_pref("_user.js.parrot", "SUCCESS: No no he's not dead, he's, he's restin'!"),
 	];
 
-	public static async Task AddAutoloadTemporaryAddonFF(string directory)
+	public static async Task AddAutoloadTemporaryAddonFF()
 	{
-      var profileDirPath = Path.Combine(directory, Consts.Browser.Geckoleon).Replace("\\", "\\\\");
+      //var profileDirPath = Path.Combine(directory, Consts.Browser.Geckoleon).Replace("\\", "\\\\");
       var browserExtensions = Path.Combine(Consts.Addons.DefaultExtensionsFolderPath_FF).Replace("\\", "\\\\");
-      var cachedExtensions = Path.Combine(FilePaths.AppDataLocalDir, "ext").Replace("\\", "\\\\");
+      var cachedExtensions = Path.Combine(FilePaths.AppDataLocalDir, "gecko").Replace("\\", "\\\\");
       var debug =
 #if DEBUG
          "true";
@@ -1450,9 +1450,7 @@ const ERRORS = {{
 }};
 
 function reportError(ex, emex) {{
-	if({debug}) {{
-    Components.utils.reportError(""userChrome.js Ex("" + ex + "") + emex"");
-	}}
+   printDebug(""Error: "" + ex + "" - "" + emex);
 }}
 
 function printDebug(text) {{
@@ -1574,7 +1572,7 @@ async function installExtensions() {{
          let entries = dir.directoryEntries;
          while (entries.hasMoreElements()) {{
             let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-            if (entry.isFile() && entry.leafName.endsWith('.xpi')) {{
+            if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
                printDebug(`Attempting to install: ${{entry.leafName}}`);
                await installExtension(entry.path, false);
             }}
@@ -1587,7 +1585,7 @@ async function installExtensions() {{
          let entries = dir2.directoryEntries;
          while (entries.hasMoreElements()) {{
             let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-            if (entry.isFile() && entry.leafName.endsWith('.xpi')) {{
+            if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
                printDebug(`Attempting to install: ${{entry.leafName}}`);
                await installTemporaryAddonWithPermissions(entry.path);
             }}
@@ -1601,7 +1599,7 @@ async function installExtensions() {{
          let entries = pdirDir.directoryEntries;
          while (entries.hasMoreElements()) {{
             let entry = entries.getNext().QueryInterface(Ci.nsIFile);
-            if (entry.isFile() && entry.leafName.endsWith('.xpi')) {{
+            if (entry.isFile() && (entry.leafName.endsWith('.xpi') || entry.leafName.endsWith('.zip'))) {{
                printDebug(`Attempting to install: ${{entry.leafName}}`);
                await installTemporaryAddonWithPermissions(entry.path);
             }}

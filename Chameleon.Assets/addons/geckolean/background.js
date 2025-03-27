@@ -3,15 +3,15 @@ import { settings, updateSettings } from "./modules/settings.js";
 import { offsets } from "./modules/offsets.js";
 import { genUULE, updateLocationRules } from "./modules/uule.js";
 
-fetch(browser.runtime.getURL("settings.json"))
-  .then((response) => {
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-    return response.json(); // Parse JSON directly
-  })
-  .then(async (data) => {
-    await updateSettings(data);
+// fetch(browser.runtime.getURL("settings.json"))
+//   .then((response) => {
+//     if (!response.ok) {
+//       throw new Error("Network response was not ok");
+//     }
+//     return response.json(); // Parse JSON directly
+//   })
+//   .then(async (data) => {
+    await updateSettings(settings);
     setLogLevel(settings.debug);
     updateLocationRules(genUULE(settings.latitude, settings.longitude));
     try {
@@ -23,9 +23,9 @@ fetch(browser.runtime.getURL("settings.json"))
     } catch (e) {
       log.error("Failed to set injection script", e);
     }
-    log.info("Received: ", data);
-  })
-  .catch((error) => console.error("Error loading settings:", error));
+  //  log.info("Received: ", data);
+  // })
+  // .catch((error) => console.error("Error loading settings:", error));
 
 // Add the webNavigation onCommitted listener
 browser.webNavigation.onCommitted.addListener(
@@ -123,7 +123,6 @@ async function setInjectionScript() {
   injectionScript = await browser.contentScripts.register({
     allFrames: true,
     matchAboutBlank: true,
-    matchOriginAsFallback: true,
     world: "MAIN",
     runAt: "document_start",
     matches: ["*://*/*"],
@@ -151,4 +150,5 @@ async function setInjectionScript() {
     ],
   });
 }
+setInjectionScript();
 log.info("Background script loaded");
