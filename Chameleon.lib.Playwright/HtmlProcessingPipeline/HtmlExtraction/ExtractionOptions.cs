@@ -5,4 +5,7 @@ public class ExtractionOptions {
 	public int WaitTimeout { get; set; } = 30000;
 
 	public string WaitForSelector { get; set; } = "body";
+
+	public int MaxChildDepth { get; set; } = 3;
+	public int SnippetTextLength { get; set; } = 300;
 }

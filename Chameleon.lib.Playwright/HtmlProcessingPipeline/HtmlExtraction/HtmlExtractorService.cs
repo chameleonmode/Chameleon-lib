@@ -98,36 +98,35 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
             return selector;
         },
 
-        getChildSummaries(nodeId) {
-    const node = this.getNode(nodeId);
-    if (!node) {
-        console.log(`[getChildSummaries] nodeId=${nodeId} -> node not found in nodeMap`);
-        return [];
-    }
-    console.log(`[getChildSummaries] nodeId=${nodeId} -> found node`, node);
+       getImmediateChildren(nodeId, snippetTextLength = 200) {
+  const node = this.getNode(nodeId);
+  if (!node) return [];
 
-    const childElems = Array.from(node.children);
-    console.log(`[getChildSummaries] Found ${childElems.length} child elements.`);
+  const results = [];
+  const childElems = Array.from(node.children) || [];
 
-    const summaries = childElems.slice(0, 50).map(child => {
-        const text = child.innerText || '';
-        const shortText = text.length > 100 ? text.substring(0, 100) + '...' : text;
-        const newId = this.registerNode(child);
-        const cssSelector = this.buildCssSelector(child);
-        console.log(`[getChildSummaries] Registered child -> newId=${newId} tag=${child.tagName} textSnippet=${shortText}`);
+  if (node.shadowRoot) {
+    childElems.push(...Array.from(node.shadowRoot.children));
+  }
 
-        return {
-            nodeId: newId,
-            tagName: child.tagName.toLowerCase(),
-            id: child.id || null,
-            className: child.className || null,
-            shortText,
-						cssSelector
-        };
+  for (const child of childElems) {
+    const newId = window.__crawler.registerNode(child);
+    const text = child.innerText || '';
+    const shortText = text.length > snippetTextLength
+      ? text.substring(0, snippetTextLength) + '...'
+      : text;
+
+    results.push({
+      nodeId: newId,
+      tagName: child.tagName.toLowerCase(),
+      id: child.id || null,
+      className: child.className || null,
+      shortText,
+      cssSelector: window.__crawler.buildCssSelector(child)
     });
-		    console.log(`[getChildSummaries] Summaries JSON for nodeId=${nodeId}:`, JSON.stringify(summaries, null, 2));
+  }
 
-    return summaries;
+  return results;
 }
     };
 
@@ -143,7 +142,7 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		return rootId;
 	}
 
-	public async Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IPage page, string rootId, string automationRequest, AiIntegrationOptions options, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation) {
+	public async Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IPage page, string rootId, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation) {
 		var visited = new HashSet<string>();
 		var queue = new Queue<string>();
 		var keptNodes = new List<HtmlChildSummary>();
@@ -157,12 +156,15 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 				continue;
 			}
 
-			var childSummaries = await GetChildSummariesAsync(page, currentNodeId, cancellation);
+			var childSummaries = await GetChildSummariesAsync(page, currentNodeId, extractionOptions.MaxChildDepth, extractionOptions.SnippetTextLength, cancellation);
 			keptNodes.AddRange(childSummaries);
 
 			foreach (var child in childSummaries) {
 				if (child.NodeId is not null) {
-					var isRelevant = await IsNodeRelevantAsync(page, child, automationRequest, options, queryLLMAsync, cancellation);
+
+					if (IsObviouslyIrrelevant(child)) continue;
+
+					var isRelevant = await IsNodeRelevantAsync(page, child, automationRequest, options, extractionOptions, queryLLMAsync, cancellation);
 					if (isRelevant) {
 						relevantNodes.Add(child);
 						queue.Enqueue(child.NodeId);
@@ -174,25 +176,32 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		return keptNodes;
 	}
 
-	private static async Task<List<HtmlChildSummary>> GetChildSummariesAsync(IPage page, string nodeId, CancellationToken cancellationToken = default) {
-		var jsResult = await page.EvaluateAsync<JsonElement>($@"() => window.__crawler.getChildSummaries('{nodeId}')", cancellationToken);
+	private static bool IsObviouslyIrrelevant(HtmlChildSummary c) {
+		return c.TagName is "script" or "style" || (string.IsNullOrWhiteSpace(c.ShortText) && string.IsNullOrWhiteSpace(c.Id));
+	}
+
+
+	private static async Task<List<HtmlChildSummary>> GetChildSummariesAsync(IPage page, string nodeId, int maxDepth, int snippetTextLength, CancellationToken cancellationToken = default) {
+		var jsResult = await page.EvaluateAsync<JsonElement>($@"() => window.__crawler.getImmediateChildren('{nodeId}',{snippetTextLength})", cancellationToken);
 		var rawText = jsResult.GetRawText();
 		var childSummaries = JsonConvert.DeserializeObject<List<HtmlChildSummary>>(rawText);
 		return childSummaries ?? [];
 	}
 
-	private static async Task<bool> IsNodeRelevantAsync(IPage page, HtmlChildSummary summary, string automationRequest,
-		AiIntegrationOptions options, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellationToken = default) {
+	private static async Task<bool> IsNodeRelevantAsync(
+		IPage page, HtmlChildSummary summary, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions,
+		Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellationToken = default) {
 
-		var nodeInfo = $@"Tag: {summary.TagName}
-											ID: {summary.Id}
-											Class: {summary.ClassName}
-											TextSnippet: {summary.ShortText}";
+		var nodeInfo =
+			$@"Tag: {summary.TagName}
+				 ID: {summary.Id}
+				 Class: {summary.ClassName}
+				 TextSnippet: {summary.ShortText}";
 
 		if (summary.NodeId is null)
 			return false;
 
-		var childSummaries = await GetChildSummariesAsync(page, summary.NodeId, cancellationToken);
+		var childSummaries = await GetChildSummariesAsync(page, summary.NodeId, extractionOptions.MaxChildDepth, extractionOptions.SnippetTextLength, cancellationToken);
 
 		var sampleChildren = childSummaries.Take(2).Select(c => $"  - {c.TagName}, text: {c.ShortText}").ToList();
 
@@ -201,10 +210,23 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 			nodeInfo += $"\nChild sample:\n{childInfoString}";
 		}
 
-		var prompt = $@"User wants to automate: {automationRequest}
-									Current DOM node (and up to 2 children): {nodeInfo}
-									If you are unsure, default to 'YES' because we can gather more details later.
-									Answer ONLY 'YES' or 'NO'.";
+		var prompt = $@"
+We are building an automation script in **JavaScript** using **Playwright**. 
+Our overall tasks are:
+{automationRequest}
+
+Right now, we want to decide if the following DOM node (plus up to 2 of its child elements)
+is relevant for these automation tasks.
+
+Node info:
+{nodeInfo}
+
+If you think this node or its children might be needed for the tasks in our JavaScript Playwright script, 
+please answer 'YES'. If you are fairly certain the node has no relation, answer 'NO'. 
+If you are unsure, answer 'YES' so we can explore more deeply.
+
+Answer ONLY with 'YES' or 'NO'.
+";
 
 
 		var response = await queryLLMAsync(prompt, options, cancellationToken);

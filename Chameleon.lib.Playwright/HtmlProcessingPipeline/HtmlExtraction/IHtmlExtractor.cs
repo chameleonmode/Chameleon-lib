@@ -7,5 +7,5 @@ public interface IHtmlExtractor {
 
 	Task<string> InitializeCrawlerContextAsync(IPage page);
 
-	Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IPage page, string rootId, string automationRequest, AiIntegrationOptions options, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation);
+	Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IPage page, string rootId, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation);
 }
