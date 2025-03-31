@@ -5,10 +5,8 @@ using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.WebBrowser;
 public class BrowserLauncherTests {
-
 	// Create a manual reset event that will keep the test running
 	readonly ManualResetEventSlim testCompletionEvent = new(false);
-
 	void KeepAlive(IBrowserInstance bi) {
 
 		// Start a monitoring task that will complete when the signal file is deleted
@@ -87,11 +85,13 @@ public class BrowserLauncherTests {
 		KeepAlive(bi);
 	}
 
+//chrome-extension://greckoleon@chameleonmode.com/data/web/register.html
+//moz-extension://greckoleon@chameleonmode.com/data/web/register.html
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await SystemBrowserService.Instance.Open(new(SystemBrowserType.Firefox, 
 			new() {
-				Id = 9,
+				Id = 15,
 				// Proxy = new BrowserProxy() {
 				// 	Host = "proxy.chameleonmode.com",
 				// 	Port = 31112,

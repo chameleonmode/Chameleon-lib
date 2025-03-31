@@ -17,7 +17,6 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 	public required SysBrowserSettings Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 
-	public virtual Task Start() => Task.CompletedTask;
 
 	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
 		if (eventType == Enums.SysBrowserEventType.Foreground)
@@ -112,6 +111,8 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 		}
 	}
 
+	public virtual Task Start() => Task.CompletedTask;
+	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
 	protected abstract Task InitializeExtensionPath();

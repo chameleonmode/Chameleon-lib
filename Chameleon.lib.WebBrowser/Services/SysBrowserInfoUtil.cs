@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Const;
@@ -10,12 +9,12 @@ namespace Chameleon.lib.WebBrowser.Services;
 public static class SysBrowserInfoUtil {
 
    [SupportedOSPlatform("windows")]
-   private static (bool IsInstalled, string FilePath) CheckApplication(string executableName) {
+   private static (bool Installed, string FilePath) CheckApplication(string executable) {
       // Check common installation paths
       string[] commonPaths = [
-                  Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), executableName),
-                  Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), executableName)
-            ];
+         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), executable),
+         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), executable)
+      ];
 
       foreach (var path in commonPaths) {
          if (File.Exists(path)) return (true, path);
@@ -23,12 +22,12 @@ public static class SysBrowserInfoUtil {
 
       // Check registry
       string[] registryKeys = [
-                  @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
-                  @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths"
+         @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
+         @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths"
       ];
 
       foreach (var registryKey in registryKeys) {
-         using var key = Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executableName));
+         using var key = Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executable));
          if (key != null) {
             var path = key.GetValue(null) as string;
             if (!string.IsNullOrEmpty(path) && File.Exists(path)) return (true, path);
@@ -37,14 +36,14 @@ public static class SysBrowserInfoUtil {
 
       // Check for user-specific installation
       var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-      var userSpecificPaths = Directory.GetFiles(appDataPath, executableName, SearchOption.AllDirectories);
+      var userSpecificPaths = Directory.GetFiles(appDataPath, executable, SearchOption.AllDirectories);
       if (userSpecificPaths.Length != 0) return (true, userSpecificPaths.First());
 
       // Check uninstall registry keys
       string[] uninstallKeys = [
-                  @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-                  @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-            ];
+         @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+         @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+      ];
 
       foreach (var uninstallKey in uninstallKeys) {
          using var key = Registry.LocalMachine.OpenSubKey(uninstallKey);
@@ -52,10 +51,13 @@ public static class SysBrowserInfoUtil {
             foreach (var subKeyName in key.GetSubKeyNames()) {
                using var subKey = key.OpenSubKey(subKeyName);
                var displayName = subKey?.GetValue("DisplayName") as string;
-               if (!string.IsNullOrEmpty(displayName) && displayName.Contains(Path.GetFileNameWithoutExtension(executableName), StringComparison.OrdinalIgnoreCase)) {
+               if (
+                  !string.IsNullOrEmpty(displayName) && 
+                  displayName.Contains(Path.GetFileNameWithoutExtension(executable), StringComparison.OrdinalIgnoreCase)
+               ) {
                   var installLocation = subKey?.GetValue("InstallLocation") as string;
                   if (!string.IsNullOrEmpty(installLocation)) {
-                     var fullPath = Path.Combine(installLocation, executableName);
+                     var fullPath = Path.Combine(installLocation, executable);
                      if (File.Exists(fullPath)) return (true, fullPath);
                   }
                }
@@ -66,14 +68,14 @@ public static class SysBrowserInfoUtil {
       return (false, string.Empty);
    }
 
-   public static BrowserRecord FindByName(string browserName) {
+   static BrowserRecord FindByName(string executable) {
       BrowserRecord? inf = null;
       if (OperatingSystem.IsMacOS()) {
          var chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
          var bravePath = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
          var firefoxPath = "/Applications/firefox.app/Contents/MacOS/firefox";
 
-         inf = browserName switch {
+         inf = executable switch {
             "chrome.exe" => File.Exists(chromePath) ? new BrowserRecord("chrome", chromePath) : null,
             "brave.exe" => File.Exists(bravePath) ? new BrowserRecord("brave", bravePath) : null,
             "firefox.exe" => File.Exists(firefoxPath) ? new BrowserRecord("brave", firefoxPath) : null,
@@ -82,17 +84,17 @@ public static class SysBrowserInfoUtil {
       } else {
 #pragma warning disable CA1416 // Validate platform compatibility
 
-         var (isinstalled, filepath) = CheckApplication(browserName);
-         if (isinstalled && filepath.Is()) inf = new BrowserRecord(browserName, filepath);
+         var (installed, filepath) = CheckApplication(executable);
+         if (installed && !string.IsNullOrWhiteSpace(filepath)) inf = new BrowserRecord(executable, filepath);
 
 #pragma warning restore CA1416 // Validate platform compatibility
       }
 
       return inf ?? throw new NotSupportedException(
-            $"{char.ToUpper(browserName[0]) + browserName[1..]} browser is not installed.");
+            $"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
    }
 
-   public static BrowserRecord FindByType(Enums.SystemBrowserType BrowserType) => BrowserType switch {
+   public static BrowserRecord Find(Enums.SystemBrowserType BrowserType) => BrowserType switch {
       Enums.SystemBrowserType.Chrome => FindByName("chrome.exe"),
       Enums.SystemBrowserType.Brave => FindByName("brave.exe"),
       Enums.SystemBrowserType.Firefox => FindByName("firefox.exe"),
@@ -101,7 +103,6 @@ public static class SysBrowserInfoUtil {
 
 #pragma warning disable IDE1006 // Naming Styles
    public static KeyValuePair<string, string> user_pref(string name, object val) => new(name, $"user_pref(\"{name}\", {val.ParseValue()});");
-#pragma warning restore IDE1006 // Naming Styles
 
    public static string[] FirefoxDepricatedPrefs => [
 	/* DEPRECATED */
@@ -601,7 +602,7 @@ user_pref("security.pki.crlite_mode", 2),
  * [SETTING] Privacy & Security>HTTPS-Only Mode (and manage exceptions)
  * [TEST] http://example.com [upgrade]
  * [TEST] http://httpforever.com/ | http://http.rip [no upgrade] ***/
-user_pref("dom.security.https_only_mode", true), // [FF76+]
+//user_pref("dom.security.https_only_mode", true), // [FF76+]
    // user_pref("dom.security.https_only_mode_pbm", true), // [FF80+]
 /* 1245: enable HTTPS-Only mode for local resources [FF77+] ***/
    // user_pref("dom.security.https_only_mode.upgrade_local", true),
@@ -1604,7 +1605,7 @@ try {{
                     }}
              
                    let folder = Services.dirsvc.get(""ProfD"", Ci.nsIFile).path;
-                   folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}{Consts.Browser.Geckoleon}`;
+                   folder = `${{folder}}{(OperatingSystem.IsMacOS() ? "/" : "\\\\")}Geckoleon`;
                    let pdirDir = new FileUtils.File(folder);
                    if (pdirDir.exists() && pdirDir.isDirectory()) {{
                       let entries = pdirDir.directoryEntries;
@@ -1676,28 +1677,29 @@ pref(""general.config.filename"", ""firefox.cfg"");
 ";
 
       // Get the Firefox directory
-      var dir = OperatingSystem.IsMacOS()
-          ? Path.Combine(Consts.Browser.LocalFirefoxDirPath, "Contents", "Resources")
-          : Consts.Browser.LocalFirefoxDirPath;
+      // var dir = OperatingSystem.IsMacOS()
+      //     ? Path.Combine(Consts.Browser.LocalFirefoxDirPath, "Contents", "Resources")
+      //     : Consts.Browser.LocalFirefoxDirPath;
 
-      // Write the firefox.cfg file to the Firefox root directory
-      var ucpPath = Path.Combine(dir, "firefox.cfg");
+      // // Write the firefox.cfg file to the Firefox root directory
+      // var ucpPath = Path.Combine(dir, "firefox.cfg");
 
-      // Ensure the defaults/pref directory exists
-      var cppd = Path.Combine(dir, "defaults", "pref");
-      if (!Directory.Exists(cppd))
-         _ = Directory.CreateDirectory(cppd);
+      // // Ensure the defaults/pref directory exists
+      // var cppd = Path.Combine(dir, "defaults", "pref");
+      // if (!Directory.Exists(cppd))
+      //    _ = Directory.CreateDirectory(cppd);
 
-      // Write the config-prefs.js file
-      var cppPath = Path.Combine(cppd, "config-prefs.js");
+      // // Write the config-prefs.js file
+      // var cppPath = Path.Combine(cppd, "config-prefs.js");
 
-      // Write the files
-      await File.WriteAllTextAsync(ucpPath, firefoxCfg);
-      await File.WriteAllTextAsync(cppPath, configPrefs);
+      // // Write the files
+      // await File.WriteAllTextAsync(ucpPath, firefoxCfg);
+      // await File.WriteAllTextAsync(cppPath, configPrefs);
 
-      // Log success message
-      Console.WriteLine($"Firefox configuration files created at {ucpPath} and {cppPath}");
+      // // Log success message
+      // Console.WriteLine($"Firefox configuration files created at {ucpPath} and {cppPath}");
    }
+#pragma warning restore IDE1006 // Naming Styles
 }
 
 //TODO

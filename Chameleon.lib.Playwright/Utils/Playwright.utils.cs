@@ -48,7 +48,7 @@ public static class PlaywrightUtil {
 	public static async Task<string> GetBrowseExecutablePath(SystemBrowserType browserType) {
 		return browserType == SystemBrowserType.Firefox
 				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Playwright's Firefox")
-				: SysBrowserInfoUtil.FindByType(browserType).Path;
+				: SysBrowserInfoUtil.Find(browserType).Path;
 	}
 
 	// Installs Playwright's Firefox if not already installed

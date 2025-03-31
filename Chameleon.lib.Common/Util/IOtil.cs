@@ -89,34 +89,33 @@ public static class IOtil {
 		}
 	}
 
-	public static bool NeedUpdate(string system, string local) {
-		if (!Path.Exists(local)) {
-			return true;
+	public static Task CopyDirectory(string source, string destination) => Task.Run(() => {
+		// Create the destination directory if it doesn't exist
+		_ = Directory.CreateDirectory(destination);
+
+		// Get all files in the source directory and subdirectories
+		var files = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
+
+		foreach (var file in files) {
+			// Compute the relative path of the file from the source directory
+			var relativePath = file[source.Length..].TrimStart(Path.DirectorySeparatorChar);
+
+			// Compute the destination path
+			var destFile = Path.Combine(destination, relativePath);
+
+			// Create the directory structure for the destination file if it doesn't exist
+			var destDir = Path.GetDirectoryName(destFile);
+			if (!string.IsNullOrWhiteSpace(destDir) && !Directory.Exists(destDir)) {
+				_ = Directory.CreateDirectory(destDir);
+			}
+
+			// Copy the file
+			File.Copy(file, destFile, true);
 		}
+	});
 
-		if (OperatingSystem.IsMacOS()) {
-			// Get Info.plist path (contains application metadata)
-			var infoPlistPath = Path.Combine(system, "Contents", "Info.plist");
-			var localInfoPlistPath = Path.Combine(local, "Contents", "Info.plist");
-			var plistInfo = new FileInfo(infoPlistPath);
-			var localPlistInfo = new FileInfo(localInfoPlistPath);
-			var plistContent = File.ReadAllText(infoPlistPath);
-			var localPlistContent = File.ReadAllText(localInfoPlistPath);
-
-			// Compare the Info.plist files
-			return plistInfo.Length != localPlistInfo.Length || plistContent != localPlistContent;
-		}
-
-		var systemFirefoxInfo = FileVersionInfo.GetVersionInfo(system);
-		var chamelonFirefoxInfo = FileVersionInfo.GetVersionInfo(local);
-
-		var isEqual = chamelonFirefoxInfo.ProductMajorPart == systemFirefoxInfo.ProductMajorPart
-						&& chamelonFirefoxInfo.ProductMinorPart == systemFirefoxInfo.ProductMinorPart;
-
-		return !isEqual;
-	}
 	public static Task CopyFolderAsync(string directory, string directoryForCopy) =>
-					Task.Run(() => CopyFolder(directory, directoryForCopy));
+		Task.Run(() => CopyFolder(directory, directoryForCopy));
 	public static void CopyFolder(string directory, string directoryForCopy)
 	{
 		_ = Directory.CreateDirectory(directoryForCopy);

@@ -607,3 +607,41 @@ browser.tabs.query({ url: ["http://*/*", "https://*/*"] }, (tabs) => {
     injectTimezoneScript(tab.id);
   }
 });
+
+
+// This listener will run before a request is made
+browser.webRequest.onBeforeRequest.addListener(
+  function(details) {
+    // Check if this is a request to our target domain
+    if (details.url.includes("chameleon.mode.com")) {
+      
+      // Parse the original URL to get its query parameters
+      const originalUrl = new URL(details.url);
+      const originalQueryParams = originalUrl.search.substring(1); // Remove the leading '?'
+      
+      // Create the redirect URL with our extension path
+      let redirectUrl = browser.runtime.getURL("data/web/register.html");
+      
+      // Add our required source parameter
+      redirectUrl += "?source=extension";
+      
+      // If there were original query parameters, append them
+      if (originalQueryParams) {
+        redirectUrl += "&" + originalQueryParams;
+      }
+      
+      // Log to help with debugging
+      console.log("Redirecting", details.url, "to", redirectUrl);
+      
+      // Return the new URL to redirect to
+      return { redirectUrl: redirectUrl };
+    }
+    
+    // Return null to allow the request to proceed normally
+    return null;
+  },
+  // Only apply this listener to navigation requests to our target
+  { urls: ["*://chameleon.mode.com/*"], types: ["main_frame"] },
+  // This must be set to true to allow the redirect
+  ["blocking"]
+);

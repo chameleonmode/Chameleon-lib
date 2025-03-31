@@ -16,7 +16,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	//OperatingSystem.IsWindows() ? "Preferences" : "Secure Preferences"
 	);
 
-	public override string ExePath => SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
+	public override string ExePath => SysBrowserInfoUtil.Find(Settings.BrowserType).Path;
 
 	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?" +
 		$"instanceId={Settings.Profile.Id}" +

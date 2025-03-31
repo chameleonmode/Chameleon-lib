@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using Chameleon.lib.Common.Extensions;
@@ -64,7 +65,7 @@ public static class ProUtil {
 		});
 	}
 
-	public static Process Start(string fileName, string arguments) {
+	public static Process Start(string fileName, string arguments, StringDictionary? env = null) {
 		var p = new Process {
 			StartInfo = new ProcessStartInfo {
 				FileName = fileName,
@@ -72,6 +73,34 @@ public static class ProUtil {
 				UseShellExecute = false,
 				ErrorDialog = true,
 				CreateNoWindow = true,
+				EnvironmentVariables = {
+					// ["CHROME_DEPRECATED"] = "1",
+					// ["CHROME_NO_SANDBOX"] = "1",
+					// ["CHROME_NO_GPU"] = "1",
+					// ["CHROME_DISABLE_GPU"] = "1",
+					// ["CHROME_DISABLE_GPU_COMPOSITING"] = "1",
+					// ["CHROME_DISABLE_OOP_FILE_HANDLING"] = "1",
+					// ["CHROME_DISABLE_WEB_SECURITY"] = "1",
+					// ["CHROME_DISABLE_DEV_SHM_USAGE"] = "1",
+					// ["CHROME_DISABLE_GPU_RASTERIZATION"] = "1",
+					// ["CHROME_DISABLE_GPU_VSYNC"] = "1",
+					// ["CHROME_DISABLE_GPU_ACCELERATION"] = "1",
+					// ["CHROME_DISABLE_GPU_COMPOSITING"] = "1",
+					// ["CHROME_DISABLE_WEB_SECURITY"] = "1",
+					// ["CHROME_DISABLE_WEB_RTC"] = "1",
+					// ["CHROME_DISABLE_WEB_SECURITY"] = "1",
+					// ["CHROME_DISABLE_WEB_SECURITY"] = "1",
+					// ["MOZ_REMOTE_SETTINGS_DEVTOOLS"] = "1",
+					// ["MOZ_DISABLE_OOP_FILE_HANDLING"] = "1",
+					// ["MOZ_DISABLE_GPU_RASTERIZATION"] = "1",
+					// ["MOZ_DISABLE_GPU_VSYNC"] = "1",
+					// ["MOZ_DISABLE_GPU_ACCELERATION"] = "1",
+					// ["MOZ_DISABLE_GPU_COMPOSITING"] = "1",
+					// ["MOZ_DISABLE_WEB_SECURITY"] = "1",
+					// ["MOZ_DISABLE_WEB_RTC"] = "1",
+					// ["MOZ_DISABLE_WEB_SECURITY"] = "1",
+					// ["MOZ_DISABLE_WEB_SECURITY"] = "1",
+				},
 			},
 			EnableRaisingEvents = true,
 		};

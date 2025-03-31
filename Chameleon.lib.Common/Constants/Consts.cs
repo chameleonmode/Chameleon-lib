@@ -47,18 +47,6 @@ public static class Consts {
 		public static string DefaultExtensionsFolderPath_FF => Path.Combine(DefaultExtensionsFolderPath, "firefox");
 	}
 
-	public static class Browser {
-		public const string Geckoleon = "Geckoleon";
-		public const string GeckoleonCache = "GeckoleonCache";
-
-		public static string LocalFirefoxDirPath => OperatingSystem.IsMacOS()
-			? Path.Combine(FilePaths.AppDataLocalDir, Geckoleon, "firefox.app")
-			: Path.Combine(FilePaths.AppDataLocalDir, Geckoleon);
-		public static string LocalFirefoxExePath => OperatingSystem.IsMacOS()
-			? Path.Combine(LocalFirefoxDirPath, "Contents", "MacOS", "firefox")
-			: Path.Combine(LocalFirefoxDirPath, "firefox.exe");
-	}
-
 	public static class Permissions {
 		public const string Pages = "Pages.";
 
