@@ -91,7 +91,7 @@ public class BrowserLauncherTests {
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await SystemBrowserService.Instance.Open(new(SystemBrowserType.Firefox, 
 			new() {
-				Id = 14,
+				Id = 18,
 				// Proxy = new BrowserProxy() {
 				// 	Host = "proxy.chameleonmode.com",
 				// 	Port = 31112,
@@ -111,6 +111,6 @@ public class BrowserLauncherTests {
 			})
 		);
 		Assert.NotNull(bi);
-		KeepAlive(bi);
+		//KeepAlive(bi);
 	}
 }

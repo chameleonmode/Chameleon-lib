@@ -63,93 +63,153 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
 			: Path.Combine(ExeDir, "distribution");
 		await IOtil.DC(dir);
-		await File.WriteAllTextAsync(Path.Combine(dir, "policies.json"),
-"""
-{
-"policies": {
-	"3rdparty": {
-	  "Extensions": {
-	    "greckoleon@chameleonmode.com": {
-				"x": {
-    			"sessionId": "null-nuller-nullish",
-    			"instanceId": 1
-  			}
-	    }
-	  }
-	},
-  "AppAutoUpdate": false,
-	"BackgroundAppUpdate": false,
-	"DisableAppUpdate": true,
-	"DisableProfileRefresh": true,
-	"DisableSystemAddonUpdate": true,
-	"DisableTelemetry": true,
-	"EnableTrackingProtection": {
-    "Value": true,
-    "Locked": true,
-    "Cryptomining": true,
-    "Fingerprinting": true,
-		"EmailTracking": false
-  },
-	"ExtensionUpdate": false,
-	"FirefoxSuggest": {
-    "WebSuggestions": false,
-    "SponsoredSuggestions": false,
-    "ImproveSuggest": false,
-    "Locked": false
-  },
-	"HardwareAcceleration": true,
-	"ManualAppUpdateOnly": true,
-	"NewTabPage": false,
-	"NoDefaultBookmarks": true,
-	"OverrideFirstRunPage": "",
-	"OverridePostUpdatePage": "",
-	"PopupBlocking": {
-    "Default": true,
-    "Locked": false
-  },
-	"UserMessaging": {
-    "ExtensionRecommendations": false,
-    "FeatureRecommendations": false,
-    "UrlbarInterventions": false,
-    "SkipOnboarding": true,
-    "MoreFromMozilla": false,
-    "FirefoxLabs": false,
-    "Locked": false
-  },
-	"Preferences": {
-    "accessibility.force_disabled": {
-      "Value": 1,
-      "Status": "default",
-      "Type": "number"
-    },
-    "browser.tabs.warnOnClose": {
-      "Value": false,
-      "Status": "locked"
-    },
-		"browser.shell.checkDefaultBrowser": {
-			"Value": false,
-			"Status": "locked"
-		}
-  },
-"""
-+ @$"
-	""ExtensionSettings"": {{
-		""greckoleon@chameleonmode.com"": {{
-			""installation_mode"": ""normal_installed"",
-			""default_area"": ""navbar"",
-			""private_browsing"": true,
-			""install_url"": ""file:///{AddonPath.Replace("\\", "/")}""
-		}}
-  }},
-	""Homepage"": {{
-    ""URL"": ""{Settings.Profile.StartUrl}"",
-    ""Locked"": false,
-    ""StartPage"": ""homepage""
-  }}
-}}
-}}
-");
-
+		var json = JS.Serialize(new {
+			policies = new {
+				AppAutoUpdate = false,
+				BackgroundAppUpdate = false,
+				DisableAppUpdate = true,
+				DisableProfileRefresh = true,
+				DisableSystemAddonUpdate = true,
+				DisableTelemetry = true,
+				EnableTrackingProtection = new {
+					Value = true,
+					Locked = true,
+					Cryptomining = true,
+					Fingerprinting = true,
+					EmailTracking = false
+				},
+				ExtensionUpdate = false,
+				FirefoxSuggest = new {
+					WebSuggestions = false,
+					SponsoredSuggestions = false,
+					ImproveSuggest = false,
+					Locked = false
+				},
+				HardwareAcceleration = true,
+				ManualAppUpdateOnly = true,
+				NewTabPage = false,
+				NoDefaultBookmarks = true,
+				OverrideFirstRunPage = "",
+				OverridePostUpdatePage = "",
+				PopupBlocking = new {
+					Default = true,
+					Locked = false
+				},
+				UserMessaging = new {
+					ExtensionRecommendations = false,
+					FeatureRecommendations = false,
+					UrlbarInterventions = false,
+					SkipOnboarding = true,
+					MoreFromMozilla = false,
+					FirefoxLabs = false,
+					Locked = false
+				},
+				Preferences = new Dictionary<string, object>
+				{
+						{ "accessibility.force_disabled", new { Value = 1, Status = "default", Type = "number" } },
+						{ "browser.tabs.warnOnClose", new { Value = false, Status = "locked" } },
+						{ "browser.shell.checkDefaultBrowser", new { Value = false, Status = "locked" } }
+				},
+				// ExtensionSettings = new Dictionary<string, object>
+				// {
+				// 		{
+				// 				"greckoleon@chameleonmode.com",
+				// 				new
+				// 				{
+				// 						installation_mode = "normal_installed",
+				// 						default_area = "navbar",
+				// 						private_browsing = true,
+				// 						install_url = $"file:///{AddonPath.Replace("\\", "/")}" // Correct path handling
+				//         }
+				// 		}
+				// }
+			}
+		}, new() {
+			WriteIndented = true, // Pretty print JSON
+			PropertyNamingPolicy = null // This preserves the original casing
+		});
+		await File.WriteAllTextAsync(Path.Combine(dir, "policies.json"), json);
+// 		await File.WriteAllTextAsync(Path.Combine(dir, "policies.json"),
+// """
+// {
+// 	"policies": {
+// 		"3rdparty": {
+// 		  "Extensions": {
+// 		    "greckoleon@chameleonmode.com": {
+// 					"x": {
+// 	    			"sessionId": "null-nuller-nullish",
+// 	    			"instanceId": 1
+// 	  			}
+// 		    }
+// 		  }
+// 		},
+// 	  "AppAutoUpdate": false,
+// 		"BackgroundAppUpdate": false,
+// 		"DisableAppUpdate": true,
+// 		"DisableProfileRefresh": true,
+// 		"DisableSystemAddonUpdate": true,
+// 		"DisableTelemetry": true,
+// 		"EnableTrackingProtection": {
+// 	    "Value": true,
+// 	    "Locked": true,
+// 	    "Cryptomining": true,
+// 	    "Fingerprinting": true,
+// 			"EmailTracking": false
+// 	  },
+// 		"ExtensionUpdate": false,
+// 		"FirefoxSuggest": {
+// 	    "WebSuggestions": false,
+// 	    "SponsoredSuggestions": false,
+// 	    "ImproveSuggest": false,
+// 	    "Locked": false
+// 	  },
+// 		"HardwareAcceleration": true,
+// 		"ManualAppUpdateOnly": true,
+// 		"NewTabPage": false,
+// 		"NoDefaultBookmarks": true,
+// 		"OverrideFirstRunPage": "",
+// 		"OverridePostUpdatePage": "",
+// 		"PopupBlocking": {
+// 	    "Default": true,
+// 	    "Locked": false
+// 	  },
+// 		"UserMessaging": {
+// 	    "ExtensionRecommendations": false,
+// 	    "FeatureRecommendations": false,
+// 	    "UrlbarInterventions": false,
+// 	    "SkipOnboarding": true,
+// 	    "MoreFromMozilla": false,
+// 	    "FirefoxLabs": false,
+// 	    "Locked": false
+// 	  },
+// 		"Preferences": {
+// 	    "accessibility.force_disabled": {
+// 	      "Value": 1,
+// 	      "Status": "default",
+// 	      "Type": "number"
+// 	    },
+// 	    "browser.tabs.warnOnClose": {
+// 	      "Value": false,
+// 	      "Status": "locked"
+// 	    },
+// 			"browser.shell.checkDefaultBrowser": {
+// 				"Value": false,
+// 				"Status": "locked"
+// 			}
+// 	  },
+// """
+// + @$"
+// 		""ExtensionSettings"": {{
+// 			""greckoleon@chameleonmode.com"": {{
+// 				""installation_mode"": ""normal_installed"",
+// 				""default_area"": ""navbar"",
+// 				""private_browsing"": true,
+// 				""install_url"": ""file:///{AddonPath.Replace("\\", "/")}""
+// 			}}
+// 	  }},
+// 	}}
+// }}
+// ");
 		if (Path.Exists(PrefsFile)) {
 			// Build the list of deprecated/removed prefs to filter out
 			var deprecatedPrefs = new HashSet<string>

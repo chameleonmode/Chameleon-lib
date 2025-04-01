@@ -4,9 +4,8 @@ using System.Text.Json;
 namespace Chameleon.lib.Const;
 public static class JS {
 	public static readonly JsonSerializerOptions CamelCaseOptions = new() {
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		AllowTrailingCommas = true,
-		WriteIndented = true,
+    WriteIndented = true, // Pretty print JSON
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase, //Use camelCase
 	};
 	public static readonly JsonSerializerOptions CaseInsensitiveOptions = new() {
 		PropertyNameCaseInsensitive = true,
@@ -26,7 +25,7 @@ public static class JS {
 		}
 	}
 
-	public static string? Serialize(object o) => JsonSerializer.Serialize(o, InsensitiveCamelCaseOptions);
+	public static string? Serialize(object o, JsonSerializerOptions? options = null) => JsonSerializer.Serialize(o, options ?? InsensitiveCamelCaseOptions);
 	
 
 	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {

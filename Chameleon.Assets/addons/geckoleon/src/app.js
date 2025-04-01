@@ -76,9 +76,9 @@ const App = {
     tz: {
       enabled: true,
       random: false,
-      zone: "Pacific/Honolulu",
-      locale: "en-US",
       useSystem: false,
+      zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      locale: Intl.DateTimeFormat().resolvedOptions().locale,
     },
     geo: {
       enabled: true,
