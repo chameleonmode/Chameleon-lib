@@ -142,6 +142,108 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		return rootId;
 	}
 
+	public async Task<List<HtmlChildSummary>> GetAllNodesAsync(IPage page, int maxDepth, int textLength) {
+
+		const string bfsJs = @"(() => {
+  if (!window.__crawler) {
+    window.__crawler = {
+      nodeMap: new Map(),
+      nodeCounter: 0,
+
+      registerNode(node) {
+        const id = 'node-' + (this.nodeCounter++);
+        this.nodeMap.set(id, node);
+        return id;
+      },
+
+      getAllNodesBFS(maxDepth = 10, snippetTextLength = 200) {
+        const visited = new Set();
+        const results = [];
+
+        const queue = [];
+        const rootNode = document.body;
+        if (!rootNode) return results;
+
+        const rootId = this.registerNode(rootNode);
+        queue.push({ node: rootNode, depth: 0 });
+
+        while (queue.length > 0) {
+          const { node, depth } = queue.shift();
+          if (!node || visited.has(node)) {
+            continue;
+          }
+          visited.add(node);
+
+          const newId = [...this.nodeMap.entries()]
+            .find(([_, val]) => val === node)?.[0] || this.registerNode(node);
+          const text = node.innerText || '';
+          const shortText = text.length > snippetTextLength
+            ? text.substring(0, snippetTextLength) + '...'
+            : text;
+
+          results.push({
+            nodeId: newId,
+            tagName: node.tagName?.toLowerCase() ?? '',
+            id: node.id || null,
+            className: node.className || null,
+            shortText,
+            cssSelector: this.buildCssSelector(node)
+          });
+
+          if (depth < maxDepth) {
+            // Add shadow DOM children if any
+            if (node.shadowRoot) {
+              for (const child of node.shadowRoot.children) {
+                queue.push({ node: child, depth: depth + 1 });
+              }
+            }
+            // Add normal children
+            for (const child of node.children) {
+              queue.push({ node: child, depth: depth + 1 });
+            }
+          }
+        }
+        return results;
+      },
+
+      buildCssSelector(node) {
+        if (!node || !node.tagName) return '';
+        if (node.id) return `#${node.id}`;
+
+        let selector = node.tagName.toLowerCase();
+        if (node.classList && node.classList.length > 0) {
+          selector += '.' + Array.from(node.classList).join('.');
+        }
+        const parent = node.parentElement;
+        if (parent) {
+          const siblings = Array.from(parent.children).filter(s => s.tagName === node.tagName);
+          const index = siblings.indexOf(node);
+          if (siblings.length > 1) {
+            selector += `:nth-of-type(${index + 1})`;
+          }
+          const parentSelector = this.buildCssSelector(parent);
+          if (
+            parentSelector &&
+            !['html','body'].includes(parentSelector) &&
+            parentSelector.trim() !== ''
+          ) {
+            return parentSelector + ' > ' + selector;
+          }
+        }
+        return selector;
+      },
+    };
+  }
+})();
+";
+		const string fullBFSJs = $@"(function() {{{bfsJs}}})();";
+		_ = await page.EvaluateAsync(fullBFSJs);
+		var rawJson = await page.EvaluateAsync<string>($"() => JSON.stringify(window.__crawler.getAllNodesBFS({maxDepth}, {textLength}))");
+		var childSummaries = JsonConvert.DeserializeObject<List<HtmlChildSummary>>(rawJson);
+
+		return childSummaries ?? [];
+	}
+
 	public async Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IPage page, string rootId, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation) {
 		var visited = new HashSet<string>();
 		var queue = new Queue<string>();
@@ -174,6 +276,18 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		}
 
 		return keptNodes;
+	}
+
+	public async Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IEnumerable<HtmlChildSummary> nodes, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation) {
+		var relevantNodes = new List<HtmlChildSummary>();
+		foreach (var node in nodes) {
+			if (IsObviouslyIrrelevant(node)) continue;
+			var isRelevant = await IsNodeRelevantAsync(node, automationRequest, options, extractionOptions, queryLLMAsync, cancellation);
+			if (isRelevant) {
+				relevantNodes.Add(node);
+			}
+		}
+		return relevantNodes;
 	}
 
 	private static bool IsObviouslyIrrelevant(HtmlChildSummary c) {
@@ -235,6 +349,39 @@ Answer ONLY with 'YES' or 'NO'.
 		return !trimmed.Contains("NO");
 	}
 
+	private static async Task<bool> IsNodeRelevantAsync(HtmlChildSummary summary, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions,
+	Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellationToken = default) {
+
+		var nodeInfo =
+			$@"Tag: {summary.TagName}
+				 ID: {summary.Id}
+				 Class: {summary.ClassName}
+				 TextSnippet: {summary.ShortText}";
+
+		if (summary.NodeId is null)
+			return false;
+
+		var prompt = $@"
+We are building an automation script in **JavaScript** using **Playwright**. 
+Our overall tasks are:
+{automationRequest}
+
+Right now, we want to decide if the following DOM node is relevant for these automation tasks.
+
+Node info:
+{nodeInfo}
+
+If you think this node or its children might be needed for the tasks in our JavaScript Playwright script, 
+please answer 'YES'. If you are fairly certain the node has no relation, answer 'NO'. 
+If you are unsure, answer 'YES' so we can explore more deeply.
+
+Answer ONLY with 'YES' or 'NO'.";
+
+		var response = await queryLLMAsync(prompt, options, cancellationToken);
+
+		var trimmed = response.Trim().ToUpperInvariant();
+		return !trimmed.Contains("NO");
+	}
 
 	public void Dispose() {
 		browser?.DisposeAsync().GetAwaiter().GetResult();

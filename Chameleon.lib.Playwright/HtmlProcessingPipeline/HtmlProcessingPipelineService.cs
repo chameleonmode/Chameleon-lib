@@ -23,4 +23,16 @@ public class HtmlProcessingPipelineService(
 
 		return finalScript;
 	}
+
+	public async Task<string> ProcessingPageAsync(IPage page, string automationRequest, AiIntegrationOptions aiOptions, ExtractionOptions extractionOptions, CancellationToken cancellationToken = default) {
+
+		var nodes = await htmlExtractor.GetAllNodesAsync(page, extractionOptions.MaxChildDepth, extractionOptions.SnippetTextLength);
+
+		var relevantNodes = await htmlExtractor.GetRelevantNodesAsync(nodes, automationRequest, aiOptions,
+				extractionOptions, aiIntegrationService.QueryLLMAsync,cancellationToken);
+
+		var finalScript = await aiIntegrationService.GenerateAutomationScriptAsync(relevantNodes, automationRequest);
+
+		return finalScript;
+	}
 }
