@@ -97,7 +97,7 @@ public class SystemBrowserService {
 		};
 
 		// 
-		await browser.Start();
+		await browser.Ensure();
 		browser.OnEvent += async (sender, args) => {
 			switch (args.EventType) {
 				case SysBrowserEventType.Closed:

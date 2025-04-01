@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Runtime.Versioning;
+using System.Text.RegularExpressions;
+using chameleon.assets;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
@@ -12,6 +13,11 @@ using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Firefox;
 public class FirefoxSysBrowserInstance : SysBrowserInstance {
+
+	// public override Process Start(ProcessStartInfo startInfo) {
+	// 	startInfo.EnvironmentVariables["MOZ_REMOTE_SETTINGS_DEVTOOLS"] = "1";
+	// 	return base.Start(startInfo);
+	// }
 	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
 	public override string ExeDir { get; } = OperatingSystem.IsMacOS()
 		? Path.Combine(FilePaths.AppDataLocalDir, "gecko", "firefox.app")
@@ -22,51 +28,42 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 
 	public string AddonPath => "/Users/dev/Downloads/938fc3dd55a44188ab6b-2025.3.26.xpi";//Path.Combine(FilePaths.AppDataLocalDir, "ext", "gecko");
 
-	public override async Task Start() {
+	public override async Task Ensure() {
 		// clean old copies
 		IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
 		IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
 		IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Geckoleon"));
 
-		bool NeedsUpdate(string path) {
-			if (!Path.Exists(ExePath)) return true;
-
-			if (OperatingSystem.IsMacOS()) {
-				var local = UMacFileVersionInfo.GetVersionInfo(ExeDir);
-				var system = UMacFileVersionInfo.GetVersionInfo(path);
-				return local.ProductVersion != system.ProductVersion;
-			} else {
-				var local = FileVersionInfo.GetVersionInfo(ExePath);
-				var system = FileVersionInfo.GetVersionInfo(path);
-				return local.ProductVersion != system.ProductVersion;
-			}
-		}
-
 		var system = OperatingSystem.IsMacOS()
-			? "/Applications/firefox.app" 
+			? "/Applications/firefox.app"
 			: SysBrowserInfoUtil.Find(Enums.SystemBrowserType.Firefox).Path;
 
-		if (NeedsUpdate(system)) {
+		var needsUpdate = !Path.Exists(ExePath) || (OperatingSystem.IsMacOS()
+				? UMacFileVersionInfo.GetVersionInfo(ExeDir).ProductVersion != UMacFileVersionInfo.GetVersionInfo(system).ProductVersion
+				: FileVersionInfo.GetVersionInfo(ExePath).ProductVersion != FileVersionInfo.GetVersionInfo(system).ProductVersion);
+
+		if (needsUpdate) {
 			Toaster.Info("Updating Firefox browser...");
 			IOtil.DeleteDir(ExeDir);
 			await IOtil.CopyDirectory(
 				OperatingSystem.IsMacOS() ? system : Path.GetDirectoryName(system)!, ExeDir
 			);
 		}
-		await base.Start();
+
+		await base.Ensure();
 	}
 
-	
-    // ""Install"": [
-    //   ""file:///{AddonPath.Replace("\\", "/")}""
-    // ]
+
+	// ""Install"": [
+	//   ""file:///{AddonPath.Replace("\\", "/")}""
+	// ]
 	protected override async Task InitializeExtensionPath() {
 		//await SysBrowserInfoUtil.AddAutoloadTemporaryAddonFF();
 		var dir = OperatingSystem.IsMacOS()
 			? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
 			: Path.Combine(ExeDir, "distribution");
 		await IOtil.DC(dir);
-		await File.WriteAllTextAsync(Path.Combine(dir, "policies.json"), 
+		await File.WriteAllTextAsync(Path.Combine(dir, "policies.json"),
 """
 {
 "policies": {
@@ -151,12 +148,177 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
   }}
 }}
 }}
-"
-//user_pref("extensions.webextensions.uuids", "{greckoleon@chameleonmode.com\":\"3d228c2a-5b97-4630-9002-2100a597436e\",\"addons-search-detection@mozilla.com\":\"89dbe7f7-1c70-4326-978b-b63d1a6b13b3\"}");
+");
 
-		);
+		if (Path.Exists(PrefsFile)) {
+			// Build the list of deprecated/removed prefs to filter out
+			var deprecatedPrefs = new HashSet<string>
+			{
+      // DEPRECATED
+      "webchannel.allowObject.urlWhitelist",
+			"browser.contentanalysis.default_allow",
+			"browser.messaging-system.whatsNewPanel.enabled",
+			"browser.ping-centre.telemetry",
+			"dom.webnotifications.serviceworker.enabled",
+			"javascript.use_us_english_locale",
+			"layout.css.font-visibility.private",
+			"layout.css.font-visibility.resistFingerprinting",
+			"layout.css.font-visibility.standard",
+			"layout.css.font-visibility.trackingprotection",
+			"network.dns.skipTRR-when-parental-control-enabled",
+			"permissions.delegation.enabled",
+			"security.family_safety.mode",
+			"widget.non-native-theme.enabled",
+			"browser.cache.offline.enable",
+			"extensions.formautofill.heuristics.enabled",
+			"network.cookie.lifetimePolicy",
+			"privacy.clearsitedata.cache.enabled",
+			"privacy.resistFingerprinting.testGranularityMask",
+			"security.pki.sha1_enforcement_level",
+			"browser.urlbar.suggest.quicksuggest",
+			"dom.securecontext.whitelist_onions",
+			"dom.storage.next_gen",
+			"network.http.spdy.enabled",
+			"network.http.spdy.enabled.deps",
+			"network.http.spdy.enabled.http2",
+			"network.http.spdy.websockets",
+			"layout.css.font-visibility.level",
+			"security.ask_for_password",
+			"security.csp.enable",
+			"security.password_lifetime",
+			"security.ssl3.rsa_des_ede3_sha",
+      
+      // REMOVED
+      "dom.securecontext.allowlist_onions",
+			"network.http.referer.hideOnionSource",
+			"privacy.clearOnShutdown.cache",
+			"privacy.clearOnShutdown.cookies",
+			"privacy.clearOnShutdown.downloads",
+			"privacy.clearOnShutdown.formdata",
+			"privacy.clearOnShutdown.history",
+			"privacy.clearOnShutdown.offlineApps",
+			"privacy.clearOnShutdown.sessions",
+			"privacy.cpd.cache",
+			"privacy.cpd.cookies",
+			"privacy.cpd.formdata",
+			"privacy.cpd.history",
+			"privacy.cpd.offlineApps",
+			"privacy.cpd.sessions",
+			"browser.fixup.alternate.enabled",
+			"browser.taskbar.previews.enable",
+			"browser.urlbar.dnsResolveSingleWordsAfterSearch",
+			"geo.provider.network.url",
+			"geo.provider.network.logging.enabled",
+			"geo.provider.use_gpsd",
+			"media.gmp-widevinecdm.enabled",
+			"network.protocol-handler.external.ms-windows-store",
+			"privacy.partition.always_partition_third_party_non_cookie_storage",
+			"privacy.partition.always_partition_third_party_non_cookie_storage.exempt_sessionstorage",
+			"privacy.partition.serviceWorkers",
+			"beacon.enabled",
+			"browser.startup.blankWindow",
+			"browser.newtab.preload",
+			"browser.newtabpage.activity-stream.feeds.discoverystreamfeed",
+			"browser.newtabpage.activity-stream.feeds.snippets",
+			"browser.region.network.url",
+			"browser.region.update.enabled",
+			"browser.search.region",
+			"browser.ssl_override_behavior",
+			"browser.tabs.warnOnClose",
+			"devtools.chrome.enabled",
+			"dom.disable_beforeunload",
+			"dom.disable_open_during_load",
+			"dom.netinfo.enabled",
+			"dom.vr.enabled",
+			"extensions.formautofill.addresses.supported",
+			"extensions.formautofill.available",
+			"extensions.formautofill.creditCards.available",
+			"extensions.formautofill.creditCards.supported",
+			"middlemouse.contentLoadURL",
+			"network.http.altsvc.oe",
+			"browser.urlbar.trimURLs",
+			"dom.caches.enabled",
+			"dom.storageManager.enabled",
+			"dom.storage_access.enabled",
+			"dom.targetBlankNoOpener.enabled",
+			"network.cookie.thirdparty.sessionOnly",
+			"network.cookie.thirdparty.nonsecureSessionOnly",
+			"privacy.firstparty.isolate.block_post_message",
+			"privacy.firstparty.isolate.restrict_opener_access",
+			"privacy.firstparty.isolate.use_site",
+			"privacy.window.name.update.enabled",
+			"security.insecure_connection_text.enabled",
+			"_user.js.parrot",
 
-		await InitializePrefsJs();
+			// Additional items identified as deprecated from the latest content
+      "general.appname.override",
+			"general.appversion.override",
+			"general.buildID.override",
+			"general.oscpu.override",
+			"general.platform.override",
+			"general.useragent.override",
+			"media.navigator.enabled",
+			"browser.display.use_document_fonts",
+			"browser.zoom.siteSpecific",
+			"device.sensors.enabled",
+			"dom.enable_performance",
+			"dom.enable_resource_timing",
+			"dom.gamepad.enabled",
+			"dom.maxHardwareConcurrency",
+			"dom.w3c_touch_events.enabled",
+			"dom.webaudio.enabled",
+			"font.system.whitelist",
+			"media.ondevicechange.enabled",
+			"media.video_stats.enabled",
+			"media.webspeech.synth.enabled",
+			"ui.use_standins_for_native_colors",
+			"webgl.enable-debug-renderer-info",
+      
+      // Special items found in comparison (these were in v5 but removed/renamed in latest)
+      "focusmanager.testmode",
+			"gfx.color_management.mode",
+			"gfx.color_management.rendering_intent",
+			"geo.provider.testing",
+			"webgl.forbid-software",
+			"browser.tabs.disableBackgroundZombification",
+			"ui.systemUsesDarkTheme"
+		};
+
+			try {
+				// Read the user.js file
+				var lines = await File.ReadAllLinesAsync(PrefsFile);
+
+				// Pattern to extract preference name from user_pref
+				var regex = new Regex(@"user_pref\([""'](.+?)[""'],");
+
+				// Filter out the deprecated prefs
+				var filteredLines = new List<string>();
+
+				foreach (var line in lines) {
+					var match = regex.Match(line);
+					if (match.Success) {
+						var prefName = match.Groups[1].Value;
+						if (!deprecatedPrefs.Contains(prefName)) {
+							filteredLines.Add(line);
+						} else {
+							Console.WriteLine($"Removed: {prefName}");
+						}
+					} else {
+						// Keep non-pref lines (like comments)
+						filteredLines.Add(line);
+					}
+				}
+
+				// Write the cleaned file
+				File.WriteAllLines(PrefsFile, filteredLines);
+			} catch (Exception ex) {
+				Console.WriteLine($"Error: {ex.Message}");
+			}
+		}
+		var userJS = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
+		await EmbeddedLoader.LoadFile("js.firefox.user.js", userJS);
+
+		//await InitializePrefsJs();
 
 		//
 		// await IOtil.CreateZipAsync(
@@ -181,46 +343,6 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		// 	Path.Combine(Settings.SysBrowserProfileCachePath, Consts.Browser.Geckoleon)
 		// );
 		// await IOtil.DeleteDExistsAsync(Settings.DestExtentionsDir);
-
-		//
-		// var groxyDir = await ExtensionLoader.LoadExtension(ExtensionType.foxyproxy, Settings.DestExtentionsDir);
-		// await File.WriteAllTextAsync(Path.Combine(groxyDir,"settings.js"),
-		// 	@$"export const settings = {{
-		// 	   	type: 'http',
-		// 		 	server: '{Settings.Profile.Proxy.Server}',
-		// 	   	host: '{Settings.Profile.Proxy.HostForRequest}',
-		// 	   	port: {Settings.Profile.Proxy.Port},
-		// 	   	username: '{Settings.Profile.Proxy.UserName}',
-		// 	   	password: '{Settings.Profile.Proxy.Password}',
-		// 	   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
-		// 	}};"
-		// );
-		// await IOtil.CreateZipAsync(Path.Combine(inDir, Guid.NewGuid().ToString() + ".xpi"), groxyDir);
-		// await IOtil.DeleteDExistsAsync(Settings.DestExtentionsDir);
-
-		//var policy =
-		//@$"
-		//{{
-		//   ""policies"": {{
-		//		""ExtensionSettings"": {{
-		//		  ""uBlock0@raymondhill.net"": {{
-		//		    ""installation_mode"": ""normal_installed"",
-		//		    ""install_url"": ""https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi""  
-		//		  }},
-		//		  ""adguardadblocker@adguard.com"": {{
-		//		    ""installation_mode"": ""normal_installed"",
-		//		    ""install_url"": ""https://addons.mozilla.org/firefox/downloads/latest/adguardadblocker@adguard.com/latest.xpi"" 
-		//		  }}
-		//		}}
-		//	}}
-		//}}";
-		//-Place the `policies.json` file in the appropriate directory based on the operating system:
-		//   -**Windows:** `C:\Program Files\Mozilla Firefox\distribution\policies.json`
-		//   -**macOS:** `/ Applications / Firefox.app / Contents / Resources / distribution / policies.json`
-		//   -**Linux:** `/ usr / lib / firefox / distribution / policies.json` or similar.
-		//var distributionDir = Path.Combine(Consts.Browser.LocalFirefoxDirPath, "distribution");
-		//Directory.CreateDirectory(distributionDir);
-		//File.WriteAllText(Path.Combine(distributionDir, "policies.json"), policy);
 	}
 	protected override string GetCommandLineArguments() {
 		return string.Join(" ", [
@@ -230,42 +352,50 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			//"-devtools",
 			"-jsconsole",
 			#endif
-			$"-profile \"{Settings.SysBrowserProfileCachePath}\""
+			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
+			"about:blank"
 		]);
 	}
 
-	[SupportedOSPlatform("windows")]
 	protected override async Task WaitForWinHandle() {
-		TaskCompletionSource<Process?> thisTcs = new();
-		new Thread(() => {
-			for (var i = 0; i < 18; i++) {
-				_ = ExUtil.TryCatch(() => {
-					var currentProcesses = Process.GetProcessesByName("firefox");
-					foreach (var p in currentProcesses) {
-						if (Brocess != null && p.ParentProcessId() == Brocess.Id) {
-							var childProcess = Process.GetProcessById(p.Id);
-							if (childProcess?.HasExited == false) {
-								var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
-								if (U32.IsWindow(thishandle)) {
-									_ = thisTcs.TrySetResult(childProcess);
-									break;
+		if (OperatingSystem.IsWindows()) {
+#pragma warning disable CA1416 // Validate platform compatibility
+			TaskCompletionSource<Process?> thisTcs = new();
+			new Thread(() => {
+				for (var i = 0; i < 18; i++) {
+					_ = ExUtil.TryCatch(() => {
+						var currentProcesses = Process.GetProcessesByName("firefox");
+						foreach (var p in currentProcesses) {
+							if (Brocess != null && p.ParentProcessId() == Brocess.Id) {
+								var childProcess = Process.GetProcessById(p.Id);
+								if (childProcess?.HasExited == false) {
+
+									var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
+
+									if (U32.IsWindow(thishandle)) {
+										_ = thisTcs.TrySetResult(childProcess);
+										break;
+									}
 								}
 							}
 						}
-					}
-					return true;
-				});
-				if (Brocess?.MainWindowHandle != IntPtr.Zero)
-					break;
-				Thread.Sleep(100);
+						return true;
+					});
+					if (Brocess?.MainWindowHandle != IntPtr.Zero)
+						break;
+					Thread.Sleep(100);
+				}
+				if (Brocess?.MainWindowHandle == IntPtr.Zero)
+					_ = thisTcs.TrySetResult(null);
+			}).Start();
+			try {
+				Brocess = await thisTcs.Task.WaitAsync(TimeSpan.FromSeconds(8));
+			} catch {
+				Close();
 			}
-			if (Brocess?.MainWindowHandle == IntPtr.Zero)
-				_ = thisTcs.TrySetResult(null);
-		}).Start();
-		try {
-			Brocess = await thisTcs.Task.WaitAsync(TimeSpan.FromSeconds(8));
-		} catch {
-			Close();
+#pragma warning restore CA1416 // Validate platform compatibility
+		} else if (OperatingSystem.IsMacOS()) {
+			await base.WaitForWinHandle();
 		}
 	}
 
@@ -280,11 +410,9 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			// =================================================================
 			// THESE ARE THE PROPERTIES FROM https://mullvad.net/en/browser/hard-facts
 			// =================================================================
-			["dom.security.https_only_mode"] = false,
 			["privacy.fingerprintingProtection"] = true,
 			["privacy.resistFingerprinting"] = true,
 			["privacy.resistFingerprinting.autoDeclineNoUserInputCanvasPrompts"] = true,
-			//["privacy.resistFingerprinting.block_mozAddonManager"] = true,
 			["privacy.resistFingerprinting.exemptedDomains"] = "",
 			["privacy.resistFingerprinting.jsmloglevel"] = "Warn",
 			["privacy.resistFingerprinting.letterboxing"] = true,
@@ -295,9 +423,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			["privacy.resistFingerprinting.testGranularityMask"] = 0,
 			["services.sync.prefs.sync.privacy.resistFingerprinting.reduceTimerPrecision.jitter"] = true,
 			["services.sync.prefs.sync.privacy.resistFingerprinting.reduceTimerPrecision.microseconds"] = true,
-			// Turn off the authentication dialog blocking 
 			["network.negotiate-auth.allow-proxies"] = true,
-			//["network.auth.subresource-http-auth-allow"] = 1,
 			["prompts.authentication_dialog_abuse_limit"] = -1,
 			["browser.newtab.preload"] = false,
 			["extensions.pendingOperations"] = false,
@@ -537,10 +663,10 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			// Disable downloading the list of blocked extensions. 
 			["extensions.blocklist.enabled"] = false,
 			//
-			["app.update.service.enabled"] = false,
 			["browser.startup.homepage"] = Settings.Profile.StartUrl,
 			["browser.contentblocking.category"] = "strict",
-			["privacy.fingerprintingProtection.overrides"] = Settings.Profile.Emulations.AutoTimezone ? "+JSDateTimeUTC" : "",
+			["app.update.service.enabled"] = false,
+			["privacy.fingerprintingProtection.overrides"] = "+JSDateTimeUTC",
 			["network.http.referer.XOriginTrimmingPolicy"] = "0",
 			/* 0102: set startup page [SETUP-CHROME]
  			 * 0=blank, 1=home, 2=last visited page, 3=resume previous session
@@ -566,8 +692,10 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		if (lines.Any(l => l.Is() && !l.StartsWith("user_pref(\"") && !l.StartsWith("//"))) {
 			await File.WriteAllLinesAsync(PrefsFile, prefs);
 		}
-		var userprefsFile = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
-		await File.WriteAllLinesAsync(userprefsFile, prefs);
+
+		var userJS = Path.Combine(Settings.SysBrowserProfileCachePath, "user.js");
+		await EmbeddedLoader.LoadFile("js.firefox.user.js", userJS);
+		//await File.WriteAllLinesAsync(userprefsFile, prefs);
 	}
 
 	public async Task InitializePrefsFile() {
@@ -575,7 +703,15 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		TaskCompletionSource tcs = new();
 		new Thread(async () => {
 			try {
-				using var p = ProUtil.Start(ExePath, GetCommandLineArguments());
+				using var p = Start(new() {
+					FileName = ExePath,
+					Arguments = GetCommandLineArguments(),
+					UseShellExecute = false,
+					CreateNoWindow = true,
+					EnvironmentVariables = {
+						{ "MOZ_DISABLE_NETWORK", "1" } // Disable network in Firefox
+					}
+				});
 				await Task.Delay(1800);
 				p.Exited += (sender, e) => {
 					_ = tcs.TrySetResult();
@@ -590,17 +726,25 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 						// Use a shell command to send SIGTERM (graceful termination)
 						using var killprocess = Process.Start("kill", $"-SIGTERM {p.Id}");
 						_ = killprocess.WaitForExit(1); // Wait for the process to exit
-					} else {
+					} else if (OperatingSystem.IsWindows()) {
 						// Attempt to close the browser gracefully
 						_ = p.CloseMainWindow();
-						_ = p.WaitForExit(TimeSpan.FromSeconds(1)); // Ensure the process has fully exited			
+
+						// Wait up to 1 second
+						if (!p.WaitForExit(1000)) {
+							// Use taskkill to gracefully terminate the process in Windows
+							using var killprocess = Process.Start("taskkill", $"/PID {p.Id} /F");
+							_ = killprocess.WaitForExit(1); // Wait for the process to exit
+						}
 					}
 					return p.HasExited || File.Exists(PrefsFile);
-				}, 18, 36);
+				}, 18, 256);
 
 				// Kill the process if it hasn't exited
 				if (!p.HasExited) {
+					// If it didn't exit gracefully, force kill it
 					p.Kill();
+					p.WaitForExit(); // Wait for the force kill to finish
 				}
 				p.Dispose();
 			} catch (Exception ex) {

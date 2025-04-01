@@ -261,11 +261,11 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	// ...
 	protected override async Task InitializeExtensionPath() {
-		_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+		_ = await EmbeddedLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
 
 		await File.WriteAllTextAsync(
 			Path.Combine(
-				await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir),
+				await EmbeddedLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir),
 				"settings.js"
 			),
 			@$"export const settings = {{
@@ -280,8 +280,11 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		);
 	}
 
-	[SupportedOSPlatform("windows")]
 	protected override async Task WaitForWinHandle() {
+		if (OperatingSystem.IsWindows()) {
 		_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
+		} else if (OperatingSystem.IsMacOS()) {
+			await base.WaitForWinHandle();
+		}
 	}
 }

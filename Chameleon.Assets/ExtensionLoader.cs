@@ -2,11 +2,11 @@ using System.Text;
 using System.Text.Json;
 
 namespace chameleon.assets;
-public static class ExtensionLoader {
-	public const string AddonsEmbeddedDir = "chameleon.assets.addons";
+public static class EmbeddedLoader {
+	public const string Dir = "chameleon.assets";
 
 	public static async Task LoadFiles(string directory, string destination) {
-		var assetUri = $"{AddonsEmbeddedDir}/{directory}";
+		var assetUri = $"{Dir}.{directory}";
 		var assets = Loader.Instance.GetAssets(assetUri);
 
 		foreach (var asset in assets) {
@@ -20,6 +20,14 @@ public static class ExtensionLoader {
 		}
 	}
 
+	public static async Task LoadFile(string file, string destination) {
+		var assetUri = $"{Dir}.{file}";
+
+		using var stream = Loader.Instance.Open(assetUri);
+		using var tempFileStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
+		await stream.CopyToAsync(tempFileStream);
+	}
+
 	public static async Task<string> LoadExtension(
 		ExtensionType extension, 
 		string destinationPath, 
@@ -27,7 +35,7 @@ public static class ExtensionLoader {
 		string? version = null
 	) {
 		try {
-			var assetUri = $"{AddonsEmbeddedDir}.{extension}";
+			var assetUri = $"{Dir}.addons.{extension}";
 			var assets = Loader.Instance.GetAssets(assetUri).ToList();
 
 			foreach (var asset in assets) {

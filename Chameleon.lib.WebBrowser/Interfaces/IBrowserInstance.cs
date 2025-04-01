@@ -11,5 +11,5 @@ public interface IBrowserInstance : IAmInitializer {
 	string SessionId { get; }
 	void InvokeEvent(Enums.SysBrowserEventType eventType);
 	void Close();
-	Task Start();
+	Task Ensure();
 }

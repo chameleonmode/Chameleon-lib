@@ -19,7 +19,7 @@ public class ExtensionLoaderServiceTests {
 			//}
 
 			// Act
-			_ = await ExtensionLoader.LoadExtension(extensionType, destinationPath);
+			_ = await EmbeddedLoader.LoadExtension(extensionType, destinationPath);
 
 			// Assert
 			var dest = Path.Combine(destinationPath, extensionType.ToString());

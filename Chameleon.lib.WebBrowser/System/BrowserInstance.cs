@@ -8,6 +8,7 @@ using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser.Services;
 using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
+using Chameleon.lib.Common.Util.Win;
 
 namespace Chameleon.lib.WebBrowser.System;
 public abstract class SysBrowserInstance : IBrowserInstance {
@@ -17,12 +18,29 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 	public required SysBrowserSettings Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 
-
 	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
 		if (eventType == Enums.SysBrowserEventType.Foreground)
-			_ = ProUtil.TrySetForeground(Brocess);
+			_ = TrySetForeground();
 
 		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
+	}
+
+	bool TrySetForeground() {
+		if (Brocess is null)
+			return false;
+		if (OperatingSystem.IsWindows()) {
+			if (Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
+				if (U32til.BringWindowToForeground(handle)) {
+					return true;
+				}
+			}
+		} else if (OperatingSystem.IsMacOS()) {
+			if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
+				Brocess.Refresh();
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public void Close() {
@@ -88,21 +106,15 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 				return;
 
 			// StartProcess
-			Brocess = ProUtil.Start(ExePath, GetCommandLineArguments());
+			Brocess = Start(new() {
+				FileName = ExePath,
+				Arguments = GetCommandLineArguments(),
+				UseShellExecute = false,
+				CreateNoWindow = true,
+			});
+
 			await Task.Delay(1800);
-
-			//
-			if (OperatingSystem.IsMacOS()) {
-				Brocess.Exited += (s, e) => { Close(); };
-
-				if (await TaskUtil.AwaitFor(() =>
-						Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null, 36, 1000)
-					) {
-					MacOSWindowListener.Instance.AddPid(Brocess!.Id);
-				}
-			} else if (OperatingSystem.IsWindows()) {
-				await WaitForWinHandle();
-			}
+			await WaitForWinHandle();
 
 			if (!Brocess.HasExited)
 				_ = LoadedTCS.TrySetResult(true);
@@ -111,14 +123,31 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 		}
 	}
 
-	public virtual Task Start() => Task.CompletedTask;
+	public virtual Process Start(ProcessStartInfo startInfo) {
+		var p = new Process {
+			StartInfo = startInfo,
+			EnableRaisingEvents = true,
+		};
+		return p.Start() ? p : throw new Exception($"Failed to start {ExePath}");
+	}
+
+	public virtual Task Ensure() => Task.CompletedTask;
 	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
 	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments();
 
-	[SupportedOSPlatform("windows")]
-	protected abstract Task WaitForWinHandle();
+	protected virtual async Task WaitForWinHandle() {
+		// if (OperatingSystem.IsMacOS()) {
+		Brocess!.Exited += (s, e) => { Close(); };
 
+		if (await TaskUtil.AwaitFor(
+				() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null,
+				36,
+				1000
+			)) {
+			MacOSWindowListener.Instance.AddPid(Brocess!.Id);
+		}
+	}
 }
