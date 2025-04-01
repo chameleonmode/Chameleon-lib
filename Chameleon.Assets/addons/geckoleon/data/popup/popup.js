@@ -1,59 +1,9 @@
 // Timezone offsets data
-import timezoneOffsets from "../offsets.js";
-// Current extension configuration
-let config = {
-  log: "all",
-  enabled: true,
-  noise: "mid",
-  noises: ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"],
-  url: "https://example.com",
-  // Default timezone and geolocation settings
-  tz: {
-    enabled: true,
-    zone: "America/New_York",
-    locale: "en-US",
-    random: false,
-    useSystem: false,
-  },
-  geo: {
-    enabled: false,
-    lat: 40.7128,
-    lon: -74.006,
-    accuracy: 64.0999,
-    random: false,
-  },
-  canvas: {
-    enabled: true,
-    random: false,
-  },
-  webgl: {
-    enabled: true,
-    random: false,
-  },
-  rects: {
-    enabled: true,
-    random: false,
-  },
-  fonts: {
-    enabled: true,
-    random: false,
-  },
-  audio: {
-    enabled: true,
-    random: false,
-  },
-  navi: {
-    enabled: true,
-    os: "default",
-    random: false,
-  },
-  bypass: [],
-  history: [],
-  dAPI: "disable_non_proxied_udp",
-};
+import App from "../../src/app.js";
+import { getTimezoneArray, getAllSupportedLocales } from "../../src/lib/util.js";
 
-// Locale options
-const locales = ["en-US", "en-GB", "fr-FR", "es-ES", "de-DE", "ja-JP", "zh-CN", "ru-RU", "pt-BR", "it-IT"];
+// Current extension configuration
+let config = App.config;
 
 document.addEventListener("DOMContentLoaded", function () {
   // Initialize UI elements based on current config
@@ -129,12 +79,7 @@ function populateDropdowns() {
   timezoneSelect.innerHTML = "";
 
   // Convert the timezone object to an array for sorting
-  const timezoneArray = Object.entries(timezoneOffsets).map(([zone, data]) => {
-    return {
-      zone: zone,
-      offset: data.offset,
-    };
-  });
+  const timezoneArray = getTimezoneArray();
 
   // Sort by offset (from negative to positive)
   timezoneArray.sort((a, b) => a.offset - b.offset);
@@ -144,16 +89,7 @@ function populateDropdowns() {
     const option = document.createElement("option");
     option.value = timezone.zone;
 
-    // Calculate UTC offset string (e.g. UTC-08:00, UTC+05:30)
-    const absOffset = Math.abs(timezone.offset);
-    const hours = Math.floor(absOffset / 60);
-    const minutes = absOffset % 60;
-    const sign = timezone.offset < 0 ? "-" : "+";
-    const offsetStr = `UTC${sign}${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}`;
-
-    option.textContent = `${timezone.zone} (${offsetStr})`;
+    option.textContent = `${timezone.zone} (${timezone.offset})`;
     if (timezone.zone === config.tz.zone) {
       option.selected = true;
     }
@@ -164,8 +100,8 @@ function populateDropdowns() {
   // Populate locale options
   const localeSelect = document.getElementById("locale-select");
   localeSelect.innerHTML = "";
-
-  locales.forEach((locale) => {
+ const { flat } = getAllSupportedLocales();
+  flat.forEach((locale) => {
     const option = document.createElement("option");
     option.value = locale;
     option.textContent = locale;

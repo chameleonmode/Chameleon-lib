@@ -153,7 +153,7 @@ const App = {
 
   // Register a new session launched by the app
   initialize: async function (sessionId, instanceId) {
-    if (!(await this.discoverServer())) return undefined;
+    if (!(await this.discoverServer())) return false;
     this.session = { sessionId, instanceId };
     this.launchedSessions[sessionId] = this.session;
 
@@ -166,12 +166,14 @@ const App = {
     for (const [key, value] of Object.entries(response.config)) {
       this.config[key] = { ...this.config[key], ...value };
     }
-
-    return await chrome.storage.local.set({
+    
+    await chrome.storage.local.set({
       session: this.session,
       launchedSessions: this.launchedSessions,
       config: this.config,
     });
+
+    return true;
   },
 
   // Find the app server

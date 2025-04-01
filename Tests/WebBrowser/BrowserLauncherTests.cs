@@ -111,6 +111,6 @@ public class BrowserLauncherTests {
 			})
 		);
 		Assert.NotNull(bi);
-		//KeepAlive(bi);
+		KeepAlive(bi);
 	}
 }

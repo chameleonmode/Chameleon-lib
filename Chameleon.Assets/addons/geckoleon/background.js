@@ -1,9 +1,10 @@
 import App from "./src/app.js";
+import { getAllSupportedLocales } from "./src/lib/util.js";
 import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import rects from "./src/scripts/rects.js";
 import geo from "./src/scripts/geo.js";
-import tz from "./src/scripts/tz.js";
+import time from "./src/scripts/tz.js";
 
 const startup = async () => {
   // Restore session from storage
@@ -70,7 +71,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       App.initialize(sessionId, instanceId)
         .then(async (result) => {
           await startup();
-          sendResponse({ success: true, url: App.config.urls.start });
+          sendResponse({ success: result === true, url: App.config.urls.start });
         })
         .catch((error) => {
           log.error("Error registering app launch", error);
@@ -97,7 +98,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 });
 
 // Function to inject our script into the page
-function executeRects() {
+function Rects() {
   const config = App.config || {
     noise: "max",
     rects: { enabled: true, random: false },
@@ -112,14 +113,64 @@ function executeRects() {
 }
 
 // Function to inject geolocation spoofing script
-function executeGeo() {
+function Geo() {
   const config = App.config.geo || {
     enabled: true,
     random: false,
     lat: 40.7128,
     lon: -74.006,
-    accuracy: 64.0999
+    accuracy: 64.0999,
   };
+
+  if (config.enabled) {
+    const acceptLanguage = "en-US";
+    const locationString = `role: CURRENT_LOCATION
+     producer: DEVICE_LOCATION
+     radius: 65000
+     latlng <
+       latitude_e7: ${Math.floor(config.lat * 1e7)}
+       longitude_e7: ${Math.floor(config.lon * 1e7)}
+     >`;
+    const uule = `a ${btoa(locationString)}`;
+    chrome.declarativeNetRequest
+      .updateSessionRules({
+        removeRuleIds: [420],
+        addRules: [
+          {
+            id: 420,
+            priority: 2,
+            action: {
+              type: "modifyHeaders",
+              requestHeaders: [
+                { header: "x-geo", operation: "set", value: uule },
+                { header: "accept-language", operation: "set", value: acceptLanguage },
+              ],
+            },
+            condition: {
+              urlFilter: "*://www.google.com/*",
+              resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest", "ping"],
+            },
+          },
+        ],
+      })
+      .then(() => {
+        log.info("Session rules updated successfully");
+      })
+      .catch((error) => {
+        log.warn("Error updating session rules", error);
+      });
+  } else {
+    chrome.declarativeNetRequest
+      .updateSessionRules({
+        removeRuleIds: [420],
+      })
+      .then(() => {
+        log.info("Session rules updated successfully");
+      })
+      .catch((error) => {
+        log.warn("Error updating session rules", error);
+      });
+  }
 
   return {
     type: "geo",
@@ -130,7 +181,7 @@ function executeGeo() {
 }
 
 // Function to inject our script into the page
-function executeTimezone() {
+function Time() {
   const config = App.config.tz || {
     enabled: true,
     random: false,
@@ -139,10 +190,21 @@ function executeTimezone() {
     locale: Intl.DateTimeFormat().resolvedOptions().locale,
   };
 
+  if (config.useSystem) {
+    config.zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    config.locale = Intl.DateTimeFormat().resolvedOptions().locale;
+  }
+  if (config.random) {
+    const timezones = Intl.supportedValuesOf("timeZone");
+    config.zone = timezones[Math.floor(Math.random() * timezones.length)];
+    const { flat } = getAllSupportedLocales();
+    config.locale = flat[Math.floor(Math.random() * flat.length)];
+  }
+
   return {
     type: "tz",
     enabled: config.enabled,
-    func: tz,
+    func: time,
     args: [config.zone, config.locale],
   };
 }
@@ -153,9 +215,9 @@ function executions(tabId) {
     noise: "max",
   };
   if (!config.enabled) return;
-  
+
   // Inject into ALL frames including iframes
-  const injections = [executeRects(), executeGeo(), executeTimezone()];
+  const injections = [Rects(), Geo(), Time()];
   injections.forEach(async (injection) => {
     const { type, enabled, func, args } = injection;
     if (!enabled) return;

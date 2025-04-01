@@ -413,7 +413,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			"-jsconsole",
 			#endif
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
-			"about:blank"
+			$"https://chameleon.mode.com?instanceId={Settings.Profile.Id}&sessionId={SessionId}"
 		]);
 	}
 
