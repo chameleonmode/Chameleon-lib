@@ -4,7 +4,7 @@ import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import rects from "./src/scripts/rects.js";
 import geo from "./src/scripts/geo.js";
-import time from "./src/scripts/tz.js";
+import time from "./src/scripts/time.js";
 
 const startup = async () => {
   // Restore session from storage
