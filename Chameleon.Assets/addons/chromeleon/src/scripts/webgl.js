@@ -1,7 +1,7 @@
 export default async function (opts) {
-  console.log("WebGL Spoofer - Starting", JSON.stringify(opts));
-  return function (params) {
-    const { random, level } = params || {};
+  return function (params = { uuid: "bloop", noise: "mid", random: false }) {
+    const { uuid, noise: level, random } = params;
+    window[uuid] = window[uuid] || {};
 
     // PRNG configuration
     const prngConfig = {
@@ -15,10 +15,10 @@ export default async function (opts) {
 
     // Define WebGL noise amplitudes with more acceptable ranges
     const amplitudes = {
-      micro: 0.00002, // Very subtle noise, minimal visual impact
+      nano: 0.00002, // Very subtle noise, minimal visual impact
       mini: 0.00005, // Slight protection with nearly undetectable visual changes
       low: 0.0001, // Good balance for most users
-      medium: 0.0002, // Better protection, might cause slight visual changes in precise graphics
+      mid: 0.0002, // Better protection, might cause slight visual changes in precise graphics
       bold: 0.0003, // Strong protection with acceptable visual impact
       high: 0.0004, // Very strong protection with noticeable but acceptable impact
       ultra: 0.0005, // Maximum recommended for daily use
@@ -28,10 +28,10 @@ export default async function (opts) {
 
     // Define noise values for different noise levels
     const noiseValues = {
-      micro: 0.1,
+      nano: 0.1,
       mini: 0.2,
       low: 0.3,
-      medium: 0.4,
+      mid: 0.4,
       bold: 0.5,
       high: 0.6,
       ultra: 0.7,
@@ -41,7 +41,7 @@ export default async function (opts) {
 
     // Use the predefined noise value based on level if not using random
     const noiseValue = noiseValues[level] || 0.5;
-    const WebGLnoiseAmplitude = amplitudes[level] || amplitudes.medium;
+    const WebGLnoiseAmplitude = amplitudes[level] || amplitudes.mid;
 
     // Common WebGL parameter enum values used for fingerprinting
     const IMPORTANT_PARAMS_ENUM = [
@@ -143,7 +143,7 @@ export default async function (opts) {
               }
             }
           }
-        } catch (error) { }
+        } catch (error) {}
 
         // Call original method with potentially modified data
         return originalMethods[
@@ -292,14 +292,12 @@ export default async function (opts) {
       };
     }
 
-    // Apply spoofing to both WebGL contexts
-    applyBufferSpoofing(WebGLRenderingContext);
-    applyBufferSpoofing(WebGL2RenderingContext);
-
-    console.log(
-      `Applied WebGL spoofing with noise amplitude: ${WebGLnoiseAmplitude}, noise level: ${level}`
-    );
-
+    if (!window[uuid]["webgl"]) {
+      window[uuid]["webgl"] = true;
+      // Apply spoofing to both WebGL contexts
+      applyBufferSpoofing(WebGLRenderingContext);
+      applyBufferSpoofing(WebGL2RenderingContext);
+    }
     return true;
   };
 }

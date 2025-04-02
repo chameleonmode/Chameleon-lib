@@ -1,30 +1,31 @@
-﻿using System.Diagnostics;
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Common.Util;
 public static class IOtil {
-
-	public static async Task DC(string directoryPath)
-	{
-		await DeleteDExistsAsync(directoryPath);
-		await CreateDirectoryAsync(directoryPath);
-	}
+	public static Task<string> DC(string dir) => Task.Run(() => {
+		DeleteDir(dir);
+		return EnsureDirectoryExists(dir);
+	});
 
 	public static Task CreateDirectoryAsync(string path) => Task.Run(() => {
 		_ = EnsureDirectoryExists(path);
 	});
-	public static string EnsureDirectoryExists(string path)
-	{
+	public static string EnsureDirectoryExists(string path) {
 		return FilePaths.EnsureDirectoryExists(path);
 	}
 
-	public static Task CreateZipAsync(string zipFilePath, string directoryPath) => Task.Run(() => {
-		if (!Directory.Exists(directoryPath)) {
-			throw new DirectoryNotFoundException($"The directory '{directoryPath}' does not exist.");
+	public static Task CreateZipAsync(string sourceDir, string zipDir, string? zipFile = null, bool dc = true) => Task.Run(async () => {
+		if (!Directory.Exists(sourceDir)) {
+			throw new DirectoryNotFoundException($"The directory '{sourceDir}' does not exist.");
 		}
 
-		ZipFile.CreateFromDirectory(directoryPath, zipFilePath, CompressionLevel.Fastest, false);
+		if (dc) await DC(zipDir);
+		else if (!Directory.Exists(zipDir)) _ = Directory.CreateDirectory(zipDir);
+
+		zipFile ??= Guid.NewGuid() + ".zip";
+
+		ZipFile.CreateFromDirectory(sourceDir, Path.Combine(zipDir, zipFile), CompressionLevel.Fastest, false);
 	});
 
 	public static Task CreateZipAsync(string filePath, Dictionary<string, string> files)
@@ -46,8 +47,7 @@ public static class IOtil {
 	public static Task<string[]> ReadDirectoryAsync(string path)
 					=> Task.Run(() => ReadDirectory(path));
 
-	public static async Task DeleteFExists(string filePath)
-	{
+	public static async Task DeleteFExists(string filePath) {
 		if (File.Exists(filePath)) {
 			try {
 				await Task.Run(() => File.Delete(filePath));
@@ -66,8 +66,7 @@ public static class IOtil {
 
 	public static Task DeleteDExistsAsync(string filePath, bool recuersive = true) => Task.Run(() => DeleteDir(filePath, recuersive));
 
-	public static void DeleteDir(string filePath, bool recuersive = true)
-	{
+	public static void DeleteDir(string filePath, bool recuersive = true) {
 		if (Directory.Exists(filePath)) {
 			try {
 				Directory.Delete(filePath, recuersive);
@@ -84,24 +83,34 @@ public static class IOtil {
 		}
 	}
 
-	public static bool IsNeedUpdate(string newer, string older)
-	{
-		if (!Path.Exists(older)) {
-			return true;
+	public static Task CopyDirectory(string source, string destination) => Task.Run(() => {
+		// Create the destination directory if it doesn't exist
+		_ = Directory.CreateDirectory(destination);
+
+		// Get all files in the source directory and subdirectories
+		var files = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
+
+		foreach (var file in files) {
+			// Compute the relative path of the file from the source directory
+			var relativePath = file[source.Length..].TrimStart(Path.DirectorySeparatorChar);
+
+			// Compute the destination path
+			var destFile = Path.Combine(destination, relativePath);
+
+			// Create the directory structure for the destination file if it doesn't exist
+			var destDir = Path.GetDirectoryName(destFile);
+			if (!string.IsNullOrWhiteSpace(destDir) && !Directory.Exists(destDir)) {
+				_ = Directory.CreateDirectory(destDir);
+			}
+
+			// Copy the file
+			File.Copy(file, destFile, true);
 		}
+	});
 
-		var systemFirefoxInfo = FileVersionInfo.GetVersionInfo(newer);
-		var chamelonFirefoxInfo = FileVersionInfo.GetVersionInfo(older);
-
-		var isEqual = chamelonFirefoxInfo.ProductMajorPart == systemFirefoxInfo.ProductMajorPart
-						&& chamelonFirefoxInfo.ProductMinorPart == systemFirefoxInfo.ProductMinorPart;
-
-		return !isEqual;
-	}
 	public static Task CopyFolderAsync(string directory, string directoryForCopy) =>
-					Task.Run(() => CopyFolder(directory, directoryForCopy));
-	public static void CopyFolder(string directory, string directoryForCopy)
-	{
+		Task.Run(() => CopyFolder(directory, directoryForCopy));
+	public static void CopyFolder(string directory, string directoryForCopy) {
 		_ = Directory.CreateDirectory(directoryForCopy);
 
 		var filePaths = Directory.GetFiles(directory);
@@ -121,8 +130,7 @@ public static class IOtil {
 		}
 	}
 
-	public static async Task WriteTextToFileAsync(string filePath, string content, int maxRetries = 3, int delayMilliseconds = 1000)
-	{
+	public static async Task WriteTextToFileAsync(string filePath, string content, int maxRetries = 3, int delayMilliseconds = 1000) {
 		if (string.IsNullOrWhiteSpace(filePath))
 			throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
 
@@ -156,8 +164,7 @@ public static class IOtil {
 		}
 	}
 
-	public static string IncrementVersion(string version)
-	{
+	public static string IncrementVersion(string version) {
 		// Example: Increment the minor version for simplicity
 		var parts = version.Split('.');
 		if (parts.Length >= 2 && int.TryParse(parts[^1], out var buildNumber)) {

@@ -1,24 +1,52 @@
 import App from "./src/app.js";
 import { log } from "./src/services/logger.js";
+import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import "./src/services/webrtc.js";
 import "./src/services/debugger.js";
 
 const startup = async () => {
   // Restore session from storage
   await App.startup();
-  log.info("App started", App.config);
+  log.info("Session restored:", App.session);
+  log.info("Config restored:", App.config);
+  log.info("Launched sessions restored:", App.launchedSessions);
+
+  // Set up the proxy if enabled
+  await chrome.proxy.settings.set({
+    value: !App.config.proxy.enabled
+      ? { mode: "system" }
+      : {
+          mode: "fixed_servers",
+          rules: {
+            bypassList: ["<local>"],
+            singleProxy: {
+              scheme: "http",
+              host: App.config.proxy.host,
+              port: App.config.proxy.port,
+            },
+          },
+        },
+  });
+  
+  // Query for all HTTP and HTTPS tabs thenreload each matching tab with bypassCache option
+  for (const tab of await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] })) {
+    await chrome.tabs.reload(tab.id, { bypassCache: true });
+  }
+
+  // Add bookmarks for home pages
+  await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
 };
 
 // Fix the incomplete runtime event listener
 chrome.runtime.onInstalled.addListener(async () => {
   log.info("Extension installed");
-  await startup();
+  // await startup();
 });
 
 // Add runtime startup listener
 chrome.runtime.onStartup.addListener(async () => {
   log.info("Extension started");
-  await startup();
+  // await startup();
 });
 
 // Listen for messages from popup or content scripts
@@ -30,6 +58,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
     case "updateConfig":
       App.config = { ...App.config, ...message.config };
+      App.eventSystem.notify("configUpdated");
 
       // Save the updated config to storage
       chrome.storage.local
@@ -65,7 +94,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       App.initialize(sessionId, instanceId)
         .then(async (result) => {
           await startup();
-          sendResponse({ success: true, url: App.config.urls.start });
+          sendResponse({ success: result === true, url: App.config.urls.start });
         })
         .catch((error) => {
           log.error("Error registering app launch", error);
@@ -81,12 +110,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep the message channel open for async response
 });
 
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
-    log.info(
-      `Storage key "${key}" in namespace "${namespace}" changed.`,
-      `Old value was "${oldValue}", new value is "${newValue}".`
-    );
-  }
-  return true;
-});
+chrome.webRequest.onAuthRequired.addListener(
+  (_) => {
+    return {
+      authCredentials: {
+        username: App.config.proxy.username,
+        password: App.config.proxy.password,
+      },
+    };
+  },
+  { urls: ["<all_urls>"] },
+  ["blocking"]
+);

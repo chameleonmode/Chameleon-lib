@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geckoleon</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1 class="title">Geckoleon</h1>
+    <div class="toggle-container">
+      <label class="toggle">
+        <input type="checkbox" id="toggle-extension" hidden checked>
+        <span class="toggle-switch"></span>
+        <span class="toggle-label" id="status-text">Enabled</span>
+      </label>
+    </div>
+
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-button active" data-tab="settings">Settings</button>
+        <button class="tab-button" data-tab="bypass">Bypass</button>
+        <button class="tab-button" data-tab="advanced">Advanced</button>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="settings-tab" class="tab-content active">
+        <h2 class="subtitle">
+          Protection Settings
+          <div style="display: flex; align-items: center;">
+    
+            <!-- Updated sync button HTML with span for the second arrow -->
+            <button id="sync-button" type="button" title="Sync settings from chameleon" class="active"
+              style="margin-right: 8px;">
+              <span></span>
+            </button>
+            <button id="save-button" type="button" title="Save"></button>
+          </div>
+        </h2>
+
+        <!-- Noise Level Slider -->
+        <div class="setting-item">
+          <label class="dropdown-label">Noise Level: <span id="noise-level-text">Medium</span></label>
+          <div class="slider-container">
+            <input type="range" id="noise-level-slider" min="1" max="9" value="4" step="1">
+            <div class="slider-labels">
+              <span>Nano</span>
+              <span>...</span>
+              <span>Max</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Protection -->
+        <div class="setting-item" hidden>
+          <label for="canvas-protection" class="checkbox">
+            <input class="checkmark" type="checkbox" id="canvas-protection" checked>
+            Canvas
+            <label class="toggle inline" title="Random">
+              <input type="checkbox" id="random-canvas-spoofing" hidden>
+              <span class="toggle-switch"></span>
+            </label>
+          </label>
+        </div>
+
+        <!-- Client Rects -->
+        <div class="setting-item">
+          <label for="client-rects-spoofing" class="checkbox">
+            <input class="checkmark" type="checkbox" id="client-rects-spoofing" checked>
+            Rects
+            <label class="toggle inline" title="Random">
+              <input type="checkbox" id="random-rects-spoofing" hidden>
+              <span class="toggle-switch"></span>
+            </label>
+          </label>
+        </div>
+
+        <!-- WebGL Protection -->
+        <div class="setting-item" hidden>
+          <label for="webgl-spoofing" class="checkbox">
+            <input class="checkmark" type="checkbox" id="webgl-spoofing" checked>
+            WebGL
+            <label class="toggle inline" title="Random">
+              <input type="checkbox" id="random-webgl-spoofing" hidden>
+              <span class="toggle-switch"></span>
+            </label>
+          </label>
+        </div>
+
+        <!-- Fonts Protection -->
+        <div class="setting-item" hidden>
+          <label for="fonts-spoofing" class="checkbox">
+            <input class="checkmark" type="checkbox" id="fonts-spoofing" checked>
+            Fonts
+            <label class="toggle inline" title="Random">
+              <input type="checkbox" id="random-fonts-spoofing" hidden>
+              <span class="toggle-switch"></span>
+            </label>
+          </label>
+        </div>
+
+        <!-- Audio Protection -->
+        <div class="setting-item" hidden>
+          <label for="audio-spoofing" class="checkbox">
+            <input class="checkmark" type="checkbox" id="audio-spoofing" checked>
+            Audio
+            <label class="toggle inline" title="Random">
+              <input type="checkbox" id="random-audio-spoofing" hidden>
+              <span class="toggle-switch"></span>
+            </label>
+          </label>
+        </div>
+
+        <!-- OS Spoofing -->
+        <div class="setting-item" hidden>
+          <label for="navi-spoofing" class="checkbox">
+            <input class="checkmark" type="checkbox" id="navi-spoofing" checked>
+            OS
+            <label class="toggle inline" title="Random">
+              <input type="checkbox" id="randomize-navi" hidden>
+              <span class="toggle-switch"></span>
+            </label>
+          </label>
+          <div class="setting-subitem">
+            <div class="dropdown">
+              <select id="navi-select" class="searchable-select">
+                <option value="default" selected>Default</option>
+                <option value="windows">Windows</option>
+                <option value="linux">Linux</option>
+                <option value="mac">Mac</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timezone Spoofing -->
+        <div class="setting-item">
+          <label for="timezone-spoofing" class="checkbox">
+            <input class="checkmark" type="checkbox" id="timezone-spoofing" checked>
+            Timezone
+            <label class="toggle inline" title="Random">
+              <input type="checkbox" id="randomize-timezone" hidden>
+              <span class="toggle-switch"></span>
+            </label>
+          </label>
+          <div class="setting-subitem">
+            <div class="dropdown">
+              <select id="timezone-select" class="searchable-select">
+                <!-- More options will be populated dynamically -->
+              </select>
+            </div>
+            <div class="dropdown" style="margin-top: 8px;">
+              <select id="locale-select" class="searchable-select">
+                <option value="en-US" selected>English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="es-ES">Spanish (Spain)</option>
+                <option value="fr-FR">French (France)</option>
+                <!-- More options will be populated dynamically -->
+              </select>
+            </div>
+            <div class="checkbox" style="margin-top: 8px;">
+              <input class="checkmark" type="checkbox" id="use-system-timezone">
+              <span>Use System Timezone</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Geolocation Spoofing -->
+        <div class="setting-item">
+          <label for="geo-spoofing" class="checkbox">
+            <input class="checkmark" type="checkbox" id="geo-spoofing">
+            Geo
+            <label class="toggle inline" title="Random">
+              <input type="checkbox" id="randomize-geo-toggle" hidden>
+              <span class="toggle-switch"></span>
+            </label>
+          </label>
+          <div class="setting-subitem">
+            <label for="coordinates">Coordinates (latitude,longitude):</label>
+            <input type="text" id="coordinates" class="searchable-select" placeholder="e.g. 40.7128,-74.0060"
+              value="40.7128,-74.0060">
+            <div class="slider-container">
+              <label for="geo-accuracy">Accuracy Level:</label>
+              <input type="range" id="geo-accuracy" min="10" max="100" step="1" value="64"
+                title="Geolocation Accuracy Level">
+              <span class="slider-value" id="geo-accuracy-value">64.0999</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bypass Tab -->
+      <div id="bypass-tab" class="tab-content">
+        <h2 class="subtitle">Bypass List</h2>
+        <p>Websites listed here will not have any protection applied.</p>
+
+        <div class="bypass-list" id="bypass-list">
+          <!-- Bypass items will be populated here -->
+          <div class="bypass-item">
+            <span>example.com</span>
+            <button class="bypass-delete">✕</button>
+          </div>
+        </div>
+
+        <div class="add-bypass">
+          <input type="text" id="new-bypass" placeholder="Enter website domain...">
+          <button id="add-bypass-btn">Add</button>
+        </div>
+      </div>
+
+      <!-- Advanced Tab -->
+      <div id="advanced-tab" class="tab-content">
+        <h2 class="subtitle">Advanced Settings</h2>
+
+        <!-- WebRTC Policy -->
+        <div class="setting-item" hidden>
+          <label class="dropdown-label">WebRTC IP Handling Policy:</label>
+          <select id="dapi-select" class="searchable-select">
+            <option value="default">Default</option>
+            <option value="disable_non_proxied_udp" selected>Disable Non-Proxied UDP</option>
+            <option value="default_public_and_private_interfaces">Default Public and Private Interfaces</option>
+            <option value="default_public_interface_only">Default Public Interface Only</option>
+          </select>
+        </div>
+
+        <!-- Logging -->
+        <div class="setting-item">
+          <label class="dropdown-label">Logging Level:</label>
+          <select id="log-level" class="searchable-select">
+            <option value="none">None</option>
+            <option value="log">Log</option>
+            <option value="debug">Debug</option>
+            <option value="info">Info</option>
+            <option value="warn">Warn</option>
+            <option value="error">Error</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+
+</html>

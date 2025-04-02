@@ -1,10 +1,11 @@
-﻿using System.Diagnostics;
-using System.Management;
+﻿using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
+using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Common.Util;
@@ -62,40 +63,5 @@ public static class ProUtil {
 				return false;
 			}
 		});
-	}
-
-	public static Process Createa(string fileName, string arguments) =>
-			new() {
-				StartInfo = new ProcessStartInfo {
-					FileName = fileName,
-					Arguments = arguments,
-					UseShellExecute = false,
-					ErrorDialog = true,
-					CreateNoWindow = true,
-				},
-				EnableRaisingEvents = true,
-			};
-
-	public static bool TrySetForeground(Process? p)
-	{
-		if (p != null) {
-#pragma warning disable CA1416 // Validate platform compatibility
-			if (!OperatingSystem.IsMacOS()) {
-				if (p.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
-					if (U32til.BringWindowToForeground(handle)) {
-						return true;
-					}
-				}
-#pragma warning restore CA1416 // Validate platform compatibility
-			} else {
-				if (MacOSUtil.SetForegroundWindow(p.Id)) {
-					p.Refresh();
-				} else {
-					return true;
-				}
-			}
-		}
-
-		return false;
 	}
 }

@@ -1,21 +1,28 @@
-﻿namespace Chameleon.lib.Const;
+﻿using Chameleon.lib.Helpers;
+
+namespace Chameleon.lib.Const;
 public static class FilePaths {
 	public static string AppDataDir => EnsureDirectoryExists(
-		Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Variables.AppName)
+		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Variables.AppName
 	);
 	public static string AppDataLocalDir => EnsureDirectoryExists(
-		Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Variables.AppName)
+		Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Variables.AppName
 	);
 	public static string AppTempDir => EnsureDirectoryExists(
-		Path.Combine(Path.GetTempPath(), Variables.AppName)
+		Path.GetTempPath(), Variables.AppName
 	);
 	public static string AppDownloadDir => EnsureDirectoryExists(
-		Path.Combine(AppTempDir, "Downloads")
+		AppTempDir, "Downloads"
 	);
 
-	public static string EnsureDirectoryExists(string path) {
-		if (!Directory.Exists(path)) {
-			_ = Directory.CreateDirectory(path);
+	public static string EnsureDirectoryExists(params string[] paths) {
+		var path = Path.Combine(paths);
+		try{
+			if (!Directory.Exists(path)) {
+				return Directory.CreateDirectory(path).FullName;
+			}
+		} catch (Exception ex) {
+			Toaster.Error($"Error creating directory: {ex.Message}");
 		}
 		return path;
 	}

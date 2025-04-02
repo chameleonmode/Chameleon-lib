@@ -1,11 +1,8 @@
-﻿using System.Diagnostics;
-using System.Runtime.Versioning;
-using chameleon.assets;
+﻿using chameleon.assets;
 
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
-using Chameleon.lib.Helpers;
+using Chameleon.lib.Const;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
@@ -14,27 +11,23 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		Settings.SysBrowserProfileCachePath,
 		"Default",
 		"Preferences"
-	//OperatingSystem.IsWindows() ? "Preferences" : "Secure Preferences"
 	);
-
-	public override string ExePath => SysBrowserInfoUtil.FindByType(Settings.BrowserType).Path;
-
-	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?" +
+	public override string ExePath => SysBrowserInfoUtil.Find(Settings.BrowserType).Path;
+	string ExtUrl => $"chrome-extension://bpckcldgiohofdmcepkndffkofgimbcm/data/web/register.html?" +
 		$"instanceId={Settings.Profile.Id}" +
 		$"&sessionId=";
+
+	string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
 
 	// ...
 	protected override string GetCommandLineArguments() {
 		var exts = new[] {
-			Settings.DestExtentionsDir,
-			Settings.CachedExtentionsDir,
+			ExtDir,
 			Settings.SysBrowseUserExtDir,
 		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories).ToCommaSeparatedString();
 
 		// Construct URL with parameters for extension
-		// --enable-blink-features=WebRtcHideLocalIpsWithMdns,ReducedReferrerGranularity,PartitionVisitedLinkDatabase,QuoteEmptySecChUaStringHeadersConsistently,FencedFrames,ReduceUserAgentMinorVersion,ParkableImagesToDisk,SetIntervalWithoutClamp,WebCryptoCurve25519,BackForwardCacheNotRestoredReasons,LowerHighResolutionTimerThreshold
-		// --disable-blink-features=WebGL1,WebGL2,Canvas2dImageChromium,WebGLImageChromium,CreateImageBitmapOrientationNone,ComputePressure,DeviceAttributes,ClientHintsDPR_DEPRECATED,ClientHintsDeviceMemory_DEPRECATED,ClientHintsViewportWidth_DEPRECATED,ClientHintsResourceWidth_DEPRECATED,PreciseMemoryInfo,CaptureJSExecutionLocation,IntensiveWakeUpThrottling
-		// --blink-settings=webGL1Enabled=false,webGL2Enabled=false,navigatorPlatformOverride="Linux x86_64",deviceScaleAdjustment=1.0,forceDarkModeEnabled=true,inForcedColors=true,prefersReducedMotion=true,prefersReducedTransparency=true,antialiased2dCanvasEnabled=false,primaryPointerType=mojom::blink::PointerType::kPointerCoarse,primaryHoverType=mojom::blink::HoverType::kHoverHoverable
+
 		return string.Join(" ", new[] {
 			// "--enable-blink-features=" + string.Join(",", [
 			// 	"WebRtcHideLocalIpsWithMdns",
@@ -150,8 +143,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			// ]),
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
-				"NetworkQualityEstimatorWebHoldback",
-				"StrictOriginIsolation",
+				//"NetworkQualityEstimatorWebHoldback",
+				//"StrictOriginIsolation",
 				"ReduceUserAgentMinorVersion",
 				"ReduceUserAgentPlatformOsCpu",
 				"ReduceAcceptLanguage",
@@ -161,8 +154,6 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 				"SharedArrayBuffer",
 				"WebBluetooth",
 				"WebUsb",
-				"WebRtcHWDecoding",
-				"WebRtcHWEncoding",
 				"FractionalScrollOffsets",
 				"Canvas2DLayers",
 				// Disable the default browser check, do not prompt to set it as such
@@ -186,6 +177,10 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
         "AutofillServerCommunication",
         // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
         "PrivacySandboxSettings4",
+				// webrtc-hw-decoding Enables HW decode acceleration for WebRTC. ✅
+				// webrtc-hw-encoding	Enables HW encode acceleration for WebRTC. ✅
+				// "WebRtcHWDecoding",
+				// "WebRtcHWEncoding",
 			]),
 			// Disable all chrome extensions
 			//"--disable-extensions",
@@ -243,7 +238,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--disable-hyperlink-auditing",
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
-			//"--restore-last-session",
+			"--restore-last-session",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
@@ -261,70 +256,14 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	// ...
 	protected override async Task InitializeExtensionPath() {
-		Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
-		var ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
-			timezone = "Pacific/Honolulu",
-			lat = 34.052235,
-			lon = -118.243683,
-			tzSystem = true
-		};
-		AddonsServer.Instance.AddonInstances[SessionId] = new {
-			urls = new {
-				start = Settings.StartUrl,
-			},
-			tz = new {
-				enabled = Settings.Emulation.AutoTimezone,
-				zone = ipapi.timezone,
-				useSystem = ipapi.tzSystem
-			},
-			geo = new {
-				enabled = Settings.Emulation.SpoofGeoLocation,
-				ipapi.lat,
-				ipapi.lon,
-			},
-			canvas = new {
-				enabled = Settings.Emulation.SpoofCanvasFingerprint,
-			},
-			webgl = new {
-				enabled = Settings.Emulation.SpoofWebGLFingerprint,
-			},
-			rects = new {
-				enabled = Settings.Emulation.SpoofClientRects,
-			},
-			fonts = new {
-				enabled = Settings.Emulation.SpoofFontFingerprint,
-			},
-			audio = new {
-				enabled = Settings.Emulation.SpoofAudio,
-			},
-			navi = new {
-				enabled = Settings.Emulation.SpoofNavigator,
-			},
-		};
-		var chromeleon = Path.Combine(Settings.CachedExtentionsDir, ExtensionType.chromeleon.ToString());
-		if (!Directory.Exists(chromeleon)) {
-			_ = await ExtensionLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-		}
-
-		await File.WriteAllTextAsync(
-			Path.Combine(
-				await ExtensionLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir),
-				"settings.js"
-			),
-			@$"export const settings = {{
-			   	type: 'http',
-				 	server: '{Settings.Profile.Proxy.Server}',
-			   	host: '{Settings.Profile.Proxy.HostForRequest}',
-			   	port: {Settings.Profile.Proxy.Port},
-			   	username: '{Settings.Profile.Proxy.UserName}',
-			   	password: '{Settings.Profile.Proxy.Password}',
-			   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
-			}};"
-		);
+		_ = await EmbeddedLoader.LoadExtension(ExtensionType.chromeleon, ExtDir);
 	}
 
-	[SupportedOSPlatform("windows")]
 	protected override async Task WaitForWinHandle() {
-		_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
+		if (OperatingSystem.IsWindows()) {
+			_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
+		} else if (OperatingSystem.IsMacOS()) {
+			await base.WaitForWinHandle();
+		}
 	}
 }

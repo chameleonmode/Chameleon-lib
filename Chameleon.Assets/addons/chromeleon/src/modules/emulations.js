@@ -1,6 +1,7 @@
 import App from "../app.js";
 import { log } from "../services/logger.js";
-import offsets from "../../data/offsets.js";
+import { getAllSupportedLocales } from "../lib/util.js";
+
 
 class PageEmulations {
   constructor(tabId) {
@@ -20,19 +21,24 @@ class PageEmulations {
   }
 
   async setupTimezoneEmulation() {
-    const { enabled, zone, locale, random, useSystem } = App.config.tz;
-    if (enabled) {
+    const opts = App.config.tz;
+    if (opts.enabled) {
       log.info(`Applying timezone emulation for tab ${this.tabId}`, App.config.tz);
-      const timezoneId = useSystem
-        ? Intl.DateTimeFormat().resolvedOptions().timeZone
-        : random
-        ? Object.keys(offsets)[Math.floor(Math.random() * Object.keys(offsets).length)]
-        : zone;
+      if (opts.system) {
+        opts.zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        opts.locale = Intl.DateTimeFormat().resolvedOptions().locale;
+      } else if (opts.random) {
+        const timezones = Intl.supportedValuesOf("timeZone");
+        opts.zone = timezones[Math.floor(Math.random() * timezones.length)];
+
+        const flat = getAllSupportedLocales().flat;
+        opts.locale = flat[Math.floor(Math.random() * flat.length)];
+      }
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setTimezoneOverride", {
-        timezoneId,
+        timezoneId: opts.zone,
       });
       await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setLocaleOverride", {
-        locale: locale,
+        locale: opts.locale,
       });
     }
   }

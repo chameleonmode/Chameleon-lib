@@ -2,16 +2,15 @@ using System.Text;
 using System.Text.Json;
 
 namespace chameleon.assets;
-public static class ExtensionLoader {
-	public const string AddonsEmbeddedDir = "embedded://chameleon.assets/addons";
-	public const string JSEmbeddedDir = "embedded://chameleon.assets/js";
+public static class EmbeddedLoader {
+	public const string BASE = "chameleon.assets";
 
 	public static async Task LoadFiles(string directory, string destination) {
-		var assetUri = new Uri($"{AddonsEmbeddedDir}/{directory}");
+		var assetUri = $"{BASE}.{directory}";
 		var assets = Loader.Instance.GetAssets(assetUri);
 
 		foreach (var asset in assets) {
-			var relativePath = GetRelativePathFromAuthority(asset.Authority.Split('.'), directory);
+			var relativePath = GetRelativePathFromAuthority(asset.Split('.'), directory);
 			var tempFilePath = Path.GetTempFileName();
 
 			using var stream = Loader.Instance.Open(asset);
@@ -21,15 +20,29 @@ public static class ExtensionLoader {
 		}
 	}
 
-	public static async Task<string> LoadExtension(ExtensionType extensionType, string destinationPath, string? settings = null, string? version = null) {
+	public static async Task CopyFile(string from, string to, bool overwrite = true) {
+		if (File.Exists(to) && !overwrite) {
+			return;
+		}
+
+		using var source = Loader.Instance.Open($"{BASE}.{from}");
+		using var destination = new FileStream(to, FileMode.Create, FileAccess.Write, FileShare.None); 
+		await source.CopyToAsync(destination);
+	}
+
+	public static async Task<string> LoadExtension(
+		ExtensionType extension, 
+		string destinationPath, 
+		string? settings = null, 
+		string? version = null
+	) {
 		try {
-			var extensionName = extensionType.ToString();
-			var assetUri = new Uri($"{AddonsEmbeddedDir}/{extensionName}");
+			var assetUri = $"{BASE}.addons.{extension}";
 			var assets = Loader.Instance.GetAssets(assetUri).ToList();
 
 			foreach (var asset in assets) {
-				var authorityParts = asset.Authority.Split('.');
-				var relativePath = GetRelativePathFromAuthority(authorityParts, extensionName);
+				var authorityParts = asset.Split('.');
+				var relativePath = GetRelativePathFromAuthority(authorityParts,  $"{extension}");
 
 				await CopyFromStream(
 					Loader.Instance.Open(asset),
@@ -44,7 +57,7 @@ public static class ExtensionLoader {
 			throw; // Re-throw unexpected exceptions
 		}
 
-		return Path.Combine(destinationPath, extensionType.ToString());
+		return Path.Combine(destinationPath, $"{extension}");
 	}
 
 	public static string GetRelativePathFromAuthority(string[] authorityParts, string? relitiveTo = null) {

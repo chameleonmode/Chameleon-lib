@@ -9,11 +9,8 @@
 
 	<ItemGroup>
 		<EmbeddedResource Include="addons\**" />
+		<EmbeddedResource Include="js\**" />
 		<EmbeddedResource Include="json\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="addons/foxyproxy/" />
 	</ItemGroup>
 
 </Project>

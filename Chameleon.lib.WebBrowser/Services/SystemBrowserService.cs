@@ -1,14 +1,11 @@
 ﻿using System.Collections.Concurrent;
 
-using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Interfaces.Sys;
-using Chameleon.lib.Common.Models;
-using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
-using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
+using Chameleon.lib.WebBrowser.Interfaces;
+using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.System.Brave;
 using Chameleon.lib.WebBrowser.System.Chrome;
 using Chameleon.lib.WebBrowser.System.Firefox;
@@ -26,16 +23,16 @@ public class SystemBrowserService {
 			MacOSWindowListener.Instance.WindowForegroundChanged += MacOS_WindowForegroundChanged;
 		}
 	}
-	public int TimeOut { get; } = 26;
+	public int TimeOut { get; } = 36;
 
 	private readonly WindowEventHandler? windowEventHandler;
 
-	public ConcurrentDictionary<SysBrowserOpenOptions, ISysBrowserInstance> Instances { get; } = [];
+	public ConcurrentDictionary<SysBrowserOpenOptions, IBrowserInstance> Instances { get; } = [];
 
 	private long _isBusy;
 	public bool IsBusy => Interlocked.Read(ref _isBusy) > 0;
 
-	public TaskCompletionSource<ISysBrowserInstance?>? OpenTaskCompletionSource { get; private set; }
+	public TaskCompletionSource<IBrowserInstance?>? OpenTaskCompletionSource { get; private set; }
 
 	#region Hwnd
 	private async void MacOS_WindowForegroundChanged(int obj) {
@@ -58,7 +55,7 @@ public class SystemBrowserService {
 		try {
 			for (var i = Instances.Count - 1; i >= 0; i--) {
 				var uid = Instances.Keys.ElementAt(i);
-				if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.HasExited == true) {
+				if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.MainWindowHandle != IntPtr.Zero && browser.Brocess?.HasExited == true) {
 					browser.Close();
 				}
 			}
@@ -87,15 +84,20 @@ public class SystemBrowserService {
 	}
 	#endregion
 
-	public async Task<ISysBrowserInstance?> OpenWithSettings(SysBrowserSettings launchSettings) {
+	public async Task<IBrowserInstance?> OpenWithSettings(SysBrowserSettings launchSettings) {
 		//await NodeServerLauncher.Instance.StartServer();
 		await AddonsServer.Instance.Start();
+
+		// 
 		var browser = Instances[launchSettings.OpenOptions] = launchSettings.BrowserType switch {
 			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = launchSettings },
 			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = launchSettings },
 			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = launchSettings },
 			_ => throw new NotImplementedException(),
 		};
+
+		// 
+		await browser.Ensure();
 		browser.OnEvent += async (sender, args) => {
 			switch (args.EventType) {
 				case SysBrowserEventType.Closed:
@@ -122,29 +124,12 @@ public class SystemBrowserService {
 		}
 		return Instances[launchSettings.OpenOptions];
 	}
-	public async Task<ISysBrowserInstance?> Open(
-		SysBrowserOpenOptions options, 
-		string startUrl,
-		EmulationOptions? emulations = null
-	) {
+	public async Task<IBrowserInstance?> Open(SysBrowserOpenOptions options) {
 		if (!Instances.TryGetValue(options, out var browser)) {
-			OpenTaskCompletionSource = new TaskCompletionSource<ISysBrowserInstance?>();
+			OpenTaskCompletionSource = new TaskCompletionSource<IBrowserInstance?>();
 			try {
-				if (options.BrowserType == SystemBrowserType.Firefox) {
-					var systempath = SysBrowserInfoUtil.FindByType(SystemBrowserType.Firefox).Path;
-					if (IOtil.IsNeedUpdate(systempath, Consts.Browser.LocalFirefoxExePath)) {
-						Toaster.Info("Updating Firefox browser...");
-						IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
-						IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
-						IOtil.DeleteDir(Consts.Browser.LocalFirefoxDirPath);
-						await IOtil.CopyFolderAsync(OperatingSystem.IsMacOS() ? "/Applications/firefox.app"
-						: Path.GetDirectoryName(systempath)!, Consts.Browser.LocalFirefoxDirPath);
-					}
-				}
 				browser = await OpenWithSettings(new(
 					options, 
-					emulations ?? IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new(), 
-					startUrl,
 					TcpUtil.NextFreePort(9613))
 				);
 			} catch (Exception e) {
@@ -162,8 +147,8 @@ public class SystemBrowserService {
 		} else {
 			if (browser.Brocess?.HasExited == true) {
 				browser.Close();
-				await Task.Delay(250);
-				_ = Open(options, startUrl);
+				await Task.Delay(256);
+				_ = Open(options);
 			} else {
 				browser.InvokeEvent(SysBrowserEventType.Foreground);
 			}
@@ -173,6 +158,10 @@ public class SystemBrowserService {
 		return browser;
 	}
 
+	public (bool, SystemBrowserType) HasInstanceOf(int id) {
+		var browser = Instances.FirstOrDefault(x => x.Value.Settings.Profile.Id == id);
+		return browser.Value != null ? (true, browser.Value.Settings.BrowserType) : (false, SystemBrowserType.Unknown);
+	}
 	// Singleton
 	public static SystemBrowserService Instance { get; } = new();
 }

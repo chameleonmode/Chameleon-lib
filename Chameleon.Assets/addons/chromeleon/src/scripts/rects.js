@@ -1,105 +1,51 @@
-// https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
-// https://browserleaks.com/rects
 export default async function (opts) {
-  console.log("Rectangles Spoofer - Starting", JSON.stringify(opts));
+  return function (params = { uuid: "bloop", noise: "mid", random: false }) {
+    const { uuid, noise, random } = params;
+    window[uuid] = window[uuid] || {};
 
-  return function (params) {
-    // params will be available here
-    const random = params?.random || true;
-
-    // Define noise levels for rectangle spoofing
-    const noiseLevels = {
-      micro: 0.95, // More acceptable range: values closer to 1.0
-      mini: 0.96, // cause less noticeable distortion but still
-      low: 0.97, // provide fingerprinting protection
-      medium: 0.98,
-      bold: 0.99,
-      high: 1.01,
-      ultra: 1.02,
-      super: 1.03,
-      max: 1.05,
+    // Map different noise levels from smallest to largest
+    const noises = {
+      //micro: Number.EPSILON, // 2.22e-16 (smallest precision unit)
+      nano: Number.EPSILON * 5, // 2.22e-15.5
+      mini: Number.EPSILON * 10, // 2.22e-15
+      low: Number.EPSILON * 100, // 2.22e-14
+      mid: Number.EPSILON * 1000, // 2.22e-13
+      bold: Number.EPSILON * 10000, // 2.22e-12
+      high: Number.EPSILON * 100000, // 2.22e-11
+      ultra: Number.EPSILON * 1000000, // 2.22e-10
+      super: 0.000000001, // 1e-9
+      max: 0.00000001, // 1e-8
     };
 
-    // Default settings
-    const settings = {
-      noiseLevel: "medium",
-      DOMRectnoise: 0.98, // Default noise factor for DOMRect
-      DOMRectReadOnlynoise: 0.98, // Default noise factor for DOMRectReadOnly
+    // Get noise level for random or fixed noise setting
+    const noiseify = () => {
+      return noises[
+        random ? Object.keys(noises)[Math.floor(Math.random() * Object.keys(noises).length)] : noise
+      ];
     };
 
-    // Set noise factor based on settings
-    settings.DOMRectnoise = noiseLevels[settings.noiseLevel];
-    settings.DOMRectReadOnlynoise = noiseLevels[settings.noiseLevel];
+    const define = (prototype, property) => {
+      Object.defineProperty(prototype, property, {
+        get: new Proxy(Object.getOwnPropertyDescriptor(prototype, property).get, {
+          apply(target, self, args) {
+            const result = Reflect.apply(target, self, args);
+            return result + noiseify();
+          },
+        }),
+      });
+    };
 
     // Define property lists for each rectangle type
-    const rectProperties = {
-      DOMRect: ["x", "y", "width", "height"],
-      DOMRectReadOnly: ["top", "right", "bottom", "left"],
-    };
-
-    // Store original property getters
-    const originalGetters = {
-      DOMRect: {},
-      DOMRectReadOnly: {},
-    };
-
-    // Store original getters for each property
-    for (const prop of rectProperties.DOMRect) {
-      originalGetters.DOMRect[prop] = Object.getOwnPropertyDescriptor(DOMRect.prototype, prop).get;
+    if (!window[uuid]["rects"]) {
+      window[uuid]["rects"] = true;
+      // Apply noise to all selected properties
+      ["x", "y", "width", "height"].forEach((property) => {
+        define(DOMRect.prototype, property);
+      });
+      ["top", "right", "bottom", "left"].forEach((property) => {
+        define(DOMRectReadOnly.prototype, property);
+      });
     }
-
-    for (const prop of rectProperties.DOMRectReadOnly) {
-      originalGetters.DOMRectReadOnly[prop] = Object.getOwnPropertyDescriptor(
-        DOMRectReadOnly.prototype,
-        prop
-      ).get;
-    }
-
-    // Methods to apply noise to rectangle properties
-    const applyNoiseMethods = {
-      // Apply noise to DOMRect properties
-      DOMRect: function (property) {
-        try {
-          Object.defineProperty(DOMRect.prototype, property, {
-            get: function () {
-              // Get original value and apply noise multiplier
-              const result = originalGetters.DOMRect[property].call(this);
-              return result * settings.DOMRectnoise;
-            },
-          });
-        } catch (error) {
-          console.error(error);
-        }
-      },
-
-      // Apply noise to DOMRectReadOnly properties
-      DOMRectReadOnly: function (property) {
-        try {
-          Object.defineProperty(DOMRectReadOnly.prototype, property, {
-            get: function () {
-              // Get original value and apply noise multiplier
-              const result = originalGetters.DOMRectReadOnly[property].call(this);
-              return result * settings.DOMRectReadOnlynoise;
-            },
-          });
-        } catch (error) {
-          console.error(error);
-        }
-      },
-    };
-
-    // Apply noise to a random property or based on noiseLevel
-    const rectProp = rectProperties.DOMRect.sort(() => (random ? 0.5 - Math.random() : 0))[0];
-
-    const rectReadOnlyProp = rectProperties.DOMRectReadOnly.sort(() =>
-      random ? 0.5 - Math.random() : 0
-    )[0];
-
-    // Apply noise to selected properties
-    applyNoiseMethods.DOMRect(rectProp);
-    applyNoiseMethods.DOMRectReadOnly(rectReadOnlyProp);
-
-    console.log(`Applied spoofing to DOMRect.${rectProp} and DOMRectReadOnly.${rectReadOnlyProp}`);
 
     return true;
   };

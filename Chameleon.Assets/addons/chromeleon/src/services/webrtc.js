@@ -25,8 +25,3 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
     value: App.config.dAPI,
   });
 });
-
-chrome.contextMenus.onClicked.addListener(async (info) => {
-  if (!info.menuItemId || !Object.keys(policies).includes(info.menuItemId)) return;
-  await chrome.storage.local.set({ dAPI: info.menuItemId });
-});

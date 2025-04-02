@@ -21,9 +21,9 @@ public class PlaywrightRunnerTests : TestSetup {
 	async Task<int> OpenBrowser(SystemBrowserType bt = SystemBrowserType.Chrome, int id = 28296) {
 		var port = TcpUtil.NextFreePort(9613);
 		var browser = await browserService.OpenWithSettings(new(
-				new(bt, new() { Id = id }),
-				new(),
-				"http://example.com",
+				new(bt, new() {
+					Id = id,
+				}),
 				port
 			)
 		);
@@ -80,14 +80,14 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestRedditCommentScript() {
-		var port = 9613; 
-		//var port = await OpenBrowser();
+		//var port = 9613; 
+		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
 			BundledScript = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
 				Parameters: new() {
-					{"search", "mumbo jumbo"}
+					{"search", "christopher walken"}
 				}
 			)
 		});
@@ -95,7 +95,7 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestBundledGsiteJsScriptScript() {
-		var port = 9613; 
+		var port = 9613;
 		//var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new RunScriptOptions {
 			Port = port,

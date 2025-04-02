@@ -21,6 +21,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\Chameleon.lib.Api\Chameleon.lib.Api.csproj" />
 	  <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
+	  <ProjectReference Include="..\Chameleon.lib.WebBrowser\Chameleon.lib.WebBrowser.csproj" />
 	  <ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
 	</ItemGroup>
 

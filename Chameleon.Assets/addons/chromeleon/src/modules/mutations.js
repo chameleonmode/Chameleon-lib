@@ -9,6 +9,8 @@
  * https://gist.github.com/abrahamjuliot/7baf3be8c451d23f7a8693d7e28a35e2
  * https://privacycheck.sec.lrz.de/active/fp_ac/fp_audiocontext.html
  * https://privacycheck.sec.lrz.de/active/fp_gcr/fp_getclientrects.html#fpGetClientRects
+ * https://browserleaks.com/rects
+ * https://iphey.com/
  *
  * A module for monitoring element creation in web pages, including:
  * - Main content page
@@ -30,45 +32,29 @@ class PageMutations {
   constructor(tabId) {
     this.tabId = tabId;
     this.scriptSource = "";
+    this.scriptIdentifier = undefined;
+    this.uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
 
+    const defaults = {
+      uuid: App.session.sessionId,
+      noise: App.config.noise,
+    };
     // Define configurations for all scripts at once
     this.scriptConfigs = {
       canvi: (() => {
-        if (!App.config.canvas.pixels) {
-          App.config.canvas.pixels = {
-            r: Math.random(),
-            g: Math.random(),
-            b: Math.random(),
-          };
-        }
-        if (!App.config.canvas.positions) {
-          App.config.canvas.positions = {
-            x: Math.random(),
-            y: Math.random(),
-          };
-        }
-        if (!App.config.canvas.rects) {
-          App.config.canvas.rects = {
-            x: Math.random(),
-            y: Math.random(),
-            width: Math.random(),
-            height: Math.random(),
-          };
-        }
-        const opts = {
-          noise: App.config.canvas.random
-            ? App.config.noises[Math.floor(Math.random() * App.config.noises.length)]
-            : App.config.noise,
-          positions: App.config.canvas.positions,
-          rects: App.config.canvas.rects,
-          pixels: App.config.canvas.pixels,
-        };
         return {
           init: async () => {
             return App.config.canvas.enabled;
           },
           script: canvas,
-          opts,
+          opts: {
+            ...defaults,
+            random: App.config.canvas.random,
+          },
         };
       })(),
       rects: (() => {
@@ -77,7 +63,10 @@ class PageMutations {
           init: async () => {
             return App.config.rects.enabled;
           },
-          opts: { random: false },
+          opts: {
+            ...defaults,
+            random: App.config.rects.random,
+          },
         };
       })(),
       webgl: (() => {
@@ -86,7 +75,10 @@ class PageMutations {
           init: async () => {
             return App.config.webgl.enabled;
           },
-          opts: { random: true },
+          opts: {
+            ...defaults,
+            random: App.config.webgl.random,
+          },
         };
       })(),
       fonts: (() => {
@@ -95,7 +87,10 @@ class PageMutations {
           init: async () => {
             return App.config.fonts.enabled;
           },
-          opts: { random: true },
+          opts: {
+            ...defaults,
+            random: App.config.fonts.random,
+          },
         };
       })(),
       audio: (() => {
@@ -104,12 +99,15 @@ class PageMutations {
           init: async () => {
             return App.config.audio.enabled;
           },
-          opts: { random: true },
+          opts: {
+            ...defaults,
+            random: App.config.audio.random,
+          },
         };
       })(),
       navi: (() => {
         const os = App.config.navi.os;
-        const random = false; // For testing purposes
+        const random = App.config.navi.random; // For testing purposes
 
         const RULE_ID_START = 1000;
         const chromeVersionMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
@@ -136,20 +134,80 @@ class PageMutations {
             "sec-ch-ua-model": '""',
           },
         };
-        const config = !random
-          ? configs[os]
-          : Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)];
+        const config =
+          configs[
+            random ? Object.keys(configs)[Math.floor(Math.random() * Object.keys(configs).length)] : os
+          ];
 
         // Return the complete configuration object
         return {
           init: async () => {
+            const enabled = App.config.navi.enabled && App.config.navi.os !== "default";
+
+            // Add new rules
+            const rules = [];
+            if (enabled) {
+              const type = "modifyHeaders";
+              const condition = {
+                urlFilter: "*",
+                resourceTypes: [
+                  "main_frame",
+                  "sub_frame",
+                  "stylesheet",
+                  "script",
+                  "image",
+                  "font",
+                  "object",
+                  "xmlhttprequest",
+                  "ping",
+                  "csp_report",
+                  "media",
+                  "websocket",
+                  "other",
+                ],
+              };
+
+              rules.push({
+                id: RULE_ID_START,
+                priority: 1,
+                condition,
+                action: {
+                  type,
+                  requestHeaders: Object.keys(config).map((hint) => ({
+                    header: hint,
+                    operation: "remove",
+                  })),
+                },
+              });
+              // Then add each client hint with the spoofed value
+              for (const [name, value] of Object.entries(config)) {
+                rules.push({
+                  id: RULE_ID_START + rules.length + 1,
+                  priority: 2, // Higher priority than the removal rule
+                  condition,
+                  action: {
+                    type,
+                    requestHeaders: [
+                      {
+                        header: name,
+                        value: value,
+                        operation: "set",
+                      },
+                    ],
+                  },
+                });
+              }
+            }
+
             // Remove only existing dynamic rules with IDs >= RULE_ID_START
-            const rules = await chrome.declarativeNetRequest.getDynamicRules();
             await chrome.declarativeNetRequest.updateDynamicRules({
-              removeRuleIds: rules.filter((rule) => rule.id >= RULE_ID_START).map((rule) => rule.id),
+              removeRuleIds: (await chrome.declarativeNetRequest.getDynamicRules())
+                .filter((rule) => rule.id >= RULE_ID_START)
+                .map((rule) => rule.id),
+              addRules: rules,
             });
 
-            return App.config.navi.enabled && App.config.navi.os !== "default";
+            return enabled;
           },
           script: navigatorize,
           opts: {
@@ -176,7 +234,7 @@ class PageMutations {
     await this.setupNewDocumentScriptInjection();
 
     // Inject script into all existing frames
-    await this.injectIntoExistingFrames();
+    //await this.injectIntoExistingFrames();
   }
 
   /**
@@ -184,16 +242,14 @@ class PageMutations {
    * @returns {Promise<void>}
    */
   async generateScriptSource() {
-    const scriptPromises = Object.values(this.scriptConfigs).map(
-      async ({ script, init, opts }) => {
-        const enabled = await init();
-        if (!enabled) return "";
-        else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
-      }
-    );
+    const scriptPromises = Object.values(this.scriptConfigs).map(async ({ script, init, opts }) => {
+      const enabled = await init();
+      if (!enabled) return "";
+      else return `(${(await script(opts)).toString()})(${JSON.stringify(opts)});`;
+    });
 
     // Wait for all promises to resolve, then join
-    this.scriptSource = (await Promise.all(scriptPromises)).filter(script => script).join("");
+    this.scriptSource = (await Promise.all(scriptPromises)).filter((script) => script).join("");
   }
 
   /**
@@ -201,9 +257,13 @@ class PageMutations {
    * @returns {Promise<void>}
    */
   async setupNewDocumentScriptInjection() {
-    await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.addScriptToEvaluateOnNewDocument", {
-      source: this.scriptSource,
-    });
+    this.scriptIdentifier = await chrome.debugger.sendCommand(
+      { tabId: this.tabId },
+      "Page.addScriptToEvaluateOnNewDocument",
+      {
+        source: this.scriptSource,
+      }
+    );
 
     await chrome.debugger.sendCommand({ tabId: this.tabId }, "Runtime.evaluate", {
       expression: this.scriptSource,
@@ -227,11 +287,15 @@ class PageMutations {
           worldName: `${Math.random().toString(36).substring(7)}`,
         })
         .then(async ({ executionContextId }) => {
-          await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.addScriptToEvaluateOnNewDocument", {
-            source: this.scriptSource,
-            contextId: executionContextId,
-            returnByValue: true,
-          });
+          await chrome.debugger.sendCommand(
+            { tabId: this.tabId },
+            "Page.addScriptToEvaluateOnNewDocument",
+            {
+              source: this.scriptSource,
+              contextId: executionContextId,
+              returnByValue: true,
+            }
+          );
           await chrome.debugger.sendCommand({ tabId: this.tabId }, "Runtime.evaluate", {
             expression: this.scriptSource,
             contextId: executionContextId,
@@ -249,6 +313,22 @@ class PageMutations {
 
     // Start with the main frame
     await processFrame(frameTree.frame);
+  }
+
+  /**
+   * Remove the script from the page
+   * @returns {Promise<void>}
+   */
+  async remove() {
+    if (this.scriptIdentifier) {
+      await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.removeScriptToEvaluateOnNewDocument", {
+        identifier: this.scriptIdentifier,
+      });
+    }
+
+    // Remove the script from all existing frames
+    const { frameTree } = await chrome.debugger.sendCommand({ tabId: this.tabId }, "Page.getFrameTree");
+    await this.removeFromFrames(frameTree.frame);
   }
 }
 
