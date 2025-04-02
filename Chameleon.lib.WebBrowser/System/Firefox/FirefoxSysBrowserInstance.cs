@@ -4,7 +4,6 @@ using chameleon.assets;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
@@ -51,9 +50,9 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	}
 
 	protected override async Task InitializeExtensionPath() {
-		var file = "d4bca18709e74ec28cdb.xpi";
+		var file = "geckoleon.xpi";
 		var addon = Path.Combine(FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "gecko"), file);
-		await EmbeddedLoader.CopyFile("addons.geckoleon." + file, addon, false);
+		await EmbeddedLoader.CopyFile("addons." + file, addon);
 
 		await File.WriteAllTextAsync(
 			Path.Combine(await IOtil.DC(OperatingSystem.IsMacOS()
@@ -297,7 +296,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			"-no-remote",
 			#if DEBUG
 			//"-devtools",
-			"-jsconsole",
+			//"-jsconsole",
 			#endif
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
 			$"https://chameleon.mode.com?instanceId={Settings.Profile.Id}&sessionId={SessionId}"

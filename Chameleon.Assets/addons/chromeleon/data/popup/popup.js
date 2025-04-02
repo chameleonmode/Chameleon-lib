@@ -1,28 +1,47 @@
 import App from "../../src/app.js";
-import timezoneOffsets from "../offsets.js";
-
+import { getTimezoneArray, getAllSupportedLocales } from "../../src/lib/util.js";
 
 // Current extension configuration
 let config = App.config;
 
-// Locale options
-const locales = ["en-US", "en-GB", "fr-FR", "es-ES", "de-DE", "ja-JP", "zh-CN", "ru-RU", "pt-BR", "it-IT"];
-
 document.addEventListener("DOMContentLoaded", function () {
-  // Initialize UI elements based on current config
-  initializeUI();
+  // Load config first, then initialize UI
+  chrome.runtime.sendMessage({ action: "getConfig" }, function (response) {
+    if (response && response.config) {
+      config = response.config;
+      
+      // Initialize UI elements based on current config
+      initializeUI();
 
-  // Set up event listeners
-  setupEventListeners();
+      // Set up event listeners
+      setupEventListeners();
 
-  // Populate dropdown options
-  populateDropdowns();
+      // Populate dropdown options
+      populateDropdowns();
+    }
+  });
 });
 
 function initializeUI() {
+   // Extract RGB values from primary color for background opacity
+   const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+   let rgb = "0, 120, 212"; // Default RGB
+   
+   if (primaryColor.startsWith('#')) {
+     const r = parseInt(primaryColor.slice(1, 3), 16);
+     const g = parseInt(primaryColor.slice(3, 5), 16);
+     const b = parseInt(primaryColor.slice(5, 7), 16);
+     rgb = `${r}, ${g}, ${b}`;
+   }
+   
+   document.documentElement.style.setProperty('--primary-color-rgb', rgb);
+
   // Main extension toggle
   document.getElementById("toggle-extension").checked = config.enabled;
   document.getElementById("status-text").textContent = config.enabled ? "Enabled" : "Disabled";
+
+  // Sync button toggle functionality
+  setupSyncButton();
 
   // Noise level
   const noiseValue = getNoiseLevelValue(config.noise);
@@ -76,18 +95,37 @@ function initializeUI() {
   populateBypassList();
 }
 
+function setupSyncButton() {
+  const syncButton = document.getElementById("sync-button");
+  if (!syncButton) return; // Safety check
+
+  const setup = () => {
+    if (config.sync) {
+      syncButton.classList.add("active");
+      syncButton.title = "On start (prefer app auto settings...)";
+    } else {
+      syncButton.classList.remove("active");
+      syncButton.title = "On start (prefer these settings)";
+    }
+  };
+  setup();
+
+  // Add click listener
+  syncButton.addEventListener("click", function () {
+    config.sync = !config.sync;
+    saveConfig();
+    setup();
+  });
+}
+
+// The rest of the functions remain the same...
 function populateDropdowns() {
   // Populate timezone options
   const timezoneSelect = document.getElementById("timezone-select");
   timezoneSelect.innerHTML = "";
 
   // Convert the timezone object to an array for sorting
-  const timezoneArray = Object.entries(timezoneOffsets).map(([zone, data]) => {
-    return {
-      zone: zone,
-      offset: data.offset,
-    };
-  });
+  const timezoneArray = getTimezoneArray();
 
   // Sort by offset (from negative to positive)
   timezoneArray.sort((a, b) => a.offset - b.offset);
@@ -97,16 +135,7 @@ function populateDropdowns() {
     const option = document.createElement("option");
     option.value = timezone.zone;
 
-    // Calculate UTC offset string (e.g. UTC-08:00, UTC+05:30)
-    const absOffset = Math.abs(timezone.offset);
-    const hours = Math.floor(absOffset / 60);
-    const minutes = absOffset % 60;
-    const sign = timezone.offset < 0 ? "-" : "+";
-    const offsetStr = `UTC${sign}${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}`;
-    option.textContent = `${timezone.zone} (${offsetStr})`;
-    
+    option.textContent = `${timezone.zone} (${timezone.offset})`;
     if (timezone.zone === config.tz.zone) {
       option.selected = true;
     }
@@ -117,8 +146,8 @@ function populateDropdowns() {
   // Populate locale options
   const localeSelect = document.getElementById("locale-select");
   localeSelect.innerHTML = "";
-
-  locales.forEach((locale) => {
+  const { flat } = getAllSupportedLocales();
+  flat.forEach((locale) => {
     const option = document.createElement("option");
     option.value = locale;
     option.textContent = locale;
@@ -168,7 +197,7 @@ function setupEventListeners() {
     document.getElementById("status-text").textContent = config.enabled ? "Enabled" : "Disabled";
     saveConfig();
   });
-
+  
   // Tab functionality
   const tabButtons = document.querySelectorAll(".tab-button");
   const tabContents = document.querySelectorAll(".tab-content");
@@ -409,16 +438,3 @@ function saveConfig() {
     console.log("Config saved:", response);
   });
 }
-
-// This function would be called when the popup is opened
-function loadConfigFromStorage() {
-  chrome.runtime.sendMessage({ action: "getConfig" }, function (response) {
-    if (response && response.config) {
-      config = response.config;
-      initializeUI();
-    }
-  });
-}
-
-// Call this on popup open
-loadConfigFromStorage();

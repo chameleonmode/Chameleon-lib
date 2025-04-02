@@ -1,10 +1,8 @@
-﻿using System.Runtime.Versioning;
-using chameleon.assets;
+﻿using chameleon.assets;
 
 using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
-using Chameleon.lib.Helpers;
+using Chameleon.lib.Const;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
@@ -13,12 +11,9 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		Settings.SysBrowserProfileCachePath,
 		"Default",
 		"Preferences"
-	//OperatingSystem.IsWindows() ? "Preferences" : "Secure Preferences"
 	);
-
 	public override string ExePath => SysBrowserInfoUtil.Find(Settings.BrowserType).Path;
-
-	public string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?" +
+	string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?" +
 		$"instanceId={Settings.Profile.Id}" +
 		$"&sessionId=";
 
@@ -242,17 +237,16 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--disable-hyperlink-auditing",
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
-			//"--restore-last-session",
+			"--restore-last-session",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			//Settings.Profile.Proxy.HasLogin ? $"--proxy-auth={Settings.Profile.Proxy.UserName}:{Settings.Profile.Proxy.Password}" : "",
 			#if DEBUG
-				"--restore-last-session",
-				$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
-				//$"--load-extension=\"{exts}\"",
-			#else
+				//$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
 				$"--load-extension=\"{exts}\"",
+			#else
+				$"--load-extension=\"{exts},{Addon}\"",
 			#endif
 			ExtUrl + SessionId,
 			//"about:blank"
@@ -262,27 +256,11 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	// ...
 	protected override async Task InitializeExtensionPath() {
 		_ = await EmbeddedLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
-
-		await File.WriteAllTextAsync(
-			Path.Combine(
-				await EmbeddedLoader.LoadExtension(ExtensionType.chroxyproxy, Settings.DestExtentionsDir),
-				"settings.js"
-			),
-			@$"export const settings = {{
-			   	type: 'http',
-				 	server: '{Settings.Profile.Proxy.Server}',
-			   	host: '{Settings.Profile.Proxy.HostForRequest}',
-			   	port: {Settings.Profile.Proxy.Port},
-			   	username: '{Settings.Profile.Proxy.UserName}',
-			   	password: '{Settings.Profile.Proxy.Password}',
-			   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
-			}};"
-		);
 	}
 
 	protected override async Task WaitForWinHandle() {
 		if (OperatingSystem.IsWindows()) {
-		_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
+			_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
 		} else if (OperatingSystem.IsMacOS()) {
 			await base.WaitForWinHandle();
 		}

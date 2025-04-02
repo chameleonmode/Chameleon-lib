@@ -1,7 +1,7 @@
 {
   "name": "Chromeleon",
   "description": "A Chromeleon can change its behavior to blend into the environment of any website troller.",
-  "version": "2025.3.26",
+  "version": "2025.4.2",
   "manifest_version": 3,
   "permissions": [
     "activeTab",
@@ -9,11 +9,14 @@
     "debugger",
     "declarativeNetRequest",
     "geolocation",
+    "privacy",
+    "proxy",
     "scripting",
     "storage",
     "tabs",
     "webNavigation",
-    "webRequest"
+    "webRequest",
+    "webRequestAuthProvider"
   ],
   "host_permissions": [ 
     "<all_urls>"

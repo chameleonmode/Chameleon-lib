@@ -9,7 +9,7 @@ import { log } from "./logger.js";
 const observers = new Map();
 
 // Subscribe to "dataUpdated" event
-App.eventSystem.subscribe("configUpdated", async (data) => {
+App.subscribe("configUpdated", async (data) => {
   log.log("Confg updated:", data);
 
   for (const [tabId, observer] of observers.entries()) {
