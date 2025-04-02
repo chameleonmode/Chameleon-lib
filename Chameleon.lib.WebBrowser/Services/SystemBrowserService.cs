@@ -23,7 +23,7 @@ public class SystemBrowserService {
 			MacOSWindowListener.Instance.WindowForegroundChanged += MacOS_WindowForegroundChanged;
 		}
 	}
-	public int TimeOut { get; } = 26;
+	public int TimeOut { get; } = 36;
 
 	private readonly WindowEventHandler? windowEventHandler;
 
@@ -55,7 +55,7 @@ public class SystemBrowserService {
 		try {
 			for (var i = Instances.Count - 1; i >= 0; i--) {
 				var uid = Instances.Keys.ElementAt(i);
-				if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.HasExited == true) {
+				if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.MainWindowHandle != IntPtr.Zero && browser.Brocess?.HasExited == true) {
 					browser.Close();
 				}
 			}

@@ -123,13 +123,16 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 				return;
 
 			// StartProcess
-			Brocess = Start(new() {
-				FileName = ExePath,
-				Arguments = GetCommandLineArguments(),
-				UseShellExecute = false,
-				CreateNoWindow = true,
-			});
-
+			Brocess = new Process {
+				StartInfo = new() {
+					FileName = ExePath,
+					Arguments = GetCommandLineArguments(),
+					UseShellExecute = false,
+					CreateNoWindow = true,
+				},
+				EnableRaisingEvents = true,
+			};
+			Brocess.Start();
 			await Task.Delay(1800);
 			await WaitForWinHandle();
 
@@ -138,14 +141,6 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 			else
 				Close();
 		}
-	}
-
-	public virtual Process Start(ProcessStartInfo startInfo) {
-		var p = new Process {
-			StartInfo = startInfo,
-			EnableRaisingEvents = true,
-		};
-		return p.Start() ? p : throw new Exception($"Failed to start {ExePath}");
 	}
 
 	public virtual Task Ensure() => Task.CompletedTask;

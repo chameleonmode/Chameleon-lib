@@ -335,7 +335,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 					_ = thisTcs.TrySetResult(null);
 			}).Start();
 			try {
-				Brocess = await thisTcs.Task.WaitAsync(TimeSpan.FromSeconds(8));
+				Brocess = await thisTcs.Task;
 			} catch {
 				Close();
 			}
