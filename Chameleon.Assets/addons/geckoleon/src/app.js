@@ -63,12 +63,22 @@ const App = {
   port: null,
   config: {
     enabled: true,
+    sync: true,
     log: "all",
     noise: "mid",
     noises: ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"],
-    bypass: [],
+    bypass: ["*://example.com/*", "example.com"],
     history: [],
     dAPI: "disable_non_proxied_udp",
+    proxy: {
+      enabled: false,
+      type: "http",
+      server: "http://host:port",
+      host: "host",
+      port: 8080,
+      username: "username",
+      password: "password",
+    },
     urls: {
       start: "https://example.com/start",
       homePages: ["https://example.com/home", "https://example.com/dashboard"],
@@ -76,7 +86,7 @@ const App = {
     tz: {
       enabled: true,
       random: false,
-      useSystem: false,
+      system: false,
       zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       locale: Intl.DateTimeFormat().resolvedOptions().locale,
     },
@@ -121,27 +131,23 @@ const App = {
 
   // Startup
   startup: async function () {
-    try {
-      const { session, launchedSessions, config } = await chrome.storage.local.get([
-        "session",
-        "launchedSessions",
-        "config",
-      ]);
-      this.session = session || this.session;
-      this.launchedSessions = launchedSessions || this.launchedSessions;
+    const { session, launchedSessions, config } = await chrome.storage.local.get([
+      "session",
+      "launchedSessions",
+      "config",
+    ]);
+    this.session = session || this.session;
+    this.launchedSessions = launchedSessions || this.launchedSessions;
 
-      if (config) {
-        config["noises"] = this.config["noises"];
-        for (const [key, value] of Object.entries(config)) {
-          if (typeof value === "object" && !Array.isArray(value)) {
-            this.config[key] = { ...this.config[key], ...value };
-          } else {
-            this.config[key] = value;
-          }
+    if (config) {
+      config["noises"] = this.config["noises"];
+      for (const [key, value] of Object.entries(config)) {
+        if (typeof value === "object" && !Array.isArray(value)) {
+          this.config[key] = { ...this.config[key], ...value };
+        } else {
+          this.config[key] = value;
         }
       }
-    } catch (error) {
-      console.warn("Error during startup:", error);
     }
 
     return {
@@ -159,14 +165,14 @@ const App = {
 
     const sync = await chrome.storage.sync.get(["config"]);
     if (sync.config) {
-      this.config = { ...this.config, ...sync.config };
+      this.config = sync.config.sync ? { ...this.config, ...sync.config } : { ...sync.config, ...this.config };
     }
 
     const response = await this.sendData({ type: "init" });
     for (const [key, value] of Object.entries(response.config)) {
       this.config[key] = { ...this.config[key], ...value };
     }
-    
+
     await chrome.storage.local.set({
       session: this.session,
       launchedSessions: this.launchedSessions,

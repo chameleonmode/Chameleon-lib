@@ -1,5 +1,6 @@
 // The function to override the Date object
-export default function (timeZone, locale = "en-US") {
+export default function (opts) {
+  const { zone: timeZone, locale } = opts;
   console.log(`Setting timezone to: ${timeZone}, locale: ${locale}`);
 
   // Store original methods

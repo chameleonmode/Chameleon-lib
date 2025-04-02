@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
         //   window.close();
         // }, 2000);
       } else {
-        statusElement.textContent = "Registration failed";
+        statusElement.textContent = "Registration failed " + (response ? response.error : "");
       }
     }
   );

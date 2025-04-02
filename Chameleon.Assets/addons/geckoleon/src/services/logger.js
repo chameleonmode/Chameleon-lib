@@ -22,20 +22,22 @@ const LOG_COLORS = {
   WARN: "color: #FFC107; background: rgba(255, 193, 7, 0.1)", // yellow with light background
   ERROR: "color: #DC3545; font-weight: bold; background: rgba(220, 53, 69, 0.1)", // red and bold with light background
 };
-
 // Get the caller info from stack trace
 const getCallerInfo = () => {
   const err = new Error();
   const stack = err.stack.split("\n");
-  const callerLine = stack[3] || "";
+  const callerLine = stack.slice(-2).find(item => item !== undefined) || "";
 
   const match =
-    callerLine.match(/at\s+(.*)\s+\((.*):(\d+):(\d+)\)/) || callerLine.match(/at\s+(.*):(\d+):(\d+)/);
+    callerLine.match(/at\s+(.*)\s+\((.*):(\d+):(\d+)\)/) || 
+    callerLine.match(/at\s+(.*):(\d+):(\d+)/) ||
+    callerLine.match(/@(.*):(\d+):(\d+)/);
 
   if (match) {
     const isDetailed = match.length > 4;
+    const filePath = isDetailed ? match[2] : match[1];
     return {
-      file: isDetailed ? match[2].split("/").pop() : match[1].split("/").pop(),
+      file: filePath.split("/").pop(),
       line: isDetailed ? match[3] : match[2],
     };
   }

@@ -20,10 +20,10 @@ class PageEmulations {
   }
 
   async setupTimezoneEmulation() {
-    const { enabled, zone, locale, random, useSystem } = App.config.tz;
+    const { enabled, zone, locale, random, system } = App.config.tz;
     if (enabled) {
       log.info(`Applying timezone emulation for tab ${this.tabId}`, App.config.tz);
-      const timezoneId = useSystem
+      const timezoneId = system
         ? Intl.DateTimeFormat().resolvedOptions().timeZone
         : random
         ? Object.keys(offsets)[Math.floor(Math.random() * Object.keys(offsets).length)]

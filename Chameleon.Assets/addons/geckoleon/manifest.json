@@ -8,12 +8,14 @@
     "bookmarks",
     "declarativeNetRequest",
     "geolocation",
+    "proxy",
     "scripting",
     "storage",
     "tabs",
     "webNavigation",
     "webRequest",
-    "webRequestBlocking"
+    "webRequestBlocking",
+    "webRequestAuthProvider"
   ],
   "host_permissions": [
     "<all_urls>"

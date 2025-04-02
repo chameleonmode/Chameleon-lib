@@ -380,6 +380,85 @@ function getAllSupportedLocales(
   };
 }
 
+/**
+ * Checks if a value matches any of the given patterns
+ * // Example usage:
+ *
+ * // Simple text matching
+ * // matchesPattern("hello world", ["hello", "test"]); // true
+ * 
+ * // Wildcard pattern matching
+ * // matchesPattern("hello world", ["hello*"]); // true
+ * // matchesPattern("hello world", ["*world"]); // true
+ * 
+ * // URL domain matching
+ * // matchesPattern("https://sub.example.com/page", ["example.com"], { treatAsUrl: true }); // true
+ * // matchesPattern("https://example.com/page", ["*://example.com/*"]); // true
+ * 
+ * // Case-sensitive matching
+ * // matchesPattern("Hello World", ["hello world"], { caseSensitive: true }); // false
+ * // matchesPattern("Hello World", ["Hello World"], { caseSensitive: true }); // true
+ * @param {string} value - The value to check
+ * @param {string|string[]} patterns - Single pattern or array of patterns to match against
+ * @param {Object} [options] - Optional configuration settings
+ * @param {boolean} [options.caseSensitive=false] - Whether matching should be case-sensitive
+ * @param {boolean} [options.URL=true] - Whether to treat the value as a URL for domain matching
+ * @returns {boolean} - Whether the value matches any pattern
+ */
+function matchesPattern(value, patterns, options = {}) {
+  // Default options
+  const opts = {
+    caseSensitive: false,
+    url: true,
+    ...options
+  };
+
+  // Convert single pattern to array for consistent handling
+  const patternArray = Array.isArray(patterns) ? patterns : [patterns];
+  if (patternArray.length === 0) return false;
+  
+  // Normalize value for case-insensitive matching
+  const normalizedValue = opts.caseSensitive ? value : value.toLowerCase();
+  
+  return patternArray.some(pattern => {
+    // Normalize pattern for case-insensitive matching
+    const normalizedPattern = opts.caseSensitive ? pattern : pattern.toLowerCase();
+    
+    // Wildcard pattern matching
+    if (normalizedPattern.includes('*')) {
+      // Convert wildcard pattern to regex
+      const regexPattern = normalizedPattern
+        .replace(/\./g, '\\.')       // Escape dots
+        .replace(/\//g, '\\/')       // Escape slashes
+        .replace(/\*/g, '.*');       // Convert * to .*
+      
+      const regex = new RegExp(`^${regexPattern}$`);
+      return regex.test(normalizedValue);
+    }
+    
+    // URL domain matching (if enabled)
+    if (opts.url) {
+      try {
+        const urlObj = new URL(value);
+        const hostname = urlObj.hostname;
+        
+        // Check if hostname matches pattern or ends with .pattern (subdomain matching)
+        return hostname === normalizedPattern || 
+               hostname.endsWith(`.${normalizedPattern}`);
+      } catch (error) {
+        // Fallback to simple includes if URL parsing fails
+        return normalizedValue.includes(normalizedPattern);
+      }
+    }
+    
+    // Simple exact or substring matching
+    return normalizedValue === normalizedPattern || 
+           normalizedValue.includes(normalizedPattern);
+  });
+}
+
+
+
 // Export functions
 export {
   getTimezoneArray,
@@ -388,4 +467,5 @@ export {
   getLocalesForLanguage,
   getLocalesForCountry,
   getAllSupportedLocales,
+  matchesPattern,
 };

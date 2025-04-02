@@ -1,57 +1,9 @@
-// Timezone offsets data
+import App from "../../src/app.js";
 import timezoneOffsets from "../offsets.js";
 
+
 // Current extension configuration
-let config = {
-  log: "all",
-  enabled: true,
-  noise: "mid",
-  noises: ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"],
-  url: "https://example.com",
-  // Default timezone and geolocation settings
-  tz: {
-    enabled: true,
-    zone: "America/New_York",
-    locale: "en-US",
-    random: false,
-    useSystem: false,
-  },
-  geo: {
-    enabled: false,
-    lat: 40.7128,
-    lon: -74.006,
-    accuracy: 64.0999,
-    random: false,
-  },
-  canvas: {
-    enabled: true,
-    random: false,
-  },
-  webgl: {
-    enabled: true,
-    random: false,
-  },
-  rects: {
-    enabled: true,
-    random: false,
-  },
-  fonts: {
-    enabled: true,
-    random: false,
-  },
-  audio: {
-    enabled: true,
-    random: false,
-  },
-  navi: {
-    enabled: true,
-    os: "default",
-    random: false,
-  },
-  bypass: [],
-  history: [],
-  dAPI: "disable_non_proxied_udp",
-};
+let config = App.config;
 
 // Locale options
 const locales = ["en-US", "en-GB", "fr-FR", "es-ES", "de-DE", "ja-JP", "zh-CN", "ru-RU", "pt-BR", "it-IT"];
@@ -107,7 +59,7 @@ function initializeUI() {
   document.getElementById("randomize-timezone").checked = config.tz.random;
   document.getElementById("timezone-select").value = config.tz.zone;
   document.getElementById("locale-select").value = config.tz.locale;
-  document.getElementById("use-system-timezone").checked = config.tz.useSystem;
+  document.getElementById("use-system-timezone").checked = config.tz.system;
 
   // Geolocation spoofing
   document.getElementById("geo-spoofing").checked = config.geo.enabled;
@@ -307,7 +259,7 @@ function setupEventListeners() {
   });
 
   document.getElementById("use-system-timezone").addEventListener("change", function (e) {
-    config.tz.useSystem = e.target.checked;
+    config.tz.system = e.target.checked;
     saveConfig();
   });
 

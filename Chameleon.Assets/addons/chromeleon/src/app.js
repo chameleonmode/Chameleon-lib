@@ -86,7 +86,7 @@ const App = {
       random: false,
       zone: "Pacific/Honolulu",
       locale: "en-US",
-      useSystem: false,
+      system: false,
     },
     geo: {
       enabled: true,

@@ -66,8 +66,24 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 			};
 			Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");
 
+	// type: 'http',
+	// 			 	server: '{Settings.Profile.Proxy.Server}',
+	// 		   	host: '{Settings.Profile.Proxy.HostForRequest}',
+	// 		   	port: {Settings.Profile.Proxy.Port},
+	// 		   	username: '{Settings.Profile.Proxy.UserName}',
+	// 		   	password: '{Settings.Profile.Proxy.Password}',
+	// 		   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
 			// set the extension settings
 			AddonsServer.Instance.AddonInstances[SessionId] = new {
+				proxy = new {
+					enabled = Settings.Profile.Proxy.CanUse,
+					type = "http",
+					server = Settings.Profile.Proxy.Server,
+					host = Settings.Profile.Proxy.Host,
+					port = Settings.Profile.Proxy.Port,
+					username = Settings.Profile.Proxy.UserName,
+					password = Settings.Profile.Proxy.Password,
+				},
 				urls = new {
 					start = Settings.Profile.StartUrl,
 					homePages = Settings.Profile.DefaultHomePageSettings,
@@ -75,7 +91,8 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 				tz = new {
 					enabled = Settings.Profile.Emulations.AutoTimezone,
 					zone = ipapi.timezone,
-					useSystem = ipapi.tzSystem
+					system = ipapi.tzSystem,
+					locale = "en-" + ipapi.countryCode,
 				},
 				geo = new {
 					enabled = Settings.Profile.Emulations.SpoofGeoLocation,
