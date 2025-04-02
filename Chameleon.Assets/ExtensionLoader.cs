@@ -3,10 +3,10 @@ using System.Text.Json;
 
 namespace chameleon.assets;
 public static class EmbeddedLoader {
-	public const string Dir = "chameleon.assets";
+	public const string BASE = "chameleon.assets";
 
 	public static async Task LoadFiles(string directory, string destination) {
-		var assetUri = $"{Dir}.{directory}";
+		var assetUri = $"{BASE}.{directory}";
 		var assets = Loader.Instance.GetAssets(assetUri);
 
 		foreach (var asset in assets) {
@@ -20,12 +20,14 @@ public static class EmbeddedLoader {
 		}
 	}
 
-	public static async Task LoadFile(string file, string destination) {
-		var assetUri = $"{Dir}.{file}";
+	public static async Task CopyFile(string from, string to, bool overwrite = true) {
+		if (File.Exists(to) && !overwrite) {
+			return;
+		}
 
-		using var stream = Loader.Instance.Open(assetUri);
-		using var tempFileStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
-		await stream.CopyToAsync(tempFileStream);
+		using var source = Loader.Instance.Open($"{BASE}.{from}");
+		using var destination = new FileStream(to, FileMode.Create, FileAccess.Write, FileShare.None); 
+		await source.CopyToAsync(destination);
 	}
 
 	public static async Task<string> LoadExtension(
@@ -35,7 +37,7 @@ public static class EmbeddedLoader {
 		string? version = null
 	) {
 		try {
-			var assetUri = $"{Dir}.addons.{extension}";
+			var assetUri = $"{BASE}.addons.{extension}";
 			var assets = Loader.Instance.GetAssets(assetUri).ToList();
 
 			foreach (var asset in assets) {

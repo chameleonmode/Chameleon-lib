@@ -29,6 +29,9 @@ const startup = async () => {
 
   // Add bookmarks for home pages
   await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
+
+  // Reload all tabs to apply the new settings
+  await chrome.tabs.reload({ bypassCache: true });
 };
 
 // Fix the incomplete runtime event listener
