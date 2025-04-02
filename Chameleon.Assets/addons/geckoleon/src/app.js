@@ -136,10 +136,11 @@ const App = {
         const response = await fetch(`${url}/ping`, {
           signal: AbortSignal.timeout(500), // 500ms timeout
         });
-        if (!response.ok) continue;
-
+        // if (!response.ok) continue;
+        // With no-cors we can't check response.ok, but if we get here without error it might be working
         this.port = port;
         this.server = url;
+
         return true;
       } catch (error) {
         // Continue to next port

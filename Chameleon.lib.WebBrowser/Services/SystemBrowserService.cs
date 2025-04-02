@@ -158,6 +158,10 @@ public class SystemBrowserService {
 		return browser;
 	}
 
+	public (bool, SystemBrowserType) HasInstanceOf(int id) {
+		var browser = Instances.FirstOrDefault(x => x.Value.Settings.Profile.Id == id);
+		return browser.Value != null ? (true, browser.Value.Settings.BrowserType) : (false, SystemBrowserType.Unknown);
+	}
 	// Singleton
 	public static SystemBrowserService Instance { get; } = new();
 }

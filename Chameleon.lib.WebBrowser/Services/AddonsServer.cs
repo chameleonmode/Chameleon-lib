@@ -47,16 +47,26 @@ public class AddonsServer {
       // builder configuration
       var builder = WebApplication.CreateBuilder();
 
-			// Add minimal required services
-			_ = builder.Services.AddEndpointsApiExplorer();
+      // Add minimal required services
+      _ = builder.Services.AddEndpointsApiExplorer();
 
-			// Configure to listen on all available interfaces, not just localhost
-			_ = builder.WebHost.ConfigureKestrel(options => {
+      // Add CORS services
+      _ = builder.Services.AddCors(options => {
+        options.AddPolicy("AllowAnyOrigin", policy => {
+          _ = policy.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+      });
+
+      // Configure to listen on all available interfaces, not just localhost
+      _ = builder.WebHost.ConfigureKestrel(options => {
 				options.Listen(IPAddress.Loopback, Port);
 			});
       app = builder.Build();
-      // Use minimal middleware
-      app.UseRouting();
+			// Use minimal middleware
+			_ = app.UseRouting()
+				.UseCors("AllowAnyOrigin");
 
       #region routes
       // Health check endpoint

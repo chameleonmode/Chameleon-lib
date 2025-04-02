@@ -28,13 +28,6 @@ public class UserProfileDto : Interfaces.Dto {
 	public object? wordPressSettings { get; set; }
 	public ProxDto proxy { get; set; } = new();
 	public WebrowserDto webBrowser { get; set; } = new();
-
-	// [JsonIgnore]
-	// public Dictionary<SystemBrowserType, object?> SBI { get; set; } = new Dictionary<SystemBrowserType, object?>(){
-	// 		{ SystemBrowserType.Chrome, default },
-	// 		{ SystemBrowserType.Firefox, default },
-	// 		{ SystemBrowserType.Brave, default }
-	// 	};
 }
 public abstract class UP : Interfaces.Dto {
 	public int? ProfileId { get; set; }

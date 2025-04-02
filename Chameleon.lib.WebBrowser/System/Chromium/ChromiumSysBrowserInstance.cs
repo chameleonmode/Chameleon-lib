@@ -13,15 +13,16 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		"Preferences"
 	);
 	public override string ExePath => SysBrowserInfoUtil.Find(Settings.BrowserType).Path;
-	string ExtUrl => $"chrome-extension://onmphcpdlamnigcccfcpikhihfaffapp/data/web/register.html?" +
+	string ExtUrl => $"chrome-extension://bpckcldgiohofdmcepkndffkofgimbcm/data/web/register.html?" +
 		$"instanceId={Settings.Profile.Id}" +
 		$"&sessionId=";
+
+	string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
 
 	// ...
 	protected override string GetCommandLineArguments() {
 		var exts = new[] {
-			Settings.DestExtentionsDir,
-			Settings.CachedExtentionsDir,
+			ExtDir,
 			Settings.SysBrowseUserExtDir,
 		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories).ToCommaSeparatedString();
 
@@ -246,7 +247,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 				//$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
 				$"--load-extension=\"{exts}\"",
 			#else
-				$"--load-extension=\"{exts},{Addon}\"",
+				$"--load-extension=\"{exts}\"",
 			#endif
 			ExtUrl + SessionId,
 			//"about:blank"
@@ -255,7 +256,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	// ...
 	protected override async Task InitializeExtensionPath() {
-		_ = await EmbeddedLoader.LoadExtension(ExtensionType.chromeleon, Settings.CachedExtentionsDir);
+		_ = await EmbeddedLoader.LoadExtension(ExtensionType.chromeleon, ExtDir);
 	}
 
 	protected override async Task WaitForWinHandle() {
