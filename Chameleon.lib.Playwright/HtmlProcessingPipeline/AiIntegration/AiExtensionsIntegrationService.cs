@@ -42,6 +42,9 @@ public class AiExtensionsIntegrationService : IAiIntegrationService {
 
 	public async Task<string> GenerateAutomationScriptAsync(List<HtmlChildSummary> relevantNodes,string automationRequest) {
 		var sb = new StringBuilder();
+		sb.AppendLine("You are a helpful assistant that generates **valid JavaScript Playwright scripts** only.");
+		sb.AppendLine("Any additional explanations or disclaimers must be wrapped in JavaScript comments so the resulting code is directly runnable with Node.js or any JavaScript environment.");
+		sb.AppendLine();
 		sb.AppendLine($"User wants to automate: {automationRequest}");
 		sb.AppendLine();
 		sb.AppendLine("Relevant DOM nodes:");
@@ -50,7 +53,20 @@ public class AiExtensionsIntegrationService : IAiIntegrationService {
 		}
 
 		sb.AppendLine();
-		sb.AppendLine("Now, generate a JavaScript Playwright script that interacts with these elements...");
+		sb.AppendLine("Now, generate a JavaScript Playwright script that interacts with these elements.");
+		sb.AppendLine("The script should be able to accept any parameters that might be relevant to this automation task,");
+		sb.AppendLine("such as credentials, search terms, or configuration flags. Please handle them by using:");
+		sb.AppendLine("Environment variables (e.g. `process.env.PARAM_NAME`)");
+		sb.AppendLine();
+		sb.AppendLine("Please ensure the script gracefully handles missing or invalid parameters.");
+		sb.AppendLine("Produce a valid, runnable JavaScript Playwright code snippet that references these parameters and");
+		sb.AppendLine("demonstrates as a comment how they can be used to complete the automation steps.");
+		sb.AppendLine();
+		sb.AppendLine("**Important**:");
+		sb.AppendLine("- Put any disclaimers or usage notes in JavaScript comments at the top.");
+		sb.AppendLine("- - The resulting script must be purely valid JavaScript.");
+		sb.AppendLine();
+		sb.AppendLine("Now produce the **full** JavaScript code.");
 
 		var finalPrompt = sb.ToString();
 		var script = await QueryLLMAsync(finalPrompt, options, CancellationToken.None);

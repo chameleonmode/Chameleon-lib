@@ -15,7 +15,7 @@ public class PlaywrightTestRunner : IDisposable {
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-	public PlaywrightTestRunner(string relativePath, Func<string, Task<string>>? onAsk = null) {
+	public PlaywrightTestRunner(string relativePath, Dictionary<string, string>? envVariables = null, Func<string, Task<string>>? onAsk = null) {
 		this.onAsk = onAsk;
 		file = relativePath;
 		var nodePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
@@ -41,7 +41,7 @@ public class PlaywrightTestRunner : IDisposable {
 		nodeProcess = new Process { 
 			StartInfo = new ProcessStartInfo {
 				FileName = OperatingSystem.IsWindows() ? $"\"{nodePath}\"" : nodePath,
-				Arguments = OperatingSystem.IsWindows() ? $"\"{args}\"" : args,
+				Arguments = OperatingSystem.IsWindows() ? $"\"{relativePath}\"" : relativePath,
 				RedirectStandardInput = true,
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,
@@ -49,6 +49,13 @@ public class PlaywrightTestRunner : IDisposable {
 				CreateNoWindow = true,
 			} 
 		};
+
+		if (envVariables != null) {
+			foreach (var kv in envVariables) {
+				nodeProcess.StartInfo.Environment[kv.Key] = kv.Value;
+			}
+		}
+
 		nodeProcess.OutputDataReceived += OnOutputDataReceived;
 		nodeProcess.ErrorDataReceived += (sender, e) => {
 			var output = e.Data ?? string.Empty;
