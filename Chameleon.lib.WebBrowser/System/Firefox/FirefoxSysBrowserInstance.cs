@@ -104,17 +104,17 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 						{ "browser.tabs.warnOnClose", new { Value = false, Status = "locked" } },
 						{ "browser.shell.checkDefaultBrowser", new { Value = false, Status = "locked" } }
 					},
-					ExtensionSettings = new Dictionary<string, object> {
-						{
-							"geckoleon@com.chameleon.mode",
-							new {
-								installation_mode = "normal_installed",
-								default_area = "navbar",
-								private_browsing = true,
-								install_url = $"file:///{addon.Replace("\\", "/")}" // Correct path handling
-					    }
-						}
-					}
+					// ExtensionSettings = new Dictionary<string, object> {
+					// 	{
+					// 		"geckoleon@com.chameleon.mode",
+					// 		new {
+					// 			installation_mode = "normal_installed",
+					// 			default_area = "navbar",
+					// 			private_browsing = true,
+					// 			install_url = $"file:///{addon.Replace("\\", "/")}" // Correct path handling
+					//     }
+					// 	}
+					// }
 				}
 			}, new() {
 				WriteIndented = true, // Pretty print JSON
@@ -299,7 +299,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			//"-jsconsole",
 			#endif
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
-			$"https://chameleon.mode.com?instanceId={Settings.Profile.Id}&sessionId={SessionId}"
+			$"https://com.mode.chameleon?instanceId={Settings.Profile.Id}&sessionId={SessionId}"
 		]);
 	}
 

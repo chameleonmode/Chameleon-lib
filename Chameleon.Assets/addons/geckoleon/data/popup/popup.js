@@ -1,15 +1,14 @@
-import App from "../../src/app.js";
+import { config } from "../../src/app.js";
 import { getTimezoneArray, getAllSupportedLocales } from "../../src/lib/util.js";
 
-// Current extension configuration
-let config = App.config;
+const noises = ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"];
 
 document.addEventListener("DOMContentLoaded", function () {
   // Load config first, then initialize UI
   chrome.runtime.sendMessage({ action: "getConfig" }, function (response) {
     if (response && response.config) {
-      config = response.config;
-      
+      Object.assign(config, response.config);
+
       // Initialize UI elements based on current config
       initializeUI();
 
@@ -23,18 +22,20 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function initializeUI() {
-   // Extract RGB values from primary color for background opacity
-   const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
-   let rgb = "0, 120, 212"; // Default RGB
-   
-   if (primaryColor.startsWith('#')) {
-     const r = parseInt(primaryColor.slice(1, 3), 16);
-     const g = parseInt(primaryColor.slice(3, 5), 16);
-     const b = parseInt(primaryColor.slice(5, 7), 16);
-     rgb = `${r}, ${g}, ${b}`;
-   }
-   
-   document.documentElement.style.setProperty('--primary-color-rgb', rgb);
+  // Extract RGB values from primary color for background opacity
+  const primaryColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--primary-color")
+    .trim();
+  let rgb = "0, 120, 212"; // Default RGB
+
+  if (primaryColor.startsWith("#")) {
+    const r = parseInt(primaryColor.slice(1, 3), 16);
+    const g = parseInt(primaryColor.slice(3, 5), 16);
+    const b = parseInt(primaryColor.slice(5, 7), 16);
+    rgb = `${r}, ${g}, ${b}`;
+  }
+
+  document.documentElement.style.setProperty("--primary-color-rgb", rgb);
 
   // Main extension toggle
   document.getElementById("toggle-extension").checked = config.enabled;
@@ -197,7 +198,7 @@ function setupEventListeners() {
     document.getElementById("status-text").textContent = config.enabled ? "Enabled" : "Disabled";
     saveConfig();
   });
-  
+
   // Tab functionality
   const tabButtons = document.querySelectorAll(".tab-button");
   const tabContents = document.querySelectorAll(".tab-content");
@@ -413,7 +414,7 @@ function removeBypassSite(site) {
 
 // Noise level mapping functions
 function getNoiseLevelName(value) {
-  return config.noises[value - 1] || "Medium";
+  return noises[value - 1] || "mid"; // Default to Medium (4)
 }
 
 function getNoiseLevelValue(name) {
@@ -434,7 +435,5 @@ function getNoiseLevelValue(name) {
 
 function saveConfig() {
   // Send updated config to background script
-  chrome.runtime.sendMessage({ action: "updateConfig", config: config }, function (response) {
-    console.log("Config saved:", response);
-  });
+  chrome.runtime.sendMessage({ action: "updateConfig", config });
 }

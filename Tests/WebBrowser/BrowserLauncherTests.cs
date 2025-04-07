@@ -64,7 +64,7 @@ public class BrowserLauncherTests {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-CYpEvUqY"
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-N2Vb4Jvy"
 					},
 					Emulations = new() {
 						AutoTimezone = true,
@@ -86,12 +86,12 @@ public class BrowserLauncherTests {
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await SystemBrowserService.Instance.Open(new(SystemBrowserType.Firefox, 
 			new() {
-				Id = 18,
+				Id = 19,
 				Proxy = new BrowserProxy() {
 					Host = "proxy.chameleonmode.com",
 					Port = 31112,
 					UserName = "elimdadia_gmail_com",
-					Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
+					Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-mzBorsdy"
 				},
 				Emulations = new() {
 					AutoTimezone = true,

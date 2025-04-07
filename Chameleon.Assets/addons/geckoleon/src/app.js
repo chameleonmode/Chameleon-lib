@@ -1,68 +1,69 @@
+export const config = {
+  enabled: true,
+  sync: true,
+  log: "all",
+  noise: "mid",
+  bypass: ["*://example.com/*", "example.com"],
+  history: [],
+  dAPI: "disable_non_proxied_udp",
+  proxy: {
+    enabled: false,
+    type: "http",
+    server: "http://host:port",
+    host: "host",
+    port: 8080,
+    username: "username",
+    password: "password",
+  },
+  urls: {
+    start: "https://example.com/start",
+    homePages: ["https://example.com/home", "https://example.com/dashboard"],
+  },
+  tz: {
+    enabled: true,
+    random: false,
+    system: false,
+    zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    locale: Intl.DateTimeFormat().resolvedOptions().locale,
+  },
+  geo: {
+    enabled: true,
+    random: false,
+    lat: 40.7128,
+    lon: -74.006,
+    accuracy: 64.0999,
+  },
+  canvas: {
+    enabled: true,
+    random: false,
+  },
+  webgl: {
+    enabled: true,
+    random: false,
+  },
+  rects: {
+    enabled: true,
+    random: false,
+  },
+  fonts: {
+    enabled: true,
+    random: false,
+  },
+  audio: {
+    enabled: true,
+    random: false,
+  },
+  navi: {
+    enabled: true,
+    random: false,
+    os: "default",
+  },
+};
+
 const App = {
   server: null,
   port: null,
-  config: {
-    enabled: true,
-    sync: true,
-    log: "all",
-    noise: "mid",
-    noises: ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"],
-    bypass: ["*://example.com/*", "example.com"],
-    history: [],
-    dAPI: "disable_non_proxied_udp",
-    proxy: {
-      enabled: false,
-      type: "http",
-      server: "http://host:port",
-      host: "host",
-      port: 8080,
-      username: "username",
-      password: "password",
-    },
-    urls: {
-      start: "https://example.com/start",
-      homePages: ["https://example.com/home", "https://example.com/dashboard"],
-    },
-    tz: {
-      enabled: true,
-      random: false,
-      system: false,
-      zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      locale: Intl.DateTimeFormat().resolvedOptions().locale,
-    },
-    geo: {
-      enabled: true,
-      random: false,
-      lat: 40.7128,
-      lon: -74.006,
-      accuracy: 64.0999,
-    },
-    canvas: {
-      enabled: true,
-      random: false,
-    },
-    webgl: {
-      enabled: true,
-      random: false,
-    },
-    rects: {
-      enabled: true,
-      random: false,
-    },
-    fonts: {
-      enabled: true,
-      random: false,
-    },
-    audio: {
-      enabled: true,
-      random: false,
-    },
-    navi: {
-      enabled: true,
-      random: false,
-      os: "default",
-    },
-  },
+  config,
   session: {
     sessionId: null,
     instanceId: null,
@@ -73,17 +74,13 @@ const App = {
 
   // Startup
   startup: async function () {
-    const { session, launchedSessions, config } = await chrome.storage.local.get([
-      "session",
-      "launchedSessions",
-      "config",
-    ]);
+    const { session, launchedSessions } = await chrome.storage.local.get(["session", "launchedSessions"]);
     this.session = session || this.session;
     this.launchedSessions = launchedSessions || this.launchedSessions;
 
-    if (config) {
-      config["noises"] = this.config["noises"];
-      for (const [key, value] of Object.entries(config)) {
+    const local = await chrome.storage.local.get(["config"]);
+    if (local.config) {
+      for (const [key, value] of Object.entries(local.config)) {
         if (typeof value === "object" && !Array.isArray(value)) {
           this.config[key] = { ...this.config[key], ...value };
         } else {
