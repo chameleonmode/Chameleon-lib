@@ -32,12 +32,12 @@ public class BrowserLauncherTests {
 			new SysBrowserOpenOptions(SystemBrowserType.Chrome,
 				new BrowserProfile() {
 					Id = 8,
-					Proxy = new BrowserProxy() {
-						Host = "proxy.chameleonmode.com",
-						Port = 31112,
-						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
-					},
+					// Proxy = new BrowserProxy() {
+					// 	Host = "proxy.chameleonmode.com",
+					// 	Port = 31112,
+					// 	UserName = "elimdadia_gmail_com",
+					// 	Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
+					// },
 					Emulations = new() {
 						AutoTimezone = true,
 						SpoofGeoLocation = true,
@@ -51,7 +51,7 @@ public class BrowserLauncherTests {
 				})
 		);
 		Assert.NotNull(bi);
-		KeepAlive(bi);
+		//KeepAlive(bi);
 	}
 
 	[Fact]
@@ -86,7 +86,7 @@ public class BrowserLauncherTests {
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await SystemBrowserService.Instance.Open(new(SystemBrowserType.Firefox, 
 			new() {
-				Id = 19,
+				Id = 20,
 				Proxy = new BrowserProxy() {
 					Host = "proxy.chameleonmode.com",
 					Port = 31112,

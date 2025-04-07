@@ -66,13 +66,6 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 			};
 			Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");
 
-	// type: 'http',
-	// 			 	server: '{Settings.Profile.Proxy.Server}',
-	// 		   	host: '{Settings.Profile.Proxy.HostForRequest}',
-	// 		   	port: {Settings.Profile.Proxy.Port},
-	// 		   	username: '{Settings.Profile.Proxy.UserName}',
-	// 		   	password: '{Settings.Profile.Proxy.Password}',
-	// 		   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
 			// set the extension settings
 			AddonsServer.Instance.AddonInstances[SessionId] = new {
 				proxy = new {
@@ -133,6 +126,7 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 				EnableRaisingEvents = true,
 			};
 			Brocess.Start();
+
 			await Task.Delay(1800);
 			await WaitForWinHandle();
 
@@ -153,7 +147,7 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 	protected virtual async Task WaitForWinHandle() {
 		// if (OperatingSystem.IsMacOS()) {
 		Brocess!.Exited += (s, e) => { Close(); };
-
+		
 		if (await TaskUtil.AwaitFor(
 				() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null,
 				36,

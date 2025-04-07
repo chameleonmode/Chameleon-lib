@@ -1,34 +1,47 @@
 import App from "./src/app.js";
 import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
-import "./src/services/proxy.js";
+import { proxy } from "./src/services/proxy.js";
 import "./src/services/executions.js";
 
-const startup = async () => {
+const startup = async (id = -1) => {
   // Restore session from storage
-  await App.startup();
   log.info("App initialized with session:", App.session);
   log.info("App initialized with config:", App.config);
   log.info("App initialized with launchedSessions:", App.launchedSessions);
 
+  // Reload all tabs except the one that triggered the startup
   const tabs = await chrome.tabs.query({});
-  await Promise.all(tabs.map((tab) => chrome.tabs.reload(tab.id, { bypassCache: true })));
+  await Promise.all(
+    tabs.filter((tab) => tab.id !== id).map((tab) => chrome.tabs.reload(tab.id, { bypassCache: true }))
+  );
 
   // Add bookmarks for home pages
   await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
 };
 
-// Fix the incomplete runtime event listener
-browser.runtime.onInstalled.addListener(async () => {
-  log.info("Extension installed");
-  // await startup();
-});
+const on = async () => {
+  log.info("On installed or started");
+  // Run for existing tabs and Handle chameleon.mode.com redirects
+  const initializer = (await browser.tabs.query({ url: ["*://com.mode.chameleon/*"] })).at(-1);
+  if (initializer) {
+    const url = new URL(initializer.url);
+    const sessionId = url.searchParams.get("sessionId");
+    const instanceId = url.searchParams.get("instanceId");
+    await App.initialize(sessionId, instanceId);
 
-// Add runtime startup listener
-browser.runtime.onStartup.addListener(async () => {
-  log.info("Extension started");
-  // await startup();
-});
+    await App.startup();
+    await proxy();
+    await browser.tabs.update(initializer.id, { url: App.config.urls.start });
+  } else {
+    await App.startup();
+    await proxy();
+  }
+
+  await startup(initializer?.id);
+};
+browser.runtime.onInstalled.addListener(on);
+browser.runtime.onStartup.addListener(on);
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -91,20 +104,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep the message channel open for async response
 });
 
-// Run for existing tabs and Handle chameleon.mode.com redirects
-browser.tabs
-  .query({ url: ["*://com.mode.chameleon/*"] })
-  .then(async (tabs) => {
-    const tab = tabs.at(-1);
-    if (!tab) return;
-    // Create the redirect URL with our extension path
-    const url = new URL(tab.url);
-    const sessionId = url.searchParams.get("sessionId");
-    const instanceId = url.searchParams.get("instanceId");
-    await App.initialize(sessionId, instanceId);
-    await browser.tabs.update(tab.id, { url: App.config.urls.start });
-    await startup();
-  })
-  .catch((error) => {
-    log.warn("Error in redirect:", error);
-  });
+// zip -r -X archive.zip * -x "*.DS_Store" -x ".*"

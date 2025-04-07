@@ -95,3 +95,35 @@ public static class SysBrowserInfoUtil {
       _ => throw new NotSupportedException("Browser type not found."),
    };
 }
+
+// private string GetChromeExecutablePath()
+// {
+//     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+//     {
+//         string[] possiblePaths = {
+//             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Google", "Chrome", "Application", "chrome.exe"),
+//             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Google", "Chrome", "Application", "chrome.exe")
+//         };
+        
+//         return possiblePaths.FirstOrDefault(File.Exists) ?? ExePath; // Fall back to existing ExePath
+//     }
+//     else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+//     {
+//         string[] possiblePaths = {
+//             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+//             "/Applications/Chromium.app/Contents/MacOS/Chromium"
+//         };
+        
+//         return possiblePaths.FirstOrDefault(File.Exists) ?? ExePath;
+//     }
+//     else // Linux
+//     {
+//         string[] possiblePaths = {
+//             "/usr/bin/google-chrome",
+//             "/usr/bin/chromium-browser",
+//             "/usr/bin/chromium"
+//         };
+        
+//         return possiblePaths.FirstOrDefault(File.Exists) ?? ExePath;
+//     }
+// }

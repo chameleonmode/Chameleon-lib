@@ -120,7 +120,7 @@ public class SystemBrowserService {
 			browser.InvokeEvent(SysBrowserEventType.Foreground);
 			browser.InvokeEvent(SysBrowserEventType.Opened);
 		} else {
-			throw new Exception("Browser Load Failed");
+			throw new Exception("Browser Load & Connect Failed. If it's is already open, close it and try again.");
 		}
 		return Instances[launchSettings.OpenOptions];
 	}

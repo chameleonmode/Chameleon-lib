@@ -11,7 +11,7 @@ function executions(details) {
   if (
     !App.config.enabled ||
     !url.startsWith("http") ||
-    matchesPattern(url, [...App.config.bypass, "chameleon.mode.com"])
+    matchesPattern(url, [...App.config.bypass, "com.mode.chameleon"])
   )
     return;
 

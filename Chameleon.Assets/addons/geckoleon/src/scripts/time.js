@@ -1,7 +1,7 @@
 // The function to override the Date object
 export default function (opts) {
-  const { zone: timeZone, locale } = opts;
-  console.log(`Setting timezone to: ${timeZone}, locale: ${locale}`);
+  const { zone, locale } = opts;
+  console.log(`Setting timezone to: ${zone}, locale: ${locale}`);
 
   // Store original methods
   const originals = {
@@ -11,19 +11,11 @@ export default function (opts) {
     toString: Date.prototype.toString,
     DateTimeFormat: Intl.DateTimeFormat,
   };
-
-  // 1. Format a Date for Display in a Different Timezone
-
-  // Get a simple but efficient implementation of toString that shows the correct timezone
+  // Override Date.prototype.toString with a timezone-aware formatter
   Date.prototype.toString = function () {
-    // // Example
-    // const now = new Date();
-    // console.log("formatDateInTimezone ", formatDateInTimezone(now, 'America/New_York'));
-    // // April 1, 2025 at 11:57:52 AM Eastern Daylight Time
-    // Format the date in the target timezone to get the components
-    const date = new Date(this);
+    console.warn("Date.prototype.toString is deprecated. Use toLocaleString instead.");
     const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone,
+      timeZone: zone,
       weekday: "short",
       year: "numeric",
       month: "short",
@@ -32,57 +24,91 @@ export default function (opts) {
       minute: "2-digit",
       second: "2-digit",
     });
-
-    // Get the formatted parts
-    const parts = formatter.formatToParts(date);
-    const partValues = {};
-
-    // Map the parts for easy access
-    parts.forEach((part) => {
-      partValues[part.type] = part.value;
+    const original = originals.toString.call(this);
+    const formatted = formatter.format();
+    
+    // For debugging
+    console.log("original:", original, "formatted:", formatted);
+    
+    // Return original with formatted parts
+    const parts = formatter.formatToParts();
+    
+    // Extract all parts from the formatter
+    const formattedParts = {};
+    parts.forEach(part => {
+      formattedParts[part.type] = part.value;
     });
-
-    // Get timezone offset string (GMT+XX:XX format)
-    const tzFormatter = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      timeZoneName: "longOffset",
-    });
-    const tzParts = tzFormatter.formatToParts(date);
-    const tzOffsetPart = tzParts.find((p) => p.type === "timeZoneName");
-    const tzOffset = tzOffsetPart ? tzOffsetPart.value : "";
-
-    // Get the full timezone name
-    const tzNameFormatter = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      timeZoneName: "long",
-    });
-    const tzNameParts = tzNameFormatter.formatToParts(date);
-    const tzNamePart = tzNameParts.find((p) => p.type === "timeZoneName");
-    const tzName = tzNamePart ? tzNamePart.value : "";
-
-    // Build the final string in the format:
-    // "Weekday Month DD YYYY HH:MM:SS GMT+XXXX (Timezone Name)"
-    return `${partValues.weekday} ${partValues.month} ${partValues.day} ${partValues.year} ${partValues.hour}:${partValues.minute}:${partValues.second} ${tzOffset} (${tzName})`;
+    
+    // Create a new string in the original format but with the timezone-adjusted values
+    return `${formattedParts.weekday} ${formattedParts.month} ${formattedParts.day} ${formattedParts.year} ${formattedParts.hour}:${formattedParts.minute}:${formattedParts.second} GMT${formattedParts.timeZoneName || ''}`;
   };
+
+  // // Override Date.prototype.toString with a timezone-aware formatter
+  // Date.prototype.toString = function () {
+  //   const formatter = new Intl.DateTimeFormat("en-US", {
+  //     timeZone: zone,
+  //     weekday: "short",
+  //     year: "numeric",
+  //     month: "short",
+  //     day: "2-digit",
+  //     hour: "2-digit",
+  //     minute: "2-digit",
+  //     second: "2-digit",
+  //   });
+  //   const original =  originals.toString.call(this);
+  //   console.log("original:",original, "formatted", formatter);
+  //   return formatter.format(date);
+
+  //   // Get the formatted parts
+  //   // const parts = formatter.formatToParts(date);
+  //   // const partValues = {};
+
+  //   // // Map the parts for easy access
+  //   // parts.forEach((part) => {
+  //   //   partValues[part.type] = part.value;
+  //   // });
+
+  //   // // Get timezone offset string (GMT+XX:XX format)
+  //   // const tzFormatter = new Intl.DateTimeFormat("en-US", {
+  //   //   timeZone: zone,
+  //   //   timeZoneName: "longOffset",
+  //   // });
+  //   // const tzParts = tzFormatter.formatToParts(date);
+  //   // const tzOffsetPart = tzParts.find((p) => p.type === "timeZoneName");
+  //   // const tzOffset = tzOffsetPart ? tzOffsetPart.value : "";
+
+  //   // // Get the full timezone name
+  //   // const tzNameFormatter = new Intl.DateTimeFormat("en-US", {
+  //   //   timeZone: zone,
+  //   //   timeZoneName: "long",
+  //   // });
+  //   // const tzNameParts = tzNameFormatter.formatToParts(date);
+  //   // const tzNamePart = tzNameParts.find((p) => p.type === "timeZoneName");
+  //   // const tzName = tzNamePart ? tzNamePart.value : "";
+
+  //   // Build the final string in the format:
+  //   // "Weekday Month DD YYYY HH:MM:SS GMT+XXXX (Timezone Name)"
+  //   // return `${partValues.weekday} ${partValues.month} ${partValues.day} ${partValues.year} ${partValues.hour}:${partValues.minute}:${partValues.second} ${tzOffset} (${tzName})`;
+  // };
 
   // Override toLocaleString to use our preferred timezone
   Date.prototype.toLocaleString = function (userLocale = locale, options = {}) {
     options = options || {};
-    options.timeZone = options.timeZone || timeZone;
+    options.timeZone = zone;
     return originals.toLocaleString.call(this, userLocale, options);
   };
 
   // Override toLocaleDateString
   Date.prototype.toLocaleDateString = function (userLocale = locale, options = {}) {
     options = options || {};
-    options.timeZone = options.timeZone || timeZone;
+    options.timeZone = zone;
     return originals.toLocaleDateString.call(this, userLocale, options);
   };
 
   // Override toLocaleTimeString
   Date.prototype.toLocaleTimeString = function (userLocale = locale, options = {}) {
     options = options || {};
-    options.timeZone = options.timeZone || timeZone;
+    options.timeZone = zone;
     return originals.toLocaleTimeString.call(this, userLocale, options);
   };
 
@@ -90,11 +116,11 @@ export default function (opts) {
   Intl.DateTimeFormat = function (userLocale = locale, options = {}) {
     options = options || {};
     if (!options.timeZone) {
-      options.timeZone = timeZone;
+      options.timeZone = zone;
     }
     return new originals.DateTimeFormat(userLocale, options);
   };
   Intl.DateTimeFormat.prototype = originals.DateTimeFormat.prototype;
 
-  console.log("Date object successfully overridden with timezone:", timeZone, "and locale:", locale);
+  console.log("Date object successfully overridden with timezone:", zone, "and locale:", locale);
 }
