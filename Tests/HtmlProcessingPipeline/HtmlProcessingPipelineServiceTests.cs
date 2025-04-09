@@ -122,9 +122,10 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 		var pipelineService = new HtmlProcessingPipelineService(extractorService, aiService);
 		var automationDescription = @"Facebook Signin Automation objectives:
 				Fill in the username and password fields, then click the login button to sign in.
-				If any disclaimers or cookie banners appear, accept or dismiss them(make sure to use a selector that is dynamic and independent of language).
+				If any disclaimers or cookie banners appear, accept or dismiss them(make sure to use a selector that is dynamic and independent of language or use a more generic selector like div[aria-label*=""all cookies""] that can match both english by default and make sure the selector selects div with role=button)
 				For the login button use a different css selectors than id or class
-				Produce a JavaScript Playwright script, with error handling and structured logging at each step.";
+				Produce a JavaScript Playwright script, with error handling and structured logging at each step.
+				Only use import instead of require";
 		var generatedScript = await pipelineService.ProcessingPageAsync(
 				page,
 				automationDescription,
@@ -142,7 +143,8 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 		testOutput.WriteLine("=======================================\n");
 
 		Assert.False(string.IsNullOrWhiteSpace(generatedScript), "The generated script should not be empty.");
-		var tempFile = Path.GetTempFileName().Replace(".tmp", ".js");
+
+		var tempFile = Path.Combine("C:\\repos\\chameleon-playwright\\src\\scripts","facebook.js");
 		testOutput.WriteLine($"Tempfile: {tempFile}");
 		await File.WriteAllTextAsync(tempFile, generatedScript);
 
@@ -156,7 +158,9 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 				Description = new(FilePath: tempFile,
 				Parameters: new Dictionary<string, string> {
 								{ "FACEBOOK_USERNAME", "jmutobu" },
-								{ "FACEBOOK_PASSWORD", "test@243" }
+								{ "FACEBOOK_PASSWORD", "test@243" },
+								{ "FB_USERNAME", "jmutobu" },
+								{ "FB_PASSWORD", "test@243" },
 				}
 		)
 			});

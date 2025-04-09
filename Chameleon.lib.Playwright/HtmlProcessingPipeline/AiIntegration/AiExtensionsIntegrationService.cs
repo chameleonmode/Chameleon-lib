@@ -54,17 +54,41 @@ public class AiExtensionsIntegrationService : IAiIntegrationService {
 
 		sb.AppendLine();
 		sb.AppendLine("Now, generate a JavaScript Playwright script that interacts with these elements.");
-		sb.AppendLine("The script should be able to accept any parameters that might be relevant to this automation task,");
-		sb.AppendLine("such as credentials, search terms, or configuration flags. Please handle them by using:");
-		sb.AppendLine("Environment variables (e.g. `process.env.PARAM_NAME`)");
+
+		sb.AppendLine("The entire script must be wrapped in:");
 		sb.AppendLine();
-		sb.AppendLine("Please ensure the script gracefully handles missing or invalid parameters.");
-		sb.AppendLine("Produce a valid, runnable JavaScript Playwright code snippet that references these parameters and");
-		sb.AppendLine("demonstrates as a comment how they can be used to complete the automation steps.");
+		sb.AppendLine("export default async function (");
+		sb.AppendLine("  context,");
+		sb.AppendLine("  options: {");
+		sb.AppendLine("	   // Here you can list any keys you need, for example:");
+		sb.AppendLine("    // username: string;");
+		sb.AppendLine("    // password: string;");
+		sb.AppendLine("    // search: string;");
+		sb.AppendLine("    // commentTitle: string;");
+		sb.AppendLine("    // ...: string;");
+		sb.AppendLine("		}");
+		sb.AppendLine("		) {");
+		sb.AppendLine("		// ...");
+		sb.AppendLine("	}");
+		sb.AppendLine("Requirements:");
+		sb.AppendLine("1. The first parameter, `context`");
+		sb.AppendLine("2.The second parameter, `options`, includes any relevant fields or parameters for the automation tasks.");
+		sb.AppendLine("3.If you need environment variables, either:");
+		sb.AppendLine("	 -read them directly inside the function(e.g., `const user = process.env.USERNAME`), or");
+		sb.AppendLine("	 -assume they've been passed in as `options.username`, etc.");
+		sb.AppendLine("4.The final output should be a **fully valid** JavaScript code snippet that can be directly run or imported by a test harness.");
+		sb.AppendLine("5.Do **not* **produce** text outside of valid code.Any disclaimers or details should appear only in code comments.");
+		sb.AppendLine();
+		sb.AppendLine("Example usage:");
+		sb.AppendLine("-The script might navigate to a site, fill out a login form, create or edit content, log out, etc.");
+		sb.AppendLine("-You may add logs with `console.log()` or error handling with `try/catch`, but keep everything inside `export default async function(...) { ... }`.");
+		sb.AppendLine();
+		sb.AppendLine("Remember to return only the code block containing the exported function, with no extra lines before or after.");
 		sb.AppendLine();
 		sb.AppendLine("**Important**:");
 		sb.AppendLine("- Put any disclaimers or usage notes in JavaScript comments at the top.");
-		sb.AppendLine("- - The resulting script must be purely valid JavaScript.");
+		sb.AppendLine("- The resulting script must be purely valid JavaScript.");
+		sb.AppendLine("");
 		sb.AppendLine();
 		sb.AppendLine("Now produce the **full** JavaScript code.");
 
