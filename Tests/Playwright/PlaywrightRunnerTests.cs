@@ -80,14 +80,59 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestRedditCommentScript() {
-		//var port = 9613; 
-		var port = await OpenBrowser();
+		var port = 9613; 
+		// var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(Comment)],
+			BundledScript = repo.BundledJSScripts[nameof(PostCommentOnTitle)],
 			Description = new(
 				Parameters: new() {
 					{"search", "christopher walken"}
+				}
+			)
+		});
+	}
+
+	[Fact]
+	public async Task TestRedditCommentOnCommentScript() {
+		var port = 9613; 
+		// var port = await OpenBrowser();
+		await PlaywriteRunner.RunScript(new() {
+			Port = port,
+			BundledScript = repo.BundledJSScripts[nameof(PostCommentOnComment)],
+			Description = new(
+				Parameters: new() {
+					{"search", "joe rogan"}
+				}
+			)
+		});
+	}
+
+  [Fact]
+	public async Task Reddit_Subreddit_Join() {
+		var port = 9613; 
+		// var port = await OpenBrowser();
+		await PlaywriteRunner.RunScript(new() {
+			Port = port,
+			BundledScript = repo.BundledJSScripts[nameof(SubredditJoin)],
+			Description = new(
+				Parameters: new() {
+					{"search", "joe rogan"}
+				}
+			)
+		});
+	}
+
+  [Fact]
+	public async Task Reddit_Subreddit_Vote() {
+		var port = 9613; 
+		// var port = await OpenBrowser();
+		await PlaywriteRunner.RunScript(new() {
+			Port = port,
+			BundledScript = repo.BundledJSScripts[nameof(SubredditVote)],
+			Description = new(
+				Parameters: new() {
+					{"search", "joe rogan"}
 				}
 			)
 		});
