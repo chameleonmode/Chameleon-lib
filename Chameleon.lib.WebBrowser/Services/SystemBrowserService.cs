@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Chameleon.lib.Common.Constants;
 
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
@@ -27,7 +28,8 @@ public class SystemBrowserService {
 
 	private readonly WindowEventHandler? windowEventHandler;
 
-	public ConcurrentDictionary<SysBrowserOpenOptions, IBrowserInstance> Instances { get; } = [];
+	public ConcurrentDictionary<int, IBrowserInstance> Instances { get; } = [];
+	public ConcurrentDictionary<int, List<Delegatorz.Event<SysBrowserEvent>>> Observers { get; } = [];
 
 	private long _isBusy;
 	public bool IsBusy => Interlocked.Read(ref _isBusy) > 0;
@@ -84,15 +86,15 @@ public class SystemBrowserService {
 	}
 	#endregion
 
-	public async Task<IBrowserInstance?> OpenWithSettings(SysBrowserSettings launchSettings) {
+	public async Task<IBrowserInstance?> OpenWithSettings(SysBrowserSettings settings) {
 		//await NodeServerLauncher.Instance.StartServer();
 		await AddonsServer.Instance.Start();
 
 		// 
-		var browser = Instances[launchSettings.OpenOptions] = launchSettings.BrowserType switch {
-			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = launchSettings },
-			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = launchSettings },
-			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = launchSettings },
+		var browser = Instances[settings.OpenOptions.Profile.Id] = settings.BrowserType switch {
+			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = settings },
+			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = settings },
+			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = settings },
 			_ => throw new NotImplementedException(),
 		};
 
@@ -102,9 +104,9 @@ public class SystemBrowserService {
 			switch (args.EventType) {
 				case SysBrowserEventType.Closed:
 					do {
-						if (Instances.TryGetValue(args.OpenOptions, out var browser)) {
+						if (Instances.TryGetValue(settings.OpenOptions.Profile.Id, out var browser)) {
 							_ = await browser.LoadedTCS.Task;
-							_ = Instances.TryRemove(args.OpenOptions, out _);
+							_ = Instances.TryRemove(settings.OpenOptions.Profile.Id, out _);
 							break;
 						}
 						await Task.Delay(250);
@@ -114,18 +116,22 @@ public class SystemBrowserService {
 				default:
 					break;
 			}
+
+			if (Observers.TryGetValue(settings.Profile.Id, out var events)) {
+				events.ForEach(x => x.Invoke(sender, args));
+			}
 		};
 		_ = browser.InitializeAsync();
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
 			browser.InvokeEvent(SysBrowserEventType.Foreground);
 			browser.InvokeEvent(SysBrowserEventType.Opened);
 		} else {
-			throw new Exception("Browser Load & Connect Failed. If it's is already open, close it and try again.");
+			throw new Exception("Browser Load Context Connection Failed");
 		}
-		return Instances[launchSettings.OpenOptions];
+		return Instances[settings.OpenOptions.Profile.Id];
 	}
 	public async Task<IBrowserInstance?> Open(SysBrowserOpenOptions options) {
-		if (!Instances.TryGetValue(options, out var browser)) {
+		if (!Instances.TryGetValue(options.Profile.Id, out var browser)) {
 			OpenTaskCompletionSource = new TaskCompletionSource<IBrowserInstance?>();
 			try {
 				browser = await OpenWithSettings(new(
@@ -136,7 +142,7 @@ public class SystemBrowserService {
 				browser?.InvokeEvent(SysBrowserEventType.Error);
 				Toaster.Error(e.Message);
 				if (e is InvalidDataException or TimeoutException) {
-					_ = Instances.TryRemove(options, out _);
+					_ = Instances.TryRemove(options.Profile.Id, out _);
 					_ = (OpenTaskCompletionSource?.TrySetResult(null));
 					_ = (browser?.LoadedTCS.TrySetResult(false));
 				}
@@ -158,7 +164,19 @@ public class SystemBrowserService {
 		return browser;
 	}
 
-	public (bool, SystemBrowserType) HasInstanceOf(int id) {
+	public async Task<(bool, SystemBrowserType)> HasInstanceOf(int id,  Delegatorz.Event<SysBrowserEvent> action) {
+		if (Observers.TryGetValue(id, out var value)) {
+			value.Add(action);
+		} else {
+			Observers[id] = [action];
+		}
+
+		if (OpenTaskCompletionSource != null) {
+			var opening = await OpenTaskCompletionSource.Task;
+			if (opening != null && opening.Settings.Profile.Id == id) {
+				return (true, opening.Settings.BrowserType);
+			}
+		}
 		var browser = Instances.FirstOrDefault(x => x.Value.Settings.Profile.Id == id);
 		return browser.Value != null ? (true, browser.Value.Settings.BrowserType) : (false, SystemBrowserType.Unknown);
 	}

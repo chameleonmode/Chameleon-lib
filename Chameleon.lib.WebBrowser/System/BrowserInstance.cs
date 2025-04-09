@@ -2,7 +2,6 @@
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Constants;
 using System.Diagnostics;
-using System.Runtime.Versioning;
 using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.Helpers;
@@ -19,28 +18,19 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 
 	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
-		if (eventType == Enums.SysBrowserEventType.Foreground)
-			_ = TrySetForeground();
-
-		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
-	}
-
-	bool TrySetForeground() {
-		if (Brocess is null)
-			return false;
-		if (OperatingSystem.IsWindows()) {
-			if (Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
-				if (U32til.BringWindowToForeground(handle)) {
-					return true;
+		if (eventType == Enums.SysBrowserEventType.Foreground && Brocess is not null) {
+			if (OperatingSystem.IsWindows()) {
+				if (Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
+					_ = U32til.BringWindowToForeground(handle);
+				}
+			} else if (OperatingSystem.IsMacOS()) {
+				if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
+					Brocess.Refresh();
 				}
 			}
-		} else if (OperatingSystem.IsMacOS()) {
-			if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
-				Brocess.Refresh();
-				return true;
-			}
 		}
-		return false;
+
+		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
 	}
 
 	public void Close() {
