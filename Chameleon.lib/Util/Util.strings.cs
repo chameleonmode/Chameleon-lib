@@ -26,5 +26,6 @@ public static class StringsUtil {
 	// Extension Methods
 	public static bool IsNot(this string? self) =>
 		self != null && self != string.Empty && !string.IsNullOrEmpty(self) && !string.IsNullOrWhiteSpace(self);
-	
+	public static bool Is(this string? self) =>
+		self == null || self == string.Empty || string.IsNullOrEmpty(self) || string.IsNullOrWhiteSpace(self);
 }

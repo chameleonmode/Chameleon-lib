@@ -1,6 +1,6 @@
 // The function to override the Date object
 export default function (opts) {
-  const { zone, locale } = opts;
+  const { zone, offset, locale } = opts;
   console.log(`Setting timezone to: ${zone}, locale: ${locale}`);
 
   // Store original methods
@@ -13,9 +13,7 @@ export default function (opts) {
   };
   // Override Date.prototype.toString with a timezone-aware formatter
   Date.prototype.toString = function () {
-    console.warn("Date.prototype.toString is deprecated. Use toLocaleString instead.");
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: zone,
+    const formatter = new Intl.DateTimeFormat(locale, {
       weekday: "short",
       year: "numeric",
       month: "short",
@@ -23,24 +21,44 @@ export default function (opts) {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
+      timeZone: zone,
+      formatMatcher: "basic",
+      localeMatcher: "best fit",
     });
     const original = originals.toString.call(this);
-    const formatted = formatter.format();
-    
-    // For debugging
-    console.log("original:", original, "formatted:", formatted);
-    
+    const resolved = formatter.resolvedOptions();
+    const formattedDate = formatter.format();
     // Return original with formatted parts
     const parts = formatter.formatToParts();
+    // timeZoneName?: "short" | "long" | "shortOffset" | "longOffset" | "shortGeneric" | "longGeneric" | undefined;
+    const short = new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: "short" }).formatToParts();
+    const long = new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: "long" }).formatToParts();
+    const shortOffset = new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: "shortOffset" }).formatToParts();
+    const longOffset = new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: "longOffset" }).formatToParts();
+    const shortGeneric = new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: "shortGeneric" }).formatToParts();
+    const longGeneric = new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: "longGeneric" }).formatToParts();
     
     // Extract all parts from the formatter
     const formattedParts = {};
     parts.forEach(part => {
       formattedParts[part.type] = part.value;
     });
+    const formattedOffset = {};
+    longOffset.forEach(part => {
+      formattedOffset[part.type] = part.value;
+    });
+    const longSet = {};
+    long.forEach(part => {
+      longSet[part.type] = part.value;
+    });
     
     // Create a new string in the original format but with the timezone-adjusted values
-    return `${formattedParts.weekday} ${formattedParts.month} ${formattedParts.day} ${formattedParts.year} ${formattedParts.hour}:${formattedParts.minute}:${formattedParts.second} GMT${formattedParts.timeZoneName || ''}`;
+    const returns = `${formattedParts.weekday} ${formattedParts.month} ${formattedParts.day} ${formattedParts.year}` + 
+    ` ${formattedParts.hour}:${formattedParts.minute}:${formattedParts.second} ${formattedParts.dayPeriod || ''}` + 
+    ` ${formattedOffset.timeZoneName || 'GMT+0000'}` +
+    ` (${longSet.timeZoneName || 'Greenwich Mean Time'})`;
+    debugger
+    return returns
   };
 
   // // Override Date.prototype.toString with a timezone-aware formatter
@@ -112,15 +130,35 @@ export default function (opts) {
     return originals.toLocaleTimeString.call(this, userLocale, options);
   };
 
-  // Override Intl.DateTimeFormat to default to our timezone
-  Intl.DateTimeFormat = function (userLocale = locale, options = {}) {
-    options = options || {};
-    if (!options.timeZone) {
-      options.timeZone = zone;
-    }
-    return new originals.DateTimeFormat(userLocale, options);
-  };
-  Intl.DateTimeFormat.prototype = originals.DateTimeFormat.prototype;
+  // Store the original constructor
+const DateTimeFormat = Intl.DateTimeFormat;
 
-  console.log("Date object successfully overridden with timezone:", zone, "and locale:", locale);
+// Override the constructor
+Intl.DateTimeFormat = function(userLocale, options = {}) {
+  options = options || {};
+  options.timeZone = zone;
+  return new DateTimeFormat(userLocale, options);
+};
+
+// Preserve the prototype chain
+Intl.DateTimeFormat.prototype = DateTimeFormat.prototype;
+
+// Fix the constructor property on the prototype
+Intl.DateTimeFormat.prototype.constructor = Intl.DateTimeFormat;
+
+  // // Override Intl.DateTimeFormat.prototype 
+  // const dtproto = Intl.DateTimeFormat.prototype;
+  // Intl.DateTimeFormat.prototype = function (userLocale = locale, options = {}) {
+  //   options = options || {};
+  //   options.timeZone = "Africa/Abidjan";
+  //   return dtproto.call(this, userLocale, options);
+  // }
+  // vs:
+  // // Override Intl.DateTimeFormat constructor
+  // Intl.DateTimeFormat = function (userLocale = locale, options = {}) {
+  //   options = options || {};
+  //   options.timeZone = "Africa/Abidjan"; // zone;
+  //   return new originals.DateTimeFormat(userLocale, options);
+  // };
+  // Intl.DateTimeFormat.prototype = dtproto.prototype;
 }

@@ -435,5 +435,11 @@ function getNoiseLevelValue(name) {
 
 function saveConfig() {
   // Send updated config to background script
-  chrome.runtime.sendMessage({ action: "updateConfig", config });
+  chrome.runtime.sendMessage({ action: "updateConfig", config }, function (response) {
+    if (response && response.success && config.log !== "none") {
+      console.log("Config saved successfully");
+    } else {
+      console.error("Failed to save config");
+    }
+  });
 }

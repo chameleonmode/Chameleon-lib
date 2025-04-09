@@ -1,7 +1,7 @@
 import App from "./src/app.js";
+import proxy from "./src/services/proxy.js";
 import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
-import { proxy } from "./src/services/proxy.js";
 import "./src/services/executions.js";
 
 const startup = async (id = -1) => {
@@ -23,7 +23,7 @@ const startup = async (id = -1) => {
 const on = async () => {
   log.info("On installed or started");
   // Run for existing tabs and Handle chameleon.mode.com redirects
-  const initializer = (await browser.tabs.query({ url: ["*://com.mode.chameleon/*"] })).at(-1);
+  const initializer = (await chrome.tabs.query({ url: ["*://com.mode.chameleon/*"] })).at(-1);
   if (initializer) {
     const url = new URL(initializer.url);
     const sessionId = url.searchParams.get("sessionId");
@@ -31,17 +31,17 @@ const on = async () => {
     await App.initialize(sessionId, instanceId);
 
     await App.startup();
-    await proxy();
-    await browser.tabs.update(initializer.id, { url: App.config.urls.start });
+    await proxy(App.config.proxy);
+    await chrome.tabs.update(initializer.id, { url: App.config.urls.start });
   } else {
     await App.startup();
-    await proxy();
+    await proxy(App.config.proxy);
   }
 
   await startup(initializer?.id);
 };
-browser.runtime.onInstalled.addListener(on);
-browser.runtime.onStartup.addListener(on);
+chrome.runtime.onInstalled.addListener(on);
+chrome.runtime.onStartup.addListener(on);
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -52,21 +52,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
     case "updateConfig":
       App.config = { ...App.config, ...message.config };
-      App.eventSystem.notify("configUpdated");
+      App.notify("configUpdated");
 
-      // Save the updated config to storage
-      chrome.storage.local
-        .set({ config: App.config })
-        .then(() => log.info("Config saved to storage"))
-        .catch((error) => log.error("Error saving config to storage", error));
-
-      // You might also want to save to sync storage
-      chrome.storage.sync
-        .set({ config: App.config })
-        .then(() => log.info("Config saved to sync storage"))
-        .catch((error) => log.error("Error saving config to sync storage", error));
-
-      sendResponse({ success: true });
+      // Save the updated config to both local and sync storage in parallel
+      Promise.all([
+        chrome.storage.local.set({ config: App.config }),
+        chrome.storage.sync.set({ config: App.config }),
+      ])
+        .then(() => {
+          log.info("Config saved to both local and sync storage");
+          sendResponse({ success: true });
+        })
+        .catch((error) => {
+          log.error("Error saving config to storage", error);
+          sendResponse({ success: false });
+        });
       break;
     case "refreshConfig":
       App.initialize(App.session.sessionId, App.session.instanceId)
@@ -101,7 +101,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
   }
 
-  return true; // Keep the message channel open for async response
+  // Return true to indicate that sendResponse will be called asynchronously and keep channel open
+  return true;
 });
 
 // zip -r -X archive.zip * -x "*.DS_Store" -x ".*"
