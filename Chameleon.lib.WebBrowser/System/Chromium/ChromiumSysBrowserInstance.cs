@@ -126,7 +126,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--restore-last-session",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
-			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
+			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			$"--load-extension=\"{exts}\"",
 			//$"--load-extension=\"{exts},/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon\"",
 			$"https://com.mode.chameleon?instanceId={Settings.Profile.Id}&sessionId={SessionId}",

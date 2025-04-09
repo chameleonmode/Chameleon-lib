@@ -26,20 +26,27 @@ const on = async () => {
   // Run for existing tabs and Handle chameleon.mode.com redirects
   const initializer = (await chrome.tabs.query({ url: ["*://com.mode.chameleon/*"] })).at(-1);
   if (initializer) {
-    const url = new URL(initializer.url);
-    const sessionId = url.searchParams.get("sessionId");
-    const instanceId = url.searchParams.get("instanceId");
-    await App.initialize(sessionId, instanceId);
+    try {
+      const url = new URL(initializer.url);
+      const sessionId = url.searchParams.get("sessionId");
+      const instanceId = url.searchParams.get("instanceId");
+      await App.initialize(sessionId, instanceId);
 
-    await App.startup();
-    await proxy(App.config.proxy);
-    await chrome.tabs.update(initializer.id, { url: App.config.urls.start });
+      await App.startup();
+      await proxy(App.config.proxy);
+      chrome.tabs.update(initializer.id, { url: App.config.urls.start }).then(() => {
+        log.info("Redirected to start page");
+        startup(initializer.id);
+      });
+    } catch (error) {
+      log.error("Error parsing URL:", error);
+      on();
+    }
   } else {
     await App.startup();
     await proxy(App.config.proxy);
+    await startup();
   }
-
-  await startup(initializer?.id);
 };
 chrome.runtime.onInstalled.addListener(on);
 chrome.runtime.onStartup.addListener(on);

@@ -2,7 +2,6 @@ import App from "../app.js";
 import { log } from "../services/logger.js";
 import { getAllSupportedLocales } from "../lib/util.js";
 
-
 class PageEmulations {
   constructor(tabId) {
     this.tabId = tabId;
@@ -34,12 +33,16 @@ class PageEmulations {
         const flat = getAllSupportedLocales().flat;
         opts.locale = flat[Math.floor(Math.random() * flat.length)];
       }
-      await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setTimezoneOverride", {
-        timezoneId: opts.zone,
-      });
-      await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setLocaleOverride", {
-        locale: opts.locale,
-      });
+      try {
+        await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setTimezoneOverride", {
+          timezoneId: opts.zone,
+        });
+        await chrome.debugger.sendCommand({ tabId: this.tabId }, "Emulation.setLocaleOverride", {
+          locale: opts.locale,
+        });
+      } catch (error) {
+        log.error(`Error setting timezone for tab ${this.tabId}:`, error);
+      }
     }
   }
 
@@ -84,7 +87,7 @@ class PageEmulations {
           },
         ],
       });
-    }else{
+    } else {
       await chrome.declarativeNetRequest.updateSessionRules({
         removeRuleIds: [1, 420],
       });
