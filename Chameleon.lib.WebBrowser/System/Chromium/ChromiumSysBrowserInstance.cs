@@ -1,6 +1,5 @@
 ﻿using chameleon.assets;
 
-using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Const;
 using Chameleon.lib.WebBrowser.Services;
@@ -21,10 +20,11 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	// ...
 	protected override string GetCommandLineArguments() {
-		var exts = new[] {
+		var exts = string.Join(",", new[] {
 			ExtDir,
 			Settings.SysBrowseUserExtDir,
-		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories).ToCommaSeparatedString();
+		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories));
+
 		return string.Join(" ", new[] {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
@@ -127,7 +127,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
-			$"--load-extension=\"{exts},/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon\"",
+			$"--load-extension=\"{exts}\"",
+			//$"--load-extension=\"{exts},/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon\"",
 			$"https://com.mode.chameleon?instanceId={Settings.Profile.Id}&sessionId={SessionId}",
 			//"about:blank"
 		}.Where(x => !string.IsNullOrWhiteSpace(x)));
