@@ -103,8 +103,65 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 
 	[Fact]
 	public async Task BFS_IntegrationTest_GenerateLoginScriptForFacebook() {
+		var automationDescription = @"
+        Facebook Sign-in Automation objectives:
+            Fill in the username and password fields, then click the login button to sign in.
+            If any disclaimers or cookie banners appear, accept or dismiss them
+            (use a dynamic, language-independent selector).
+            For the login button, use a different CSS selector than id or class.
+            Produce a JavaScript Playwright script, with error handling and structured logging,
+            using only import instead of require.
+    ";
+
+		var parameters = new Dictionary<string, string>
+		{
+				{ "username", "jmutobu" },
+				{ "password", "test@243" }
+		};
+
+		await GenerateAndRunScriptAsync(
+				testName: "Facebook - Sign in using username/password",
+				url: "https://www.facebook.com",
+				automationDescription: automationDescription,
+				parameters: parameters,
+				relativeScriptPath: "facebook\\plugins",
+				scriptFileName: "login.js"
+		);
+	}
+
+	[Fact]
+	public async Task BFS_IntegrationTest_GenerateLoginScriptForXcom() {
+		var automationDescription = @"
+        X.com (Twitter) Login Automation objectives:
+            1. Fill in the username/phone/email and password fields.
+            2. Click the login button.
+            3. Accept or dismiss any cookie banners with a dynamic selector.
+            4. Use error handling and structured logging.
+            5. Use import statements only (no require).
+    ";
+
+		var parameters = new Dictionary<string, string>
+		{
+				{ "username", "jmutobu191803" },
+				{ "password", "Test@243" }
+		};
+
+		await GenerateAndRunScriptAsync(
+				testName: "X.com - Sign in using username/password",
+				url: "https://x.com",
+				automationDescription: automationDescription,
+				parameters: parameters,
+				relativeScriptPath: "x\\plugins",
+				scriptFileName: "login.js"
+		);
+	}
+
+	private async Task GenerateAndRunScriptAsync(string testName, string url, string automationDescription,
+		Dictionary<string, string> parameters, string relativeScriptPath, string scriptFileName
+) {
+
 		var page = await browser!.NewPageAsync();
-		_ = await page.GotoAsync("https://www.facebook.com", new PageGotoOptions {
+		_ = await page.GotoAsync(url, new PageGotoOptions {
 			WaitUntil = WaitUntilState.NetworkIdle
 		});
 
@@ -115,64 +172,52 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 		};
 		var aiService = new AiExtensionsIntegrationService(aiOptions);
 
-
-
-		var extractOptions = new ExtractionOptions() { MaxChildDepth = 20, SnippetTextLength = 400 };
+		var extractionOptions = new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 };
 		var extractorService = new HtmlExtractorService(browser);
 		var pipelineService = new HtmlProcessingPipelineService(extractorService, aiService);
-		var automationDescription = @"Facebook Signin Automation objectives:
-				Fill in the username and password fields, then click the login button to sign in.
-				If any disclaimers or cookie banners appear, accept or dismiss them(make sure to use a selector that is dynamic and independent of language or use a more generic selector like div[aria-label*=""all cookies""] that can match both english by default and make sure the selector selects div with role=button)
-				For the login button use a different css selectors than id or class
-				Produce a JavaScript Playwright script, with error handling and structured logging at each step.
-				Only use import instead of require";
+
 		var generatedScript = await pipelineService.ProcessingPageAsync(
 				page,
 				automationDescription,
 				aiOptions,
-				extractOptions,
+				extractionOptions,
 				CancellationToken.None
 		);
 
 		generatedScript = ExtractCodeBlock(generatedScript);
 
 		testOutput.WriteLine("=======================================");
-		testOutput.WriteLine($"Facebook - Sign in using username password");
+		testOutput.WriteLine($"{testName}");
 		testOutput.WriteLine("----- Generated Script -----");
 		testOutput.WriteLine(generatedScript);
 		testOutput.WriteLine("=======================================\n");
-
 		Assert.False(string.IsNullOrWhiteSpace(generatedScript), "The generated script should not be empty.");
 
-		var tempDir = Path.Combine("C:\\repos\\chameleon-playwright\\src\\scripts\\facebook\\plugins");
+		var tempDir = Path.Combine("C:\\repos\\chameleon-playwright\\src\\scripts", relativeScriptPath);
 		if (!Directory.Exists(tempDir))
 			Directory.CreateDirectory(tempDir);
-		var tempFile = Path.Combine(tempDir, "login.js");
+
+		var tempFile = Path.Combine(tempDir, scriptFileName);
 		testOutput.WriteLine($"Tempfile: {tempFile}");
 		await File.WriteAllTextAsync(tempFile, generatedScript);
 
 		Assert.True(File.Exists(tempFile));
-		var port = await OpenBrowser();
 
+		var port = await OpenBrowser();
 		Exception? executionError = null;
 		try {
 			await PlaywriteRunner.RunScript(new RunScriptOptions {
 				Port = port,
-				Description = new(FilePath: tempFile,
-				Parameters: new Dictionary<string, string> {
-								{ "FACEBOOK_USERNAME", "jmutobu" },
-								{ "FACEBOOK_PASSWORD", "test@243" },
-								{ "FB_USERNAME", "jmutobu" },
-								{ "FB_PASSWORD", "test@243" },
-				}
-		)
+				Description = new(
+							FilePath: tempFile,
+							Parameters: parameters
+					)
 			});
 		} catch (Exception ex) {
 			testOutput.WriteLine($"PlaywriteRunner.RunScript threw an exception: {ex}");
 			executionError = ex;
-		} finally {
-
 		}
+
 		Assert.Null(executionError);
 	}
 
