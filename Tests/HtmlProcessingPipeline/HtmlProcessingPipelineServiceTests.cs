@@ -144,7 +144,10 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 
 		Assert.False(string.IsNullOrWhiteSpace(generatedScript), "The generated script should not be empty.");
 
-		var tempFile = Path.Combine("C:\\repos\\chameleon-playwright\\src\\scripts","facebook.js");
+		var tempDir = Path.Combine("C:\\repos\\chameleon-playwright\\src\\scripts\\facebook\\plugins");
+		if (!Directory.Exists(tempDir))
+			Directory.CreateDirectory(tempDir);
+		var tempFile = Path.Combine(tempDir, "login.js");
 		testOutput.WriteLine($"Tempfile: {tempFile}");
 		await File.WriteAllTextAsync(tempFile, generatedScript);
 
@@ -168,7 +171,7 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 			testOutput.WriteLine($"PlaywriteRunner.RunScript threw an exception: {ex}");
 			executionError = ex;
 		} finally {
-		
+
 		}
 		Assert.Null(executionError);
 	}

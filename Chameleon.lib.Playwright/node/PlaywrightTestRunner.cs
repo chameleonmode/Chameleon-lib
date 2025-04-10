@@ -41,7 +41,7 @@ public class PlaywrightTestRunner : IDisposable {
 		nodeProcess = new Process { 
 			StartInfo = new ProcessStartInfo {
 				FileName = OperatingSystem.IsWindows() ? $"\"{nodePath}\"" : nodePath,
-				Arguments = OperatingSystem.IsWindows() ? $"\"{relativePath}\"" : relativePath,
+				Arguments = OperatingSystem.IsWindows() ? $"\"{args}\"" : args,
 				RedirectStandardInput = true,
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,
