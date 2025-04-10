@@ -3,7 +3,7 @@
 public class ReplyToComment : JSScript {
 	public ReplyToComment() : base(
 		"reddit/plugins/post/reply-to-comment",
-		"Reddit Search And Reply To A Comment",
+		"Reddit Reply To A Post Comment",
 		"Search for a reddit post reply with context to a comment"
 	) { }
 }

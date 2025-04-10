@@ -3,7 +3,7 @@ namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 public class Google : JSScript {
   public Google() : base(
     "reddit/plugins/login/google",
-    "Reddit Google Authentication",
+    "Reddit Login With Google",
     "Authenticate to reddit using google account"
   ) { }
 

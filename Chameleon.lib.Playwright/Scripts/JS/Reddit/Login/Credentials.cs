@@ -4,7 +4,7 @@ namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 public class Credentials : JSScript {
 	public Credentials() : base(
 		"reddit/plugins/login/credentials",
-		"Reddit Authentication",
+		"Reddit Login",
 		"Authenticate to reddit using credentials"
 	) { }
 

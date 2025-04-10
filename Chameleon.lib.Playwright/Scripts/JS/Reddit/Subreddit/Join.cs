@@ -3,7 +3,7 @@
 public class Join : JSScript {
 	public Join() : base(
 		"reddit/plugins/subreddit/join",
-		"Reddit Search And Join",
+		"Reddit Join",
 		"Search for reddit post finds subreddit and joins"
 	) { }
 }

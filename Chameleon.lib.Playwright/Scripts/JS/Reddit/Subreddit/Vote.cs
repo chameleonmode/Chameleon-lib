@@ -3,7 +3,7 @@
 public class Vote : JSScript {
 	public Vote() : base(
 		"reddit/plugins/subreddit/vote",
-		"Reddit Search And Vote",
+		"Reddit Vote",
 		"Search for subreddit and rando vote up/down"
 	) { }
 }
