@@ -1,7 +1,7 @@
 {
   "name": "Chromeleon",
   "description": "A Chromeleon can change its behavior to blend into the environment of any website troller.",
-  "version": "2025.4.2",
+  "version": "2025.4.9",
   "manifest_version": 3,
   "permissions": [
     "activeTab",
@@ -28,12 +28,6 @@
   "action": {
     "default_popup": "data/popup/popup.html"
   },
-  "web_accessible_resources": [
-    {
-      "resources": ["data/web/register.html"],
-      "matches": ["<all_urls>"]
-    }
-  ],
   "icons": {
     "16": "data/icons/16x16.png",
     "32": "data/icons/16x16_2x.png",

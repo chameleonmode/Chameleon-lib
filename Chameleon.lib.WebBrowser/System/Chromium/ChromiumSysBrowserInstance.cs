@@ -1,6 +1,5 @@
 ﻿using chameleon.assets;
 
-using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Const;
 using Chameleon.lib.WebBrowser.Services;
@@ -17,130 +16,16 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		$"instanceId={Settings.Profile.Id}" +
 		$"&sessionId=";
 
-	string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
+	static string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
 
 	// ...
 	protected override string GetCommandLineArguments() {
-		var exts = new[] {
+		var exts = string.Join(",", new[] {
 			ExtDir,
 			Settings.SysBrowseUserExtDir,
-		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories).ToCommaSeparatedString();
-
-		// Construct URL with parameters for extension
+		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories));
 
 		return string.Join(" ", new[] {
-			// "--enable-blink-features=" + string.Join(",", [
-			// 	"WebRtcHideLocalIpsWithMdns",
-			// 	"ReducedReferrerGranularity",
-			// 	"PartitionVisitedLinkDatabase",
-			// 	"QuoteEmptySecChUaStringHeadersConsistently",
-			// 	"FencedFrames",
-			// 	"ReduceUserAgentMinorVersion",
-			// 	"ParkableImagesToDisk",
-			// 	"SetIntervalWithoutClamp",
-			// 	"WebCryptoCurve25519",
-			// 	"BackForwardCacheNotRestoredReasons",
-			// 	"LowerHighResolutionTimerThreshold",
-			// ]),
-			// "--disable-blink-features=" + string.Join(",", [
-			// 	"WebGL1",
-			// 	"WebGL2",
-			// 	"Canvas2dImageChromium",
-			// 	"WebGLImageChromium",
-			// 	"CreateImageBitmapOrientationNone",
-			// 	"ComputePressure",
-			// 	"DeviceAttributes",
-			// 	"ClientHintsDPR_DEPRECATED",
-			// 	"ClientHintsDeviceMemory_DEPRECATED",
-			// 	"ClientHintsViewportWidth_DEPRECATED",
-			// 	"ClientHintsResourceWidth_DEPRECATED",
-			// 	"PreciseMemoryInfo",
-			// 	"CaptureJSExecutionLocation",
-			// 	"IntensiveWakeUpThrottling",
-			// ]),
-			//"--blink-settings=" + string.Join(",", [
-			// 	"webGL1Enabled=false",
-			// 	"webGL2Enabled=false",
-			// 	"navigatorPlatformOverride=\"Linux x86_64\"",
-			// 	"deviceScaleAdjustment=1.0",
-			// 	"forceDarkModeEnabled=true",
-			// 	"inForcedColors=true",
-			// 	"prefersReducedMotion=true",
-			// 	"prefersReducedTransparency=true",
-			// 	"antialiased2dCanvasEnabled=false",
-			// 	"primaryPointerType=mojom::blink::PointerType::kPointerCoarse",
-			// 	"primaryHoverType=mojom::blink::HoverType::kHoverHoverable",
-			//	"bypassCSP=true",
-			//]),
-
-			 //"--enable-blink-features=" + string.Join(",", [
-				// "ReducedReferrerGranularity",
-				// "WebRtcHideLocalIpsWithMdns",
-				// "PartitionVisitedLinkDatabase",
-				// "QuoteEmptySecChUaStringHeadersConsistently",
-				// "FencedFrames",
-				// "ReduceUserAgentMinorVersion",
-				// "TopicsAPI",
-				// "BackForwardCacheNotRestoredReasons",
-			//]),
-			//"--blink-settings=" + string.Join(",", [
-				// "webGLErrorsToConsoleEnabled=false",
-				// "navigatorPlatformOverride=\"Linux x86_64\"",
-				// "deviceScaleAdjustment=1.0",
-				//"forceDarkModeEnabled=true",
-				// "antialiased2dCanvasEnabled=false",
-				// "primaryPointerType=mojom::blink::PointerType::kPointerCoarse",
-				// "primaryHoverType=mojom::blink::HoverType::kHoverHoverable",
-				// "bypassCSP=true",
-			//]),
-			// "--enable-blink-features=" + string.Join(",", [
-			// 	"ReducedReferrerGranularity",
-			// 	"WebRtcHideLocalIpsWithMdns",
-			// 	"PartitionVisitedLinkDatabase",
-			// 	"QuoteEmptySecChUaStringHeadersConsistently",
-			// 	"UnifiedScrollableAreas",
-			// 	"ForcedColors",
-			// 	"CSSScopeImport",
-			// 	"WebCrypto",
-			// 	"WebPrefetchPrivacyChanges",
-			// 	"WebSQLAccess=false",
-			// 	"BackForwardCacheNotRestoredReasons",
-			// 	"CSSHexAlphaColor",
-			// ]),
-			// "--disable-blink-features=" + string.Join(",", [
-			// 	"WebGL1",
-			// 	"WebGL2",
-			// 	"Canvas2dImageChromium",
-			// 	"NetInfoDownlinkMax",
-			// 	"PreciseMemoryInfo",
-			// 	"ClientHintsDPR_DEPRECATED",
-			// 	"ClientHintsDeviceMemory_DEPRECATED",
-			// 	"WebGPUDeveloperFeatures",
-			// 	"CSSColorTypedOM",
-			// 	"DeviceAttributes",
-			// 	"MeasureMemory",
-			// 	"HandwritingRecognition",
-			// 	"ExtendedTextMetrics",
-			// 	"GamepadMultitouch",
-			// ]),
-			// "--blink-settings=" + string.Join(",", [
-			// 	"webGL1Enabled=false",
-			// 	"webGL2Enabled=false",
-			// 	"webGLErrorsToConsoleEnabled=false",
-			// 	"cookieEnabled=false",
-			// 	"hyperlinkAuditingEnabled=false",
-			// 	"dnsPrefetchingEnabled=false",
-			// 	"allowRunningOfInsecureContent=false",
-			// 	"disableReadingFromCanvas=true",
-			// 	"strictMixedContentChecking=true",
-			// 	"strictPowerfulFeatureRestrictions=true",
-			// 	"prefersReducedMotion=true",
-			// 	"forceDarkModeEnabled=true",
-			// 	"prefersReducedTransparency=true",
-			// 	"textTrackBackgroundColor=#000000",
-			// 	"bypassCSP=false",
-			// 	"inForcedColors=true",
-			// ]),
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
 				//"NetworkQualityEstimatorWebHoldback",
@@ -241,15 +126,10 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--restore-last-session",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
-			Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
-			//Settings.Profile.Proxy.HasLogin ? $"--proxy-auth={Settings.Profile.Proxy.UserName}:{Settings.Profile.Proxy.Password}" : "",
-			#if DEBUG
-				//$"--load-extension=\"{exts}\",/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon",
-				$"--load-extension=\"{exts}\"",
-			#else
-				$"--load-extension=\"{exts}\"",
-			#endif
-			ExtUrl + SessionId,
+			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
+			$"--load-extension=\"{exts}\"",
+			//$"--load-extension=\"{exts},/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon\"",
+			$"https://com.mode.chameleon?instanceId={Settings.Profile.Id}&sessionId={SessionId}",
 			//"about:blank"
 		}.Where(x => !string.IsNullOrWhiteSpace(x)));
 	}
@@ -267,3 +147,117 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		}
 	}
 }
+
+// TODO: 
+// "--enable-blink-features=" + string.Join(",", [
+// 	"WebRtcHideLocalIpsWithMdns",
+// 	"ReducedReferrerGranularity",
+// 	"PartitionVisitedLinkDatabase",
+// 	"QuoteEmptySecChUaStringHeadersConsistently",
+// 	"FencedFrames",
+// 	"ReduceUserAgentMinorVersion",
+// 	"ParkableImagesToDisk",
+// 	"SetIntervalWithoutClamp",
+// 	"WebCryptoCurve25519",
+// 	"BackForwardCacheNotRestoredReasons",
+// 	"LowerHighResolutionTimerThreshold",
+// ]),
+// "--disable-blink-features=" + string.Join(",", [
+// 	"WebGL1",
+// 	"WebGL2",
+// 	"Canvas2dImageChromium",
+// 	"WebGLImageChromium",
+// 	"CreateImageBitmapOrientationNone",
+// 	"ComputePressure",
+// 	"DeviceAttributes",
+// 	"ClientHintsDPR_DEPRECATED",
+// 	"ClientHintsDeviceMemory_DEPRECATED",
+// 	"ClientHintsViewportWidth_DEPRECATED",
+// 	"ClientHintsResourceWidth_DEPRECATED",
+// 	"PreciseMemoryInfo",
+// 	"CaptureJSExecutionLocation",
+// 	"IntensiveWakeUpThrottling",
+// ]),
+//"--blink-settings=" + string.Join(",", [
+// 	"webGL1Enabled=false",
+// 	"webGL2Enabled=false",
+// 	"navigatorPlatformOverride=\"Linux x86_64\"",
+// 	"deviceScaleAdjustment=1.0",
+// 	"forceDarkModeEnabled=true",
+// 	"inForcedColors=true",
+// 	"prefersReducedMotion=true",
+// 	"prefersReducedTransparency=true",
+// 	"antialiased2dCanvasEnabled=false",
+// 	"primaryPointerType=mojom::blink::PointerType::kPointerCoarse",
+// 	"primaryHoverType=mojom::blink::HoverType::kHoverHoverable",
+//	"bypassCSP=true",
+//]),
+
+//"--enable-blink-features=" + string.Join(",", [
+// "ReducedReferrerGranularity",
+// "WebRtcHideLocalIpsWithMdns",
+// "PartitionVisitedLinkDatabase",
+// "QuoteEmptySecChUaStringHeadersConsistently",
+// "FencedFrames",
+// "ReduceUserAgentMinorVersion",
+// "TopicsAPI",
+// "BackForwardCacheNotRestoredReasons",
+//]),
+//"--blink-settings=" + string.Join(",", [
+// "webGLErrorsToConsoleEnabled=false",
+// "navigatorPlatformOverride=\"Linux x86_64\"",
+// "deviceScaleAdjustment=1.0",
+//"forceDarkModeEnabled=true",
+// "antialiased2dCanvasEnabled=false",
+// "primaryPointerType=mojom::blink::PointerType::kPointerCoarse",
+// "primaryHoverType=mojom::blink::HoverType::kHoverHoverable",
+// "bypassCSP=true",
+//]),
+// "--enable-blink-features=" + string.Join(",", [
+// 	"ReducedReferrerGranularity",
+// 	"WebRtcHideLocalIpsWithMdns",
+// 	"PartitionVisitedLinkDatabase",
+// 	"QuoteEmptySecChUaStringHeadersConsistently",
+// 	"UnifiedScrollableAreas",
+// 	"ForcedColors",
+// 	"CSSScopeImport",
+// 	"WebCrypto",
+// 	"WebPrefetchPrivacyChanges",
+// 	"WebSQLAccess=false",
+// 	"BackForwardCacheNotRestoredReasons",
+// 	"CSSHexAlphaColor",
+// ]),
+// "--disable-blink-features=" + string.Join(",", [
+// 	"WebGL1",
+// 	"WebGL2",
+// 	"Canvas2dImageChromium",
+// 	"NetInfoDownlinkMax",
+// 	"PreciseMemoryInfo",
+// 	"ClientHintsDPR_DEPRECATED",
+// 	"ClientHintsDeviceMemory_DEPRECATED",
+// 	"WebGPUDeveloperFeatures",
+// 	"CSSColorTypedOM",
+// 	"DeviceAttributes",
+// 	"MeasureMemory",
+// 	"HandwritingRecognition",
+// 	"ExtendedTextMetrics",
+// 	"GamepadMultitouch",
+// ]),
+// "--blink-settings=" + string.Join(",", [
+// 	"webGL1Enabled=false",
+// 	"webGL2Enabled=false",
+// 	"webGLErrorsToConsoleEnabled=false",
+// 	"cookieEnabled=false",
+// 	"hyperlinkAuditingEnabled=false",
+// 	"dnsPrefetchingEnabled=false",
+// 	"allowRunningOfInsecureContent=false",
+// 	"disableReadingFromCanvas=true",
+// 	"strictMixedContentChecking=true",
+// 	"strictPowerfulFeatureRestrictions=true",
+// 	"prefersReducedMotion=true",
+// 	"forceDarkModeEnabled=true",
+// 	"prefersReducedTransparency=true",
+// 	"textTrackBackgroundColor=#000000",
+// 	"bypassCSP=false",
+// 	"inForcedColors=true",
+// ]),

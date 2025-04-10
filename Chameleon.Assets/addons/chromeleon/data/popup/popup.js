@@ -264,20 +264,21 @@ function setupEventListeners() {
     const selectedTimezone = e.target.value;
     config.tz.zone = selectedTimezone;
 
+
     // Get the timezone offset for display purposes
-    const timezoneData = timezoneOffsets[selectedTimezone];
-    if (timezoneData) {
-      const offset = timezoneData.offset;
-      const absOffset = Math.abs(offset);
-      const hours = Math.floor(absOffset / 60);
-      const minutes = absOffset % 60;
-      const sign = offset < 0 ? "-" : "+";
-      console.log(
-        `Timezone changed to: ${selectedTimezone} (UTC${sign}${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")})`
-      );
-    }
+    // const timezoneData = timezoneOffsets[selectedTimezone];
+    // if (timezoneData) {
+    //   const offset = timezoneData.offset;
+    //   const absOffset = Math.abs(offset);
+    //   const hours = Math.floor(absOffset / 60);
+    //   const minutes = absOffset % 60;
+    //   const sign = offset < 0 ? "-" : "+";
+    //   console.log(
+    //     `Timezone changed to: ${selectedTimezone} (UTC${sign}${hours.toString().padStart(2, "0")}:${minutes
+    //       .toString()
+    //       .padStart(2, "0")})`
+    //   );
+    // }
 
     saveConfig();
   });

@@ -2,7 +2,6 @@
 using System.Text;
 using System.Text.Json;
 
-using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Models.Dto;
 using Chameleon.lib.Util;
 
@@ -32,7 +31,7 @@ public class HttpApiClient {
 	{
 		var response = await PolyUtil.RetryWithPolicyAsync(async () => {
 			var request = new HttpRequestMessage(method, "http://18.157.103.1/api/" + path);
-			if(Auther.AuthToken.Is())
+			if(Auther.AuthToken.IsNot())
 				request.Headers.Authorization = new("Bearer", Auther.AuthToken);
 
 			if (body != null) {

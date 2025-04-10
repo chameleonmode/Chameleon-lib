@@ -64,7 +64,7 @@ public class BrowserLauncherTests {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-CYpEvUqY"
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-N2Vb4Jvy"
 					},
 					Emulations = new() {
 						AutoTimezone = true,
@@ -84,25 +84,24 @@ public class BrowserLauncherTests {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
-		var bi = await SystemBrowserService.Instance.Open(new(SystemBrowserType.Firefox, 
-			new() {
-				Id = 18,
-				Proxy = new BrowserProxy() {
-					Host = "proxy.chameleonmode.com",
-					Port = 31112,
-					UserName = "elimdadia_gmail_com",
-					Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
-				},
-				Emulations = new() {
-					AutoTimezone = true,
-					SpoofGeoLocation = true,
-					SpoofWebGLFingerprint = true,
-					SpoofCanvasFingerprint = true,
-					SpoofFontFingerprint = true,
-					SpoofAudio = true,
-					SpoofClientRects = true
-				},
-				StartUrl = "https://example.com",
+		var bi = await SystemBrowserService.Instance.Open(new(SystemBrowserType.Firefox, new() {
+			Id = 22,
+			Proxy = new BrowserProxy() {
+				Host = "proxy.chameleonmode.com",
+				Port = 31112,
+				UserName = "elimdadia_gmail_com",
+				Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-mzBorsdy"
+			},
+			Emulations = new() {
+				AutoTimezone = true,
+				SpoofGeoLocation = true,
+				SpoofWebGLFingerprint = true,
+				SpoofCanvasFingerprint = true,
+				SpoofFontFingerprint = true,
+				SpoofAudio = true,
+				SpoofClientRects = true
+			},
+			StartUrl = "https://example.com",
 			})
 		);
 		Assert.NotNull(bi);

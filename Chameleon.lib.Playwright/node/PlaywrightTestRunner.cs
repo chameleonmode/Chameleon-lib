@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using Chameleon.lib.Helpers;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Chameleon.lib.Playwright.node;
 public class PlaywrightTestRunner : IDisposable {

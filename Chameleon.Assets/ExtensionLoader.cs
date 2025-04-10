@@ -20,14 +20,16 @@ public static class EmbeddedLoader {
 		}
 	}
 
-	public static async Task CopyFile(string from, string to, bool overwrite = true) {
-		if (File.Exists(to) && !overwrite) {
-			return;
+	public static async Task<string> CopyFile(string prefix, string file, string dir, bool overwrite = true) {
+		var dist = Path.Combine(dir, file);
+		if (!overwrite && File.Exists(dist)) {
+			throw new IOException($"File {dist} already exists and overwrite is set to false.");
 		}
 
-		using var source = Loader.Instance.Open($"{BASE}.{from}");
-		using var destination = new FileStream(to, FileMode.Create, FileAccess.Write, FileShare.None); 
-		await source.CopyToAsync(destination);
+		using var source = Loader.Instance.Open($"{BASE}.{prefix}.{file}");
+		using var fs = new FileStream(dist, FileMode.Create, FileAccess.Write, FileShare.None); 
+		await source.CopyToAsync(fs);
+		return dist;
 	}
 
 	public static async Task<string> LoadExtension(

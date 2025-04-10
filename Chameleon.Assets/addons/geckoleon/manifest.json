@@ -1,7 +1,7 @@
 {
   "name": "Geckoleon",
   "description": "A Geckoleon can change its behavior to blend into the environment of any website troller.",
-  "version": "2025.4.2.6",
+  "version": "2025.4.8.1",
   "manifest_version": 3,
   "permissions": [
     "activeTab",
@@ -18,7 +18,8 @@
     "webRequestAuthProvider"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "*://*/*"
   ],
   "background": {
     "type": "module",
@@ -27,20 +28,14 @@
   "action": {
     "default_popup": "data/popup/popup.html"
   },
-  "web_accessible_resources": [
-    {
-      "resources": ["data/web/register.html"],
-      "matches": ["*://chameleon.mode.com/*", "*://127.0.0.1/*"]
-    }
-  ],
-  "content_security_policy": {
-    "extension_pages": "style-src 'self' 'unsafe-inline'; script-src 'self'"
-  },
   "icons": {
     "16": "data/icons/16x16.png",
     "32": "data/icons/16x16_2x.png",
     "64": "data/icons/32x32_2x.png",
     "128": "data/icons/128x128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "style-src 'self' 'unsafe-inline'; script-src 'self'"
   },
   "browser_specific_settings": {
     "gecko": {

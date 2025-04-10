@@ -2,7 +2,6 @@
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Constants;
 using System.Diagnostics;
-using System.Runtime.Versioning;
 using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.Helpers;
@@ -19,28 +18,19 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 
 	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
-		if (eventType == Enums.SysBrowserEventType.Foreground)
-			_ = TrySetForeground();
-
-		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
-	}
-
-	bool TrySetForeground() {
-		if (Brocess is null)
-			return false;
-		if (OperatingSystem.IsWindows()) {
-			if (Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
-				if (U32til.BringWindowToForeground(handle)) {
-					return true;
+		if (eventType == Enums.SysBrowserEventType.Foreground && Brocess is not null) {
+			if (OperatingSystem.IsWindows()) {
+				if (Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
+					_ = U32til.BringWindowToForeground(handle);
+				}
+			} else if (OperatingSystem.IsMacOS()) {
+				if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
+					Brocess.Refresh();
 				}
 			}
-		} else if (OperatingSystem.IsMacOS()) {
-			if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
-				Brocess.Refresh();
-				return true;
-			}
 		}
-		return false;
+
+		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
 	}
 
 	public void Close() {
@@ -66,13 +56,6 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 			};
 			Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");
 
-	// type: 'http',
-	// 			 	server: '{Settings.Profile.Proxy.Server}',
-	// 		   	host: '{Settings.Profile.Proxy.HostForRequest}',
-	// 		   	port: {Settings.Profile.Proxy.Port},
-	// 		   	username: '{Settings.Profile.Proxy.UserName}',
-	// 		   	password: '{Settings.Profile.Proxy.Password}',
-	// 		   	enabled: {(Settings.Profile.Proxy.CanUse ? "true" : "false")}
 			// set the extension settings
 			AddonsServer.Instance.AddonInstances[SessionId] = new {
 				proxy = new {
@@ -133,6 +116,7 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 				EnableRaisingEvents = true,
 			};
 			Brocess.Start();
+
 			await Task.Delay(1800);
 			await WaitForWinHandle();
 
@@ -153,7 +137,7 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 	protected virtual async Task WaitForWinHandle() {
 		// if (OperatingSystem.IsMacOS()) {
 		Brocess!.Exited += (s, e) => { Close(); };
-
+		
 		if (await TaskUtil.AwaitFor(
 				() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null,
 				36,

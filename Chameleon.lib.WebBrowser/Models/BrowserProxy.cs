@@ -6,7 +6,7 @@ public class BrowserProxy {
 	public string? HostForRequest => Host?.Contains("proxy.chameleonmode.com") == true ?
 		"proxy.packetstream.io" 
 		: Host;
-	public string? Server => CanUse ? $"{HostForRequest}:{Port}" : null;
+	public string? Server => CanUse ? $"{Host}:{Port}" : null;
 	public string? ServerForRequest => CanUse ? $"http://{Server}" : null;
 	public WebProxy? WebProxy => CanUse ? new WebProxy(Server) {
 		Credentials = new NetworkCredential(UserName, Password)
