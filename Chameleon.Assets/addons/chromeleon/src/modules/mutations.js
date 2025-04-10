@@ -21,6 +21,7 @@
  */
 
 import App from "../app.js";
+import ai from "../scripts/ai.js";
 import canvas from "../scripts/canvas.js";
 import rects from "../scripts/rects.js";
 import webgl from "../scripts/webgl.js";
@@ -33,11 +34,6 @@ class PageMutations {
     this.tabId = tabId;
     this.scriptSource = "";
     this.scriptIdentifier = undefined;
-    this.uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
 
     const defaults = {
       uuid: App.session.sessionId,
@@ -216,6 +212,17 @@ class PageMutations {
             RULE_ID_START,
             chromeMajorVersion,
             config,
+          },
+        };
+      })(),
+      ai: (() => {
+        return {
+          init: async () => {
+            return true;
+          },
+          script: ai,
+          opts: {
+            ...defaults,
           },
         };
       })(),

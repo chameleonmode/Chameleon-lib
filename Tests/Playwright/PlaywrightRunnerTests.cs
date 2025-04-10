@@ -1,7 +1,8 @@
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Scripts.JS;
-using Chameleon.lib.Playwright.Scripts.JS.Reddit;
+using Chameleon.lib.Playwright.Scripts.JS.Reddit.Post;
+using Chameleon.lib.Playwright.Scripts.JS.Reddit.Subreddit;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Playwright.Utils;
 using Chameleon.lib.Util;
@@ -9,7 +10,9 @@ using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.Playwright;
+
 public class PlaywrightRunnerTests : TestSetup {
+	readonly int port = 9613;
 	readonly BundledScriptsService repo;
 	readonly SystemBrowserService browserService;
 
@@ -80,11 +83,9 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestRedditCommentScript() {
-		var port = 9613; 
-		// var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(PostCommentOnTitle)],
+			BundledScript = repo.BundledJSScripts[nameof(CommentOnTitle)],
 			Description = new(
 				Parameters: new() {
 					{"search", "christopher walken"}
@@ -95,26 +96,22 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestRedditCommentOnCommentScript() {
-		var port = 9613; 
-		// var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(PostCommentOnComment)],
+			BundledScript = repo.BundledJSScripts[nameof(ReplyToComment)],
 			Description = new(
 				Parameters: new() {
-					{"search", "joe rogan"}
+					{"search", "pringles"}
 				}
 			)
 		});
 	}
 
-  [Fact]
+	[Fact]
 	public async Task Reddit_Subreddit_Join() {
-		var port = 9613; 
-		// var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(SubredditJoin)],
+			BundledScript = repo.BundledJSScripts[nameof(Join)],
 			Description = new(
 				Parameters: new() {
 					{"search", "joe rogan"}
@@ -123,16 +120,27 @@ public class PlaywrightRunnerTests : TestSetup {
 		});
 	}
 
-  [Fact]
+	[Fact]
 	public async Task Reddit_Subreddit_Vote() {
-		var port = 9613; 
-		// var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(SubredditVote)],
+			BundledScript = repo.BundledJSScripts[nameof(Vote)],
 			Description = new(
 				Parameters: new() {
-					{"search", "joe rogan"}
+					{"search", "elon musk"}
+				}
+			)
+		});
+	}
+
+	[Fact]
+	public async Task Reddit_Subreddit_Post() {
+		await PlaywriteRunner.RunScript(new() {
+			Port = port,
+			BundledScript = repo.BundledJSScripts[nameof(Post)],
+			Description = new(
+				Parameters: new() {
+					{"search", "tom segura"}
 				}
 			)
 		});
