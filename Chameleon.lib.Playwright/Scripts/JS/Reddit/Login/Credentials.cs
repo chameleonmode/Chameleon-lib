@@ -4,12 +4,14 @@ namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 public class Credentials : JSScript {
 	public Credentials() : base(
 		"reddit/plugins/login/credentials",
-		"Reddit Google Authentication",
-		"Authenticate to reddit using google account"
+		"Reddit Authentication",
+		"Authenticate to reddit using credentials"
 	) { }
 
 	public override IDictionary<string, string> Parameters => new Dictionary<string, string> {
-		{ "username", "Reddit username" },
-		{ "password", "Reddit password" }
+		{ "email", "email" },
+		{ "password", "password" },
+    { "title", "Reddit" },
+    { "website", "Reddit.com" }
 	};
 }

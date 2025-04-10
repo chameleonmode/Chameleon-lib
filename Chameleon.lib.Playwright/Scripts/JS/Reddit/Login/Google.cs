@@ -8,7 +8,9 @@ public class Google : JSScript {
   ) { }
 
   public override IDictionary<string, string> Parameters => new Dictionary<string, string> {
-    { "username", "Google username" },
-    { "password", "Google password" }
+    { "email", "email" },
+    { "password", "password" },
+    { "title", "Google" },
+    { "website", "Google.com" }
   };
 }
