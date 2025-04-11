@@ -3,16 +3,14 @@ using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlExtraction;
 using Microsoft.Playwright;
 using Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
 using Xunit.Abstractions;
-using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 using Chameleon.lib.Playwright.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Utils;
-using System.Diagnostics;
-using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using System.Text.RegularExpressions;
+using Chameleon.lib.Playwright.HtmlProcessingPipeline.Models;
 
 namespace Tests.HtmlProcessingPipeline;
 
@@ -155,6 +153,89 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 				scriptFileName: "login.js"
 		);
 	}
+
+	[Fact]
+	public async Task BFS_IntegrationTest_GenerateLoginScriptForXcom_MultiStep() {
+
+		var page = await browser!.NewPageAsync();
+		_ = await page.GotoAsync("https://x.com", new PageGotoOptions {
+			WaitUntil = WaitUntilState.NetworkIdle
+		});
+
+		var aiOptions = new AiIntegrationOptions {
+			ApiKey = "AIzaSyD7THGyxSb5qE60bKmFqdgGr8JTN0xY904",
+			ModelName = "gemini-2.0-flash",
+			MaxTokens = 1000
+		};
+		var aiService = new AiExtensionsIntegrationService(aiOptions);
+
+		var extractionOptions = new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 };
+		var extractorService = new HtmlExtractorService(browser);
+
+		var pipelineService = new HtmlProcessingPipelineService(extractorService, aiService);
+
+		var steps = new List<StepDefinition>
+		{
+				new() {
+						Description = "Accept or dismiss cookie banners or disclaimers if present.",
+						AutoPerformAction = true
+				},
+				new() {
+						Description = "Click the 'Sign in' link or button on x.com to open the login overlay or page.",
+						AutoPerformAction = true
+				},
+				new() {
+						Description = "Fill out the username/phone/email and password fields on the login form, then click 'Continue' or 'Log In'."
+				}
+		};
+
+		var generatedScript = await pipelineService.ProcessMultiStepAsync(
+				page,
+				steps,
+				aiOptions,
+				extractionOptions
+		);
+
+		generatedScript = ExtractCodeBlock(generatedScript);
+
+		testOutput.WriteLine("=======================================");
+		testOutput.WriteLine("X.com (Twitter) Multi-Step BFS Integration Test");
+		testOutput.WriteLine("----- Generated Script -----");
+		testOutput.WriteLine(generatedScript);
+		testOutput.WriteLine("=======================================\n");
+
+		Assert.False(string.IsNullOrWhiteSpace(generatedScript), "The generated script should not be empty.");
+
+		var tempDir = Path.Combine("C:\\repos\\chameleon-playwright\\src\\scripts\\x\\plugins");
+		Directory.CreateDirectory(tempDir);
+
+		var tempFile = Path.Combine(tempDir, "login.js");
+		testOutput.WriteLine($"Tempfile: {tempFile}");
+		await File.WriteAllTextAsync(tempFile, generatedScript);
+		Assert.True(File.Exists(tempFile));
+
+		var port = await OpenBrowser();
+
+		Exception? executionError = null;
+		try {
+			await PlaywriteRunner.RunScript(new RunScriptOptions {
+				Port = port,
+				Description = new(
+							FilePath: tempFile,
+							Parameters: new Dictionary<string, string> {
+										{ "username", "jmutobu191803" },
+										{ "password", "Test@243" }
+							}
+					)
+			});
+		} catch (Exception ex) {
+			testOutput.WriteLine($"PlaywriteRunner.RunScript threw an exception: {ex}");
+			executionError = ex;
+		}
+
+		Assert.Null(executionError);
+	}
+
 
 	private async Task GenerateAndRunScriptAsync(string testName, string url, string automationDescription,
 		Dictionary<string, string> parameters, string relativeScriptPath, string scriptFileName
