@@ -156,6 +156,16 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
         return id;
       },
 
+			getNodeClassName(node) {
+				if (typeof node.className === 'string') {
+						return node.className;
+				}
+				if (node.className && typeof node.className.baseVal === 'string') {
+				  return node.className.baseVal;
+				}
+				return '';
+			},
+
       getAllNodesBFS(maxDepth = 10, snippetTextLength = 200) {
         const visited = new Set();
         const results = [];
@@ -185,7 +195,7 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
             nodeId: newId,
             tagName: node.tagName?.toLowerCase() ?? '',
             id: node.id || null,
-            className: node.className || null,
+            className: this.getNodeClassName(node),
             shortText,
             cssSelector: this.buildCssSelector(node)
           });
