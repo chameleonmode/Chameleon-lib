@@ -310,9 +310,9 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 	async Task<int> OpenBrowser(SystemBrowserType bt = SystemBrowserType.Chrome, int id = 28296) {
 		var port = TcpUtil.NextFreePort(9613);
 		var browser = await browserService.OpenWithSettings(new(
-				new(bt, new() { Id = id }),
-				new(),
-				"http://example.com",
+				new(bt, new() {
+					Id = id,
+				}),
 				port
 			)
 		);
