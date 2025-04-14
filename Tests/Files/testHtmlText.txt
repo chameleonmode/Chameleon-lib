@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Page - Dense DOM</title>
+</head>
+<body>
+  <div class="top-banner">
+    This is the top banner - probably irrelevant to the core tasks
+  </div>
+
+  <div id="login-section">
+    <h1>Login to Your Account</h1>
+    <form id="login-form">
+      <label>Username:
+        <input type="text" id="username" name="username" />
+      </label>
+      <br />
+      <label>Password:
+        <input type="password" id="password" name="password" />
+      </label>
+      <br />
+      <button id="login-btn">Login</button>
+    </form>
+  </div>
+
+  <!-- A custom web component with shadow DOM -->
+  <my-web-component id="web-comp">
+    <!-- Simulate shadowRoot content (in real usage, this would be hidden, but for testing we show it) -->
+    #shadowRoot
+      <h2>Inside Shadow: Comments Section</h2>
+      <p>First comment: "Hello world!"</p>
+      <button id="reply-btn">Reply</button>
+  </my-web-component>
+
+  <!-- Some junk divs with scripts that we likely want to skip -->
+  <div class="junk" id="ads-1">
+    <script src="ads-script.js"></script>
+    <p>Buy stuff here! This is an advertisement block.</p>
+  </div>
+
+  <div class="junk" id="analytics">
+    <script src="analytics.js"></script>
+    <p>Tracking script with no relevance to user tasks.</p>
+  </div>
+</body>
+</html>

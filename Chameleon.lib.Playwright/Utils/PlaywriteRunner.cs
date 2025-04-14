@@ -19,7 +19,7 @@ public class PlaywriteRunner {
 
       //
       if (args.BundledScript is IBundledJSScript jsScript) {
-        using var runner = new PlaywrightTestRunner(jsScript.File, async (question) => {
+        using var runner = new PlaywrightTestRunner(jsScript.File, args.Description?.Parameters, async (question) => {
           if(!question.IsNot()) throw new ArgumentNullException(nameof(question));
           
           var res = await Service.Routes.Air.Ask(new("reddit", new {
@@ -44,7 +44,7 @@ public class PlaywriteRunner {
         await csScript.Run(context.BrowserContext, savedOptions).WaitAsync(token);
       } else if (args.Description?.FilePath != null) {
 
-        var runner = new PlaywrightTestRunner(args.Description.FilePath);
+        var runner = new PlaywrightTestRunner(args.Description.FilePath,args.Description.Parameters);
         await runner.RunTestAsync(args.Port, args.Description?.Parameters).WaitAsync(token);
       } else {
         throw new NotImplementedException();
