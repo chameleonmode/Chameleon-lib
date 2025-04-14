@@ -183,7 +183,7 @@ user_pref("toolkit.crashreporter.enabled", false);
 user_pref("extensions.blocklist.enabled", false);
 user_pref("app.update.service.enabled", false);
 user_pref("privacy.fingerprintingProtection.overrides", "+JSDateTimeUTC");
-user_pref("browser.startup.page", 3);
+user_pref("browser.startup.page", 0);
 user_pref("dom.input_events.security.minNumTicks", 0);
 user_pref("dom.input_events.security.minTimeElapsedInMS", 0);
 user_pref("dom.iframe_lazy_loading.enabled", false);

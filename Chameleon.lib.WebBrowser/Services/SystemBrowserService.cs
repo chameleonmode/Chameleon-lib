@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using Chameleon.lib.Common.Constants;
-
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
@@ -27,8 +26,9 @@ public class SystemBrowserService {
 	public int TimeOut { get; } = 36;
 
 	private readonly WindowEventHandler? windowEventHandler;
-
-	public ConcurrentDictionary<int, IBrowserInstance> Instances { get; } = [];
+	// TODO:
+	// public ConcurrentDictionary<int, Dictionary<SystemBrowserType, IBrowserInstance?>> Instances { get; } = [];
+	public ConcurrentDictionary<SysBrowserOpenOptions, IBrowserInstance?> Instances { get; } = [];
 	public ConcurrentDictionary<int, List<Delegatorz.Event<SysBrowserEvent>>> Observers { get; } = [];
 
 	private long _isBusy;
@@ -40,7 +40,7 @@ public class SystemBrowserService {
 	private async void MacOS_WindowForegroundChanged(int obj) {
 		for (var i = Instances.Count - 1; i >= 0; i--) {
 			var uid = Instances.Keys.ElementAt(i);
-			if (Instances.TryGetValue(uid, out var browser)) {
+			if (Instances.TryGetValue(uid, out var browser) && browser != null) {
 				_ = await browser.LoadedTCS.Task;
 
 				if (browser.Brocess?.HasExited != true && browser.Settings.Profile.Id == obj) {
@@ -57,7 +57,7 @@ public class SystemBrowserService {
 		try {
 			for (var i = Instances.Count - 1; i >= 0; i--) {
 				var uid = Instances.Keys.ElementAt(i);
-				if (Instances.TryGetValue(uid, out var browser) && browser.Brocess?.MainWindowHandle != IntPtr.Zero && browser.Brocess?.HasExited == true) {
+				if (Instances.TryGetValue(uid, out var browser) && browser != null && browser.Brocess?.MainWindowHandle != IntPtr.Zero && browser.Brocess?.HasExited == true) {
 					browser.Close();
 				}
 			}
@@ -69,7 +69,7 @@ public class SystemBrowserService {
 		try {
 			for (var i = Instances.Count - 1; i >= 0; i--) {
 				var uid = Instances.Keys.ElementAt(i);
-				if (Instances.TryGetValue(uid, out var browser)) {
+				if (Instances.TryGetValue(uid, out var browser) && browser != null) {
 					var loaded = await browser.LoadedTCS.Task;
 
 					if (loaded && browser.Brocess?.HasExited == false && browser.Brocess?.MainWindowHandle == obj) {
@@ -91,22 +91,28 @@ public class SystemBrowserService {
 		await AddonsServer.Instance.Start();
 
 		// 
-		var browser = Instances[settings.OpenOptions.Profile.Id] = settings.BrowserType switch {
+		var browser = Instances[settings.OpenOptions] = settings.BrowserType switch {
 			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = settings },
 			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = settings },
 			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = settings },
 			_ => throw new NotImplementedException(),
 		};
-
+		// TODO:
+		// var browser = Instances[settings.OpenOptions.Profile.Id] = new() {
+		// 	[SystemBrowserType.Chrome] = new ChromeSysBrowserInstance() { Settings = settings },
+		// 	[SystemBrowserType.Brave] =  new BraveSysBrowserInstance() { Settings = settings },
+		// 	[SystemBrowserType.Firefox] = new FirefoxSysBrowserInstance() { Settings = settings }
+		// };
 		// 
 		await browser.Ensure();
 		browser.OnEvent += async (sender, args) => {
+			// if(args.OpenOptions.BrowserType != settings.OpenOptions.BrowserType) return;
 			switch (args.EventType) {
 				case SysBrowserEventType.Closed:
 					do {
-						if (Instances.TryGetValue(settings.OpenOptions.Profile.Id, out var browser)) {
+						if (Instances.TryGetValue(settings.OpenOptions, out var browser) && browser != null) {
 							_ = await browser.LoadedTCS.Task;
-							_ = Instances.TryRemove(settings.OpenOptions.Profile.Id, out _);
+							_ = Instances.TryRemove(settings.OpenOptions, out _);
 							break;
 						}
 						await Task.Delay(250);
@@ -119,6 +125,10 @@ public class SystemBrowserService {
 
 			if (Observers.TryGetValue(settings.Profile.Id, out var events)) {
 				events.ForEach(x => x.Invoke(sender, args));
+				
+				// var check = Instances.FirstOrDefault(x => x.Value.Settings.Profile.Id == settings.Profile.Id);
+				// if(check.Value != null) events.ForEach(x => x.Invoke(sender, args));
+				// else events.Clear();
 			}
 		};
 		_ = browser.InitializeAsync();
@@ -128,10 +138,11 @@ public class SystemBrowserService {
 		} else {
 			throw new Exception("Browser Load Context Connection Failed");
 		}
-		return Instances[settings.OpenOptions.Profile.Id];
+		return Instances[settings.OpenOptions];
 	}
 	public async Task<IBrowserInstance?> Open(SysBrowserOpenOptions options) {
-		if (!Instances.TryGetValue(options.Profile.Id, out var browser)) {
+		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
+		if (browser == null) {
 			OpenTaskCompletionSource = new TaskCompletionSource<IBrowserInstance?>();
 			try {
 				browser = await OpenWithSettings(new(
@@ -142,7 +153,7 @@ public class SystemBrowserService {
 				browser?.InvokeEvent(SysBrowserEventType.Error);
 				Toaster.Error(e.Message);
 				if (e is InvalidDataException or TimeoutException) {
-					_ = Instances.TryRemove(options.Profile.Id, out _);
+					_ = Instances.TryRemove(options, out _);
 					_ = (OpenTaskCompletionSource?.TrySetResult(null));
 					_ = (browser?.LoadedTCS.TrySetResult(false));
 				}
@@ -151,12 +162,12 @@ public class SystemBrowserService {
 				_ = Interlocked.Exchange(ref _isBusy, 0);
 			}
 		} else {
-			if (browser.Brocess?.HasExited == true) {
+			if (browser?.Brocess?.HasExited == true) {
 				browser.Close();
 				await Task.Delay(256);
 				_ = Open(options);
 			} else {
-				browser.InvokeEvent(SysBrowserEventType.Foreground);
+				//browser.InvokeEvent(SysBrowserEventType.Foreground);
 			}
 		}
 
@@ -164,7 +175,7 @@ public class SystemBrowserService {
 		return browser;
 	}
 
-	public async Task<(bool, SystemBrowserType)> HasInstanceOf(int id,  Delegatorz.Event<SysBrowserEvent> action) {
+	public async Task<(bool, IEnumerable<SystemBrowserType>)> HasInstanceOf(int id,  Delegatorz.Event<SysBrowserEvent> action) {
 		if (Observers.TryGetValue(id, out var value)) {
 			value.Add(action);
 		} else {
@@ -174,11 +185,14 @@ public class SystemBrowserService {
 		if (OpenTaskCompletionSource != null) {
 			var opening = await OpenTaskCompletionSource.Task;
 			if (opening != null && opening.Settings.Profile.Id == id) {
-				return (true, opening.Settings.BrowserType);
+				return (true, [opening.Settings.BrowserType]);
 			}
 		}
-		var browser = Instances.FirstOrDefault(x => x.Value.Settings.Profile.Id == id);
-		return browser.Value != null ? (true, browser.Value.Settings.BrowserType) : (false, SystemBrowserType.Unknown);
+		var browsers = Instances.Where(x => x.Value?.Settings.Profile.Id == id);
+		if (browsers?.Count() > 0) {
+			return (true, browsers.Select(b=>b.Value?.Settings.BrowserType ?? SystemBrowserType.Unknown));
+		}
+		return (false, [SystemBrowserType.Unknown]);
 	}
 	// Singleton
 	public static SystemBrowserService Instance { get; } = new();

@@ -21,7 +21,7 @@
  */
 
 import App from "../app.js";
-import ai from "../scripts/ai.js";
+// import ai from "../scripts/ai.js";
 import canvas from "../scripts/canvas.js";
 import rects from "../scripts/rects.js";
 import webgl from "../scripts/webgl.js";
@@ -215,17 +215,17 @@ class PageMutations {
           },
         };
       })(),
-      ai: (() => {
-        return {
-          init: async () => {
-            return true;
-          },
-          script: ai,
-          opts: {
-            ...defaults,
-          },
-        };
-      })(),
+      // ai: (() => {
+      //   return {
+      //     init: async () => {
+      //       return true;
+      //     },
+      //     script: ai,
+      //     opts: {
+      //       ...defaults,
+      //     },
+      //   };
+      // })(),
     };
   }
 

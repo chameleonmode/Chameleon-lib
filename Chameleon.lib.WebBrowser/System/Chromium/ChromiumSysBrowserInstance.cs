@@ -11,17 +11,17 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 		"Default",
 		"Preferences"
 	);
-	public override string ExePath => SysBrowserInfoUtil.Find(Settings.BrowserType).Path;
-	string ExtUrl => $"chrome-extension://bpckcldgiohofdmcepkndffkofgimbcm/data/web/register.html?" +
-		$"instanceId={Settings.Profile.Id}" +
-		$"&sessionId=";
 
-	static string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
+	public override string ExePath => SysBrowserInfoUtil.Find(Settings.BrowserType).Path;
+	// string ExtUrl => $"chrome-extension://bpckcldgiohofdmcepkndffkofgimbcm/data/web/register.html?" +
+	// 	$"instanceId={Settings.Profile.Id}" +
+	// 	$"&sessionId=";
+	// override string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
 
 	// ...
 	protected override string GetCommandLineArguments() {
 		var exts = string.Join(",", new[] {
-			ExtDir,
+			Settings.DestExtentionsDir,
 			Settings.SysBrowseUserExtDir,
 		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories));
 
@@ -123,7 +123,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--disable-hyperlink-auditing",
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
-			"--restore-last-session",
+			// "--restore-last-session",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
@@ -136,7 +136,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	// ...
 	protected override async Task InitializeExtensionPath() {
-		_ = await EmbeddedLoader.LoadExtension(ExtensionType.chromeleon, ExtDir);
+		await IOtil.DirectoryDelete(Path.Combine(FilePaths.AppDataLocalDir, "extensions", "chrome"));
+		_ = await EmbeddedLoader.LoadExtension(ExtensionType.chromeleon, Settings.DestExtentionsDir);
 	}
 
 	protected override async Task WaitForWinHandle() {
