@@ -1,4 +1,5 @@
-﻿using Chameleon.lib.Common.Constants;
+﻿using System.Reactive.Concurrency;
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models.Dto;
 
 using DynamicData;
@@ -48,14 +49,12 @@ public class UPAdditionalDataRepo {
 		return await repo.DeleteFromCache(thang);
 	}
 
-	public Task Load() => Task.Run(() =>
-		Task.WhenAll([
-			Task.Run(Personz.Load),
-			Task.Run(Loginz.Load),
-			Task.Run(Biz.Load),
-			Task.Run(Addrez.Load)
-		]));
-
+	public Task Load() => Task.Run(() => Task.WhenAll(
+		Task.Run(Personz.Load),
+		Task.Run(Biz.Load),
+		Task.Run(Addrez.Load),
+		Task.Run(Loginz.Load)
+	));
 	// Singleton instance
 	public static UPAdditionalDataRepo Instance { get; } = new UPAdditionalDataRepo();
 }
