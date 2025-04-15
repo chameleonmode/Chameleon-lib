@@ -15,10 +15,8 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 		return Instance.Get<UserProfileDto>($"Get?Id={profileId}");
 	}
 
-	public static async Task<RootResult> MoveUserProfileToFolder(List<int> profileIds, int? foldeId)
-	{
-		var o = await Instance.Post("MoveUserProfileToFolder", new
-		{
+	public static async Task<RootResult> MoveUserProfileToFolder(List<int> profileIds, int? foldeId) {
+		var o = await Instance.Post("MoveUserProfileToFolder", new {
 			ProfileIds = profileIds,
 			FolderId = foldeId
 		});
@@ -31,15 +29,14 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 		}
 		return o;
 	}
-	public static async Task<RootResult> SetProfileIsFavorite(int profileId, bool isFavorite)
-	{
-		var o = await Instance.Post("SetProfileIsFavorite", new
-		{
-			ProfileId = profileId,
+	public static async Task<RootResult> SetProfileIsFavorite(UserProfileDto profile, bool isFavorite) {
+		var o = await Instance.Post("SetProfileIsFavorite", new {
+			ProfileId = profile.id,
 			IsFavorite = isFavorite
 		});
 		if (o.success) {
-			var i = Instance.SourceCache.Items.First(p => p.id == profileId);
+			profile.isFavourite = isFavorite;
+			var i = Instance.SourceCache.Items.First(p => p.id == profile.id);
 			if (i != null) {
 				i.isFavourite = isFavorite;
 				Instance.SourceCache.AddOrUpdate(i);
@@ -48,8 +45,7 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 		return o;
 	}
 
-	public static Task<UserProfileDto> CreateProfile(string title, int? folderId = null) => Instance.Create(new
-	{
+	public static Task<UserProfileDto> CreateProfile(string title, int? folderId = null) => Instance.Create(new {
 		Title = title,
 		FolderId = folderId,
 	});

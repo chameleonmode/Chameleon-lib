@@ -157,18 +157,17 @@ public class SystemBrowserService {
 		return browser;
 	}
 
-	public async Task<(bool, IEnumerable<SystemBrowserType>)> HasInstanceOf(int id, Delegatorz.Event<SysBrowserEvent> action) {
+	public IEnumerable<SystemBrowserType> HasInstanceOf(int id, Delegatorz.Event<SysBrowserEvent> action) {
 		if (Observers.TryGetValue(id, out var value)) {
 			value.Add(action);
 		} else {
 			Observers[id] = [action];
 		}
-		var browsers = Instances.Where(x => x.Value?.Settings.Profile.Id == id);
-		if (browsers?.Count() > 0) {
-			return (true, browsers.Select(b => b.Value?.Settings.BrowserType ?? SystemBrowserType.Unknown));
-		}
-		return (false, [SystemBrowserType.Unknown]);
+		return Instances
+			.Where(x => x.Value?.Settings.Profile.Id == id)
+			.Select(b => b.Value?.Settings.BrowserType ?? SystemBrowserType.Unknown);
 	}
+
 	// Singleton
 	public static SystemBrowserService Instance { get; } = new();
 }

@@ -27,4 +27,10 @@ public static class ULists {
       cur.Add(destination);
     }
   }
+
+	public static void AddIfNotExists<T>(this IList<T> list, T item, Func<T, bool> predicate) {
+		if (!list.Any(predicate)) {
+			list.Add(item);
+		}
+	}
 }
