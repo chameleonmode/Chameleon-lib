@@ -6,6 +6,7 @@ using Chameleon.lib.Common.Models.Dto;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Api;
+
 public class HttpApiClient {
 	public event Action<string>? OnRetry;
 	public event Action<string>? OnCircuitBreaker;
@@ -27,23 +28,21 @@ public class HttpApiClient {
 	public Task<T> Post<T>(string path, object? body = default) => Send<T>(HttpMethod.Post, path, body);
 	public Task<T> Delete<T>(string path) => Send<T>(HttpMethod.Delete, path);
 
-	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default)
-	{
+	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default) {
 		var response = await PolyUtil.RetryWithPolicyAsync(async () => {
 			var request = new HttpRequestMessage(method, "http://18.157.103.1/api/" + path);
-			if(Auther.AuthToken.IsNot())
+			if (Auther.AuthToken.IsNot())
 				request.Headers.Authorization = new("Bearer", Auther.AuthToken);
 
 			if (body != null) {
 				request.Content = new StringContent(JsonSerializer.Serialize(body, options), Encoding.UTF8, "application/json");
 			}
 			return await _httpClient.SendAsync(request);
-		}, OnError: (e, i) => 
-		{
+		}, OnError: (e, i) => {
 			OnRetry?.Invoke(e.Message);
 			if (e.Message.Contains("401"))
 				_ = (OnAuthError?.Invoke());
-			//if (e.Message.Contains("429"))
+			//if (e.Message.Contains("429")) // TODO: check
 			OnCircuitBreaker?.Invoke(e.Message);
 		});
 
@@ -55,8 +54,7 @@ public class HttpApiClient {
 		OnSendSeccess?.Invoke(method);
 		return read.result;
 	}
-	private async Task<T> Read<T>(HttpResponseMessage response)
-	{
+	private async Task<T> Read<T>(HttpResponseMessage response) {
 		_ = response.EnsureSuccessStatusCode();
 		var responseString = await response.Content.ReadAsStringAsync();
 		var responseContent = JsonSerializer.Deserialize<T>(responseString, options);

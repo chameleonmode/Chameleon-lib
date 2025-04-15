@@ -82,7 +82,9 @@ public class SystemBrowserService {
 	#endregion
 
 	public async Task<IBrowserInstance?> OpenWithSettings(SysBrowserSettings settings) {
-		//await NodeServerLauncher.Instance.StartServer();
+		// TODO: test node console standard server launcher vs tcp server 
+		// await NodeServerLauncher.Instance.StartServer();
+		// TODO: move to app startup or possibly add a lib startup module
 		await AddonsServer.Instance.Start();
 
 		// 
@@ -92,7 +94,7 @@ public class SystemBrowserService {
 			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = settings },
 			_ => throw new NotImplementedException(),
 		};
-		// TODO:
+		// TODO: implement a system browser instance factory or for the bigger picture a state machine factory
 		// var browser = Instances[settings.OpenOptions.Profile.Id] = new() {
 		// 	[SystemBrowserType.Chrome] = new ChromeSysBrowserInstance() { Settings = settings },
 		// 	[SystemBrowserType.Brave] =  new BraveSysBrowserInstance() { Settings = settings },
@@ -101,7 +103,6 @@ public class SystemBrowserService {
 		// 
 		await browser.Ensure();
 		browser.OnEvent += async (sender, args) => {
-			// if(args.OpenOptions.BrowserType != settings.OpenOptions.BrowserType) return;
 			switch (args.EventType) {
 				case SysBrowserEventType.Closed:
 					if (Instances.TryGetValue(settings.OpenOptions, out var browser) && browser != null) {
@@ -116,10 +117,6 @@ public class SystemBrowserService {
 
 			if (Observers.TryGetValue(settings.Profile.Id, out var events)) {
 				events.ForEach(x => x.Invoke(sender, args));
-
-				// var check = Instances.FirstOrDefault(x => x.Value.Settings.Profile.Id == settings.Profile.Id);
-				// if(check.Value != null) events.ForEach(x => x.Invoke(sender, args));
-				// else events.Clear();
 			}
 		};
 		_ = browser.InitializeAsync();
@@ -158,11 +155,9 @@ public class SystemBrowserService {
 	}
 
 	public IEnumerable<SystemBrowserType> HasInstanceOf(int id, Delegatorz.Event<SysBrowserEvent> action) {
-		if (Observers.TryGetValue(id, out var value)) {
-			value.Add(action);
-		} else {
-			Observers[id] = [action];
-		}
+		if (Observers.TryGetValue(id, out var value)) value.Add(action);
+		else Observers[id] = [action];
+		
 		return Instances
 			.Where(x => x.Value?.Settings.Profile.Id == id)
 			.Select(b => b.Value?.Settings.BrowserType ?? SystemBrowserType.Unknown);

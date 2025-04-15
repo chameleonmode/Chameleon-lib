@@ -24,10 +24,9 @@ public class UPAdditionalDataRepo {
 	public UPRepo<UPAddressDto> Addrez { get; } = new(Consts.Api.Endpoints.Address);
 	public UPRepo<UPLoginDto> Loginz { get; } = new(Consts.Api.Endpoints.Credentia);
 
-	public static async Task<TT> Save<T, TT>(T repo, TT thang) 
+	public static async Task<TT> Save<T, TT>(T repo, TT thang)
 		where T : UPRepo<TT>
-		where TT : UP
-	{
+		where TT : UP {
 		if (thang.id > 0) {
 			return await repo.Put(thang);
 		} else {
@@ -39,8 +38,7 @@ public class UPAdditionalDataRepo {
 	}
 	public static async Task<RootResult?> Delete<T, TT>(T repo, TT thang)
 	where T : UPRepo<TT>
-	where TT : UP
-	{
+	where TT : UP {
 		return thang.id > 0 ? await repo.Delete(thang.id) : null;
 	}
 
@@ -50,20 +48,14 @@ public class UPAdditionalDataRepo {
 		return await repo.DeleteFromCache(thang);
 	}
 
-	public bool LoadedIniit { get; private set; }
-	public async Task LoadReload(bool force = false)
-	{
-		if (LoadedIniit && !force)
-			return;
+	public Task Load() => Task.Run(() =>
+		Task.WhenAll([
+			Task.Run(Personz.Load),
+			Task.Run(Loginz.Load),
+			Task.Run(Biz.Load),
+			Task.Run(Addrez.Load)
+		]));
 
-		await Task.WhenAll([
-			Personz.Load(),
-			Loginz.Load(),
-			Biz.Load(),
-			Addrez.Load()
-		]);
-
-		LoadedIniit = true;
-	}
+	// Singleton instance
 	public static UPAdditionalDataRepo Instance { get; } = new UPAdditionalDataRepo();
 }
