@@ -4,7 +4,7 @@ using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.WebBrowser;
-public class BrowserLauncherTests {
+public class BrowserLauncherTests : TestSetup {
 	readonly ManualResetEventSlim testCompletionEvent = new(false);
 	void KeepAlive(IBrowserInstance bi) {
 		// Start a monitoring task that will complete when the signal file is deleted
@@ -31,7 +31,7 @@ public class BrowserLauncherTests {
 		var bi = await SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(SystemBrowserType.Chrome,
 				new BrowserProfile() {
-					Id = 8,
+					Id = 28296,
 					Proxy = new BrowserProxy() {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
@@ -107,4 +107,4 @@ public class BrowserLauncherTests {
 		Assert.NotNull(bi);
 		KeepAlive(bi);
 	}
-}
+}//http://127.0.0.1:3663/init?instanceId=22&sessionId=33a986d1-fa2b-4d22-bdd9-791117c48b33

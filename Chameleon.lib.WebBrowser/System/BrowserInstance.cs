@@ -17,6 +17,9 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 	public required SysBrowserSettings Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 
+	public string InitUrl =>
+		$"http://127.0.0.1:{AddonsServer.Instance.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
+
 	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
 		if (eventType == Enums.SysBrowserEventType.Foreground && Brocess is not null) {
 			if (OperatingSystem.IsWindows()) {
@@ -104,6 +107,8 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 			await InitializeExtensionPath();
 			if (LoadedTCS.Task.IsCompleted)
 				return;
+			
+			Debug.WriteLine($"Starting {ExePath} with url: {InitUrl}");
 
 			// StartProcess
 			Brocess = new Process {

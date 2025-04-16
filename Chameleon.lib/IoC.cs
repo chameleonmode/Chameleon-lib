@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using Chameleon.lib.Helpers;
+using Chameleon.lib.Interfaces.Services;
 
 namespace Chameleon.lib;
 public class IoC {
@@ -24,8 +25,17 @@ public class IoC {
 	/// Gets the <see cref="IChaonfigurationManager"/> instance to resolve application CONFIGURATIONS.
 	/// </summary>
 	public Chonfigurationer? Config { get; private set; }
+	
+	/// <summary>
+	/// List of al services tasks that need to be started on ioc init
+	/// </summary>
+	public List<IStartUp> StartUps { get; } = [];
 
-	public void Init(Action<bool> action) {
+	public async void Init(Action<bool> action)
+	{
+		foreach (var task in StartUps)
+			await task.Start();
+		
 		isInitialized = true;
 		action(isInitialized);
 	}

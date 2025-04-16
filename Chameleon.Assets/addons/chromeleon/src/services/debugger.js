@@ -1,9 +1,9 @@
 // This file is responsible for managing the Chrome Debugger API
 
 import App from "../app.js";
+import { log } from "./logger.js";
 import PageMutations from "../modules/mutations.js";
 import PageEmulations from "../modules/emulations.js";
-import { log } from "./logger.js";
 
 // Keep track of mutator per tab
 const observers = new Map();
@@ -56,9 +56,13 @@ const detach = async (tabId) => {
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   log.info(`Tab ${tabId} is loading with URL: ${tab.url}`);
-  if (changeInfo.status !== "loading" || !tab.url.startsWith("http")) {
+  if (
+    changeInfo.status !== "loading" ||
+    !tab.url.startsWith("http") ||
+    tab.url.startsWith("http://127.0.0.1")
+  )
     return;
-  }
+  
   if (!App.config.enabled || App.config.bypass.some((bypassUrl) => tab.url.startsWith(bypassUrl))) {
     log.log(`Tab ${tabId} is bypassed`);
     await detach(tabId);

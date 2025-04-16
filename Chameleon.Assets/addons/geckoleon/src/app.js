@@ -1,3 +1,4 @@
+export const noises = ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"];
 export const config = {
   enabled: true,
   sync: true,
@@ -97,7 +98,7 @@ const App = {
   },
 
   // Register a new session launched by the app
-  initialize: async function (sessionId, instanceId) {
+  initialize: async function (sessionId, instanceId, data) {
     if (!(await this.discoverServer())) return false;
     this.session = { sessionId, instanceId };
     this.launchedSessions[sessionId] = this.session;
@@ -107,8 +108,8 @@ const App = {
       this.config = { ...this.config, ...sync.config };
     }
 
-    const response = await this.sendData({ type: "init" });
-    for (const [key, value] of Object.entries(response.config)) {
+    const response = data || (await this.sendData({ type: "init" })).config;
+    for (const [key, value] of Object.entries(response)) {
       this.config[key] =
         this.config.sync || key === "proxy"
           ? { ...this.config[key], ...value }

@@ -25,7 +25,8 @@ public static class JS {
 		}
 	}
 
-	public static string? Serialize(object o, JsonSerializerOptions? options = null) => JsonSerializer.Serialize(o, options ?? InsensitiveCamelCaseOptions);
+	public static string Serialize(object o, JsonSerializerOptions? options = null) =>
+	 JsonSerializer.Serialize(o, options ?? InsensitiveCamelCaseOptions);
 	
 
 	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
