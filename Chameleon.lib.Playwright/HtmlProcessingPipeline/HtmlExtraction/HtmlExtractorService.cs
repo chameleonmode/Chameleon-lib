@@ -1,6 +1,7 @@
 ﻿using Chameleon.lib.Const;
 using Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
 using Microsoft.Playwright;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlExtraction;
@@ -297,12 +298,16 @@ public class HtmlExtractorService(IBrowser browser) : IDisposable {
     Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation
   ) {
 		var relevantNodes = new List<HtmlChildSummary>();
-		foreach (var node in nodes) {
-			if (IsObviouslyIrrelevant(node)) continue;
-			var isRelevant = await IsNodeRelevantAsync(node, automationRequest, options, extractionOptions, queryLLMAsync, cancellation);
-			if (isRelevant) {
-				relevantNodes.Add(node);
-			}
+    foreach (var node in nodes) {
+      if (IsObviouslyIrrelevant(node)) continue;
+      Debug.WriteLine($"Checking relevance for node: {node.TagName}, ID: {node.Id}, Class: {node.ClassName}, TextSnippet: {node.ShortText}");
+      // Check if the node is relevant
+      var isRelevant = await IsNodeRelevantAsync(node, automationRequest, options, extractionOptions, queryLLMAsync, cancellation);
+      if (isRelevant) {
+        relevantNodes.Add(node);
+      }
+      // If the node is relevant, check its children TODO maybe
+      Debug.WriteLine($"Node relevance check completed: {node.TagName}, ID: {node.Id}, Class: {node.ClassName}, TextSnippet: {node.ShortText}, IsRelevant: {isRelevant}");
 		}
 		return relevantNodes;
 	}

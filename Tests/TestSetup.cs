@@ -28,16 +28,10 @@ public abstract class TestSetup {
 		});
 	}
 
-	public async Task<IBrowserInstance> LaunchBrowserFromSettings(int id, Enums.SystemBrowserType type = Enums.SystemBrowserType.Chrome) {
+	public async Task<IBrowserInstance> LaunchBrowserFromSettings(SysBrowserOpenOptions? options) {
 		return await SystemBrowserService.Instance.OpenWithSettings(
-			new SysBrowserSettings(new SysBrowserOpenOptions(type, new BrowserProfile {
-				Id = id,
-				Proxy = new BrowserProxy() {
-					Host = "proxy.chameleonmode.com",
-					Port = 31112,
-					UserName = "elimdadia_gmail_com",
-					Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
-				}
+			new SysBrowserSettings(options ?? new SysBrowserOpenOptions(Enums.SystemBrowserType.Chrome, new BrowserProfile {
+				Id = 0
 			}))
 		) ?? throw new Exception("Browser instance is null");
 	}

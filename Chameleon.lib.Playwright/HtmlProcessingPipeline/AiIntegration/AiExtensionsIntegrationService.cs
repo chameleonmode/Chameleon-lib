@@ -9,7 +9,7 @@ public class AiExtensionsIntegrationService {
 	public AiIntegrationOptions Options { get; }
 
 	public AiExtensionsIntegrationService(AiIntegrationOptions options) {
-		this.Options = options ?? throw new ArgumentNullException(nameof(options));
+		Options = options ?? throw new ArgumentNullException(nameof(options));
 
 		if (string.IsNullOrWhiteSpace(options.ApiKey))
 			throw new ArgumentException("API key must be provided in options.", nameof(options));
@@ -24,20 +24,16 @@ public class AiExtensionsIntegrationService {
 	}
 
 	public async Task<string> QueryLLMAsync(string prompt, AiIntegrationOptions options, CancellationToken cancellationToken = default) {
-		var messages = new List<ChatMessage>
-						{
-								new(ChatRole.System, "You are a helpful assistant generating automation scripts."),
-								new(ChatRole.User, prompt)
-						};
-		var chatOptions = new ChatOptions {
-			MaxOutputTokens = options.MaxTokens
+		var messages = new List<ChatMessage> {
+			new(ChatRole.System, "You are a helpful assistant generating automation scripts."),
+			new(ChatRole.User, prompt)
 		};
-		if (options.Temperature is not null) {
-			chatOptions.Temperature = options.Temperature.Value;
-		}
+		var chatOptions = new ChatOptions {
+			MaxOutputTokens = options.MaxTokens,
+			Temperature = options.Temperature
+		};
 
 		var response = await chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
-
 		return response.Text;
 	}
 

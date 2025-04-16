@@ -8,12 +8,9 @@ using Chameleon.lib.Playwright.Utils;
 using System.Text.RegularExpressions;
 using Chameleon.lib.Const;
 using Chameleon.lib.Playwright.HtmlProcessingPipeline.Models;
-using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Util;
 using System.Diagnostics;
 
 namespace Tests.HtmlProcessingPipeline;
-
 public class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : Base {
 
 	[Theory]
@@ -79,9 +76,8 @@ public class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : 
 	[Fact]
 	public async Task BFS_IntegrationTest_GenerateLoginScriptForFacebook() {
 		await GenerateAndRunScriptAsync(
-			testName: "Facebook - Sign in using username/password",
 			url: "https://www.facebook.com",
-			options: new () {
+			options: new() {
 				{ "username", "jmutobu191803" },
 				{ "password", "Test@243" }
 			},
@@ -100,9 +96,8 @@ public class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : 
 	[Fact]
 	public async Task BFS_IntegrationTest_GenerateLoginScriptForXcom() {
 		await GenerateAndRunScriptAsync(
-			testName: "X.com - Sign in using username/password",
 			url: "https://x.com",
-			options: new () {
+			options: new() {
 				{ "username", "jmutobu191803" },
 				{ "password", "Test@243" }
 			},
@@ -121,7 +116,7 @@ public class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : 
 	public async Task BFS_IntegrationTest_GenerateLoginScriptForXcom_MultiStep() {
 		await GenerateAndRunScriptAsync(
 			url: "https://x.com",
-			options: new () {
+			options: new() {
 				{ "username", "jmutobu191803" },
 				{ "password", "Test@243" }
 			},
@@ -152,28 +147,29 @@ public class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : 
 			WaitUntil = WaitUntilState.NetworkIdle
 		});
 
-		var pipelineService = new HtmlProcessingPipelineService(
+		;
+		foreach (var response in await new HtmlProcessingPipelineService(
 			new HtmlExtractorService(headlessBrowser),
 			new AiExtensionsIntegrationService(new AiIntegrationOptions {
 				ApiKey = "AIzaSyD7THGyxSb5qE60bKmFqdgGr8JTN0xY904",
 				ModelName = "gemini-2.0-flash",
 				MaxTokens = 1000
 			})
-		);
-		var generated = await pipelineService.ProcessingPageAsync(
+		).Process(
 			new(page, new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 }, Steps: steps)
-		);
-		var match = new Regex(@"```[a-zA-Z0-9]*\r?\n([\s\S]*?)\r?\n```", RegexOptions.Singleline).Match(generated);
-		var script = match.Success ? match.Groups[1].Value : generated;
+		)) {
+			var match = new Regex(@"```[a-zA-Z0-9]*\r?\n([\s\S]*?)\r?\n```", RegexOptions.Singleline).Match(response);
+			var script = match.Success ? match.Groups[1].Value : response;
 
-		Debug.WriteLine("=======================================");
-		Debug.WriteLine($"{testName}");
-		Debug.WriteLine("----- Generated Script -----");
-		Debug.WriteLine(script);
-		Debug.WriteLine("=======================================\n");
-		Assert.False(string.IsNullOrWhiteSpace(script), "The generated script should not be empty.");
+			Debug.WriteLine("=======================================");
+			Debug.WriteLine($"{testName}");
+			Debug.WriteLine("----- Generated Script -----");
+			Debug.WriteLine(script);
+			Debug.WriteLine("=======================================\n");
+			Assert.False(string.IsNullOrWhiteSpace(script), "The generated script should not be empty.");
 
-		await Play(script, options);
+			await Play(script, options);
+		}
 	}
 
 	async Task Play(string generatedScript, Dictionary<string, string> options) {
@@ -185,9 +181,19 @@ public class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : 
 
 		Exception? executionError = null;
 		try {
-			var browserInstance = await LaunchBrowserFromSettings(id: 28296);
-			var port = browserInstance.Settings.Profile.Port;
-			//var port = 9613;
+			// var browserInstance = await LaunchBrowserFromSettings(new (Chameleon.lib.Common.Constants.Enums.SystemBrowserType.Chrome,
+			// 	new() {
+			// 		Id = 28296,
+			// 		// Proxy = new BrowserProxy() {
+			// 		// 	Host = "proxy.chameleonmode.com",
+			// 		// 	Port = 31112,
+			// 		// 	UserName = "elimdadia_gmail_com",
+			// 		// 	Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
+			// 		// }
+			// 	})
+			// );
+			//var port = browserInstance.Settings.Profile.Port;
+			var port = 9613;
 			await PlaywriteRunner.RunScript(new RunScriptOptions {
 				Port = port,
 				Description = new(

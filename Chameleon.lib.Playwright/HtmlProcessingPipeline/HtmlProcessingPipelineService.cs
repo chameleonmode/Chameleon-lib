@@ -5,6 +5,7 @@ using Chameleon.lib.Playwright.HtmlProcessingPipeline.Models;
 using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline;
+
 public class HtmlProcessingPipelineService(
 		HtmlExtractorService htmlExtractor, AiExtensionsIntegrationService aiIntegrationService
 ) {
@@ -39,48 +40,72 @@ public class HtmlProcessingPipelineService(
 		return await Task.WhenAll(tasks);
 	}
 
-	public async Task<string> ProcessingPageAsync(HtmlProcessingParameters parameters, CancellationToken cancellationToken = default) {
+	public async Task<string[]> Process(HtmlProcessingParameters parameters, CancellationToken cancellationToken = default) {
+		return parameters.Steps.Any(s => s.AutoPerformAction == true)
+		? await ProcessAutoActionPageNodes(parameters, cancellationToken) 
+		: await ProcessPageNodes(parameters, cancellationToken);
+	}
+
+  async Task<string[]> ProcessPageNodes(HtmlProcessingParameters parameters, CancellationToken cancellationToken = default) {
 		var nodes = await htmlExtractor.GetAllNodesAsync(parameters.Page, parameters.ExtractionOptions);
 
-		if (parameters.Steps.Length == 1) {
+		var tasks = parameters.Steps.Select(step => Task.Run(async () => {
 			var relevantNodes = await htmlExtractor.GetRelevantNodesAsync(
 				nodes,
-				parameters.Steps[0].Description,
+				step.Description,
 				aiIntegrationService.Options,
 				parameters.ExtractionOptions,
 				aiIntegrationService.QueryLLMAsync,
 				cancellationToken
 			);
-			return await aiIntegrationService.GenerateAutomationScriptAsync(relevantNodes, parameters.Steps[0].Description);
-		} else {
-			var tasks = parameters.Steps.Select(async step => {
-				var relevantNodes = await htmlExtractor.GetRelevantNodesAsync(
-					nodes,
+			return await aiIntegrationService.GenerateAutomationScriptAsync(relevantNodes, step.Description);
+		}));
+
+		return await Task.WhenAll(tasks);
+	}
+	
+		public async Task<string[]> ProcessAutoActionPageNodes(HtmlProcessingParameters parameters, CancellationToken cancellationToken = default) {
+
+		var allRelevantNodes = new List<HtmlChildSummary>();
+
+		for (var i = 0; i < parameters.Steps.Length; i++) {
+			var step = parameters.Steps[i];
+
+			var currentNodes = await htmlExtractor.GetAllNodesAsync(parameters.Page, parameters.ExtractionOptions);
+
+			var relevantNodes = await htmlExtractor.GetRelevantNodesAsync(
+					currentNodes,
 					step.Description,
 					aiIntegrationService.Options,
 					parameters.ExtractionOptions,
 					aiIntegrationService.QueryLLMAsync,
 					cancellationToken
+			);
+
+			allRelevantNodes.AddRange(relevantNodes);
+
+			if (step.AutoPerformAction) {
+				var partialScript = await aiIntegrationService.GenerateAutomationScriptAsync(
+						relevantNodes,
+						step.Description
 				);
-				if (step.AutoPerformAction) {
-					var partialScript = await aiIntegrationService.GenerateAutomationScriptAsync(
-							relevantNodes,
-							step.Description
-					);
-					await parameters.Page.PerformPartialScriptActions(partialScript);
-				} else {
-					// Possibly do a known or manual action, e.g.:
-					// await page.ClickAsync("#signInButton");
-					// await page.WaitForLoadStateAsync();
-					//Or thinking about reusing an existing known script
-				}
-				return relevantNodes;
-			});
 
-			var finalMultiStepDescription = parameters.Steps.BuildMultiStepDescription();
-			var relevantNodes = await Task.WhenAll(tasks);
-
-			return await aiIntegrationService.GenerateAutomationScriptAsync(relevantNodes.SelectMany(list => list), finalMultiStepDescription);
+				await parameters.Page.PerformPartialScriptActions(partialScript);
+			} else {
+				// Possibly do a known or manual action, e.g.:
+				// await page.ClickAsync("#signInButton");
+				// await page.WaitForLoadStateAsync();
+				//Or thinking about reusing an existing known script
+			}
 		}
+
+		var finalMultiStepDescription = parameters.Steps.BuildMultiStepDescription();
+
+		var finalScript = await aiIntegrationService.GenerateAutomationScriptAsync(
+				allRelevantNodes,
+				finalMultiStepDescription
+		);
+
+		return [finalScript];
 	}
 }
