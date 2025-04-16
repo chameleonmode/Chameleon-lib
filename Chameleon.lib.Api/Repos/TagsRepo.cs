@@ -85,6 +85,10 @@ public class TagsRepo {
 
 		await RemoveItemFromTagsAsync(tagItemType, id, removedTags);
 
+		foreach (var tagName in removedTags) {
+			await RemoveTagFromItemAsync(tagItemType, id, tagName);
+		}
+
 		foreach (var tag in tags) {
 			_ = await UpdateAsync(tag, tagItemType, id);
 		}
@@ -92,6 +96,10 @@ public class TagsRepo {
 		_ = await SetTagsAsync(tagItemType, id, tags);
 
 		return tags;
+	}
+
+	private static async Task RemoveTagFromItemAsync(string tagItemType, string tagItemId, string tagName) {
+		_ = await DB.Instance.DeleteItemTagBy(tagItemType, tagItemId, tagName);
 	}
 
 	public async Task RemoveItemFromTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {
