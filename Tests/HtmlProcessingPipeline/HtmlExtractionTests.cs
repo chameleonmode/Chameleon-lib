@@ -2,7 +2,7 @@
 
 namespace Tests.HtmlProcessingPipeline;
 public class HtmlExtractionTests : Base {
-	private IHtmlExtractor? htmlExtractor;
+	private HtmlExtractorService? htmlExtractor;
 
 	public override async Task InitializeAsync() {
 		await base.InitializeAsync();
@@ -13,7 +13,6 @@ public class HtmlExtractionTests : Base {
 
 	[Fact]
 	public async Task TestExtractHtmlFromExampleDotCom() {
-
 		var url = "https://example.com";
 
 		var html = await htmlExtractor!.ExtractHtmlAsync(url);

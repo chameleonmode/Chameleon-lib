@@ -6,10 +6,15 @@ using Xunit.Abstractions;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Utils;
 using System.Text.RegularExpressions;
+using Chameleon.lib.Const;
+using Chameleon.lib.Playwright.HtmlProcessingPipeline.Models;
+using Chameleon.lib.Common.Constants;
+using Chameleon.lib.Util;
+using System.Diagnostics;
 
 namespace Tests.HtmlProcessingPipeline;
 
-public partial class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : Base {
+public class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : Base {
 
 	[Theory]
 	[InlineData("testHtmlText.txt",
@@ -54,15 +59,12 @@ public partial class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOu
 
 		var generatedScript = await pipelineService.ProcessPageAsync(new(
 				page,
-				[
-					new() {
-							Description = automationDescription,
-					},
-				],
 				extractOptions,
-				CancellationToken.None
-		 )
-		);
+				Steps: new StepDefinition {
+					Description = automationDescription,
+				}
+		 	)
+		 );
 
 		testOutput.WriteLine("=======================================");
 		testOutput.WriteLine($"Testing File: {fileName}");
@@ -76,203 +78,129 @@ public partial class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOu
 
 	[Fact]
 	public async Task BFS_IntegrationTest_GenerateLoginScriptForFacebook() {
-		var automationDescription = @"
-        Facebook Sign-in Automation objectives:
-            Fill in the username and password fields, then click the login button to sign in.
-            If any disclaimers or cookie banners appear, accept or dismiss them
-            (use a dynamic, language-independent selector).
-            For the login button, use a different CSS selector than id or class.
-            Produce a JavaScript Playwright script, with error handling and structured logging,
-            using only import instead of require.
-    ";
-
-		var parameters = new Dictionary<string, string>
-		{
-				{ "username", "jmutobu" },
-				{ "password", "test@243" }
-		};
-
 		await GenerateAndRunScriptAsync(
-				testName: "Facebook - Sign in using username/password",
-				url: "https://www.facebook.com",
-				automationDescription: automationDescription,
-				parameters: parameters,
-				relativeScriptPath: "facebook\\plugins",
-				scriptFileName: "login.js"
+			testName: "Facebook - Sign in using username/password",
+			url: "https://www.facebook.com",
+			options: new () {
+				{ "username", "jmutobu191803" },
+				{ "password", "Test@243" }
+			},
+			steps: new StepDefinition {
+				Description = @"Facebook Sign-in Automation objectives:
+    			Fill in the username and password fields, then click the login button to sign in.
+    			If any disclaimers or cookie banners appear, accept or dismiss them
+    			(use a dynamic, language-independent selector).
+    			For the login button, use a different CSS selector than id or class.
+    			Produce a JavaScript Playwright script, with error handling and structured logging,
+    			using only import instead of require."
+			}
 		);
 	}
 
 	[Fact]
 	public async Task BFS_IntegrationTest_GenerateLoginScriptForXcom() {
-		var automationDescription = @"
-        X.com (Twitter) Login Automation objectives:
-            1. Fill in the username/phone/email and password fields.
-            2. Click the login button.
-            3. Accept or dismiss any cookie banners with a dynamic selector.
-            4. Use error handling and structured logging.
-            5. Use import statements only (no require).
-    ";
-
-		var parameters = new Dictionary<string, string>
-		{
+		await GenerateAndRunScriptAsync(
+			testName: "X.com - Sign in using username/password",
+			url: "https://x.com",
+			options: new () {
 				{ "username", "jmutobu191803" },
 				{ "password", "Test@243" }
-		};
-
-		await GenerateAndRunScriptAsync(
-				testName: "X.com - Sign in using username/password",
-				url: "https://x.com",
-				automationDescription: automationDescription,
-				parameters: parameters,
-				relativeScriptPath: "x\\plugins",
-				scriptFileName: "login.js"
+			},
+			steps: new StepDefinition {
+				Description = @"X.com (Twitter) Login Automation objectives:
+        	1. Fill in the username/phone/email and password fields.
+        	2. Click the login button.
+        	3. Accept or dismiss any cookie banners with a dynamic selector.
+        	4. Use error handling and structured logging.
+        	5. Use import statements only (no require)."
+			}
 		);
 	}
 
 	[Fact]
 	public async Task BFS_IntegrationTest_GenerateLoginScriptForXcom_MultiStep() {
-		var page = await headlessBrowser!.NewPageAsync();
-		_ = await page.GotoAsync("https://x.com", new PageGotoOptions {
-			WaitUntil = WaitUntilState.NetworkIdle | WaitUntilState.DOMContentLoaded
-		});
-
-		var pipelineService = new HtmlProcessingPipelineService(
-			new HtmlExtractorService(headlessBrowser), new AiExtensionsIntegrationService(new AiIntegrationOptions {
-			ApiKey = "AIzaSyD7THGyxSb5qE60bKmFqdgGr8JTN0xY904",
-			ModelName = "gemini-2.0-flash",
-			MaxTokens = 1000
-		})
+		await GenerateAndRunScriptAsync(
+			url: "https://x.com",
+			options: new () {
+				{ "username", "jmutobu191803" },
+				{ "password", "Test@243" }
+			},
+			steps: [
+				new StepDefinition {
+					Description = "Accept or dismiss cookie banners or disclaimers if present.",
+				 	AutoPerformAction = true
+			 	},
+				new StepDefinition{
+					Description = "Click the 'Sign in' link or button on x.com to open the login overlay or page.",
+					AutoPerformAction = true
+				},
+				new StepDefinition{
+					Description = "Fill out the username/phone/email and password fields on the login form, then click 'Continue' or 'Log In'."
+				}
+			]
 		);
-		var generatedScript = await pipelineService.ProcessingPageAsync(new(
-				page,
-				[
-					new() {
-							Description = "Accept or dismiss cookie banners or disclaimers if present.",
-							AutoPerformAction = true
-					},
-					new() {
-							Description = "Click the 'Sign in' link or button on x.com to open the login overlay or page.",
-							AutoPerformAction = true
-					},
-					new() {
-							Description = "Fill out the username/phone/email and password fields on the login form, then click 'Continue' or 'Log In'."
-					}
-				],
-				new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 }
-			)
-		);
-
-		generatedScript = ExtractCodeBlock(generatedScript);
-
-		testOutput.WriteLine("=======================================");
-		testOutput.WriteLine("X.com (Twitter) Multi-Step BFS Integration Test");
-		testOutput.WriteLine("----- Generated Script -----");
-		testOutput.WriteLine(generatedScript);
-		testOutput.WriteLine("=======================================\n");
-
-		Assert.False(string.IsNullOrWhiteSpace(generatedScript), "The generated script should not be empty.");
-
-		var tempDir = Path.Combine("C:\\repos\\chameleon-playwright\\src\\scripts\\x\\plugins");
-		Directory.CreateDirectory(tempDir);
-
-		var tempFile = Path.Combine(tempDir, "login.js");
-		testOutput.WriteLine($"Tempfile: {tempFile}");
-		await File.WriteAllTextAsync(tempFile, generatedScript);
-		Assert.True(File.Exists(tempFile));
-
-		Exception? executionError = null;
-		try {
-			await PlaywriteRunner.RunScript(new RunScriptOptions {
-				Port = Port,
-				Description = new(
-							FilePath: tempFile,
-							Parameters: new Dictionary<string, string> {
-										{ "username", "jmutobu191803" },
-										{ "password", "Test@243" }
-							}
-					)
-			});
-		} catch (Exception ex) {
-			testOutput.WriteLine($"PlaywriteRunner.RunScript threw an exception: {ex}");
-			executionError = ex;
-		}
-
-		Assert.Null(executionError);
 	}
 
 	private async Task GenerateAndRunScriptAsync(
-		string testName, string url, string automationDescription, Dictionary<string, string> parameters, string relativeScriptPath, string scriptFileName
+		string url,
+		Dictionary<string, string> options,
+		[System.Runtime.CompilerServices.CallerMemberName] string testName = "",
+		params StepDefinition[] steps
 	) {
 		var page = await headlessBrowser!.NewPageAsync();
 		_ = await page.GotoAsync(url, new PageGotoOptions {
 			WaitUntil = WaitUntilState.NetworkIdle
 		});
 
-		var aiOptions = new AiIntegrationOptions {
-			ApiKey = "AIzaSyD7THGyxSb5qE60bKmFqdgGr8JTN0xY904",
-			ModelName = "gemini-2.0-flash",
-			MaxTokens = 1000
-		};
-		var aiService = new AiExtensionsIntegrationService(aiOptions);
-
-		var extractionOptions = new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 };
-		var extractorService = new HtmlExtractorService(headlessBrowser);
-		var pipelineService = new HtmlProcessingPipelineService(extractorService, aiService);
-
-		var generatedScript = await pipelineService.ProcessingPageAsync(new(
-				page,
-				[
-					new() {
-							Description = automationDescription,
-							AutoPerformAction = false
-					},
-				],
-				extractionOptions,
-				CancellationToken.None
-		)
+		var pipelineService = new HtmlProcessingPipelineService(
+			new HtmlExtractorService(headlessBrowser),
+			new AiExtensionsIntegrationService(new AiIntegrationOptions {
+				ApiKey = "AIzaSyD7THGyxSb5qE60bKmFqdgGr8JTN0xY904",
+				ModelName = "gemini-2.0-flash",
+				MaxTokens = 1000
+			})
 		);
+		var generated = await pipelineService.ProcessingPageAsync(
+			new(page, new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 }, Steps: steps)
+		);
+		var match = new Regex(@"```[a-zA-Z0-9]*\r?\n([\s\S]*?)\r?\n```", RegexOptions.Singleline).Match(generated);
+		var script = match.Success ? match.Groups[1].Value : generated;
 
-		generatedScript = ExtractCodeBlock(generatedScript);
+		Debug.WriteLine("=======================================");
+		Debug.WriteLine($"{testName}");
+		Debug.WriteLine("----- Generated Script -----");
+		Debug.WriteLine(script);
+		Debug.WriteLine("=======================================\n");
+		Assert.False(string.IsNullOrWhiteSpace(script), "The generated script should not be empty.");
 
-		testOutput.WriteLine("=======================================");
-		testOutput.WriteLine($"{testName}");
-		testOutput.WriteLine("----- Generated Script -----");
-		testOutput.WriteLine(generatedScript);
-		testOutput.WriteLine("=======================================\n");
-		Assert.False(string.IsNullOrWhiteSpace(generatedScript), "The generated script should not be empty.");
+		await Play(script, options);
+	}
 
-		var tempDir = Path.Combine("C:\\repos\\chameleon-playwright\\src\\scripts", relativeScriptPath);
-		if (!Directory.Exists(tempDir))
-			Directory.CreateDirectory(tempDir);
-
-		var tempFile = Path.Combine(tempDir, scriptFileName);
-		testOutput.WriteLine($"Tempfile: {tempFile}");
+	async Task Play(string generatedScript, Dictionary<string, string> options) {
+		var tempFile = Path.Combine(FilePaths.AppTempScripts, Guid.NewGuid() + ".js");
+		Debug.WriteLine($"Tempfile: {tempFile}");
 		await File.WriteAllTextAsync(tempFile, generatedScript);
 
 		Assert.True(File.Exists(tempFile));
 
 		Exception? executionError = null;
 		try {
+			var browserInstance = await LaunchBrowserFromSettings(id: 28296);
+			var port = browserInstance.Settings.Profile.Port;
+			//var port = 9613;
 			await PlaywriteRunner.RunScript(new RunScriptOptions {
-				Port = Port,
+				Port = port,
 				Description = new(
-							FilePath: tempFile,
-							Parameters: parameters
-					)
+					FilePath: tempFile,
+					Parameters: options
+				)
 			});
 		} catch (Exception ex) {
-			testOutput.WriteLine($"PlaywriteRunner.RunScript threw an exception: {ex}");
+			Debug.WriteLine($"PlaywriteRunner.RunScript threw an exception: {ex}");
 			executionError = ex;
 		}
 
 		Assert.Null(executionError);
+		Debug.WriteLine("Script executed successfully.");
 	}
-
-	string ExtractCodeBlock(string input) {
-		var match = EextractCodeBlock().Match(input);
-		return match.Success ? match.Groups[1].Value : input;
-	}
-
-	[GeneratedRegex(@"```[a-zA-Z0-9]*\r?\n([\s\S]*?)\r?\n```", RegexOptions.Singleline)]
-	private static partial Regex EextractCodeBlock();
 }

@@ -8,15 +8,15 @@ using chameleon.assets;
 namespace Chameleon.lib.WebBrowser.Models;
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
 public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions) {
-	public SystemBrowserType BrowserType => OpenOptions.BrowserType;
-	public BrowserProfile Profile => OpenOptions.Profile;
+	public SystemBrowserType BrowserType { get; } = OpenOptions.BrowserType;
+	public BrowserProfile Profile { get; } = OpenOptions.Profile;
 	public string SysBrowseUserExtDir => Path.Combine(
 		Consts.Addons.DefaultExtensionsFolderPath, BrowserType.GetDescription()
-		);
+	);
 
 	public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(
 		Path.Combine(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString())
-		);
+	);
 
 	private string? destextPath;
 	public string DestExtentionsDir {

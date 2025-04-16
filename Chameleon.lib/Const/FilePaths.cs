@@ -11,6 +11,9 @@ public static class FilePaths {
 	public static string AppTempDir => EnsureDirectoryExists(
 		Path.GetTempPath(), Variables.AppName
 	);
+	public static string AppTempScripts => EnsureDirectoryExists(
+		AppTempDir, "Playwright"
+	);
 	public static string AppDownloadDir => EnsureDirectoryExists(
 		AppTempDir, "Downloads"
 	);

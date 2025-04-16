@@ -1,13 +1,10 @@
-﻿using Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
+﻿using Chameleon.lib.Const;
+using Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
 using Microsoft.Playwright;
-using Newtonsoft.Json;
 using System.Text.Json;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlExtraction;
-public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposable {
-
-	private readonly IBrowser browser = browser ?? throw new ArgumentNullException(nameof(browser));
-
+public class HtmlExtractorService(IBrowser browser) : IDisposable {
 	public async Task<string> ExtractHtmlAsync(string url, ExtractionOptions? options = null, CancellationToken cancellationToken = default) {
 		options ??= new ExtractionOptions();
 
@@ -49,7 +46,8 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 
 	public async Task<string> InitializeCrawlerContextAsync(IPage page) {
 
-		const string crawlerScript = @"
+		const string crawlerScript =
+"""
 (() => {
     window.__crawler = {
         nodeCounter: 0,
@@ -100,41 +98,41 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
         },
 
        getImmediateChildren(nodeId, snippetTextLength = 200) {
-  const node = this.getNode(nodeId);
-  if (!node) return [];
+          const node = this.getNode(nodeId);
+          if (!node) return [];
 
-  const results = [];
-  const childElems = Array.from(node.children) || [];
+          const results = [];
+          const childElems = Array.from(node.children) || [];
 
-  if (node.shadowRoot) {
-    childElems.push(...Array.from(node.shadowRoot.children));
-  }
+          if (node.shadowRoot) {
+            childElems.push(...Array.from(node.shadowRoot.children));
+          }
 
-  for (const child of childElems) {
-    const newId = window.__crawler.registerNode(child);
-    const text = child.innerText || '';
-    const shortText = text.length > snippetTextLength
-      ? text.substring(0, snippetTextLength) + '...'
-      : text;
+          for (const child of childElems) {
+            const newId = window.__crawler.registerNode(child);
+            const text = child.innerText || '';
+            const shortText = text.length > snippetTextLength
+              ? text.substring(0, snippetTextLength) + '...'
+              : text;
 
-    results.push({
-      nodeId: newId,
-      tagName: child.tagName.toLowerCase(),
-      id: child.id || null,
-      className: child.className || null,
-      shortText,
-      cssSelector: window.__crawler.buildCssSelector(child)
-    });
-  }
+            results.push({
+              nodeId: newId,
+              tagName: child.tagName.toLowerCase(),
+              id: child.id || null,
+              className: child.className || null,
+              shortText,
+              cssSelector: window.__crawler.buildCssSelector(child)
+            });
+          }
 
-  return results;
-}
-    };
+            return results;
+          }
+        };
 
-    const rootNode = document.body;
-    window.__crawler.rootId = window.__crawler.registerNode(rootNode);
-})();
-";
+          const rootNode = document.body;
+          window.__crawler.rootId = window.__crawler.registerNode(rootNode);
+      })();
+""";
 
 		_ = await page.EvaluateAsync(crawlerScript);
 
@@ -143,7 +141,7 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		return rootId;
 	}
 
-	public async Task<List<HtmlChildSummary>> GetAllNodesAsync(IPage page, int maxDepth, int textLength) {
+	public async Task<List<HtmlChildSummary>> GetAllNodesAsync(IPage page, ExtractionOptions extractionOptions) {
 
 		const string bfsJs = @"(() => {
   if (!window.__crawler) {
@@ -249,8 +247,10 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 ";
 		const string fullBFSJs = $@"(function() {{{bfsJs}}})();";
 		_ = await page.EvaluateAsync(fullBFSJs);
-		var rawJson = await page.EvaluateAsync<string>($"() => JSON.stringify(window.__crawler.getAllNodesBFS({maxDepth}, {textLength}))");
-		var childSummaries = JsonConvert.DeserializeObject<List<HtmlChildSummary>>(rawJson);
+		var rawJson = await page.EvaluateAsync<string>(
+      $"() => JSON.stringify(window.__crawler.getAllNodesBFS({extractionOptions.MaxChildDepth}, {extractionOptions.SnippetTextLength}))"
+    );
+		var childSummaries = JS.DeserializeSafely<List<HtmlChildSummary>>(rawJson);
 
 		return childSummaries ?? [];
 	}
@@ -316,14 +316,14 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
   ) {
 		var jsResult = await page.EvaluateAsync<JsonElement>($@"() => window.__crawler.getImmediateChildren('{nodeId}',{snippetTextLength})", cancellationToken);
 		var rawText = jsResult.GetRawText();
-		var childSummaries = JsonConvert.DeserializeObject<List<HtmlChildSummary>>(rawText);
+		var childSummaries = JS.DeserializeSafely<List<HtmlChildSummary>>(rawText);
 		return childSummaries ?? [];
 	}
 
 	private static async Task<bool> IsNodeRelevantAsync(
 		IPage page, HtmlChildSummary summary, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions,
-		Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellationToken = default) {
-
+		Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellationToken = default
+  ) {
 		var nodeInfo =
 			$@"Tag: {summary.TagName}
 				 ID: {summary.Id}

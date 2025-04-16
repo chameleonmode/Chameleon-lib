@@ -124,7 +124,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
 			"--restore-last-session",
-			$"--remote-debugging-port={Settings.Port}",
+			$"--remote-debugging-port={Settings.Profile.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			$"--load-extension=\"{exts}\"",

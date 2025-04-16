@@ -4,7 +4,7 @@ using Mscc.GenerativeAI.Microsoft;
 using System.Text;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
-public class AiExtensionsIntegrationService : IAiIntegrationService {
+public class AiExtensionsIntegrationService {
 	private readonly IChatClient chatClient;
 	public AiIntegrationOptions Options { get; }
 
