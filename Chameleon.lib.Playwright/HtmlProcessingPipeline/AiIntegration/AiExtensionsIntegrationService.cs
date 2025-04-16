@@ -5,10 +5,11 @@ using System.Text;
 
 namespace Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
 public class AiExtensionsIntegrationService : IAiIntegrationService {
-	private readonly AiIntegrationOptions options;
 	private readonly IChatClient chatClient;
+	public AiIntegrationOptions Options { get; }
+
 	public AiExtensionsIntegrationService(AiIntegrationOptions options) {
-		this.options = options ?? throw new ArgumentNullException(nameof(options));
+		this.Options = options ?? throw new ArgumentNullException(nameof(options));
 
 		if (string.IsNullOrWhiteSpace(options.ApiKey))
 			throw new ArgumentException("API key must be provided in options.", nameof(options));
@@ -40,7 +41,7 @@ public class AiExtensionsIntegrationService : IAiIntegrationService {
 		return response.Text;
 	}
 
-	public async Task<string> GenerateAutomationScriptAsync(List<HtmlChildSummary> relevantNodes,string automationRequest) {
+	public async Task<string> GenerateAutomationScriptAsync(IEnumerable<HtmlChildSummary> relevantNodes, string automationRequest) {
 		var sb = new StringBuilder();
 		sb.AppendLine("You are a helpful assistant that generates **valid JavaScript Playwright scripts** only.");
 		sb.AppendLine("Any additional explanations or disclaimers must be wrapped in JavaScript comments so the resulting code is directly runnable with Node.js or any JavaScript environment.");
@@ -97,7 +98,7 @@ public class AiExtensionsIntegrationService : IAiIntegrationService {
 		sb.AppendLine("Now produce the **full** JavaScript code, do not include any Typescript.");
 
 		var finalPrompt = sb.ToString();
-		var script = await QueryLLMAsync(finalPrompt, options, CancellationToken.None);
+		var script = await QueryLLMAsync(finalPrompt, Options, CancellationToken.None);
 		return script;
 	}
 

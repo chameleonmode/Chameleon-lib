@@ -6,6 +6,7 @@ using Chameleon.lib.Playwright.Scripts.JS.Reddit.Subreddit;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Playwright.Utils;
 using Chameleon.lib.Util;
+using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
@@ -23,11 +24,8 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	async Task<int> OpenBrowser(SystemBrowserType bt = SystemBrowserType.Chrome, int id = 28296) {
 		var port = TcpUtil.NextFreePort(9613);
-		var browser = await browserService.OpenWithSettings(new(
-				new(bt, new() {
-					Id = id,
-				}),
-				port
+		var browser = await browserService.OpenWithSettings(new SysBrowserSettings(
+				new(bt, new() { Id = id, Port = port, })
 			)
 		);
 		Assert.NotNull(browser);

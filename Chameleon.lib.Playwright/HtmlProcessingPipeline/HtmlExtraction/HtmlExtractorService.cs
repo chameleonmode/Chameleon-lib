@@ -18,7 +18,8 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 
 		_ = await page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
 
-		if (!string.IsNullOrEmpty(options.WaitForSelector)) _ = await page.WaitForSelectorAsync(options.WaitForSelector, new PageWaitForSelectorOptions { Timeout = options.WaitTimeout });
+		if (!string.IsNullOrEmpty(options.WaitForSelector))
+      _ = await page.WaitForSelectorAsync(options.WaitForSelector, new PageWaitForSelectorOptions { Timeout = options.WaitTimeout });
 
 		var html = await page.EvaluateAsync<string>(@"() => {
         function getShadowHTML(el) {
@@ -254,7 +255,10 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		return childSummaries ?? [];
 	}
 
-	public async Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IPage page, string rootId, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation) {
+	public async Task<List<HtmlChildSummary>> GetRelevantNodesAsync(
+    IPage page, string rootId, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions,
+    Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation
+  ) {
 		var visited = new HashSet<string>();
 		var queue = new Queue<string>();
 		var keptNodes = new List<HtmlChildSummary>();
@@ -288,7 +292,10 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		return keptNodes;
 	}
 
-	public async Task<List<HtmlChildSummary>> GetRelevantNodesAsync(IEnumerable<HtmlChildSummary> nodes, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions, Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation) {
+	public async Task<List<HtmlChildSummary>> GetRelevantNodesAsync(
+    IEnumerable<HtmlChildSummary> nodes, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions,
+    Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellation
+  ) {
 		var relevantNodes = new List<HtmlChildSummary>();
 		foreach (var node in nodes) {
 			if (IsObviouslyIrrelevant(node)) continue;
@@ -304,8 +311,9 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		return c.TagName is "script" or "style" || (string.IsNullOrWhiteSpace(c.ShortText) && string.IsNullOrWhiteSpace(c.Id));
 	}
 
-
-	private static async Task<List<HtmlChildSummary>> GetChildSummariesAsync(IPage page, string nodeId, int maxDepth, int snippetTextLength, CancellationToken cancellationToken = default) {
+	private static async Task<List<HtmlChildSummary>> GetChildSummariesAsync(
+    IPage page, string nodeId, int maxDepth, int snippetTextLength, CancellationToken cancellationToken = default
+  ) {
 		var jsResult = await page.EvaluateAsync<JsonElement>($@"() => window.__crawler.getImmediateChildren('{nodeId}',{snippetTextLength})", cancellationToken);
 		var rawText = jsResult.GetRawText();
 		var childSummaries = JsonConvert.DeserializeObject<List<HtmlChildSummary>>(rawText);
@@ -325,7 +333,9 @@ public class HtmlExtractorService(IBrowser browser) : IHtmlExtractor, IDisposabl
 		if (summary.NodeId is null)
 			return false;
 
-		var childSummaries = await GetChildSummariesAsync(page, summary.NodeId, extractionOptions.MaxChildDepth, extractionOptions.SnippetTextLength, cancellationToken);
+		var childSummaries = await GetChildSummariesAsync(
+      page, summary.NodeId, extractionOptions.MaxChildDepth, extractionOptions.SnippetTextLength, cancellationToken
+    );
 
 		var sampleChildren = childSummaries.Take(2).Select(c => $"  - {c.TagName}, text: {c.ShortText}").ToList();
 
@@ -359,8 +369,10 @@ Answer ONLY with 'YES' or 'NO'.
 		return !trimmed.Contains("NO");
 	}
 
-	private static async Task<bool> IsNodeRelevantAsync(HtmlChildSummary summary, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions,
-	Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellationToken = default) {
+	private static async Task<bool> IsNodeRelevantAsync(
+    HtmlChildSummary summary, string automationRequest, AiIntegrationOptions options, ExtractionOptions extractionOptions,
+	  Func<string, AiIntegrationOptions, CancellationToken, Task<string>> queryLLMAsync, CancellationToken cancellationToken = default
+  ) {
 
 		var nodeInfo =
 			$@"Tag: {summary.TagName}

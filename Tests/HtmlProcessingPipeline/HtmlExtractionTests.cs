@@ -1,22 +1,14 @@
 ﻿using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlExtraction;
-using Microsoft.Playwright;
 
 namespace Tests.HtmlProcessingPipeline;
-public class HtmlExtractionTests : IAsyncLifetime {
-	private IPlaywright? playwright;
-	private IBrowser? browser;
+public class HtmlExtractionTests : Base {
 	private IHtmlExtractor? htmlExtractor;
 
-	public async Task InitializeAsync() {
-		playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
-
-		htmlExtractor = new HtmlExtractorService(browser);
-	}
-
-	public async Task DisposeAsync() {
-		if (browser is not null) await browser.DisposeAsync();
-		playwright?.Dispose();
+	public override async Task InitializeAsync() {
+		await base.InitializeAsync();
+		Assert.NotNull(playwright);
+		Assert.NotNull(headlessBrowser);
+		htmlExtractor = new HtmlExtractorService(headlessBrowser);
 	}
 
 	[Fact]

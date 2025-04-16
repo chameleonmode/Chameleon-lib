@@ -3,40 +3,13 @@ using Chameleon.lib.Playwright.HtmlProcessingPipeline.HtmlExtraction;
 using Microsoft.Playwright;
 using Chameleon.lib.Playwright.HtmlProcessingPipeline.AiIntegration;
 using Xunit.Abstractions;
-using Chameleon.lib.Util;
-using Chameleon.lib.WebBrowser.Services;
-using Chameleon.lib.Playwright.Services;
-using static Chameleon.lib.Common.Constants.Enums;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Utils;
 using System.Text.RegularExpressions;
-using Chameleon.lib.Playwright.HtmlProcessingPipeline.Models;
 
 namespace Tests.HtmlProcessingPipeline;
 
-public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifetime {
-	private IBrowser? browser;
-	private IPlaywright? playwright;
-	private ITestOutputHelper testOutput;
-	readonly BundledScriptsService repo;
-	readonly SystemBrowserService browserService;
-
-	public HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) {
-		repo = BundledScriptsService.Instance;
-		browserService = SystemBrowserService.Instance;
-		this.testOutput = testOutput;
-	}
-
-	public async Task InitializeAsync() {
-		playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
-	}
-
-	public async Task DisposeAsync() {
-		if (browser != null)
-			await browser.DisposeAsync();
-		playwright?.Dispose();
-	}
+public partial class HtmlProcessingPipelineServiceTests(ITestOutputHelper testOutput) : Base {
 
 	[Theory]
 	[InlineData("testHtmlText.txt",
@@ -56,20 +29,18 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 5. Must be in JavaScript, with robust logging and error handling.")]
 	public async Task BFS_IntegrationTest_GeneratesNonEmptyScript(string fileName, string automationDescription) {
 
-		var page = await browser!.NewPageAsync();
+		var page = await headlessBrowser!.NewPageAsync();
 
-#pragma warning disable CS8604 // Possible null reference argument.
 		var fileHtmlPath = Path.Combine(
-				Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location),
+				Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
 				"Files",
 				fileName
 		);
-#pragma warning restore CS8604 // Possible null reference argument.
 
 		var fakeHtml = await File.ReadAllTextAsync(fileHtmlPath);
 		await page.SetContentAsync(fakeHtml);
 
-		var extractorService = new HtmlExtractorService(browser);
+		var extractorService = new HtmlExtractorService(headlessBrowser);
 
 		var aiOptions = new AiIntegrationOptions {
 			ApiKey = "AIzaSyD7THGyxSb5qE60bKmFqdgGr8JTN0xY904",
@@ -81,22 +52,26 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 		var extractOptions = new ExtractionOptions() { MaxChildDepth = 3, SnippetTextLength = 200 };
 		var pipelineService = new HtmlProcessingPipelineService(extractorService, aiService);
 
-		var generatedScript = await pipelineService.ProcessPageAsync(
+		var generatedScript = await pipelineService.ProcessPageAsync(new(
 				page,
-				automationDescription,
-				aiOptions,
+				[
+					new() {
+							Description = automationDescription,
+					},
+				],
 				extractOptions,
 				CancellationToken.None
+		 )
 		);
 
 		testOutput.WriteLine("=======================================");
 		testOutput.WriteLine($"Testing File: {fileName}");
 		testOutput.WriteLine($"Automation Description:\n{automationDescription}");
 		testOutput.WriteLine("----- Generated Script -----");
-		testOutput.WriteLine(generatedScript);
+		testOutput.WriteLine(generatedScript[0]);
 		testOutput.WriteLine("=======================================\n");
 
-		Assert.False(string.IsNullOrWhiteSpace(generatedScript), "The generated script should not be empty.");
+		Assert.False(string.IsNullOrWhiteSpace(generatedScript[0]), "The generated script should not be empty.");
 	}
 
 	[Fact]
@@ -156,44 +131,35 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 
 	[Fact]
 	public async Task BFS_IntegrationTest_GenerateLoginScriptForXcom_MultiStep() {
-
-		var page = await browser!.NewPageAsync();
+		var page = await headlessBrowser!.NewPageAsync();
 		_ = await page.GotoAsync("https://x.com", new PageGotoOptions {
-			WaitUntil = WaitUntilState.NetworkIdle
+			WaitUntil = WaitUntilState.NetworkIdle | WaitUntilState.DOMContentLoaded
 		});
 
-		var aiOptions = new AiIntegrationOptions {
+		var pipelineService = new HtmlProcessingPipelineService(
+			new HtmlExtractorService(headlessBrowser), new AiExtensionsIntegrationService(new AiIntegrationOptions {
 			ApiKey = "AIzaSyD7THGyxSb5qE60bKmFqdgGr8JTN0xY904",
 			ModelName = "gemini-2.0-flash",
 			MaxTokens = 1000
-		};
-		var aiService = new AiExtensionsIntegrationService(aiOptions);
-
-		var extractionOptions = new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 };
-		var extractorService = new HtmlExtractorService(browser);
-
-		var pipelineService = new HtmlProcessingPipelineService(extractorService, aiService);
-
-		var steps = new List<StepDefinition>
-		{
-				new() {
-						Description = "Accept or dismiss cookie banners or disclaimers if present.",
-						AutoPerformAction = true
-				},
-				new() {
-						Description = "Click the 'Sign in' link or button on x.com to open the login overlay or page.",
-						AutoPerformAction = true
-				},
-				new() {
-						Description = "Fill out the username/phone/email and password fields on the login form, then click 'Continue' or 'Log In'."
-				}
-		};
-
-		var generatedScript = await pipelineService.ProcessMultiStepAsync(
+		})
+		);
+		var generatedScript = await pipelineService.ProcessingPageAsync(new(
 				page,
-				steps,
-				aiOptions,
-				extractionOptions
+				[
+					new() {
+							Description = "Accept or dismiss cookie banners or disclaimers if present.",
+							AutoPerformAction = true
+					},
+					new() {
+							Description = "Click the 'Sign in' link or button on x.com to open the login overlay or page.",
+							AutoPerformAction = true
+					},
+					new() {
+							Description = "Fill out the username/phone/email and password fields on the login form, then click 'Continue' or 'Log In'."
+					}
+				],
+				new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 }
+			)
 		);
 
 		generatedScript = ExtractCodeBlock(generatedScript);
@@ -214,12 +180,10 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 		await File.WriteAllTextAsync(tempFile, generatedScript);
 		Assert.True(File.Exists(tempFile));
 
-		var port = await OpenBrowser();
-
 		Exception? executionError = null;
 		try {
 			await PlaywriteRunner.RunScript(new RunScriptOptions {
-				Port = port,
+				Port = Port,
 				Description = new(
 							FilePath: tempFile,
 							Parameters: new Dictionary<string, string> {
@@ -236,12 +200,10 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 		Assert.Null(executionError);
 	}
 
-
-	private async Task GenerateAndRunScriptAsync(string testName, string url, string automationDescription,
-		Dictionary<string, string> parameters, string relativeScriptPath, string scriptFileName
-) {
-
-		var page = await browser!.NewPageAsync();
+	private async Task GenerateAndRunScriptAsync(
+		string testName, string url, string automationDescription, Dictionary<string, string> parameters, string relativeScriptPath, string scriptFileName
+	) {
+		var page = await headlessBrowser!.NewPageAsync();
 		_ = await page.GotoAsync(url, new PageGotoOptions {
 			WaitUntil = WaitUntilState.NetworkIdle
 		});
@@ -254,15 +216,20 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 		var aiService = new AiExtensionsIntegrationService(aiOptions);
 
 		var extractionOptions = new ExtractionOptions { MaxChildDepth = 20, SnippetTextLength = 400 };
-		var extractorService = new HtmlExtractorService(browser);
+		var extractorService = new HtmlExtractorService(headlessBrowser);
 		var pipelineService = new HtmlProcessingPipelineService(extractorService, aiService);
 
-		var generatedScript = await pipelineService.ProcessingPageAsync(
+		var generatedScript = await pipelineService.ProcessingPageAsync(new(
 				page,
-				automationDescription,
-				aiOptions,
+				[
+					new() {
+							Description = automationDescription,
+							AutoPerformAction = false
+					},
+				],
 				extractionOptions,
 				CancellationToken.None
+		)
 		);
 
 		generatedScript = ExtractCodeBlock(generatedScript);
@@ -284,11 +251,10 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 
 		Assert.True(File.Exists(tempFile));
 
-		var port = await OpenBrowser();
 		Exception? executionError = null;
 		try {
 			await PlaywriteRunner.RunScript(new RunScriptOptions {
-				Port = port,
+				Port = Port,
 				Description = new(
 							FilePath: tempFile,
 							Parameters: parameters
@@ -305,26 +271,6 @@ public partial class HtmlProcessingPipelineServiceTests : TestSetup, IAsyncLifet
 	string ExtractCodeBlock(string input) {
 		var match = EextractCodeBlock().Match(input);
 		return match.Success ? match.Groups[1].Value : input;
-	}
-
-	async Task<int> OpenBrowser(SystemBrowserType bt = SystemBrowserType.Chrome, int id = 28296) {
-		var port = TcpUtil.NextFreePort(9613);
-		var browser = await browserService.OpenWithSettings(new(
-				new(bt, new() {
-					Id = id,
-				}),
-				port
-			)
-		);
-		Assert.NotNull(browser);
-		_ = await browser.LoadedTCS.Task;
-		return port;
-	}
-
-	[Fact]
-	public async Task TestOpenBrowser() {
-		var port = await OpenBrowser();
-		Assert.True(port > 0);
 	}
 
 	[GeneratedRegex(@"```[a-zA-Z0-9]*\r?\n([\s\S]*?)\r?\n```", RegexOptions.Singleline)]

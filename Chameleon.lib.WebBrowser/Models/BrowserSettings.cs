@@ -7,8 +7,7 @@ using chameleon.assets;
 
 namespace Chameleon.lib.WebBrowser.Models;
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
-public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile);
-public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port) {
+public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions) {
 	public SystemBrowserType BrowserType => OpenOptions.BrowserType;
 	public BrowserProfile Profile => OpenOptions.Profile;
 	public string SysBrowseUserExtDir => Path.Combine(

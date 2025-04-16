@@ -134,10 +134,7 @@ public class SystemBrowserService {
 		if (!Instances.TryGetValue(options.Profile.Id, out var browser)) {
 			OpenTaskCompletionSource = new TaskCompletionSource<IBrowserInstance?>();
 			try {
-				browser = await OpenWithSettings(new(
-					options, 
-					TcpUtil.NextFreePort(9613))
-				);
+				browser = await OpenWithSettings(new(options));
 			} catch (Exception e) {
 				browser?.InvokeEvent(SysBrowserEventType.Error);
 				Toaster.Error(e.Message);
@@ -180,6 +177,7 @@ public class SystemBrowserService {
 		var browser = Instances.FirstOrDefault(x => x.Value.Settings.Profile.Id == id);
 		return browser.Value != null ? (true, browser.Value.Settings.BrowserType) : (false, SystemBrowserType.Unknown);
 	}
+	
 	// Singleton
 	public static SystemBrowserService Instance { get; } = new();
 }
