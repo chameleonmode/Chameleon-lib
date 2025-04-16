@@ -85,15 +85,9 @@ public class SystemBrowserService {
 		// TODO: test node console standard server launcher vs tcp server 
 		// await NodeServerLauncher.Instance.StartServer();
 		// TODO: move to app startup or possibly add a lib startup module
-		await AddonsServer.Instance.Start();
+		// await AddonsServer.Instance.Start();
 
 		// 
-		var browser = Instances[settings.OpenOptions] = settings.BrowserType switch {
-			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = settings },
-			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = settings },
-			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = settings },
-			_ => throw new NotImplementedException(),
-		};
 		// TODO: implement a system browser instance factory or for the bigger picture a state machine factory
 		// var browser = Instances[settings.OpenOptions.Profile.Id] = new() {
 		// 	[SystemBrowserType.Chrome] = new ChromeSysBrowserInstance() { Settings = settings },
@@ -101,6 +95,12 @@ public class SystemBrowserService {
 		// 	[SystemBrowserType.Firefox] = new FirefoxSysBrowserInstance() { Settings = settings }
 		// };
 		// 
+		var browser = Instances[settings.OpenOptions] = settings.BrowserType switch {
+			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = settings },
+			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = settings },
+			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = settings },
+			_ => throw new NotImplementedException(),
+		};
 		await browser.Ensure();
 		browser.OnEvent += async (sender, args) => {
 			switch (args.EventType) {

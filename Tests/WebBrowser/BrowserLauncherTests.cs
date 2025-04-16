@@ -4,7 +4,7 @@ using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.WebBrowser;
-public class BrowserLauncherTests {
+public class BrowserLauncherTests : TestSetup {
 	readonly ManualResetEventSlim testCompletionEvent = new(false);
 	void KeepAlive(IBrowserInstance bi) {
 		// Start a monitoring task that will complete when the signal file is deleted

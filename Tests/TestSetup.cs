@@ -1,10 +1,14 @@
 ﻿using Chameleon.lib;
+using Chameleon.lib.Auth;
+using Chameleon.lib.WebBrowser.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace Tests;
-public abstract class TestSetup {
+
+public abstract class TestSetup : IAsyncLifetime {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 	public TestSetup(int dictionary = 1) {
+		IoC.Instance.StartUps.Add(AddonsServer.Instance);
 		IoC.Instance.Configure(() => {
 			return new WritableConfiguration(new ConfigurationBuilder()
 				.SetBasePath(Directory.GetCurrentDirectory())
@@ -20,6 +24,10 @@ public abstract class TestSetup {
 				Environment.Directory[dictionary].email,
 				Environment.Directory[dictionary].license
 				), nameof(LoginSettings));
+			_tcs.SetResult(true);
 		});
 	}
+
+	public Task DisposeAsync() => Task.CompletedTask;
+	public async Task InitializeAsync() => await _tcs.Task;
 }

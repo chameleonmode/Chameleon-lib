@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 using Chameleon.lib.Const;
+using Chameleon.lib.Interfaces.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -13,32 +14,27 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Chameleon.lib.WebBrowser.Services;
-public class AddonsServer {
+public class AddonsServer : IStartUp {
   private WebApplication? app;
 
-  public int Port { get; } = new[] { 3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696 }.FirstOrDefault(port => {
-    try {
-      // Create a listener to check if the port is available
-      var listener = new TcpListener(IPAddress.Loopback, port);
-      listener.Start();
-      listener.Stop();
-
-      // If we get here, the port is available
-      return true;
-    } catch (SocketException) {
-      // Port is in use, try the next one
-      return false;
-    }
-  });
-
+  public int Port { get; } 
   public string RedirectUri { get; }
   public ConcurrentDictionary<string, object> AddonInstances { get; } = [];
 
   public bool IsRunning => app != null;
 
   AddonsServer() {
-    if (Port == 0) {
-      throw new InvalidOperationException("No available port found to start the AddonsServer");
+    foreach (var port in new [] { 3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696 }) {
+      try {
+        // Create a listener to check if the port is available
+        var listener = new TcpListener(IPAddress.Loopback, port);
+        listener.Start();
+        listener.Stop();
+        Port = port;
+        break;
+      } catch (SocketException) {
+        // Port is in use, try the next one
+      }
     }
 
     RedirectUri = $"http://127.0.0.1:{Port}/callback";
