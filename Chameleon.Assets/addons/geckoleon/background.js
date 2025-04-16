@@ -3,18 +3,29 @@ import proxy from "./src/services/proxy.js";
 import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import "./src/services/executions.js";
+import { checkForExtensionUpdate } from "./src/lib/util.js";
 
 const startup = async (id = -1) => {
+  log.log("startup");
   // Restore session from storage
   log.info("App initialized with session:", App.session);
   log.info("App initialized with config:", App.config);
-  log.info("App initialized with launchedSessions:", App.launchedSessions);
 
-  // Reload all tabs except the one that triggered the startup
-  const tabs = await chrome.tabs.query({});
-  await Promise.all(
-    tabs.filter((tab) => tab.id !== id).map((tab) => chrome.tabs.reload(tab.id, { bypassCache: true }))
-  );
+  // Only update the tab if id is valid (not undefined, null, or -1)
+  if (id !== undefined && id !== null && id !== -1) {
+    await chrome.tabs.update(id, { url: App.config.urls.start });
+  } 
+  // TODO:
+  // else {
+  //   // Create a new tab if id is invalid
+  //   await chrome.tabs.create({ url: App.config.urls.start });
+  // }
+
+  // // Reload all tabs except the one that triggered the startup
+  // const tabs = await chrome.tabs.query({});
+  // await Promise.all(
+  //   tabs.filter((tab) => tab.id !== id).map((tab) => chrome.tabs.reload(tab.id, { bypassCache: true }))
+  // );
 
   // Add bookmarks for home pages
   await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
@@ -22,23 +33,58 @@ const startup = async (id = -1) => {
 
 const on = async () => {
   log.info("On installed or started");
-  // Run for existing tabs and Handle chameleon.mode.com redirects
-  const initializer = (await chrome.tabs.query({ url: ["*://com.mode.chameleon/*"] })).at(-1);
+  await checkForExtensionUpdate();
+  await App.discoverServer();
+
+  // Query tabs once and find initializer
+  const tabs = await chrome.tabs.query({});
+  const initializer = tabs.find(tab => {
+    try {
+      return tab.url && tab.url.startsWith(App.server);
+    } catch (error) {
+      log.error("Error parsing URL:", error);
+      try {
+        const url = new URL(tab.url);
+        return url.hostname === "127.0.0.1";
+      } catch {
+        return false;
+      }
+    }
+  });
+
+
   if (initializer) {
     const url = new URL(initializer.url);
     const sessionId = url.searchParams.get("sessionId");
     const instanceId = url.searchParams.get("instanceId");
-    await App.initialize(sessionId, instanceId);
-
-    await App.startup();
-    await proxy(App.config.proxy);
-    await chrome.tabs.update(initializer.id, { url: App.config.urls.start });
-  } else {
-    await App.startup();
-    await proxy(App.config.proxy);
+    
+    // Wait for page to fully load
+    await waitForTabLoad(initializer.id);
+    
+    // Get page content
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: initializer.id },
+      func: () => document.body.textContent
+    });
+    
+    await App.initialize(sessionId, instanceId, JSON.parse(results[0].result));
   }
 
+  // Common startup operations
+  await App.startup();
+  await proxy(App.config.proxy);
   await startup(initializer?.id);
+};
+
+// Helper function to wait for tab to load
+const waitForTabLoad = async (tabId) => {
+  return new Promise((resolve) => {
+    const checkStatus = async () => {
+      const tabInfo = await chrome.tabs.get(tabId);
+      tabInfo.status === "complete" ? resolve() : setTimeout(checkStatus, 100);
+    };
+    checkStatus();
+  });
 };
 chrome.runtime.onInstalled.addListener(on);
 chrome.runtime.onStartup.addListener(on);
@@ -105,4 +151,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// zip -r -X archive.zip * -x "*.DS_Store" -x ".*"

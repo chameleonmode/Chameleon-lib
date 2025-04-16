@@ -1,7 +1,5 @@
-import { config } from "../../src/app.js";
+import { config, noises } from "../../src/app.js";
 import { getTimezoneArray, getAllSupportedLocales } from "../../src/lib/util.js";
-
-const noises = ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"];
 
 document.addEventListener("DOMContentLoaded", function () {
   // Load config first, then initialize UI

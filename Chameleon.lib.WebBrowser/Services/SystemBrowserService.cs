@@ -23,7 +23,7 @@ public class SystemBrowserService {
 			MacOSWindowListener.Instance.WindowForegroundChanged += MacOS_WindowForegroundChanged;
 		}
 	}
-	public int TimeOut { get; } = 36;
+	public int TimeOut { get; } = 18;
 
 	private readonly WindowEventHandler? windowEventHandler;
 	// TODO:
@@ -123,6 +123,7 @@ public class SystemBrowserService {
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
 			browser.InvokeEvent(SysBrowserEventType.Foreground);
 			browser.InvokeEvent(SysBrowserEventType.Opened);
+			// TODO: ?  await AddonsServer.Instance.WaitListener();
 		} else {
 			throw new Exception("Browser Load Context Connection Failed");
 		}
@@ -143,12 +144,12 @@ public class SystemBrowserService {
 				return null;
 			}
 		} else {
-			if (browser?.Brocess?.HasExited == true) {
+			if (browser.Brocess?.HasExited == true) {
 				browser.Close();
 				await Task.Delay(256);
 				_ = Open(options);
 			} else {
-				//browser.InvokeEvent(SysBrowserEventType.Foreground);
+				browser.InvokeEvent(SysBrowserEventType.Foreground);
 			}
 		}
 		return browser;

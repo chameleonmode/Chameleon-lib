@@ -113,11 +113,9 @@ public class Browser(Client oidcClient) {
             </script>
         </body>
         </html>";
-	public async Task<string> GetCode() =>
-		await HandleCallback(oidcClient.AuthUrl, authResponseHtml, "code");
-
-	public async Task Logout() =>
-		await HandleCallback(oidcClient.LogoutUrl, logoutResponseHtml);
+	
+	public Task<string> GetCode() => HandleCallback(oidcClient.AuthUrl, authResponseHtml, "code");
+	public Task Logout() => HandleCallback(oidcClient.LogoutUrl, logoutResponseHtml);
 
 	private async Task<string> HandleCallback(string url, string htmlResponse, string? expectedParam = null) {
 		using var listener = new HttpListener();

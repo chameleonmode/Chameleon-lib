@@ -301,7 +301,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 			//"-jsconsole",
 			#endif
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
-			$"https://com.mode.chameleon?instanceId={Settings.Profile.Id}&sessionId={SessionId}"
+			InitUrl
 		]);
 	}
 

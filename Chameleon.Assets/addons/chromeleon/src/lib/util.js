@@ -465,6 +465,109 @@ function matchesPattern(value, patterns, options = {}) {
     // });
 
 
+// Function to check if extension needs reloading based on version
+async function checkForExtensionUpdate() {
+  if(detectBrowser() === 'Firefox') return;
+  try {
+    // Fetch the current manifest.json file to get the latest version
+    const manifestResponse = await fetch(chrome.runtime.getURL('manifest.json'));
+    const manifestData = await manifestResponse.json();
+    const newVersion = manifestData.version;
+
+    const {currentVersion} = await chrome.storage.local.get(["currentVersion"]);
+    
+    // Get the currently running version
+    
+    console.log(`Current version: ${currentVersion}, New version: ${newVersion}`);
+    
+    // If versions don't match, reload the extension
+    if (currentVersion && newVersion !== currentVersion) {
+      await chrome.storage.local.set({ currentVersion: newVersion });
+      chrome.runtime.reload();
+      // console.log('New version detected, reloading extension...');
+      // await chrome.storage.local.set({ currentVersion: newVersion });
+      
+      // // For unpacked extensions, we can use the Extension Management API
+      // // Note: This requires the management permission in your manifest.json
+      // if (chrome.management && chrome.management.getSelf && chrome.management.setEnabled) {
+      //   const extensionInfo = await chrome.management.getSelf();
+        
+      //   // Disable and then re-enable the extension to force a reload
+      //   await chrome.management.setEnabled(extensionInfo.id, false);
+      //   await chrome.management.setEnabled(extensionInfo.id, true);
+      // } else {
+      //   // Fallback for older Chrome versions or when management API is not available
+      //   chrome.runtime.reload();
+      // }
+    }else {
+      await chrome.storage.local.set({ currentVersion: newVersion });
+    }
+  } catch (error) {
+    console.error('Error checking for extension update:', error);
+  }
+}
+
+/**
+ * @return {string} - The name of the detected browser (e.g., 'Chrome', 'Firefox', 'Edge')
+ */
+function detectBrowser() {
+  // Modern extensions use a global "browser" object in Firefox
+  // and a global "chrome" object in Chrome
+  if (typeof browser !== 'undefined') {
+    // Additional check to confirm it's Firefox
+    if (browser.runtime && browser.runtime.getBrowserInfo) {
+      return 'Firefox';
+    }
+  }
+  
+  // Chrome doesn't have browser.runtime.getBrowserInfo but does have chrome.runtime
+  if (typeof chrome !== 'undefined' && chrome.runtime) {
+    // Further differentiate between Chrome and Edge
+    if (navigator.userAgent.indexOf("Edg") !== -1) {
+      return 'Edge';
+    }
+    return 'Chrome';
+  }
+  
+  // Fallback detection based on user agent (less reliable)
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.indexOf('firefox') > -1) {
+    return 'Firefox';
+  } else if (userAgent.indexOf('chrome') > -1) {
+    return 'Chrome';
+  }
+  
+  return 'Unknown';
+}
+
+// Create a browser-agnostic API
+const browserAPI = (function() {
+  const isFirefox = typeof browser !== 'undefined';
+  
+  return {
+    // Returns the appropriate browser API object
+    getRuntimeAPI: function() {
+      return isFirefox ? browser.runtime : chrome.runtime;
+    },
+    
+    // Example of a wrapped function
+    sendMessage: function(message) {
+      if (isFirefox) {
+        return browser.runtime.sendMessage(message);
+      } else {
+        return new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(message, response => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve(response);
+            }
+          });
+        });
+      }
+    }
+  };
+})();
 
 // Export functions
 export {
@@ -475,4 +578,7 @@ export {
   getLocalesForCountry,
   getAllSupportedLocales,
   matchesPattern,
+  checkForExtensionUpdate,
+  detectBrowser,
+  browserAPI,
 };

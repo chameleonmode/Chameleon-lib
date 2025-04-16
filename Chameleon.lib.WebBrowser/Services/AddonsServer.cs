@@ -2,7 +2,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
+using System.Web;
+using Chameleon.lib.Const;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -13,7 +16,6 @@ namespace Chameleon.lib.WebBrowser.Services;
 public class AddonsServer {
   private WebApplication? app;
 
-  public ConcurrentDictionary<string, object> AddonInstances { get; } = [];
   public int Port { get; } = new[] { 3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696 }.FirstOrDefault(port => {
     try {
       // Create a listener to check if the port is available
@@ -29,12 +31,40 @@ public class AddonsServer {
     }
   });
 
+  public string RedirectUri { get; }
+  public ConcurrentDictionary<string, object> AddonInstances { get; } = [];
+
   public bool IsRunning => app != null;
 
   AddonsServer() {
     if (Port == 0) {
       throw new InvalidOperationException("No available port found to start the AddonsServer");
     }
+
+    RedirectUri = $"http://127.0.0.1:{Port}/callback";
+  }
+
+  public async Task WaitListener() {
+    using var listener = new HttpListener();
+    listener.Prefixes.Add(RedirectUri + "/");
+    listener.Start();
+
+    var context = await listener.GetContextAsync();
+
+    // Send response after extracting the code
+    using var response = context.Response;
+    response.ContentType = "application/json";
+    var queryParams = HttpUtility.ParseQueryString(context.Request.Url?.Query ?? string.Empty);
+    var sessionId = queryParams["sessionId"];
+    if (string.IsNullOrEmpty(sessionId) || !AddonInstances.TryGetValue(sessionId, out var instance)) {
+      response.StatusCode = 400;
+      var errorJson = JsonSerializer.SerializeToUtf8Bytes(new { error = "Invalid or missing sessionId" });
+      await response.OutputStream.WriteAsync(errorJson);
+      return;
+    }
+    var json = JS.Serialize(instance);
+    var jsonBytes = Encoding.UTF8.GetBytes(json);
+    await response.OutputStream.WriteAsync(jsonBytes);
   }
 
   public async Task Start() {
@@ -66,13 +96,17 @@ public class AddonsServer {
       app = builder.Build();
 			// Use minimal middleware
 			_ = app.UseRouting()
-				.UseCors("AllowAnyOrigin");
+				     .UseCors("AllowAnyOrigin");
 
       #region routes
       // Health check endpoint
       app.MapGet("/ping", () => 
         Results.Json(new { status = "ok", time = DateTime.Now })
       );
+
+      app.MapGet("/init", ([FromQuery] string instanceId, [FromQuery] string sessionId) => {
+        return $"{JS.Serialize(AddonInstances[sessionId])}";
+      });
 
       // Get application state endpoint
       app.MapGet("/app/state", () => 
