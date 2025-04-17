@@ -7,7 +7,7 @@ using System.Data;
 namespace Chameleon.lib.Api.Repos;
 public class TagsRepo {
 	TagsRepo() { }
-	
+
 	readonly SourceCache<TagDto, string> cache = new(tag => tag.Name);
 	public IObservableCache<TagDto, string> Cache => cache;
 
@@ -23,13 +23,13 @@ public class TagsRepo {
 
 	public async Task<TagDto?> FindTagAsync(string tagName) {
 		var tag = await DB.Instance.GetTagBy(tagName);
-		return tag == null ? null 
+		return tag == null ? null
 			: new TagDto(tag.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(tag.Items) ?? []);
 	}
 
 	public async Task<IEnumerable<string>> SetTagsAsync(string tagItemType, string tagItemId, IEnumerable<string> tags) {
 		foreach (var tagName in tags) {
-			_ = await DB.Instance.GetItemTagBy(tagItemType, tagItemId, tagName) is null 
+			_ = await DB.Instance.GetItemTagBy(tagItemType, tagItemId, tagName) is null
 				? await DB.Instance.CreateItemTag(tagItemType, tagItemId, tagName)
 				: await DB.Instance.UpdateItemTagBy(tagItemType, tagItemId, tagName);
 		}
@@ -94,6 +94,15 @@ public class TagsRepo {
 		}
 
 		_ = await SetTagsAsync(tagItemType, id, tags);
+
+		foreach (var tagName in removedTags) {
+			var tag = await FindTagAsync(tagName);
+			if (tag is not null && tag.Items.All(x => x.Value.Count == 0)) {
+				var tagEntity = await DB.Instance.GetTagBy(tag.Name);
+				await DB.Instance.DeleteTag(tagEntity!.Id);
+				cache.Edit(updater => updater.RemoveKey(tagEntity.Name));
+			}
+		}
 
 		return tags;
 	}
