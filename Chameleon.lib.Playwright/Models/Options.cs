@@ -1,15 +1,15 @@
-﻿using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Common.Constants;
+﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.WebBrowser.Models;
 using Microsoft.Playwright;
 using Chameleon.lib.Const;
+using Chameleon.AIR.Scripts.Models;
 
 namespace Chameleon.lib.Playwright.Models;
 public class RunScriptOptions {
 	public int Port { get; set; }
 	public bool Record { get; set; } = false;
 	public Enums.SystemBrowserType BrowserType { get; set; } = Enums.SystemBrowserType.Chromium;
-	public IBundledScript? BundledScript { get; set; }
+	public IScript? BundledScript { get; set; }
 	public PlaywrightScriptDescription? Description { get; set; }
 }
 

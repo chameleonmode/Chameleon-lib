@@ -1,4 +1,6 @@
-﻿namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Subreddit;
+﻿using Chameleon.AIR.Scripts.Models;
+
+namespace Chameleon.AIR.Scripts.Reddit.Subreddit;
 
 public class Join : JSScript {
 	public Join() : base(

@@ -1,3 +1,5 @@
+using Chameleon.AIR.Scripts.Models;
+
 namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 
 public class Google : JSScript {

@@ -5,6 +5,7 @@ using Chameleon.lib.Playwright.node;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Util;
+using Chameleon.AIR.Scripts.Models;
 
 namespace Chameleon.lib.Playwright.Utils;
 public class PlaywriteRunner {
@@ -18,7 +19,7 @@ public class PlaywriteRunner {
         : IoC.GetJsonValue<Dictionary<string, string>>(args.BundledScript.TableName) ?? args.Description?.Parameters;
 
       //
-      if (args.BundledScript is IBundledJSScript jsScript) {
+      if (args.BundledScript is IJSScript jsScript) {
         using var runner = new PlaywrightTestRunner(jsScript.File, async (question) => {
           if(!question.IsNot()) throw new ArgumentNullException(nameof(question));
           

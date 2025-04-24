@@ -1,7 +1,7 @@
-using Chameleon.lib.Playwright.Interfaces;
+namespace Chameleon.AIR.Scripts.Models;
 
-namespace Chameleon.lib.Playwright.Scripts.JS;
-public abstract class JSScript(string SFile, string STitle, string SDescription) : IBundledJSScript {
+public abstract class JSScript(string SFile, string STitle, string SDescription) : IJSScript
+{
   public string TableName { get; } = SFile.Replace("/", "_").Replace("-", "_").Replace(" ", "_");
   public string File { get; } = SFile;
   public string Title { get; } = STitle;
@@ -11,7 +11,8 @@ public abstract class JSScript(string SFile, string STitle, string SDescription)
     { "search" , "Search" }
   };
 
-  public virtual Task<IDictionary<string, string>?> GetOptions(IDictionary<string, string>? options = null) {
+  public virtual Task<IDictionary<string, string>?> GetOptions(IDictionary<string, string>? options = null)
+  {
     return Task.FromResult(options);
   }
 }

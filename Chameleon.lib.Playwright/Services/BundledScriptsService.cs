@@ -1,11 +1,11 @@
-﻿using Chameleon.lib.Common.Util;
+﻿using Chameleon.AIR.Scripts.Models;
+using Chameleon.AIR.Scripts.Reddit.Post;
+using Chameleon.AIR.Scripts.Reddit.Subreddit;
+using Chameleon.lib.Common.Util;
 using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts.CS;
-using Chameleon.lib.Playwright.Scripts.JS;
 using Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
-using Chameleon.lib.Playwright.Scripts.JS.Reddit.Post;
-using Chameleon.lib.Playwright.Scripts.JS.Reddit.Subreddit;
 
 namespace Chameleon.lib.Playwright.Services;
 
@@ -16,7 +16,7 @@ public class BundledScriptsService {
 		{ nameof(GoogleCTR), new GoogleCTR() },
 	};
 
-	public IDictionary<string, IBundledJSScript> BundledJSScripts { get; } = new Dictionary<string, IBundledJSScript> {
+	public IDictionary<string, IJSScript> BundledJSScripts { get; } = new Dictionary<string, IJSScript> {
 		{ nameof(Comment), new Comment() },
 		{ nameof(Reply), new Reply() },
 		{ nameof(Join), new Join() },
@@ -34,7 +34,7 @@ public class BundledScriptsService {
 	}
 
 	public IList<RunScriptOptions> GetBundledScrits() {
-		List<RunScriptOptions> AddMappedScripts<T>(IDictionary<string, T> scripts, Func<T, RunScriptOptions> createOptions) where T : IBundledScript {
+		List<RunScriptOptions> AddMappedScripts<T>(IDictionary<string, T> scripts, Func<T, RunScriptOptions> createOptions) where T : IScript {
 			return [.. scripts.Select(s => {
 				 var description = new PlaywrightScriptDescription (
 					 Title: s.Value.Title,

@@ -1,4 +1,6 @@
-﻿namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Post;
+﻿using Chameleon.AIR.Scripts.Models;
+
+namespace Chameleon.AIR.Scripts.Reddit.Post;
 
 public class Reply : JSScript {
 	public Reply() : base(
