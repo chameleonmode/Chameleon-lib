@@ -85,7 +85,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task TestRedditCommentScript() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(CommentOnTitle)],
+			BundledScript = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
 				Parameters: new() {
 					{"search", "christopher walken"}
@@ -98,7 +98,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task TestRedditCommentOnCommentScript() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(ReplyToComment)],
+			BundledScript = repo.BundledJSScripts[nameof(Reply)],
 			Description = new(
 				Parameters: new() {
 					{"search", "pringles"}
