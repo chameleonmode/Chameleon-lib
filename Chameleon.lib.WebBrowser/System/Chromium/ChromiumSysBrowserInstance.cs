@@ -117,6 +117,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 			// The id of the extension which you intend to debug. Attaching to an extension background page is only possible when the --silent-debugger-extension-api command-line switch is used.
 			"--silent-debugger-extension-api",
 			// Additional flags 
+			// TODO: test"--proxy-bypass-list=<loopback>",
 			"--bypass-app-banner-engagement-checks",
 			"--disable-field-trial-config",
 			"--disable-session-crashed-bubble",
