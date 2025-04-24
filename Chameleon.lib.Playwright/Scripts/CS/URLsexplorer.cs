@@ -8,7 +8,7 @@ public class URLsexplorer : Base, IBundledCSScript {
 	public string Title => "URLs Explorer";
 	public string Description => "Opens a list of URLs in the browser.";
 
-	public IDictionary<string, string> Parameters => new Dictionary<string, string>() {
+	public Dictionary<string, string> Parameters => new() {
 		{ "urls", "Urls" },
 		{ "delay" , "Time to wait each visit" },
 	};

@@ -5,7 +5,7 @@ public interface IScript {
   string TableName { get; }
   string Title { get; }
   string Description { get; }
-  IDictionary<string, string> Parameters { get; }
+  Dictionary<string, string> Parameters { get; }
 }
 
 public interface IJSScript : IScript {

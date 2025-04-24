@@ -10,7 +10,7 @@ public class Credentials : JSScript {
 		"Authenticate to reddit using credentials"
 	) { }
 
-	public override IDictionary<string, string> Parameters => new Dictionary<string, string> {
+	public override Dictionary<string, string> Parameters => new() {
 		{ "email", "email" },
 		{ "password", "password" },
     { "title", "Reddit" },

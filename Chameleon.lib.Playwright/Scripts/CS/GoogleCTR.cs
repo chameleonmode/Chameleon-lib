@@ -7,7 +7,7 @@ public class GoogleCTR : Base, IBundledCSScript {
 	public string File => "GoogleCTR";
 	public string Title => "Google Click Through Rate";
 	public string Description => "Clicks through Google search results to a target URL";
-	public IDictionary<string, string> Parameters => new Dictionary<string, string>() {
+	public Dictionary<string, string> Parameters => new() {
 		{ "search", "Search" },
 		{ "targetUrl", "Target" },
 		{ "maxPages" , "Max Pages To Search Through" },

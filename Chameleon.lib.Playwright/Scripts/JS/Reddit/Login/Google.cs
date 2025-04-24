@@ -9,7 +9,7 @@ public class Google : JSScript {
     "Authenticate to reddit using google account"
   ) { }
 
-  public override IDictionary<string, string> Parameters => new Dictionary<string, string> {
+  public override Dictionary<string, string> Parameters => new() {
     { "email", "email" },
     { "password", "password" },
     { "title", "Google" },
