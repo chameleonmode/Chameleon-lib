@@ -30,16 +30,3 @@ public record Args(
   Sort Sort,
   Filter Filter
 ) : IArgs;
-
-public class Options : IOptions {
-  public Opts<IArgs> Opts { get; set; } = new Opts<IArgs>(
-    new Args("", Scope.Posts, Sort.Relevance, Filter.All),
-    new Settings(
-      new Start("Reddit", "https://www.reddit.com", true),
-      new Timeouts(36, 72, 18, new Rando(256, 512, null)),
-      new Rando(18, 36),
-      new Rando(1, 5)
-    )
-  );
-}
-
