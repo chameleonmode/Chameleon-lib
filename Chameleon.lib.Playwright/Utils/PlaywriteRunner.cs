@@ -10,7 +10,7 @@ namespace Chameleon.lib.Playwright.Utils;
 public class PlaywriteRunner {
   public static async Task RunScript(RunScriptOptions args, CancellationToken token = default) {
     if (args.Record) {
-      using var runner = new PlaywrightTestRunner("record");
+      using var runner = new PlaywrightTestRunner("any/record");
       await runner.RunTestAsync(args.Port).WaitAsync(token);
     } else {
       var savedOptions =
