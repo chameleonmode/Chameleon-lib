@@ -3,6 +3,7 @@ using Chameleon.lib.WebBrowser.Models;
 using Microsoft.Playwright;
 using Chameleon.lib.Const;
 using Chameleon.AIR.Scripts.Models;
+using Chameleon.AIR.Actors.Models;
 
 namespace Chameleon.lib.Playwright.Models;
 public class RunScriptOptions {
@@ -10,6 +11,7 @@ public class RunScriptOptions {
 	public bool Record { get; set; } = false;
 	public Enums.SystemBrowserType BrowserType { get; set; } = Enums.SystemBrowserType.Chromium;
 	public IScript? BundledScript { get; set; }
+	public object? Opts { get; set; }
 	public PlaywrightScriptDescription? Description { get; set; }
 }
 

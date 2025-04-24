@@ -14,11 +14,10 @@ public class PlaywriteRunner {
       using var runner = new PlaywrightTestRunner("any/record");
       await runner.RunTestAsync(args.Port).WaitAsync(token);
     } else {
-      var savedOptions =
-        args.BundledScript?.TableName == null ? null
+      var savedOptions = args.BundledScript?.TableName == null
+        ? null
         : IoC.GetJsonValue<Dictionary<string, string>>(args.BundledScript.TableName) ?? args.Description?.Parameters;
 
-      //
       if (args.BundledScript is IJSScript jsScript) {
         using var runner = new PlaywrightTestRunner(jsScript.File, async (question) => {
           if(!question.IsNot()) throw new ArgumentNullException(nameof(question));
@@ -28,11 +27,13 @@ public class PlaywriteRunner {
           }));
           return res!.Payload.Response;
         });
+        var options = args.Opts ?? await jsScript.GetOptions(savedOptions);
         await runner.RunTestAsync(
-          args.Port,
-          await jsScript.GetOptions(savedOptions).WaitAsync(token)
+          args.Port, options
         ).WaitAsync(token);
-      } else if (args.BundledScript is IBundledCSScript csScript) {
+      } else if (
+          args.BundledScript is IBundledCSScript csScript
+        ) {
         using var browser = args.BrowserType switch {
           Enums.SystemBrowserType.Chrome or
           Enums.SystemBrowserType.Chromium or
@@ -43,8 +44,9 @@ public class PlaywriteRunner {
         };
         using var context = await browser.Open(args);
         await csScript.Run(context.BrowserContext, savedOptions).WaitAsync(token);
-      } else if (args.Description?.FilePath != null) {
-
+      } else if (
+          args.Description?.FilePath != null
+        ) {
         var runner = new PlaywrightTestRunner(args.Description.FilePath);
         await runner.RunTestAsync(args.Port, args.Description?.Parameters).WaitAsync(token);
       } else {

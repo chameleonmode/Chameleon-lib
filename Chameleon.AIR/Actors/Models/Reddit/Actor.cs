@@ -7,7 +7,7 @@ namespace Chameleon.AIR.Actors.Models.Reddit;
 
 public class Actor : IActor {
   public Opts<IArgs> Options { get; set; } = new Opts<IArgs>(
-    new Args("", Scope.Posts, Sort.Relevance, Filter.All),
+    new Args("Search Term", Scope.Posts, Sort.Relevance, Filter.All),
     new Settings(
       new Start("Reddit", "https://www.reddit.com", true),
       new Timeouts(36, 72, 18, new Rando(256, 512, null)),

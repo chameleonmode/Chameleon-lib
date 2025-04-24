@@ -11,7 +11,7 @@ public record Rando(int Min, int Max, int? Multiplier = null);
 
 public interface IActor {
   //Input
-   Opts<IArgs> Options { get; set; }
+  Opts<IArgs> Options { get; set; }
 
   //Run Environment
   IEnumerable<IScript> Scripts { get; set; }

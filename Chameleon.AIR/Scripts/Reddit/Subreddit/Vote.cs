@@ -5,7 +5,7 @@ namespace Chameleon.AIR.Scripts.Reddit.Subreddit;
 public class Vote : JSScript {
 	public Vote() : base(
 		"reddit/plugins/subreddit/vote",
-		"Reddit Vote",
+		"Vote",
 		"Search for subreddit and rando vote up/down"
 	) { }
 }
