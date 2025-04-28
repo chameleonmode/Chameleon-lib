@@ -2,7 +2,7 @@
 
 namespace Chameleon.AIR.Scripts.Reddit.Subreddit;
 
-public class Join : JSScript {
+public record Join : JSScript {
 	public Join() : base(
 		"reddit/plugins/subreddit/join",
 		"Join",

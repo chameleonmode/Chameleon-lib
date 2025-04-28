@@ -2,7 +2,7 @@
 
 namespace Chameleon.AIR.Scripts.Reddit.Subreddit;
 
-public class Post : JSScript {
+public record Post : JSScript {
 	public Post() : base(
 		"reddit/plugins/subreddit/post",
 		"Post",

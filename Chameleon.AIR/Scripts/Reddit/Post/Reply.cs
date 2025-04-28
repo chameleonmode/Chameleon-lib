@@ -2,7 +2,7 @@
 
 namespace Chameleon.AIR.Scripts.Reddit.Post;
 
-public class Reply : JSScript {
+public record Reply : JSScript {
 	public Reply() : base(
 		"reddit/plugins/post/reply",
 		"Reply",

@@ -7,7 +7,7 @@ public class KeepGmailAlive : Base, IBundledCSScript {
 	public string File => "KeepGmailAlive";
 	public string Title => "Keep Gmail Alive";
 	public string Description => "Reads a random email in Gmail.";
-	public Dictionary<string, string> Parameters => new();
+	public Dictionary<string, string> Args => new();
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null) {
 		var page = await NewPage(context);
 		try {

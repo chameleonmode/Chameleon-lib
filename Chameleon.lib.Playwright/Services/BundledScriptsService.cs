@@ -40,7 +40,7 @@ public class BundledScriptsService {
 					 Title: s.Value.Title,
 					 Description: s.Value.Description,
 					 FilePath: s.Value.File,
-					 Parameters: s.Value.Parameters.ToDictionary(x => x.Key, x => x.Value)
+					 Parameters: s.Value.Args.ToDictionary(x => x.Key, x => x.Value)
 				 );
 				 var options = createOptions(s.Value);
 				 options.Description = description;

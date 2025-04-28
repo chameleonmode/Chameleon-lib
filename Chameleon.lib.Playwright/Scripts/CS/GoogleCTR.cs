@@ -7,15 +7,15 @@ public class GoogleCTR : Base, IBundledCSScript {
 	public string File => "GoogleCTR";
 	public string Title => "Google Click Through Rate";
 	public string Description => "Clicks through Google search results to a target URL";
-	public Dictionary<string, string> Parameters => new() {
+	public Dictionary<string, string> Args => new() {
 		{ "search", "Search" },
 		{ "targetUrl", "Target" },
 		{ "maxPages" , "Max Pages To Search Through" },
 	};
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null) {
-		var keyword = args![Parameters.Keys.ElementAt(0)];
-		var targetUrl = args![Parameters.Keys.ElementAt(1)];
-		var maxPages = int.Parse(Parameters.Keys.ElementAt(2));
+		var keyword = args![Args.Keys.ElementAt(0)];
+		var targetUrl = args![Args.Keys.ElementAt(1)];
+		var maxPages = int.Parse(Args.Keys.ElementAt(2));
 
 		var page = await NewPage(context);
 		// Go to Google

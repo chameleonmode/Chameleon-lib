@@ -2,7 +2,7 @@
 
 namespace Chameleon.AIR.Scripts.Reddit.Post;
 
-public class Comment : JSScript {
+public record Comment : JSScript {
 	public Comment() : base(
 		"reddit/plugins/post/comment",
 		"Comment",

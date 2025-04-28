@@ -2,7 +2,7 @@
 
 namespace Chameleon.AIR.Scripts.Reddit.Subreddit;
 
-public class Vote : JSScript {
+public record Vote : JSScript {
 	public Vote() : base(
 		"reddit/plugins/subreddit/vote",
 		"Vote",
