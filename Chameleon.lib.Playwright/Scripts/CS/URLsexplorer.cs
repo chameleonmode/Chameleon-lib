@@ -8,14 +8,14 @@ public class URLsexplorer : Base, IBundledCSScript {
 	public string Title => "URLs Explorer";
 	public string Description => "Opens a list of URLs in the browser.";
 
-	public IDictionary<string, string> Parameters => new Dictionary<string, string>() {
+	public Dictionary<string, string> Args => new() {
 		{ "urls", "Urls" },
 		{ "delay" , "Time to wait each visit" },
 	};
 
 	public async Task Run(IBrowserContext context, IDictionary<string, string>? args = null) {
-		var urls = args![Parameters.Keys.ElementAt(0)].Split(',', StringSplitOptions.TrimEntries);
-		var delay = int.Parse(args[Parameters.Keys.ElementAt(1)]) * 1000;
+		var urls = args![Args.Keys.ElementAt(0)].Split(',', StringSplitOptions.TrimEntries);
+		var delay = int.Parse(args[Args.Keys.ElementAt(1)]) * 1000;
 
 		var page = await NewPage(context);
 		foreach (var url in urls) {

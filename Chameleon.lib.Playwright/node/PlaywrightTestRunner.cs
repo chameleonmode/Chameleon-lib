@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
+using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Playwright.node;
@@ -75,11 +76,14 @@ public class PlaywrightTestRunner : IDisposable {
 		}
 	}
 
-	public async Task RunTestAsync(int port, object? options = null) {
+	public async Task Run(int port, object? options = null) {
+		var command = new { arg = "run", file, port, options };
+		await Run(JS.Serialize(command));
+	}
+
+	public async Task Run(string options) {
 		try {
-			var command = new { arg = "run", file, port, options };
-			var jsonCommand = JsonSerializer.Serialize(command);
-			await processInput.WriteLineAsync(jsonCommand);
+			await processInput.WriteLineAsync(options);
 			_ = await _tcs.Task;
 		} finally {
 			await Task.Delay(1000);

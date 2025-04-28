@@ -1,9 +1,11 @@
-﻿namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Subreddit;
+﻿using Chameleon.AIR.Scripts.Models;
 
-public class Post : JSScript {
+namespace Chameleon.AIR.Scripts.Reddit.Subreddit;
+
+public record Post : JSScript {
 	public Post() : base(
 		"reddit/plugins/subreddit/post",
-		"Reddit Agent Post",
+		"Post",
 		"Search for relevant content and learn & post on a relevant subreddit"
 	) { }
 }

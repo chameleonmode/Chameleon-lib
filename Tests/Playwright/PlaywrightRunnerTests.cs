@@ -1,8 +1,8 @@
+using Chameleon.AIR.Scripts.Reddit.Post;
+using Chameleon.AIR.Scripts.Reddit.Subreddit;
 using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Scripts.JS;
-using Chameleon.lib.Playwright.Scripts.JS.Reddit.Post;
-using Chameleon.lib.Playwright.Scripts.JS.Reddit.Subreddit;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Playwright.Utils;
 using Chameleon.lib.Util;
@@ -85,7 +85,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task TestRedditCommentScript() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(CommentOnTitle)],
+			BundledScript = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
 				Parameters: new() {
 					{"search", "christopher walken"}
@@ -98,7 +98,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task TestRedditCommentOnCommentScript() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(ReplyToComment)],
+			BundledScript = repo.BundledJSScripts[nameof(Reply)],
 			Description = new(
 				Parameters: new() {
 					{"search", "pringles"}
@@ -141,29 +141,6 @@ public class PlaywrightRunnerTests : TestSetup {
 			Description = new(
 				Parameters: new() {
 					{"search", "tom segura"}
-				}
-			)
-		});
-	}
-
-	[Fact]
-	public async Task TestBundledGsiteJsScriptScript() {
-		var port = 9613;
-		//var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new RunScriptOptions {
-			Port = port,
-			BundledScript = repo!.BundledJSScripts[nameof(Gsites)],
-			Description = new PlaywrightScriptDescription(
-				Parameters: new Dictionary<string, string>
-				{
-					{ "name", "Site Name" },
-					{ "title", "Title" },
-					{ "content", "Content" },
-					{ "youtube", "aii" },
-					//{ "textContent", "Post Content" },
-				  //{ "link", "http://example.com" },
-					//{ "linkText", "Link Text" },
-					//{ "locationSearch", "Hawaii" }
 				}
 			)
 		});
