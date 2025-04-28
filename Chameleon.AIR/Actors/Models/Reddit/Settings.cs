@@ -5,7 +5,7 @@ public enum Scope {
   Communities,
   Comments,
   Media,
-  People
+  // People
 }
 public enum Sort {
   Relevance,
