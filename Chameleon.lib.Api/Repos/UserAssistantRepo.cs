@@ -80,14 +80,19 @@ public class ShareFoldersRepo : ApiBase<AssisShareFolderDto> {
 		return response.Items;
 	}
 
-	public static Task<AssisShareFolderDto[]> Share(long assistantId, IList<int> folderIds, IList<int> folderpermissionIds)
+	public static async Task<AssisShareFolderDto[]> Share(long assistantId, IList<int> folderIds, IList<int> folderpermissionIds)
 	{
-		return Instance.Post<AssisShareFolderDto[]>("Share", new
-		{
-			UserId = assistantId,
-			FolderIds = folderIds,
-			PermissionIds = folderpermissionIds
-		});
+		List<AssisShareFolderDto> sharedFolders = [];
+		foreach (var folderId in folderIds) { //ToDo: fix server side issue
+
+			var folders = await Instance.Post<AssisShareFolderDto[]>("Share", new {
+				UserId = assistantId,
+				FolderIds = new List<int>([folderId]),
+				PermissionIds = folderpermissionIds
+			});
+			sharedFolders.AddRange(folders);
+		}
+		return [.. sharedFolders];
 	}
 
 	public static ShareFoldersRepo Instance { get; } = new ShareFoldersRepo();
