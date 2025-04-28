@@ -8,11 +8,11 @@ namespace Chameleon.AIR.Actors.Models.Reddit;
 public class Actor : IActor {
   public Opts Options { get; set; } = new Opts(
     //new Args("Search Term", Scope.Posts, Sort.Relevance, Filter.All),
-    new Dictionary<string, object>() {
+    new Dictionary<string, string>() {
       { "Search", "Search Term" },
-      { "Scope", Scope.Posts },
-      { "Sort", Sort.Relevance },
-      { "Filter", Filter.All }
+      { "Scope", Scope.Posts.ToString() },
+      { "Sort", Sort.Relevance.ToString() },
+      { "Filter", Filter.All.ToString() }
     },
     new Settings(
       new Start("Reddit", "https://www.reddit.com", true),

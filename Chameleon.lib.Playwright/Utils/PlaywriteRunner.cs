@@ -12,13 +12,13 @@ public class PlaywriteRunner {
   public static async Task RunScript(RunScriptOptions args, CancellationToken token = default) {
     if (args.Record) {
       using var runner = new PlaywrightTestRunner("any/record");
-      await runner.RunTestAsync(args.Port).WaitAsync(token);
+      await runner.Run(args.Port).WaitAsync(token);
     } else {
-      var savedOptions = args.BundledScript?.TableName == null
+      var savedOptions = args.Script?.TableName == null
         ? null
-        : IoC.GetJsonValue<Dictionary<string, string>>(args.BundledScript.TableName) ?? args.Description?.Parameters;
+        : IoC.GetJsonValue<Dictionary<string, string>>(args.Script.TableName) ?? args.Description?.Parameters;
 
-      if (args.BundledScript is IJSScript jsScript) {
+      if (args.Script is IJSScript jsScript) {
         using var runner = new PlaywrightTestRunner(jsScript.File, async (question) => {
           if(!question.IsNot()) throw new ArgumentNullException(nameof(question));
           
@@ -28,12 +28,12 @@ public class PlaywriteRunner {
           return res!.Payload.Response;
         });
         var options = args.Opts ?? await jsScript.GetOptions(savedOptions);
-        await runner.RunTestAsync(
-          args.Port, options
-        ).WaitAsync(token);
+        await runner
+          .Run(args.Port, options)
+          .WaitAsync(token);
       } else if (
-          args.BundledScript is IBundledCSScript csScript
-        ) {
+          args.Script is IBundledCSScript csScript
+      ) {
         using var browser = args.BrowserType switch {
           Enums.SystemBrowserType.Chrome or
           Enums.SystemBrowserType.Chromium or
@@ -43,12 +43,16 @@ public class PlaywriteRunner {
           _ => throw new NotImplementedException()
         };
         using var context = await browser.Open(args);
-        await csScript.Run(context.BrowserContext, savedOptions).WaitAsync(token);
+        await csScript
+          .Run(context.BrowserContext, savedOptions)
+          .WaitAsync(token);
       } else if (
           args.Description?.FilePath != null
-        ) {
-        var runner = new PlaywrightTestRunner(args.Description.FilePath);
-        await runner.RunTestAsync(args.Port, args.Description?.Parameters).WaitAsync(token);
+      ) {
+        using var runner = new PlaywrightTestRunner(args.Description.FilePath);
+        await runner
+          .Run(args.Port, args.Description?.Parameters)
+          .WaitAsync(token);
       } else {
         throw new NotImplementedException();
       }

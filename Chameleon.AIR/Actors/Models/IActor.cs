@@ -3,7 +3,7 @@ using Chameleon.AIR.Scripts.Models;
 namespace Chameleon.AIR.Actors.Models;
 
 public interface IArgs { }
-public record Opts(Dictionary<string, object> Args, Settings Settings);
+public record Opts(Dictionary<string, string> Args, Settings Settings);
 public record Settings(Start Start, Timeouts Timeouts, Rando Rando, Rando Iterations);
 public record Start(string Feature, string? Url, bool? New);
 public record Timeouts(int Default, int Wait, int Navigate, Rando Naps);

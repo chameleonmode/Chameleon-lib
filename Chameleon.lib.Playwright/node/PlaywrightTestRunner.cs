@@ -76,12 +76,12 @@ public class PlaywrightTestRunner : IDisposable {
 		}
 	}
 
-	public async Task RunTestAsync(int port, object? options = null) {
+	public async Task Run(int port, object? options = null) {
 		var command = new { arg = "run", file, port, options };
-		await RunTestAsync(port, JS.Serialize(command));
+		await Run(JS.Serialize(command));
 	}
 
-	public async Task RunTestAsync(string options) {
+	public async Task Run(string options) {
 		try {
 			await processInput.WriteLineAsync(options);
 			_ = await _tcs.Task;

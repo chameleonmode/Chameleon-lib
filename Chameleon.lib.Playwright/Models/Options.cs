@@ -10,7 +10,7 @@ public class RunScriptOptions {
 	public int Port { get; set; }
 	public bool Record { get; set; } = false;
 	public Enums.SystemBrowserType BrowserType { get; set; } = Enums.SystemBrowserType.Chromium;
-	public IScript? BundledScript { get; set; }
+	public IScript? Script { get; set; }
 	public object? Opts { get; set; }
 	public PlaywrightScriptDescription? Description { get; set; }
 }
