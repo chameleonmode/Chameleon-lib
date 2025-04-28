@@ -125,7 +125,7 @@ public class SystemBrowserService {
 			browser.InvokeEvent(SysBrowserEventType.Opened);
 			// TODO: ?  await AddonsServer.Instance.WaitListener();
 		} else {
-			throw new Exception("Browser Load Context Connection Failed");
+			throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
 		}
 		return Instances[settings.OpenOptions];
 	}
