@@ -16,9 +16,9 @@ public class Actor : IActor {
     },
     new Settings(
       new Start("Reddit", "https://www.reddit.com", true),
-      new Timeouts(36, 72, 18, new Rando(256, 512, null)),
+      new Timeouts(60, 30, 120, new Rando(256, 512, null)),
       new Rando(18, 36),
-      new Rando(1, 5)
+      new Rando(1, 3)
     )
   );
   public IEnumerable<IScript> Scripts { get; set; } = new ObservableCollection<IJSScript>() {

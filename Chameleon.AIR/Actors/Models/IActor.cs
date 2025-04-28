@@ -20,3 +20,9 @@ public interface IActor {
   //Storage
   //Integrations
 }
+
+// A Dictionary-based IArgs implementation that serializes properly
+public class DictionaryArgs : Dictionary<string, object>, IArgs {
+  public DictionaryArgs() : base() { }
+  public DictionaryArgs(IDictionary<string, object> dictionary) : base(dictionary) { }
+}

@@ -12,7 +12,6 @@ public enum Sort {
   Hot,
   Top,
   New,
-  Rising,
   Comments
 }
 public enum Filter {
@@ -30,9 +29,3 @@ public record Args(
   Sort Sort,
   Filter Filter
 ) : IArgs;
-
-// A Dictionary-based IArgs implementation that serializes properly
-public class DictionaryArgs : Dictionary<string, object>, IArgs {
-  public DictionaryArgs() : base() { }
-  public DictionaryArgs(IDictionary<string, object> dictionary) : base(dictionary) { }
-}
