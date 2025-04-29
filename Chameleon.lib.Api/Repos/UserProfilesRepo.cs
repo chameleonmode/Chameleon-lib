@@ -15,7 +15,7 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 		return Instance.Get<UserProfileDto>($"Get?Id={profileId}");
 	}
 
-	public static async Task<RootResult> MoveUserProfileToFolder(List<int> profileIds, int? foldeId) {
+	public static async Task<RootResult> MoveUserProfileToFolder(IEnumerable<int> profileIds, int? foldeId) {
 		var o = await Instance.Post("MoveUserProfileToFolder", new {
 			ProfileIds = profileIds,
 			FolderId = foldeId

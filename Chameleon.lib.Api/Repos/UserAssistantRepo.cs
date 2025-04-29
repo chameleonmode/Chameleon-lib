@@ -38,12 +38,14 @@ public class UserAssistantRepo : ApiBase<AssistDto> {
 	public static Task<AssisProfileDto[]> GetAllAssistantProfilesById(long assistantId) =>
 		 Instance.Get<AssisProfileDto[]>($"GetAllAssistantProfilesById?assistantId={assistantId}");
 
-	public static Task<RootResult> AddProfiles(long assistantId, IList<int> profileIds, IList<int> profilePermissions) =>
-		Instance.Post<RootResult>("AddProfiles", new {
+	public static async Task<RootResult?> AddProfiles(
+		long assistantId, IEnumerable<int> profileIds, IEnumerable<int>? profilePermissions = null
+		) =>
+   profileIds.Any() ?	await Instance.Post<RootResult>("AddProfiles", new {
 			Id = assistantId,
 			ProfileIds = profileIds,
-			ProfilePermissionIds = profilePermissions
-		});
+			ProfilePermissionIds = profilePermissions ?? []
+		}) : null;
 	
 	public static Task SetCanCreateProfiles(long assistantId, bool canCreateProfiles) => 
 		Instance.Post($"SetCanCreateProfiles?assistantId={assistantId}&canCreateProfiles={canCreateProfiles}");
@@ -80,19 +82,25 @@ public class ShareFoldersRepo : ApiBase<AssisShareFolderDto> {
 		return response.Items;
 	}
 
-	public static async Task<AssisShareFolderDto[]> Share(long assistantId, IList<int> folderIds, IList<int> folderpermissionIds)
-	{
-		List<AssisShareFolderDto> sharedFolders = [];
-		foreach (var folderId in folderIds) { //ToDo: fix server side issue
+	public static async Task<AssisShareFolderDto[]> Share(
+		long assistantId, IEnumerable<int> folderIds, IEnumerable<int>? folderpermissionIds = null
+	) {
+		return folderIds.Any() ? await Instance.Post<AssisShareFolderDto[]>("Share", new {
+			UserId = assistantId,
+			FolderIds = folderIds,
+			PermissionIds = folderpermissionIds ?? []
+		}) : [];
+		// List<AssisShareFolderDto> sharedFolders = [];
+		// foreach (var folderId in folderIds) { //ToDo: fix server side issue ??
 
-			var folders = await Instance.Post<AssisShareFolderDto[]>("Share", new {
-				UserId = assistantId,
-				FolderIds = new List<int>([folderId]),
-				PermissionIds = folderpermissionIds
-			});
-			sharedFolders.AddRange(folders);
-		}
-		return [.. sharedFolders];
+		// 	var folders = await Instance.Post<AssisShareFolderDto[]>("Share", new {
+		// 		UserId = assistantId,
+		// 		FolderIds = new List<int>([folderId]),
+		// 		PermissionIds = folderpermissionIds
+		// 	});
+		// 	sharedFolders.AddRange(folders);
+		// }
+		// return [.. sharedFolders];
 	}
 
 	public static ShareFoldersRepo Instance { get; } = new ShareFoldersRepo();

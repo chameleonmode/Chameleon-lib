@@ -12,12 +12,15 @@ public class TagsRepo {
 	public IObservableCache<TagDto, string> Cache => cache;
 
 	public async Task Load() {
-		var list = (await DB.Instance.GetTags())?.Select(
-			t => new TagDto(t.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(t.Items) ?? [])
+		List<TagDto> list = [new TagDto("Favourites", [])];
+		
+		list.AddRange(
+			(await DB.Instance.GetTags())?
+				.Select(t => new TagDto(t.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(t.Items) ?? [])) ?? []
 		);
 		cache.Edit(updater => {
 			updater.Clear();
-			updater.AddOrUpdate(list ?? []);
+			updater.AddOrUpdate(list);
 		});
 	}
 
