@@ -10,15 +10,15 @@ public record Timeouts(int Default, int Wait, int Navigate, Rando Naps);
 public record Rando(int Min, int Max, int? Multiplier = null);
 
 public interface IActor {
-  //Input
+  // Input
   Opts Options { get; set; }
 
-  //Run Environment
+  // Run Environment
   IEnumerable<IScript> Scripts { get; set; }
 
-  //Output
-  //Storage
-  //Integrations
+  // Output
+  // Storage
+  // Integrations
 }
 
 // A Dictionary-based IArgs implementation that serializes properly
