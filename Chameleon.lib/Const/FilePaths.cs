@@ -14,10 +14,14 @@ public static class FilePaths {
 	public static string AppDownloadDir => EnsureDirectoryExists(
 		AppTempDir, "Downloads"
 	);
+	
+	public static string Roboto => EnsureDirectoryExists(
+		AppDataDir, "Roboto"
+	);
 
 	public static string EnsureDirectoryExists(params string[] paths) {
 		var path = Path.Combine(paths);
-		try{
+		try {
 			if (!Directory.Exists(path)) {
 				return Directory.CreateDirectory(path).FullName;
 			}

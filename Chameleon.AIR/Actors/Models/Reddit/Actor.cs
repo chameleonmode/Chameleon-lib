@@ -8,17 +8,22 @@ namespace Chameleon.AIR.Actors.Models.Reddit;
 public class Actor : IActor {
   public Opts Options { get; set; } = new Opts(
     //new Args("Search Term", Scope.Posts, Sort.Relevance, Filter.All),
-    new Dictionary<string, string>() {
+    new () {
       { "Search", "Search Term" },
       { "Scope", Scope.Posts.ToString() },
       { "Sort", Sort.Relevance.ToString() },
       { "Filter", Filter.All.ToString() }
     },
     new Settings(
-      new Start("Reddit", "https://www.reddit.com", true),
-      new Timeouts(30, 15, 60, new Rando(256, 512, null)),
-      new Rando(9, 18),
-      new Rando(1, 3)
+      Start: new Start(
+        Feature: "Reddit",
+        Attempts: 9,
+        Variations: new Rando(1, 3),
+        Iterations: new Rando(3, 6),
+        Rando: new Rando(6, 9),
+        Url: "https://www.reddit.com"
+      ),
+      Timeouts: new Timeouts(30, 15, 60, new Rando(256, 512, null))
     )
   );
   public IEnumerable<IScript> Scripts { get; set; } = new ObservableCollection<IJSScript>() {
