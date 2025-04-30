@@ -3,9 +3,9 @@ using Chameleon.AIR.Scripts.Models;
 namespace Chameleon.AIR.Actors.Models;
 
 public interface IArgs { }
-public record Opts(Dictionary<string, string> Args, Settings Settings);
-public record Settings(Start Start, Timeouts Timeouts, Rando Rando, Rando Iterations);
-public record Start(string Feature, string? Url, bool? New);
+public record Opts(DictionaryArgs Args, Settings Settings);
+public record Settings(Start Start, Timeouts Timeouts);
+public record Start(string Feature, int Attempts, Rando Variations, Rando Iterations, Rando Rando, string? Url, bool? New = true);
 public record Timeouts(int Default, int Wait, int Navigate, Rando Naps);
 public record Rando(int Min, int Max, int? Multiplier = null);
 
