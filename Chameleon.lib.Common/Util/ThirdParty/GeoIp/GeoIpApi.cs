@@ -8,7 +8,7 @@ namespace Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 
 public class GeoIpApi {
 	public static async Task<Ipapi?> GetIpapi(WebProxy? proxy, Action<string> onretry) =>
-		JS.DeserializeSafely<Ipapi>(await GetIPApi(proxy, onretry));
+		JS.Deserialize<Ipapi>(await GetIPApi(proxy, onretry));
 
 	private static Task<string> GetIPApi(WebProxy? proxy, Action<string> onretry) {
 		return GetHttpResponseContent(proxy, "http://ip-api.com/json", onretry);

@@ -86,7 +86,7 @@ public class DB : Base {
 			public record CookyPayload<T>(string ProfileId, T[] CookiesJs);
 			public static async Task<IEnumerable<CookyPayload<T>>?> GetCookies<T>() =>
 			 (await Get<IEnumerable<DataInteraction>?>(prefix + "/"))?
-			 		.Select(i => JS.DeserializeSafely<CookyPayload<T>>(i.DataPayload))
+			 		.Select(i => JS.Deserialize<CookyPayload<T>>(i.DataPayload))
 			 		.Where(x => x != null)!;
 
 			public static async Task<DataInteraction?> SendCookies<T>(

@@ -1,10 +1,12 @@
 ﻿using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace Chameleon.lib.Const;
+
 public static class JS {
 	public static readonly JsonSerializerOptions CamelCaseOptions = new() {
-    WriteIndented = true, // Pretty print JSON
+		WriteIndented = true, // Pretty print JSON
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase, //Use camelCase
 	};
 	public static readonly JsonSerializerOptions CaseInsensitiveOptions = new() {
@@ -16,18 +18,22 @@ public static class JS {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
 	};
+	public static readonly JsonSerializerOptions EnumConverter = new() {
+		WriteIndented = true,
+		Converters = { new JsonStringEnumConverter() },
+	};
 
-	public static T? DeserializeSafely<T>(string json) {
+	public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null) {
 		try {
-			return JsonSerializer.Deserialize<T>(json, InsensitiveCamelCaseOptions);
-		} catch {
+			return JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions);
+		} catch (Exception ex) {
+			Debug.WriteLine($"Error deserializing JSON: {ex.Message}");
 			return default;
 		}
 	}
 
 	public static string Serialize(object o, JsonSerializerOptions? options = null) =>
 	 JsonSerializer.Serialize(o, options ?? InsensitiveCamelCaseOptions);
-	
 
 	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
 		public override T2? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {

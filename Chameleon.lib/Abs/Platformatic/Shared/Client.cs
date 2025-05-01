@@ -56,11 +56,11 @@ public class Client {
 
 		var content = await response.Content.ReadAsStringAsync();
 		return
-			response.IsSuccessStatusCode ? JS.DeserializeSafely<T>(content)
+			response.IsSuccessStatusCode ? JS.Deserialize<T>(content)
 			: @params.EnsureSuccess == true
 				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
 					(
-						JS.DeserializeSafely<ReqError>(content) is ReqError err
+						JS.Deserialize<ReqError>(content) is ReqError err
 							? $"{err.Error}\n{err.Message}" : content
 					)
 				)

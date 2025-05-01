@@ -31,6 +31,7 @@ public static class StringsUtil
 	// Extension Methods
 	public static bool Is(this string? self) =>
 		self == null || self == string.Empty || string.IsNullOrEmpty(self) || string.IsNullOrWhiteSpace(self);
+	public static void ThrowIfNullOrEmpty(this string? self) => ArgumentException.ThrowIfNullOrEmpty(self);
 	public static bool IsNot(this string? self) =>
 		!self.Is();
 	public static string Strip(this string self, string prefix) =>
