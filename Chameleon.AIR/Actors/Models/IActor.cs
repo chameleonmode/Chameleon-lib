@@ -5,7 +5,9 @@ namespace Chameleon.AIR.Actors.Models;
 public interface IArgs { }
 public record Opts(DictionaryArgs Args, Settings Settings);
 public record Settings(Start Start, Timeouts Timeouts);
-public record Start(string Feature, int Attempts, Rando Variations, Rando Iterations, Rando Rando, string? Url, bool? New = true);
+public record Start(string Feature, int Attempts, Rando Variations, Rando Iterations, Rando Rando, bool New = true, string? Url = null) {
+  public IEnumerable<string>? Urls { get; set; } = Url?.Split('\n').Select(x => x.Trim());
+}
 public record Timeouts(int Default, int Wait, int Navigate, Rando Naps);
 public record Rando(int Min, int Max, int? Multiplier = null);
 

@@ -9,7 +9,7 @@ public class Actor : IActor {
   public Opts Options { get; set; } = new Opts(
     //new Args("Search Term", Scope.Posts, Sort.Relevance, Filter.All),
     new () {
-      { "Search", "Search Term" },
+      { "Search", string.Empty },
       { "Scope", Scope.Posts.ToString() },
       { "Sort", Sort.Relevance.ToString() },
       { "Filter", Filter.All.ToString() }
@@ -20,8 +20,7 @@ public class Actor : IActor {
         Attempts: 9,
         Variations: new Rando(1, 3),
         Iterations: new Rando(3, 6),
-        Rando: new Rando(6, 9),
-        Url: "https://www.reddit.com"
+        Rando: new Rando(6, 9)
       ),
       Timeouts: new Timeouts(30, 15, 60, new Rando(256, 512, null))
     )
