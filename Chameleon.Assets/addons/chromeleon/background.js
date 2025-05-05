@@ -36,38 +36,41 @@ const on = async () => {
   log.info("On installed or started");
   await checkForExtensionUpdate();
   await App.discoverServer();
+  await new Promise(resolve => setTimeout(resolve, 1234)); // Wait for 1 second
 
-  // Query tabs once and find initializer
+  // Query all tabs
   const tabs = await chrome.tabs.query({});
-  const initializer = tabs.find(tab => {
-    try {
-      return tab.url && tab.url.startsWith(App.server);
-    } catch (error) {
-      log.error("Error parsing URL:", error);
-      try {
-        const url = new URL(tab.url);
-        return url.hostname === "127.0.0.1";
-      } catch {
-        return false;
-      }
-    }
-  });
-
+  // Sort tabs by ID (higher IDs are more recently created)
+  tabs.sort((a, b) => b.id - a.id);
+  const initializer = tabs[0];
+  // const initializer = tabs.find((tab) => {
+  //   try {
+  //     return tab.url && tab.url.startsWith(App.server);
+  //   } catch (error) {
+  //     log.error("Error parsing URL:", error);
+  //     try {
+  //       const url = new URL(tab.url);
+  //       return url.hostname === "127.0.0.1";
+  //     } catch {
+  //       return false;
+  //     }
+  //   }
+  // });
 
   if (initializer) {
     const url = new URL(initializer.url);
     const sessionId = url.searchParams.get("sessionId");
     const instanceId = url.searchParams.get("instanceId");
-    
+
     // Wait for page to fully load
     await waitForTabLoad(initializer.id);
-    
+
     // Get page content
     const results = await chrome.scripting.executeScript({
       target: { tabId: initializer.id },
-      func: () => document.body.textContent
+      func: () => document.body.textContent,
     });
-    
+
     await App.initialize(sessionId, instanceId, JSON.parse(results[0].result));
   }
 

@@ -132,7 +132,7 @@ const App = {
       try {
         const url = `http://127.0.0.1:${port}`;
         const response = await fetch(`${url}/ping`, {
-          signal: AbortSignal.timeout(500), // 500ms timeout
+          signal: AbortSignal.timeout(5000), // 500ms timeout
         });
         // if (!response.ok) continue;
         // With no-cors we can't check response.ok, but if we get here without error it might be working
