@@ -7,14 +7,24 @@ namespace Chameleon.AIR.Actors.Models.Reddit;
 
 public class Actor : IActor {
   public Opts Options { get; set; } = new Opts(
-    //new Args("Search Term", Scope.Posts, Sort.Relevance, Filter.All),
-    new () {
+    AI: new AI(
+      Decorators: new Decorations(
+        System: "",
+        Prefix: "",
+        Human: "",
+        Audience: "",
+        Background: "",
+        Tone: string.Empty,
+        Suffix: string.Empty
+      )
+    ),
+    Args: new () {
       { "Search", string.Empty },
       { "Scope", Scope.Posts.ToString() },
       { "Sort", Sort.Relevance.ToString() },
       { "Filter", Filter.All.ToString() }
     },
-    new Settings(
+    Settings: new Settings(
       Start: new Start(
         Feature: "Reddit",
         Attempts: 9,

@@ -16,14 +16,15 @@ public interface IActor
   // Integrations
 }
 
-public record Opts(DictionaryArgs Args, Settings Settings);
-public record Settings(Start Start, Timeouts Timeouts);
+public record Decorations(string System, string Prefix, string Human, string Audience, string Background, string Tone, string Suffix);
+public record AI(Decorations Decorators);
+public record Rando(int Min, int Max, int? Multiplier = null);
+public record Timeouts(int Default, int Wait, int Navigate, Rando Naps);
 public record Start(string Feature, int Attempts, Rando Variations, Rando Iterations, Rando Rando, bool New = true, string? Url = null, bool All = false) {
   public IEnumerable<string>? Urls { get; set; } = Url?.Split('\n').Select(x => x.Trim());
 }
-public record Timeouts(int Default, int Wait, int Navigate, Rando Naps);
-public record Rando(int Min, int Max, int? Multiplier = null);
-
+public record Settings(Start Start, Timeouts Timeouts);
+public record Opts(AI AI, DictionaryArgs Args, Settings Settings);
 
 // A Dictionary-based IArgs implementation that serializes properly
 public class DictionaryArgs : Dictionary<string, object>, IArgs {
