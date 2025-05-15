@@ -8,12 +8,12 @@ using Chameleon.lib.WebBrowser.Services;
 using Microsoft.Playwright;
 using static Chameleon.lib.Common.Constants.Enums;
 
-namespace Chameleon.lib.Playwright.Utils;
+namespace Chameleon.lib.Playwright.Services;
 
 /// <summary>
 /// Helper/Util class for static Playwright operations
 /// </summary>
-public static class PlaywrightUtil {
+public static class Util {
 	public static Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(GetCookiesOptions options) =>
 		GetCookiesWithRetryPolicy(options);
 

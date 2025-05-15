@@ -2,8 +2,6 @@
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
-using Chameleon.lib.Playwright.Utils;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using Microsoft.Playwright;
 
@@ -38,7 +36,7 @@ public sealed class PlaywrightCookiesSyncService {
 		}
 
 		// Retrieve path to the browser executable
-		var exePath = await PlaywrightUtil.GetBrowseExecutablePath(browserType);
+		var exePath = await Util.GetBrowseExecutablePath(browserType);
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
@@ -59,7 +57,7 @@ public sealed class PlaywrightCookiesSyncService {
 					Path.Combine(FilePaths.AppDataLocalDir, browserType.ToString(), cookieData.ProfileId),
 					new() {
 						Headless = true,
-						ExecutablePath = await PlaywrightUtil.GetBrowseExecutablePath(browserType),
+						ExecutablePath = await Util.GetBrowseExecutablePath(browserType),
 						Args = ["--allow-downgrade"]
 					}
 			);
