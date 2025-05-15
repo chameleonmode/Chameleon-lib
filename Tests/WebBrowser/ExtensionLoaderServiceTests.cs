@@ -1,10 +1,13 @@
 ﻿using System.Diagnostics;
 using chameleon.assets;
+using Chameleon.lib.Const;
 
 namespace Tests.WebBrowser;
 public class ExtensionLoaderServiceTests {
 	[Fact]
 	public async Task LoadExtension_ValidExtension_Succeeds() {
+
+		await Load.Dir("plugins.playwright", FilePaths.Playwright);
 		// Arrange
 		var extensionType = ExtensionType.chromeleon;
 		var destinationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -5,18 +7,37 @@ namespace chameleon.assets;
 public static class Load {
 	public const string BASE = "chameleon.assets";
 
-	public static async Task Directory(string directory, string destination, bool overwrite = true) {
-		var assetUri = $"{BASE}.{directory}";
-		var assets = Loader.Instance.GetAssets(assetUri);
+	public static async Task Dir(string directory, string destination, bool overwrite = true) {
+		var uri = $"{BASE}.{directory}";
+		var assets = Assembly.GetExecutingAssembly()
+		.GetManifestResourceNames()
+		.Where(x => x.StartsWith(uri, StringComparison.OrdinalIgnoreCase));
 
 		foreach (var asset in assets) {
-			var relativePath = GetRelativePathFromAuthority(asset.Split('.'), directory);
-			var tempFilePath = Path.GetTempFileName();
-
-			using var stream = Loader.Instance.Open(asset);
-			using var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-			await stream.CopyToAsync(tempFileStream);
-			File.Copy(tempFilePath, Path.Combine(destination, relativePath), overwrite);
+			var parts = asset.Replace(uri, "")
+			.Split('.')
+			.Where(x => !string.IsNullOrWhiteSpace(x))
+			.Select(x =>
+				x.StartsWith('_')
+				? x.Replace(x[0], '@') 
+				: x is not "node_modules" and not "third_party"
+				? x.Replace('_', '-')
+				: x
+			).ToArray();
+			var path = string.Join(Path.DirectorySeparatorChar, parts[..^1]) + $".{parts.Last()}";
+			var dest = Path.Combine(destination, path);
+			var dir = Path.GetDirectoryName(dest);
+			Debug.WriteLine($"\nCopying\n{asset}\n{parts}\n{path}\n{dest}");
+			ArgumentNullException.ThrowIfNull(dir);
+			if (!Directory.Exists(dir)) _ = Directory.CreateDirectory(dir);
+			
+			var temp = Path.GetTempFileName();
+			using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(asset)) {
+			 	ArgumentNullException.ThrowIfNull(stream);
+				using var fs = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None);
+				await stream.CopyToAsync(fs);
+			}
+			File.Copy(temp, dest, overwrite);
 		}
 	}
 
@@ -27,8 +48,9 @@ public static class Load {
 		}
 
 		using var source = Loader.Instance.Open($"{BASE}.{prefix}.{file}");
-		using var fs = new FileStream(dist, FileMode.Create, FileAccess.Write, FileShare.None); 
-		await source.CopyToAsync(fs);
+		using (var fs = new FileStream(dist, FileMode.Create, FileAccess.Write, FileShare.None)) {
+			await source.CopyToAsync(fs);
+		}
 		return dist;
 	}
 
@@ -76,8 +98,7 @@ public static class Load {
 		var destDir = Path.GetDirectoryName(desPath);
 		ArgumentNullException.ThrowIfNull(destDir);
 
-		if (!System.IO.Directory.Exists(destDir)) 			
-		  _ = System.IO.Directory.CreateDirectory(destDir);
+		if (!Directory.Exists(destDir)) _ = Directory.CreateDirectory(destDir);
 
 		var tempFilePath = Path.GetTempFileName();
 		try {

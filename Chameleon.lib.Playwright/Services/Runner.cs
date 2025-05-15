@@ -1,69 +1,113 @@
-using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Playwright.Models;
-using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Playwright.node;
-using Chameleon.lib.Abs.Platformatic;
-using Chameleon.lib.Util;
-using Chameleon.AIR.Scripts.Models;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using Chameleon.lib.Const;
-using chameleon.assets;
+using Chameleon.lib.Helpers;
 
-namespace Chameleon.lib.Playwright.Services;
-public class Runner {
-  public static async Task RunScript(RunScriptOptions args, CancellationToken token = default) {
-    if (args.Record) {
-      using var runner = new PlaywrightTestRunner("any/record");
-      await runner.Run(args.Port).WaitAsync(token);
-    } else {
-      var savedOptions = args.Script?.TableName == null
-        ? null
-        : IoC.GetJsonValue<Dictionary<string, string>>(args.Script.TableName) ?? args.Description?.Parameters;
+namespace Chameleon.lib.Playwright.node;
+public class Runner : IDisposable {
+	private readonly TaskCompletionSource<bool> _tcs = new();
 
-      if (args.Script is IJSScript jsScript) {
-        var path = Path.Combine(FilePaths.Playwright, "version.json");
-        //if (!File.Exists(path)) {
-          var content = new {
-            Version = "0.0.0",
-            Date = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-          };
-          File.WriteAllText(path, JS.Serialize(content));
-          await Load.Directory("plugins.playwright", FilePaths.Playwright);
-        //}
-        using var runner = new PlaywrightTestRunner(jsScript.File, async (question) => {
-          if (!question.IsNot()) throw new ArgumentNullException(nameof(question));
+	readonly Func<string, Task<string>>? onAsk = null;
+	readonly Process nodeProcess;
+	readonly StreamWriter processInput;
+	readonly string file;
 
-          var res = await Service.Routes.Air.Ask(new("reddit", new {
-            keyword = question,
-          }));
-          return res!.Payload.Response;
-        });
-        var options = args.Opts ?? await jsScript.GetOptions(savedOptions);
-        await runner
-          .Run(args.Port, options)
-          .WaitAsync(token);
-      } else if (args.Script is IBundledCSScript csScript) {
-        using var browser = args.BrowserType switch {
-          Enums.SystemBrowserType.Chrome or
-          Enums.SystemBrowserType.Chromium or
-          Enums.SystemBrowserType.Brave => new ChromeiumPlaywrightBrowser(),
-          Enums.SystemBrowserType.Unknown => throw new NotImplementedException(),
-          Enums.SystemBrowserType.Firefox => throw new NotImplementedException(),
-          _ => throw new NotImplementedException()
-        };
-        using var context = await browser.Open(args);
-        await csScript
-          .Run(context.BrowserContext, savedOptions)
-          .WaitAsync(token);
-      } else if (
-          args.Description?.FilePath != null
-      ) {
-        using var runner = new PlaywrightTestRunner(args.Description.FilePath);
-        await runner
-          .Run(args.Port, args.Description?.Parameters)
-          .WaitAsync(token);
-      } else {
-        throw new NotImplementedException();
-      }
-    }
-  }
+	public event EventHandler<string>? TestOutputReceived;
+	public event EventHandler<string>? TestErrorReceived;
+
+	public Runner(string relativePath, Func<string, Task<string>>? onAsk = null) {
+		this.onAsk = onAsk;
+		file = relativePath;
+		var nodePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+#if DEBUG
+		".playwright"
+#else
+		OperatingSystem.IsWindows() ? ".playwright" : "../Resources/.playwright"
+#endif
+		, OperatingSystem.IsWindows() ? @"node\win32_x64\node.exe" : "node/darwin-x64/node");
+
+		// TODO:
+		// var director = Path.Combine(FilePaths.Playwright, "app.js");
+		var args =
+#if DEBUG
+		OperatingSystem.IsWindows() 
+			? @"C:\repos\chameleon-playwright\dist\app.js"
+			: "/Users/dev/src/chameleon-playwright/dist/app.js";
+#else
+		Path.Combine(
+			AppDomain.CurrentDomain.BaseDirectory,
+			OperatingSystem.IsWindows() 
+			?	@"Resources\scripts\dist\app.js"
+			: "../Resources/scripts/dist/app.js"
+		);
+#endif
+		nodeProcess = new Process { 
+			StartInfo = new ProcessStartInfo {
+				FileName = OperatingSystem.IsWindows() ? $"\"{nodePath}\"" : nodePath,
+				Arguments = $"\"{args}\"",
+				RedirectStandardInput = true,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				UseShellExecute = false,
+				CreateNoWindow = true,
+			} 
+		};
+		nodeProcess.OutputDataReceived += OnOutputDataReceived;
+		nodeProcess.ErrorDataReceived += (sender, e) => {
+			var output = e.Data ?? string.Empty;
+			Debug.WriteLine(output);
+			TestErrorReceived?.Invoke(this, e.Data ?? string.Empty);
+			if (output.StartsWith($"Catch: {file}"))
+				_ = _tcs.TrySetResult(false);
+		};
+
+		_ = nodeProcess.Start();
+		nodeProcess.BeginOutputReadLine();
+		nodeProcess.BeginErrorReadLine();
+
+		processInput = nodeProcess.StandardInput;
+	}
+	public async void OnOutputDataReceived(object sender, DataReceivedEventArgs e) {
+		var output = e.Data ?? string.Empty;
+		Debug.WriteLine(output);
+		TestOutputReceived?.Invoke(this, output);
+		if (output == $"Try: {file} success")
+			_ = _tcs.TrySetResult(true);
+
+		if (output.StartsWith("Ask:") && onAsk is not null) {
+			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
+		}
+	}
+
+	public async Task Run(int port, object? options = null) {
+		var command = new { arg = "run", file, port, options };
+		await Run(JS.Serialize(command));
+	}
+
+	public async Task Run(string options) {
+		try {
+			await processInput.WriteLineAsync(options);
+			_ = await _tcs.Task;
+		} finally {
+			await Task.Delay(1000);
+		}
+	}
+
+	public async Task SetConfigurationAsync(string key, object value) {
+		var command = new { action = "setConfig", key, value };
+		var jsonCommand = JsonSerializer.Serialize(command);
+		await processInput.WriteLineAsync(jsonCommand);
+	}
+
+	public void Dispose() {
+		try {
+			processInput.WriteLine("exit");
+			nodeProcess?.Kill();
+			nodeProcess?.Dispose();
+		} catch (Exception e) {
+			Toaster.Error(e.Message);
+		} finally {
+			GC.SuppressFinalize(this);
+		}
+	}
 }

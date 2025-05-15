@@ -24,9 +24,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	async Task<int> OpenBrowser(SystemBrowserType bt = SystemBrowserType.Chrome, int id = 28296) {
 		var port = TcpUtil.NextFreePort(9613);
 		var browser = await browserService.OpenWithSettings(new(
-				new(bt, new() {
-					Id = id,
-				}),
+				new(bt, new() {Id = id}),
 				port
 			)
 		);
@@ -44,7 +42,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestURLsexplorer() {
 		var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Script = repo.BundledCSScripts[nameof(URLsexplorer)],
 			Description = new(
@@ -59,7 +57,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestKeepGmailAlive() {
 		var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Script = repo.BundledCSScripts[nameof(KeepGmailAlive)]
 		});
@@ -68,7 +66,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestGoogleCTR() {
 		var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Script = repo.BundledCSScripts[nameof(GoogleCTR)],
 			Description = new(
@@ -83,7 +81,7 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestRedditCommentScript() {
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Script = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
@@ -96,7 +94,7 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task TestRedditCommentOnCommentScript() {
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Script = repo.BundledJSScripts[nameof(Reply)],
 			Description = new(
@@ -109,7 +107,7 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task Reddit_Subreddit_Join() {
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Script = repo.BundledJSScripts[nameof(Join)],
 			Description = new(
@@ -122,7 +120,7 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task Reddit_Subreddit_Vote() {
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Script = repo.BundledJSScripts[nameof(Vote)],
 			Description = new(
@@ -135,7 +133,7 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	[Fact]
 	public async Task Reddit_Subreddit_Post() {
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Script = repo.BundledJSScripts[nameof(Post)],
 			Description = new(
@@ -149,7 +147,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestRecord() {
 		var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Record = true
 		});
@@ -158,7 +156,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	[Fact]
 	public async Task TestUserScript() {
 		var port = await OpenBrowser();
-		await PlaywriteRunner.RunScript(new() {
+		await Run.Script(new() {
 			Port = port,
 			Description = new(
 				FilePath: "/Users/dev/Documents/jscripts/test.js",
