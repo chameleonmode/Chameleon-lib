@@ -1,0 +1,32 @@
+{
+  "name": "chameleon-playwright",
+  "version": "1.0.0",
+  "description": "Dynamic Playwright test runner",
+  "type": "module",
+  "scripts": {
+    "dev": "node --loader ts-node/esm src/app.ts",
+    "build": "tsc",
+    "build:prod": "npm run build:clean && tsc -p tsconfig.prod.json && npm run build:prepare",
+    "build:clean": "rm -rf /Users/dev/src/Chameleon-lib/Chameleon.Assets/plugins/playwright",
+    "build:prepare": "cp package.json /Users/dev/src/Chameleon-lib/Chameleon.Assets/plugins/playwright && cd /Users/dev/src/Chameleon-lib/Chameleon.Assets/plugins/playwright && npm install --omit=dev --no-package-lock --no-bin-links",
+    "build:bundle": "esbuild src/app.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/bundle.js --external:@playwright/* --external:playwright* --external:chromium-bidi/* --external:*.node",
+    "red:rep": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/post/reply",
+    "red:com": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/post/comment",
+    "red:vot": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/vote",
+    "red:pos": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/post",
+    "red:joi": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/join",
+    "red:run": "node --loader ts-node/esm src/app.ts ../scripts/reddit",
+    "age:run": "node --loader ts-node/esm src/app.ts {}",
+    "examples:ask:comment": "node --loader ts-node/esm tests/examples/ask-comment.ts",
+    "examples:ask:prompt": "node --loader ts-node/esm tests/examples/ask-prompt.ts",
+    "examples:scrape": "node --loader ts-node/esm tests/examples/scrape.ts"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.50.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.5.4",
+    "ts-node": "^10.9.2",
+    "typescript": "5.6.2"
+  }
+}

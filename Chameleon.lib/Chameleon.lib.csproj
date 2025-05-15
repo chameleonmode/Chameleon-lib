@@ -4,12 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-	<ItemGroup>
-		<PackageReference Include="System.Management" />
-	</ItemGroup>
+
   <ItemGroup>
+	  <PackageReference Include="System.Management" />
 	  <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 	  <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
 	  <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
@@ -20,9 +18,9 @@
 	  <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 	  <PackageReference Include="Microsoft.Extensions.Logging.Configuration" />
 	  <PackageReference Include="Microsoft.Extensions.Logging.Console" />
-    <PackageReference Include="DynamicData" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
-    <PackageReference Include="System.Data.SQLite" />
+      <PackageReference Include="DynamicData" />
+      <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+      <PackageReference Include="System.Data.SQLite" />
   </ItemGroup>
 
 </Project>

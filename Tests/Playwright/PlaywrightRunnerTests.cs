@@ -46,7 +46,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledCSScripts[nameof(URLsexplorer)],
+			Script = repo.BundledCSScripts[nameof(URLsexplorer)],
 			Description = new(
 				Parameters: new() {
 					{"urls", "example.com, example.org"},
@@ -61,7 +61,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledCSScripts[nameof(KeepGmailAlive)]
+			Script = repo.BundledCSScripts[nameof(KeepGmailAlive)]
 		});
 	}
 
@@ -70,7 +70,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledCSScripts[nameof(GoogleCTR)],
+			Script = repo.BundledCSScripts[nameof(GoogleCTR)],
 			Description = new(
 				Parameters: new() {
 					{"search", "example.com"},
@@ -85,7 +85,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task TestRedditCommentScript() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(Comment)],
+			Script = repo.BundledJSScripts[nameof(Comment)],
 			Description = new(
 				Parameters: new() {
 					{"search", "christopher walken"}
@@ -98,7 +98,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task TestRedditCommentOnCommentScript() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(Reply)],
+			Script = repo.BundledJSScripts[nameof(Reply)],
 			Description = new(
 				Parameters: new() {
 					{"search", "pringles"}
@@ -111,7 +111,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task Reddit_Subreddit_Join() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(Join)],
+			Script = repo.BundledJSScripts[nameof(Join)],
 			Description = new(
 				Parameters: new() {
 					{"search", "joe rogan"}
@@ -124,7 +124,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task Reddit_Subreddit_Vote() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(Vote)],
+			Script = repo.BundledJSScripts[nameof(Vote)],
 			Description = new(
 				Parameters: new() {
 					{"search", "elon musk"}
@@ -137,7 +137,7 @@ public class PlaywrightRunnerTests : TestSetup {
 	public async Task Reddit_Subreddit_Post() {
 		await PlaywriteRunner.RunScript(new() {
 			Port = port,
-			BundledScript = repo.BundledJSScripts[nameof(Post)],
+			Script = repo.BundledJSScripts[nameof(Post)],
 			Description = new(
 				Parameters: new() {
 					{"search", "tom segura"}

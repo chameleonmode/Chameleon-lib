@@ -26,6 +26,7 @@ public class PlaywrightTestRunner : IDisposable {
 #endif
 		, OperatingSystem.IsWindows() ? @"node\win32_x64\node.exe" : "node/darwin-x64/node");
 
+		var director = Path.Combine(FilePaths.Playwright, "app.js");
 		var args =
 #if DEBUG
 		OperatingSystem.IsWindows() ?
@@ -41,7 +42,7 @@ public class PlaywrightTestRunner : IDisposable {
 		nodeProcess = new Process { 
 			StartInfo = new ProcessStartInfo {
 				FileName = OperatingSystem.IsWindows() ? $"\"{nodePath}\"" : nodePath,
-				Arguments = OperatingSystem.IsWindows() ? $"\"{args}\"" : args,
+				Arguments = OperatingSystem.IsWindows() ? $"\"{director}\"" : director,
 				RedirectStandardInput = true,
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,

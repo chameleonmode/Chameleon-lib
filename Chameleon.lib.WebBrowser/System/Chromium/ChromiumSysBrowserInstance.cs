@@ -138,7 +138,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	// ...
 	protected override async Task InitializeExtensionPath() {
 		await IOtil.DirectoryDelete(Path.Combine(FilePaths.AppDataLocalDir, "extensions", "chrome"));
-		_ = await EmbeddedLoader.LoadExtension(ExtensionType.chromeleon, Settings.DestExtentionsDir);
+		_ = await Load.LoadExtension(ExtensionType.chromeleon, Settings.DestExtentionsDir);
 	}
 
 	protected override async Task WaitForWinHandle() {
