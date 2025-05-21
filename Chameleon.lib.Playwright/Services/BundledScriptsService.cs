@@ -3,7 +3,6 @@ using Chameleon.AIR.Scripts.Reddit.Post;
 using Chameleon.AIR.Scripts.Reddit.Subreddit;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 

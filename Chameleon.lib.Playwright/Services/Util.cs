@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 using Chameleon.lib.Helpers;
-using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.WebBrowser.Services;
 using Microsoft.Playwright;
 using static Chameleon.lib.Common.Constants.Enums;

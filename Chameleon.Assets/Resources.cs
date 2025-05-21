@@ -2,10 +2,15 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace chameleon.assets;
 
-public static class Load {
+// Classes to deserialize the mapping file
+public record Mapping(List<Map> Files);
+public record Map(string OriginalPath, string ResourceName);
+
+public static partial class Resources {
 	public const string BASE = "chameleon.assets";
 
 	public static async Task Dir(string directory, string destination, bool overwrite = true) {
@@ -61,9 +66,50 @@ public static class Load {
 			using var fs = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None);
 			await stream.CopyToAsync(fs);
 		}
-		
+
 		// Check if the file was copied successfully
 		return File.Exists(target);
+	}
+	public static async Task<bool> Mapped(string source, string target) {
+		_ = Directory.CreateDirectory(target);
+		var assembly = Assembly.GetExecutingAssembly();
+		var prefix = assembly.GetName().Name + ".";
+
+		using var stream = assembly.GetManifestResourceStream(prefix + "resource-mapping.json")!;
+		using var reader = new StreamReader(stream);
+		var json = await reader.ReadToEndAsync();
+		var mapping = JsonSerializer.Deserialize<Mapping>(json, options: new() {
+			PropertyNameCaseInsensitive = true,
+			AllowTrailingCommas = true,
+		})!;
+		await stream.DisposeAsync();
+
+		// Extract each file according to the mapping
+		foreach (var map in mapping.Files) {
+			var file = map.OriginalPath;
+			var resource = prefix + SpecialCharacters()
+			.Replace(map.ResourceName, "_")
+			.Replace('\\', '.')
+			.Replace('/', '.')
+			.Replace("..", "._");
+			if (!resource.StartsWith(prefix + source)) continue;
+
+			// Calculate the target path - preserve original filename
+			var destination = Path.Combine(target, file);
+			_ = Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+
+			// Extract the resource
+			Debug.WriteLine($"\nCopying \n{resource} \nto {destination}");
+			using var mrs = assembly.GetManifestResourceStream(resource)!;
+			if (mrs == null)
+				continue;
+			
+			using var fs = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
+			await mrs.CopyToAsync(fs);
+		}
+
+		// Check if the file was copied successfully
+		return Directory.Exists(target);
 	}
 
 	public static async Task<string> CopyFile(string prefix, string file, string dir, bool overwrite = true) {
@@ -157,4 +203,8 @@ public static class Load {
 			inputStream.Dispose();
 		}
 	}
+
+	[GeneratedRegex(@"[^a-zA-Z0-9_/\\.]")]
+	private static partial Regex SpecialCharacters();
+
 }

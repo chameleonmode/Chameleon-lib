@@ -34,7 +34,7 @@ public class NodeServerLauncher {
   public async Task StartServer() {
     if(node != null) return;
 
-    await Load.Dir("js.node", serverJsDirPath);
+    await Resources.Dir("js.node", serverJsDirPath);
     node = Process.Start(new ProcessStartInfo {
       FileName = $"\"{nodeServerPath}\"",
       Arguments = $"\"{serverJsPath}\"",

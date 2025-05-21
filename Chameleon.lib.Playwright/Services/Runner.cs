@@ -3,7 +3,7 @@ using System.Text.Json;
 using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 
-namespace Chameleon.lib.Playwright.node;
+namespace Chameleon.lib.Playwright.Services;
 public class Runner : IDisposable {
 	private readonly TaskCompletionSource<bool> _tcs = new();
 
@@ -27,7 +27,7 @@ public class Runner : IDisposable {
 		, OperatingSystem.IsWindows() ? @"node\win32_x64\node.exe" : "node/darwin-x64/node");
 
 		// TODO:
-		// var director = Path.Combine(FilePaths.Playwright, "app.js");
+		var director = Path.Combine(FilePaths.AppDataDir, "plugins", "playwright", "app.js");
 		var args =
 #if DEBUG
 		OperatingSystem.IsWindows() 
@@ -74,9 +74,7 @@ public class Runner : IDisposable {
 		if (output == $"Try: {file} success")
 			_ = _tcs.TrySetResult(true);
 
-		if (output.StartsWith("Ask:") && onAsk is not null) {
-			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
-		}
+		if (output.StartsWith("Ask:") && onAsk is not null) 			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
 	}
 
 	public async Task Run(int port, object? options = null) {

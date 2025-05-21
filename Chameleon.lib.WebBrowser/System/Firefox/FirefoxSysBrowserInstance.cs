@@ -50,7 +50,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 	}
 
 	protected override async Task InitializeExtensionPath() {
-		var geckoleon = await Load.CopyFile(
+		var geckoleon = await Resources.CopyFile(
 			"addons",
 			"geckoleon.xpi", 
 			FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "gecko")
@@ -290,7 +290,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 				}
 		}
 
-		_ = await Load.CopyFile("js.firefox", "user.js", Settings.SysBrowserProfileCachePath);
+		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.SysBrowserProfileCachePath);
 	}
 	protected override string GetCommandLineArguments() {
 		return string.Join(" ", [

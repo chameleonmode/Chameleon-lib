@@ -7,7 +7,7 @@ public class ExtensionLoaderServiceTests {
 	[Fact]
 	public async Task LoadExtension_ValidExtension_Succeeds() {
 
-		await Load.Dir("plugins.playwright", FilePaths.Playwright);
+		await Resources.Dir("plugins.playwright", FilePaths.AppDataDir);
 		// Arrange
 		var extensionType = ExtensionType.chromeleon;
 		var destinationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -22,7 +22,7 @@ public class ExtensionLoaderServiceTests {
 			//}
 
 			// Act
-			_ = await Load.LoadExtension(extensionType, destinationPath);
+			_ = await Resources.LoadExtension(extensionType, destinationPath);
 
 			// Assert
 			var dest = Path.Combine(destinationPath, extensionType.ToString());

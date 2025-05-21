@@ -1,7 +1,5 @@
 using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Playwright.Models;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Playwright.node;
 using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Util;
 using Chameleon.AIR.Scripts.Models;
@@ -18,18 +16,6 @@ public class Run {
         : IoC.GetJsonValue<Dictionary<string, string>>(args.Script.TableName) ?? args.Description?.Parameters;
 
       if (args.Script is IJSScript jsScript) {
-        // TODO: add this
-        //--------------------------------------------------------------
-        // var path = Path.Combine(FilePaths.Plugins, "version.json");
-        // if (!File.Exists(path)) {
-        //   var content = new {
-        //     Version = "0.0.0",
-        //     Date = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-        //   };
-        //   File.WriteAllText(path, JS.Serialize(content));
-        //   await Load.Dir("plugins.playwright", FilePaths.Playwright);
-        // }
-        //--------------------------------------------------------------
         using var runner = new Runner(jsScript.File, async (question) => {
           if (!question.IsNot()) throw new ArgumentNullException(nameof(question));
 

@@ -1,5 +1,4 @@
 ﻿using Chameleon.lib.Playwright.Interfaces;
-using Chameleon.lib.Playwright.Models;
 
 using Microsoft.Playwright;
 

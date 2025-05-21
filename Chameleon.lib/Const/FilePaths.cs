@@ -19,14 +19,6 @@ public static class FilePaths {
 		AppDataDir, "Roboto"
 	);
 
-	public static string Plugins => EnsureDirectoryExists(
-		AppDataDir, "Plugins"
-	);
-
-	public static string Playwright => EnsureDirectoryExists(
-		Plugins, ".playwright"
-	);
-
 	public static string EnsureDirectoryExists(params string[] paths) {
 		var path = Path.Combine(paths);
 		try {
