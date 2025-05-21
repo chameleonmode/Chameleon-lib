@@ -17,58 +17,16 @@
   <ItemGroup>
     <ResourceFiles Include="plugins\**" />
   </ItemGroup>
-
   <PropertyGroup>
     <MappingFile>$(IntermediateOutputPath)resource-mapping.json</MappingFile>
   </PropertyGroup>
-
-  <!-- Create individual JSON entries -->
-  <ItemGroup>
-    <ResourceEntries Include="@(ResourceFiles)">
-      <JsonEntry>{ &quot;OriginalPath&quot;: &quot;%(Identity)&quot;, &quot;ResourceName&quot;: &quot;%(RelativeDir)%(Filename)%(Extension)&quot; }</JsonEntry>
-    </ResourceEntries>
-  </ItemGroup>
-
-  <!-- Create the opening of the JSON file -->
-  <WriteLinesToFile
-    File="$(MappingFile)" 
-    Overwrite="true" 
-    Lines="{
-  &quot;Files&quot;: ["
-   />
-
-  <!-- Write each entry with appropriate comma -->
   <PropertyGroup>
-    <EntryCount>@(ResourceEntries->Count())</EntryCount>
-    <CurrentEntry>0</CurrentEntry>
+    <ResourceMappingContents></ResourceMappingContents>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ResourceEntriesWithIndex Include="@(ResourceEntries)">
-      <Index>$([MSBuild]::Add($(CurrentEntry), $([MSBuild]::Add(1,0))))</Index>
-    </ResourceEntriesWithIndex>
-  </ItemGroup>
-
-  <!-- Write each resource entry -->
-  <WriteLinesToFile
-    Condition="'%(ResourceEntriesWithIndex.Index)' != '$(EntryCount)'"
-    File="$(MappingFile)"
-    Lines="    %(ResourceEntriesWithIndex.JsonEntry),"
-    Overwrite="false" />
-
-  <WriteLinesToFile
-    Condition="'%(ResourceEntriesWithIndex.Index)' == '$(EntryCount)'"
-    File="$(MappingFile)"
-    Lines="    %(ResourceEntriesWithIndex.JsonEntry)"
-    Overwrite="false" />
-
-  <!-- Close the JSON file -->
   <WriteLinesToFile
     File="$(MappingFile)"
-    Lines="  ]
-}"
-    Overwrite="false" />
-
+    Lines="@(ResourceFiles->'%(RecursiveDir)%(Filename)%(Extension)')"
+    Overwrite="true" />
   <ItemGroup>
     <EmbeddedResource Include="$(MappingFile)" LogicalName="$(RootNamespace).resource-mapping.json" />
   </ItemGroup>

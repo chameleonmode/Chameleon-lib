@@ -15,36 +15,13 @@ public class Runner : IDisposable {
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-	public Runner(string relativePath, Func<string, Task<string>>? onAsk = null) {
+	public Runner(string file, Func<string, Task<string>>? onAsk = null) {
 		this.onAsk = onAsk;
-		file = relativePath;
-		var nodePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-#if DEBUG
-		".playwright"
-#else
-		OperatingSystem.IsWindows() ? ".playwright" : "../Resources/.playwright"
-#endif
-		, OperatingSystem.IsWindows() ? @"node\win32_x64\node.exe" : "node/darwin-x64/node");
-
-		// TODO:
-		var director = Path.Combine(FilePaths.AppDataDir, "plugins", "playwright", "app.js");
-		var args =
-#if DEBUG
-		OperatingSystem.IsWindows() 
-			? @"C:\repos\chameleon-playwright\dist\app.js"
-			: "/Users/dev/src/chameleon-playwright/dist/app.js";
-#else
-		Path.Combine(
-			AppDomain.CurrentDomain.BaseDirectory,
-			OperatingSystem.IsWindows() 
-			?	@"Resources\scripts\dist\app.js"
-			: "../Resources/scripts/dist/app.js"
-		);
-#endif
+		this.file = file;
 		nodeProcess = new Process { 
 			StartInfo = new ProcessStartInfo {
-				FileName = OperatingSystem.IsWindows() ? $"\"{nodePath}\"" : nodePath,
-				Arguments = $"\"{args}\"",
+				FileName = OperatingSystem.IsWindows() ? $"\"{Project.Plugins.Node}\"" : Project.Plugins.Node,
+				Arguments = $"\"{Project.Plugins.App}\"",
 				RedirectStandardInput = true,
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,
@@ -74,7 +51,8 @@ public class Runner : IDisposable {
 		if (output == $"Try: {file} success")
 			_ = _tcs.TrySetResult(true);
 
-		if (output.StartsWith("Ask:") && onAsk is not null) 			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
+		if (output.StartsWith("Ask:") && onAsk is not null)
+			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
 	}
 
 	public async Task Run(int port, object? options = null) {

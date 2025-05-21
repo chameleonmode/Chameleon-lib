@@ -1,27 +1,24 @@
 import Pager from "../../page.js";
 export default async function (context, opts) {
-    const { reddit, } = await Pager(context, opts, async (url) => {
+    const { reddit } = await Pager(context, opts, async (url) => {
         if (reddit.opts.args.search || url)
             await reddit.post.assert();
-        const title = await reddit.post.title();
-        const comments = await reddit.post.getComments(6);
+        const b64 = [await reddit.screenshot()];
+        const comments = await reddit.post.getComments();
         const { locator, text } = await reddit.post.getComment();
         await reddit.post.replyToComment(locator, async () => {
             const result = await reddit.ask({
-                task: `create a reply to a reddit comment `,
-                generate: {
-                    sys: "Your replying to a comment",
-                    terms: reddit.opts.ai.generations.terms,
+                task: `reply to this reddit comment`,
+                image: { des: "page screenshot", b64 },
+                generations: {
                     type: "reply",
-                    context: `the post at ${reddit.page.url()} is titled ${title}, some of the comments on the post are ${comments.join(", ")}`,
+                    sys: `1. Reply to this comment: ${text}\n2. Match word count to the range of existing comments and replies`,
+                    range: { min: 1, max: 1 },
+                    context: reddit.page.url(),
                     input: {
                         type: "comment",
-                        data: text,
-                        reason: "this is the comment i want to reply to",
-                    },
-                    range: {
-                        min: 9,
-                        max: 54,
+                        data: comments,
+                        reason: "existing array of comments on the post",
                     },
                 },
             });

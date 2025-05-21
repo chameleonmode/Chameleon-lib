@@ -4,6 +4,8 @@ using Microsoft.Playwright;
 using Chameleon.lib.Const;
 using Chameleon.AIR.Scripts.Models;
 using chameleon.assets;
+using System.Net.NetworkInformation;
+using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Playwright;
 
@@ -35,18 +37,37 @@ public record PlaywrightScriptDescription(
 );
 
 public static class Project {
-	public static async Task<bool> Init() {
-		// var path = Path.Combine(FilePaths.Plugins, "version.json");
-		// if (!File.Exists(path)) {
-		// 	var content = new {
-		// 		Version = "0.0.0",
-		// 		Date = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-		// 	};
-		// 	File.WriteAllText(path, JS.Serialize(content));
-		// }
-		var source = "plugins.playwright";
-		var target = FilePaths.AppDataDir;
-		var success = await Resources.Mapped(source, target);
-		return success;
+	public static class Plugins {
+		public static string DotPlaywright { get; } = Path.Combine(
+			AppDomain.CurrentDomain.BaseDirectory,
+			Debug || OperatingSystem.IsWindows()
+			? ".playwright"
+			: "../Resources/.playwright"
+		);
+		public static string Dir { get; } = Path.Combine(FilePaths.AppDataDir, "playwright");
+		public static string App { get; } = Path.Combine(Dir, "app.js");
+		// TODO: public static string Node { get; } = Path.Combine(Playwright, "node" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+		public static string Node { get; } = Path.Combine(DotPlaywright, "node", OperatingSystem.IsWindows() ? "win32_x64\\node.exe" : "darwin-x64/node");
 	}
+
+	public static TaskCompletionSource<bool> Initialized { get; } = new();
+	public static async Task<bool> Init() {
+		var source = "plugins";
+		var target = FilePaths.AppDataDir;
+		var success = File.Exists(Plugins.App);
+		if (!success || Debug) {
+			Toaster.Info("Installing updates...");
+			success = await Resources.Mapped(source, target);
+			if (success) Toaster.Success("Updates installed.");
+			else Toaster.Error("Failed to install updates.");
+		}
+		return Initialized.TrySetResult(success);
+	}
+
+	public static bool Debug { get; } =
+#if DEBUG
+		true;
+#else
+		false;
+#endif
 }

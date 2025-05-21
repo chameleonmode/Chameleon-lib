@@ -1,32 +1,28 @@
 using System.Diagnostics;
-using System.Linq.Expressions;
 using chameleon.assets;
-using Chameleon.lib.Const;
 
 namespace Tests.Embedded;
 
 public class Test {
 	[Fact]
-	public async Task Embedded_Loader_Copy() {
+	public async Task Resources_Copy() {
 		// Arrange
-		var file = "js.node.node";
 		var target = "/Users/dev/src/Chameleon-lib/Tests/Embedded/node";
-		//var settings = "{}";
-
-		Debug.WriteLine($"Testing LoadExtension with destination path: {file}");
+		var node = "node" + (OperatingSystem.IsWindows() ? ".exe" : "");
+		var file = Path.Combine(target, node);
 		try {
 			// Act
-			var success = await Resources.Copy(file, target);
-			Assert.True(success, $"Failed to copy {file} to {target}");
-
+			var success =
+			await Resources.Copy("js.node." + node, file);
+			Assert.True(success, $"Failed to copy {node} to {target}");
 		} finally {
 			// Clean up
-			File.Delete(target);
+			File.Delete(file);
 		}
 	}
 	[Fact]
-	public async Task Embedded_Loader_Resource() {
-		var source = "plugins.playwright";
+	public async Task Resources_Mapped() {
+		var source = "plugins";
 		var target = "/Users/dev/src/Chameleon-lib/Tests/Embedded/cache";
 		try {
 			// Act
@@ -40,13 +36,13 @@ public class Test {
 		}
 	}
 
-		[Fact]
+	[Fact]
 	public async Task Resources_Dir() {
 		var source = "plugins.playwright";
 		var target = "/Users/dev/src/Chameleon-lib/Tests/Embedded/cache";
 		try {
 			// Act
-			var success = await Resources.Mapped(source, target);
+			var success = await Resources.Dir(source, target);
 			Assert.True(success, $"Failed to copy {source} to {target}");
 		} catch (Exception e) {
 			Debug.WriteLine(e);

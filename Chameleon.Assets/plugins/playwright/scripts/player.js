@@ -1,5 +1,5 @@
 import { Logger } from "../lib/logger.js";
-export default class Player {
+export class Player {
     actor;
     visited = [];
     constructor(actor) {

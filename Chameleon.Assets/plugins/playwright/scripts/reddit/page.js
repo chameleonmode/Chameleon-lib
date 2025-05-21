@@ -1,9 +1,9 @@
 import { random, rando, trySequentially } from "../../lib/utils.js";
-import { Base } from "../base.js";
-import Player from "../player.js";
 import { configure, BASE_URL } from "./reddit.js";
+import { promptee } from "../../lib/requests.js";
+import { Player } from "../player.js";
+import { Base } from "../base.js";
 import { Logger } from "../../lib/logger.js";
-import { promptee } from "../../lib/ask.js";
 export class Reddit extends Base {
     ctx;
     opts;
@@ -17,7 +17,6 @@ export class Reddit extends Base {
                 for (let i = 0; i < this.opts.settings.start.attempts; i++) {
                     try {
                         this.iterations = 1;
-                        this.variations = 1;
                         return await action(url);
                     }
                     catch (e) {
@@ -264,7 +263,7 @@ export class Reddit extends Base {
                 }
             }
             catch (e) {
-                Logger.warn("Func is archived or removed.", e);
+                Logger.warn("error in findo loop", e);
                 visited.push(index);
                 await this.page.reload({ waitUntil: "load" });
                 await this.onIteration(this.visited[this.visited.length - 1]);
@@ -274,10 +273,12 @@ export class Reddit extends Base {
     }
     async actionado() {
         const compleations = [];
-        const acto = rando() && ["comment", "reply", "post"].includes(this.opts.settings.start.feature);
+        const acto = rando() && ["comment", "reply"].includes(this.opts.settings.start.feature);
         this.bang("acto?", acto);
-        const actionable = this.opts.artifacters.find((art) => art.type === "selections" && art.data.find((d) => ["join", "vote"].includes(d)))?.data;
+        const actionable = this.opts.args.artifacters.find((art) => art.type === "selections" && art.data.find((d) => ["join", "vote"].includes(d)))?.data;
         this.bang("Actionable", actionable.length > 0, { actionable });
+        if (!actionable.includes("vote"))
+            actionable.push("vote");
         const actions = {
             join: async () => {
                 await this.subreddit.joiner();
@@ -288,7 +289,8 @@ export class Reddit extends Base {
         };
         for (const selection of actionable) {
             try {
-                this.bang("action", rando(), { selection });
+                if (!compleations.includes("join"))
+                    this.bang("action", rando(), { selection });
                 await actions[selection]();
                 compleations.push(selection);
             }
@@ -414,12 +416,13 @@ export class Reddit extends Base {
                 Logger.warn("Error in act function:", e);
             }
         },
-        getComments: async (max = 3) => {
+        getComments: async (max) => {
             await this.scrollabit();
             const locator = this.page.locator("shreddit-comment");
             const count = await locator.count();
+            const length = max ? Math.min(max, count) : count;
             const comments = [];
-            for (let i = 0; i < Math.min(max, count); i++) {
+            for (let i = 0; i < length; i++) {
                 comments.push(await this.txtContent("div[slot='comment']", locator.nth(i)));
             }
             return comments;
@@ -497,21 +500,15 @@ export class Reddit extends Base {
             const downs = this.page.getByRole("button", { name: "Downvote" });
             const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
             const count = Math.min(upCount, downCount) - 1;
-            const length = Math.min(count, this.rando);
+            const length = Math.min(count, rando(this.opts.settings.start.rando.min, this.opts.settings.start.rando.max));
             this.bang("Vote count", length, { upCount, downCount, count, length });
             for (let i = 0; i < length; i++) {
                 const index = random(0, count);
                 await (rando() ? this.click(ups.nth(index)) : this.click(downs.nth(index)));
             }
             return {
-                ups: {
-                    locator: ups,
-                    count: upCount,
-                },
-                downs: {
-                    locator: downs,
-                    count: downCount,
-                },
+                ups: { locator: ups, count: upCount },
+                downs: { locator: downs, count: downCount },
             };
         },
         joiner: async () => {
@@ -538,31 +535,36 @@ export class Reddit extends Base {
 }
 export default async function (ctx, opts, action) {
     const options = configure(opts);
-    const variate = (options.settings.start.all || options.ai.generations.terms.length > 0) &&
-        options.settings.start.variations.max > 1;
-    if (variate) {
-        const result = await promptee({
-            task: `generate search terms to browse reddit`,
+    const reddit = new Reddit(ctx, options, action);
+    await reddit.init();
+    const genorate = options.settings.start.all && options.args.search.length && options.settings.start.variations.max > 0;
+    if (genorate) {
+        const result = await promptee.genorate({
+            model: options.ai.model,
             decorators: options.ai.decorators,
+            task: `generate search terms`,
             generations: {
+                type: "term",
                 sys: "you are creating variations of search terms",
-                type: "search",
-                context: "",
-                terms: options.ai.generations.terms,
+                context: "current search terms",
+                range: options.settings.start.variations,
                 input: {
                     type: "search",
-                    data: JSON.stringify(options.args.search),
-                    reason: "these are the search terms i want to use",
-                },
-                range: {
-                    min: options.settings.start.variations.min,
-                    max: options.settings.start.variations.max,
+                    data: options.args.search,
+                    reason: "list of search terms to generate variations for",
                 },
             },
         });
-        options.args.search = [...options.args.search, ...result.map((i) => i.data)].sort(() => Math.random() - 0.5);
+        const terms = result.map((i) => i.data);
+        options.args.search = [...options.args.search, ...terms].sort(() => Math.random() - 0.5);
+        Logger.info("Generated search terms:", options.args.search, JSON.stringify(result));
     }
-    const reddit = new Reddit(ctx, options, action);
-    await reddit.init();
+    Logger.info("Feature:", {
+        feature: options.settings.start.feature,
+        artifacts: JSON.stringify(options.args.artifacters),
+    });
+    Logger.info("Options:", {
+        options: JSON.stringify(options),
+    });
     return { reddit };
 }

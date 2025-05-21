@@ -1,7 +1,8 @@
 import { chromium } from "@playwright/test";
 import path from "path";
+import { fileURLToPath } from "url";
 export async function loader(file) {
-    const __filename = (await import("url")).fileURLToPath(import.meta.url);
+    const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     const script = file.endsWith(".js") ? file : path.join(__dirname, `${file}.js`);
     const url = new URL(`file://${path.resolve(script)}`);
@@ -35,11 +36,16 @@ export async function run(args) {
                 return query(parameters);
             };
         });
+        const op = args.opts;
         const opts = {
-            file: args.file,
-            port: args.port,
-            settings: { start: { feature } },
-            ...args.opts,
+            ...op,
+            run: { file: args.file, port: args.port },
+            settings: {
+                start: {
+                    feature,
+                    ...op?.settings?.start,
+                }
+            },
         };
         await plugin(ctx, opts);
         console.log(`Try: ${args.file} success`);

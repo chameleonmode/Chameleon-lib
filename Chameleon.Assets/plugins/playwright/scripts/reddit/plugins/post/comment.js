@@ -2,24 +2,21 @@ import Reddit from "../../page.js";
 export default async function (ctx, opts) {
     const { reddit } = await Reddit(ctx, opts, async (url) => {
         await reddit.post.assert();
-        const title = await reddit.post.title();
-        const comments = await reddit.post.getComments(3);
+        const b64 = [await reddit.screenshot()];
+        const comments = await reddit.post.getComments();
         await reddit.post.addComment(async () => {
             const result = await reddit.ask({
-                task: `respond to a reddit post with a comment`,
-                generate: {
-                    sys: "Your commenting on a post",
-                    terms: reddit.opts.ai.generations.terms,
+                task: `respond to this reddit post`,
+                image: { des: "page screenshot", b64 },
+                generations: {
                     type: "comment",
-                    context: `some of the comments on the post at ${reddit.page.url()} are ${comments.join(", ")}`,
+                    sys: "Match word count to the range of existing comments",
+                    range: { min: 1, max: 1 },
+                    context: reddit.page.url(),
                     input: {
-                        type: "title",
-                        data: title,
-                        reason: "this is the title of the post i want to comment on",
-                    },
-                    range: {
-                        min: 9,
-                        max: 54,
+                        type: "comment",
+                        data: comments,
+                        reason: "existing array of comments on the post",
                     },
                 },
             });

@@ -7,7 +7,7 @@ export class Logger {
         console.log(`[${this.prefix()}] \x1b[32mLOG\x1b[0m`, { message, objects });
     }
     static info(message = "Chamelioneer", ...objects) {
-        console.log(`[${this.prefix()}] \x1b[34mINFO\x1b[0m`, { message, objects });
+        console.log(`[${this.prefix()}] \x1b[35mINFO\x1b[0m`, { message, objects });
     }
     static debug(message = "Chamelioneer", ...objects) {
         console.log(`[${this.prefix()}] \x1b[36mDEBUG\x1b[0m`, { message, objects });

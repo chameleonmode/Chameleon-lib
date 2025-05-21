@@ -4,17 +4,19 @@ export const sleep = (ms) => {
     });
 };
 export function random(...values) {
-    const smallest = Math.min(...values);
-    const largest = Math.max(...values);
-    const floor = Math.floor(Math.random() * (largest - smallest + 1) + smallest);
+    const smallest = Math.min(...values) + 1;
+    const largest = Math.max(...values) + 1;
+    const floor = Math.floor(Math.random() * (largest - smallest) + smallest);
     return floor;
 }
-export function rando(thing) {
+export function rando(thing, thinger) {
     return Array.isArray(thing)
         ? thing[Math.floor(Math.random() * thing.length)]
-        : thing
-            ? Math.floor(Math.random() * thing)
-            : Math.random() < 0.5;
+        : thing && thinger
+            ? random(thinger, thing)
+            : thing && typeof thing === "number"
+                ? Math.floor(Math.random() * thing)
+                : Math.random() < 0.5;
 }
 export async function sleepRandom({ min = 256, max = 512, multiplier = 0 }) {
     const ms = random(min, max);
@@ -59,12 +61,8 @@ export async function trySequentially(promises) {
     const errors = [];
     for (let i = 0; i < promises.length; i++) {
         try {
-            const result = await promises[i]();
-            return {
-                fulfilled: result,
-                errors,
-                fulfilledIndex: i,
-            };
+            const fulfilled = await promises[i]();
+            return { fulfilled, errors, fulfilledIndex: i };
         }
         catch (error) {
             errors.push(error);
