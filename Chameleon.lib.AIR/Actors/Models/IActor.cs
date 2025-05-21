@@ -35,7 +35,7 @@ public record Decorations(string System, string Prefix, string Human, string Aud
 public record AI(Decorations Decorators);
 public record Rando(int Min, int Max, int? Multiplier = null);
 public record Timeouts(int Default, int Wait, int Navigate, Rando Naps);
-public record Start(string Feature, int Attempts, Rando Variations, Rando Iterations, Rando Rando, bool New = true, string? Url = null, bool All = false) {
+public record Start(string Feature, int Attempts, Rando Variations, Rando Iterations, Rando Rando, bool New = true, string? Url = null, bool All = true) {
   public IEnumerable<string>? Urls { get; set; } = Url?.Split('\n').Select(x => x.Trim());
 }
 public record Settings(Start Start, Timeouts Timeouts);

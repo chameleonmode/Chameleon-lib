@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 
 namespace chameleon.assets;
+
 public static class Load {
 	public const string BASE = "chameleon.assets";
 
@@ -19,7 +20,7 @@ public static class Load {
 			.Where(x => !string.IsNullOrWhiteSpace(x))
 			.Select(x =>
 				x.StartsWith('_')
-				? x.Replace(x[0], '@') 
+				? x.Replace(x[0], '@')
 				: x is not "node_modules" and not "third_party"
 				? x.Replace('_', '-')
 				: x
@@ -30,15 +31,39 @@ public static class Load {
 			Debug.WriteLine($"\nCopying\n{asset}\n{parts}\n{path}\n{dest}");
 			ArgumentNullException.ThrowIfNull(dir);
 			if (!Directory.Exists(dir)) _ = Directory.CreateDirectory(dir);
-			
+
 			var temp = Path.GetTempFileName();
 			using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(asset)) {
-			 	ArgumentNullException.ThrowIfNull(stream);
+				ArgumentNullException.ThrowIfNull(stream);
 				using var fs = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None);
 				await stream.CopyToAsync(fs);
 			}
 			File.Copy(temp, dest, overwrite);
 		}
+	}
+
+	public static async Task<bool> Copy(string file, string target, bool overwrite = true) {
+		if (!overwrite && File.Exists(target)) throw new IOException($"File {target} already exists and overwrite is set to false.");
+		// Ensure the directory exists
+		_ = Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+
+		var assembly = Assembly.GetExecutingAssembly();
+		var prefix = assembly.GetName().Name + ".";
+		var uri = $"{prefix}{file}";
+
+		// Check if the resource exists
+		var resource = assembly
+		.GetManifestResourceNames()
+		.First(x => x.StartsWith(uri, StringComparison.OrdinalIgnoreCase))!;
+
+		// Extract the resource
+		using (var stream = assembly.GetManifestResourceStream(resource)!) {
+			using var fs = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None);
+			await stream.CopyToAsync(fs);
+		}
+		
+		// Check if the file was copied successfully
+		return File.Exists(target);
 	}
 
 	public static async Task<string> CopyFile(string prefix, string file, string dir, bool overwrite = true) {
@@ -55,9 +80,9 @@ public static class Load {
 	}
 
 	public static async Task<string> LoadExtension(
-		ExtensionType extension, 
-		string destinationPath, 
-		string? settings = null, 
+		ExtensionType extension,
+		string destinationPath,
+		string? settings = null,
 		string? version = null
 	) {
 		try {
@@ -66,7 +91,7 @@ public static class Load {
 
 			foreach (var asset in assets) {
 				var authorityParts = asset.Split('.');
-				var relativePath = GetRelativePathFromAuthority(authorityParts,  $"{extension}");
+				var relativePath = GetRelativePathFromAuthority(authorityParts, $"{extension}");
 
 				await CopyFromStream(
 					Loader.Instance.Open(asset),

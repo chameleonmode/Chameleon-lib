@@ -9,12 +9,12 @@ public class Actor : IActor {
   public Opts Options { get; set; } = new Opts(
     AI: new AI(
       Decorators: new Decorations(
-        System: "",
-        Prefix: "",
-        Human: "",
-        Audience: "",
-        Background: "",
-        Tone: string.Empty,
+        System: "You are helpful!",
+        Prefix: string.Empty,
+        Human: "reddit content creator",
+        Audience: "adaptive to the general audience of the task context",
+        Background: "surfing reddit",
+        Tone: "adaptive to the general tone of context",
         Suffix: string.Empty
       )
     ),

@@ -10,7 +10,6 @@
 	<ItemGroup>
 		<EmbeddedResource Include="addons\**" />
 		<EmbeddedResource Include="js\**" />
-		<EmbeddedResource Include="json\**" />
 		<EmbeddedResource Include="plugins\**" />
 	</ItemGroup>
 
