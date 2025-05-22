@@ -13,10 +13,11 @@ public record Map(string Path);
 public static partial class Resources {
 	[GeneratedRegex(@"[^a-zA-Z0-9_/\\.]")] private static partial Regex SpecialCharacters();
 
-	public static void Assert(params string?[] paths) {
+	public static string Assert(params string?[] paths) {
 		var path = Path.Combine(paths!);
 		Debug.WriteLine($"Assert \n{path}");
 		if (!Directory.Exists(path)) _ = Directory.CreateDirectory(path);
+		return path;
 	}
 
 	public static Stream? Streamer(string resource) {

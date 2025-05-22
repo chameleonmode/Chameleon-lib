@@ -5,6 +5,11 @@ using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Tests.WebBrowser;
 public class BrowserLauncherTests : TestSetup {
+	public override async Task InitializeAsync() {
+		await base.InitializeAsync();
+			_ = await Chameleon.lib.WebBrowser.Project.Init();
+	}
+
 	readonly ManualResetEventSlim testCompletionEvent = new(false);
 	void KeepAlive(IBrowserInstance bi) {
 		// Start a monitoring task that will complete when the signal file is deleted
@@ -36,7 +41,7 @@ public class BrowserLauncherTests : TestSetup {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-vUp6cZAY"
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-CYpEvUqY"
 					},
 					Emulations = new() {
 						AutoTimezone = true,

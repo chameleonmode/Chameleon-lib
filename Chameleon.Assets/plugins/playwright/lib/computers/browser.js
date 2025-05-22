@@ -1,6 +1,4 @@
-import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
-import { getChromePath } from "../utils.js";
 import { run } from "../runner.js";
 import { req } from "../requests.js";
 import { Logger } from "../logger.js";
@@ -42,7 +40,7 @@ export class Playwrighteer {
     page;
     funkers = [];
     constructor() { }
-    async setup({ dir, port }) {
+    async setup(port) {
         const connect = async () => {
             const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
             return { port, browser };
@@ -51,36 +49,20 @@ export class Playwrighteer {
             return await connect();
         }
         catch (error) {
-            if (dir) {
-                Logger.error("Error connecting to Chrome:", error);
-                const chromePath = getChromePath();
-                const args = [
-                    "--disable-extensions",
-                    `--profile-directory=Default`,
-                    `--user-data-dir=${dir}`,
-                    `--remote-debugging-port=${port}`,
-                ];
-                const child = spawn(chromePath, args, {
-                    detached: true,
-                    stdio: "ignore",
-                });
-                child.unref();
-            }
             await new Promise((resolve) => setTimeout(resolve, 3000));
-            return await this.setup({ dir, port });
+            return await this.setup(port);
         }
     }
     async runner(args) {
         const { file, port, dir, opts } = args;
-        const { port: ported } = await this.setup({ dir, port: port ? parseInt(port, 10) : 9613 });
         await run({
             file,
             opts,
-            port: ported,
+            browser: (await this.setup(port ? parseInt(port, 10) : 9613)).browser,
         });
     }
     async cua(args) {
-        const { dir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256", port = 9613, inputs = [
+        const { port = 9613, inputs = [
             { role: "user", content: "go to https://loadmill-center-12baa23ad9e4.herokuapp.com/" },
             { role: "user", content: "Start a new chat" },
             { role: "user", content: "Write a hello world message in the chat and Send it" },
@@ -89,7 +71,7 @@ export class Playwrighteer {
             { role: "user", content: "Enter user login info a@b.com and the pass 123456 and login" },
             { role: "user", content: "reply 'ok' to the first message" },
         ], } = JSON.parse(args);
-        const { browser } = await this.setup({ dir, port });
+        const { browser } = await this.setup(port);
         this.browser = browser;
         this.ctx = this.browser.contexts()[0] || (await this.browser.newContext());
         this.page = await this.ctx.newPage();

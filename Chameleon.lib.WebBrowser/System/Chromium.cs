@@ -1,7 +1,4 @@
-﻿using chameleon.assets;
-
-using Chameleon.lib.Common.Util;
-using Chameleon.lib.Const;
+﻿using Chameleon.lib.Common.Util;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System.Chromium;
@@ -21,7 +18,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	// ...
 	protected override string GetCommandLineArguments() {
 		var exts = string.Join(",", new[] {
-			Settings.DestExtentionsDir,
+			Project.Extensions.Chromium,
 			Settings.SysBrowseUserExtDir,
 		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories));
 
@@ -137,8 +134,10 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 
 	// ...
 	protected override async Task InitializeExtensionPath() {
-		await IOtil.DirectoryDelete(Path.Combine(FilePaths.AppDataLocalDir, "extensions", "chrome"));
-		_ = await Resources.LoadExtension(ExtensionType.chromeleon, Settings.DestExtentionsDir);
+		_ = await Project.Initialized.Task;
+		// return;
+		// await IOtil.DirectoryDelete(Path.Combine(FilePaths.AppDataLocalDir, "extensions", "chrome"));
+		// _ = await Resources.LoadExtension(ExtensionType.chromeleon, Settings.DestExtentionsDir);
 	}
 
 	protected override async Task WaitForWinHandle() {

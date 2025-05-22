@@ -1,4 +1,3 @@
-import { chromium } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
 export async function loader(file) {
@@ -12,10 +11,9 @@ export async function loader(file) {
 }
 export async function run(args) {
     try {
-        console.log(`Try: ${args.file} Port: ${args.port}`);
+        console.log(`Try: ${args.file}`);
         const { plugin, feature } = await loader(args.file);
-        const browser = await chromium.connectOverCDP(`http://localhost:${args.port}`);
-        const ctx = browser.contexts()[0];
+        const ctx = args.browser.contexts()[0];
         await ctx.addInitScript(() => {
             Object.defineProperty(navigator, "webdriver", { get: () => false });
             Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 8 });
@@ -39,7 +37,7 @@ export async function run(args) {
         const op = args.opts;
         const opts = {
             ...op,
-            run: { file: args.file, port: args.port },
+            run: { file: args.file },
             settings: {
                 ...op?.settings,
                 start: {

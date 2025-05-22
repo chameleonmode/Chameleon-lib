@@ -82,6 +82,7 @@ public class SystemBrowserService {
 	#endregion
 
 	public async Task<IBrowserInstance?> OpenWithSettings(SysBrowserSettings settings) {
+		_ = await Project.Initialized.Task;
 		// TODO: test node console standard server launcher vs tcp server 
 		// await NodeServerLauncher.Instance.StartServer();
 		// TODO: move to app startup or possibly add a lib startup module
