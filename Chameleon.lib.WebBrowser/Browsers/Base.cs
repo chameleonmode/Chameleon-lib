@@ -2,8 +2,6 @@
 using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Constants;
 using System.Diagnostics;
-using Chameleon.lib.WebBrowser.Models;
-using Chameleon.lib.WebBrowser.Interfaces;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser.Services;
 using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
@@ -12,8 +10,9 @@ using chameleon.assets;
 using Chameleon.lib.Const;
 using Chameleon.lib.Common.Models;
 
-namespace Chameleon.lib.WebBrowser.System;
-public abstract class SysBrowserInstance : IBrowserInstance {
+namespace Chameleon.lib.WebBrowser.Browsers;
+
+public abstract class Browser : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 	public Process? Brocess { get; set; }
@@ -25,15 +24,10 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 
 	public void InvokeEvent(Enums.SysBrowserEventType eventType) {
 		if (eventType == Enums.SysBrowserEventType.Foreground && Brocess is not null) {
-			if (OperatingSystem.IsWindows()) {
-				if (Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
-					_ = U32til.BringWindowToForeground(handle);
+			if (OperatingSystem.IsWindows()) if (Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) _ = U32til.BringWindowToForeground(handle);
+				else if (OperatingSystem.IsMacOS()) {
+					if (MacOSUtil.SetForegroundWindow(Brocess.Id)) Brocess.Refresh();
 				}
-			} else if (OperatingSystem.IsMacOS()) {
-				if (MacOSUtil.SetForegroundWindow(Brocess.Id)) {
-					Brocess.Refresh();
-				}
-			}
 		}
 
 		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
@@ -55,7 +49,7 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 		if (Brocess is null) {
 			async Task<Ipapi> Ipapi() {
 				Ipapi? ipapi = null;
-				
+
 				var dir = Resources.Assert(
 					Settings.CachedExtentionsDir, "geo"
 				);
@@ -178,7 +172,7 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 	protected virtual async Task WaitForWinHandle() {
 		// if (OperatingSystem.IsMacOS()) {
 		Brocess!.Exited += (s, e) => { Close(); };
-		
+
 		if (await TaskUtil.AwaitFor(
 				() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null,
 				36,

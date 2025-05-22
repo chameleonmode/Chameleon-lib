@@ -1,5 +1,4 @@
-﻿using Chameleon.lib.WebBrowser.Interfaces;
-using Chameleon.lib.WebBrowser.Models;
+﻿using Chameleon.lib.WebBrowser;
 using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 

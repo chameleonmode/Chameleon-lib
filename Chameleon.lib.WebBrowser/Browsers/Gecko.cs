@@ -8,10 +8,11 @@ using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
+using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System;
-public class Gecko : SysBrowserInstance {
+public class Gecko : Browser {
 	// public override Process Start(ProcessStartInfo startInfo) {
 	// 	startInfo.EnvironmentVariables["MOZ_REMOTE_SETTINGS_DEVTOOLS"] = "1";
 	// 	return base.Start(startInfo);

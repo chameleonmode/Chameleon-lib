@@ -1,10 +1,11 @@
 ﻿using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Util;
+using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System;
-public class Chromium : SysBrowserInstance {
+public class Chromium : Browser {
 	public override string PrefsFile => Path.Combine(
 		Settings.SysBrowserProfileCachePath,
 		"Default",

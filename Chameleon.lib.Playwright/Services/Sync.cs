@@ -2,7 +2,7 @@
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
-using Chameleon.lib.WebBrowser.Models;
+using Chameleon.lib.WebBrowser;
 
 using Microsoft.Playwright;
 

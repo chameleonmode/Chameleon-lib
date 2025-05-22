@@ -9,6 +9,7 @@ using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Playwright;
 
+#region types
 public interface IBundledCSScript : IScript {
 	Task Run(IBrowserContext browserContext, IDictionary<string, string>? options = null);
 }
@@ -18,11 +19,12 @@ public interface IExternalScript {
 public interface IPlaywrightBrowserInstance : IDisposable {
 	IBrowserContext BrowserContext { get; }
 }
-
 public interface IPlaywrightBrowser : IDisposable {
 	IList<IPlaywrightBrowserInstance> RunningAutomationBrowsers { get; }
 	Task<IPlaywrightBrowserInstance> Open(Arguments options);
 }
+#endregion
+
 public static class Project {
 	public static class Plugins {
 		public static string DotPlaywright { get; } = Path.Combine(
