@@ -1,4 +1,4 @@
-import { state, tones } from "../types/index.js";
+import { state, tones } from "./types/index.js";
 import { Logger } from "./logger.js";
 import { rando } from "./utils.js";
 export async function endpoint() {

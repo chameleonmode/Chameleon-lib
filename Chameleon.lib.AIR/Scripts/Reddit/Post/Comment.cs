@@ -1,4 +1,4 @@
-﻿using Chameleon.AIR.Scripts.Models;
+﻿using Chameleon.lib.AIR.Scripts.Models;
 
 namespace Chameleon.AIR.Scripts.Reddit.Post;
 

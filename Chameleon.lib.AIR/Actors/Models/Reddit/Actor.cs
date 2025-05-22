@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
-using Chameleon.AIR.Scripts.Models;
 using Chameleon.AIR.Scripts.Reddit.Post;
 using Chameleon.AIR.Scripts.Reddit.Subreddit;
+using Chameleon.lib.AIR.Scripts.Models;
 
 namespace Chameleon.AIR.Actors.Models.Reddit;
 

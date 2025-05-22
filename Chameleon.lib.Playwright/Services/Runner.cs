@@ -10,14 +10,12 @@ public class Runner : IDisposable {
 	readonly Func<string, Task<string>>? onAsk = null;
 	readonly Process nodeProcess;
 	readonly StreamWriter processInput;
-	readonly string file;
 
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-	public Runner(string file, Func<string, Task<string>>? onAsk = null) {
+	public Runner(Func<string, Task<string>>? onAsk = null) {
 		this.onAsk = onAsk;
-		this.file = file;
 		nodeProcess = new Process { 
 			StartInfo = new ProcessStartInfo {
 				FileName = OperatingSystem.IsWindows() ? $"\"{Project.Plugins.Node}\"" : Project.Plugins.Node,
@@ -34,7 +32,7 @@ public class Runner : IDisposable {
 			var output = e.Data ?? string.Empty;
 			Debug.WriteLine(output);
 			TestErrorReceived?.Invoke(this, e.Data ?? string.Empty);
-			if (output.StartsWith($"Catch: {file}"))
+			if (output.StartsWith($"Catch:"))
 				_ = _tcs.TrySetResult(false);
 		};
 
@@ -48,19 +46,18 @@ public class Runner : IDisposable {
 		var output = e.Data ?? string.Empty;
 		Debug.WriteLine(output);
 		TestOutputReceived?.Invoke(this, output);
-		if (output == $"Try: {file} success")
+		if (output.StartsWith("Try:") && output.EndsWith("success"))
 			_ = _tcs.TrySetResult(true);
-
-		if (output.StartsWith("Ask:") && onAsk is not null)
+		else if (output.StartsWith("Ask:") && onAsk is not null)
 			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
 	}
 
-	public async Task Run(int port, object? options = null) {
-		var command = new { arg = "run", file, port, options };
-		await Run(JS.Serialize(command));
+	public async Task Run(int port, string file, object? opts = null) {
+		var command = new { arg = "run", file, port, opts };
+		await Send(JS.Serialize(command));
 	}
 
-	public async Task Run(string options) {
+	public async Task Send(string options) {
 		try {
 			await processInput.WriteLineAsync(options);
 			_ = await _tcs.Task;

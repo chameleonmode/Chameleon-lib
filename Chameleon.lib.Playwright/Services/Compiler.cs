@@ -3,8 +3,6 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
 
-using Chameleon.lib.Playwright.Interfaces;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;

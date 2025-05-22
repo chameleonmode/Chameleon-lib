@@ -1,5 +1,4 @@
-
-using Chameleon.AIR.Scripts.Models;
+using Chameleon.lib.AIR.Scripts.Models;
 
 namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 

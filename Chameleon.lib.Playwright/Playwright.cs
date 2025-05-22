@@ -1,41 +1,28 @@
-using Chameleon.lib.Common.Constants;
-using Chameleon.lib.WebBrowser.Models;
-using Microsoft.Playwright;
-using Chameleon.lib.Const;
-using Chameleon.AIR.Scripts.Models;
+using System.Diagnostics;
+
 using chameleon.assets;
-using System.Net.NetworkInformation;
+using Chameleon.lib.Const;
+using Microsoft.Playwright;
 using Chameleon.lib.Helpers;
+using Chameleon.lib.AIR.Scripts.Models;
+using Chameleon.lib.Playwright.Services;
 
 namespace Chameleon.lib.Playwright;
 
-public class RunScriptOptions {
-	public int Port { get; set; }
-	public bool Record { get; set; } = false;
-	public Enums.SystemBrowserType BrowserType { get; set; } = Enums.SystemBrowserType.Chromium;
-	public IScript? Script { get; set; }
-	public object? Opts { get; set; }
-	public PlaywrightScriptDescription? Description { get; set; }
+public interface IBundledCSScript : IScript {
+	Task Run(IBrowserContext browserContext, IDictionary<string, string>? options = null);
+}
+public interface IExternalScript {
+	Task Run(IBrowserContext browserContext, IDictionary<string, string>? pargs = null);
+}
+public interface IPlaywrightBrowserInstance : IDisposable {
+	IBrowserContext BrowserContext { get; }
 }
 
-public record GetCookiesOptions(SysBrowserOpenOptions Browser, int? Port) {
-	public Proxy? Proxy => Browser.Profile.Proxy.Server == null ? null
-	 : new() {
-		 Server = Browser.Profile.Proxy.Server,
-		 Username = Browser.Profile.Proxy.UserName,
-		 Password = Browser.Profile.Proxy.Password,
-	 };
-
-	public string Dir => Path.Combine(FilePaths.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());
+public interface IPlaywrightBrowser : IDisposable {
+	IList<IPlaywrightBrowserInstance> RunningAutomationBrowsers { get; }
+	Task<IPlaywrightBrowserInstance> Open(Arguments options);
 }
-
-public record PlaywrightScriptDescription(
-	Dictionary<string, string> Parameters,
-	string? Title = null,
-	string? Description = null,
-	string? FilePath = null
-);
-
 public static class Project {
 	public static class Plugins {
 		public static string DotPlaywright { get; } = Path.Combine(
@@ -45,9 +32,11 @@ public static class Project {
 			: "../Resources/.playwright"
 		);
 		public static string Dir { get; } = Path.Combine(FilePaths.AppDataDir, "playwright");
-		public static string App { get; } = Path.Combine(Dir, "app.js");
-		// TODO: public static string Node { get; } = Path.Combine(Playwright, "node" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+		public static string App { get; } = Stage
+		? Path.Combine("/Users/dev/src/chameleon-playwright/dist", "app.js")
+		: Path.Combine(Dir, "app.js");
 		public static string Node { get; } = Path.Combine(DotPlaywright, "node", OperatingSystem.IsWindows() ? "win32_x64\\node.exe" : "darwin-x64/node");
+		// TODO: public static string Node { get; } = Path.Combine(Playwright, "node" + (OperatingSystem.IsWindows() ? ".exe" : ""));
 	}
 
 	public static TaskCompletionSource<bool> Initialized { get; } = new();
@@ -55,7 +44,7 @@ public static class Project {
 		var source = "plugins";
 		var target = FilePaths.AppDataDir;
 		var success = File.Exists(Plugins.App);
-		if (!success || Debug) {
+		if (!Stage && (!success || Debug)) {
 			Toaster.Info("Installing updates...");
 			success = await Resources.Mapped(source, target);
 			if (success) Toaster.Success("Updates installed.");
@@ -63,11 +52,12 @@ public static class Project {
 		}
 		return Initialized.TrySetResult(success);
 	}
-
+	
 	public static bool Debug { get; } =
 #if DEBUG
 		true;
 #else
 		false;
 #endif
+	public static bool Stage { get; } = false && Debugger.IsAttached;
 }

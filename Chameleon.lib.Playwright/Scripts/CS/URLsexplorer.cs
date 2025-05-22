@@ -1,5 +1,4 @@
-﻿using Chameleon.lib.Playwright.Interfaces;
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Scripts.CS;
 public class URLsexplorer : Base, IBundledCSScript {

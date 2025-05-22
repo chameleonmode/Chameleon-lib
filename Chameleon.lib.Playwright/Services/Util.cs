@@ -13,10 +13,10 @@ namespace Chameleon.lib.Playwright.Services;
 /// Helper/Util class for static Playwright operations
 /// </summary>
 public static class Util {
-	public static Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(GetCookiesOptions options) =>
+	public static Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(Options options) =>
 		GetCookiesWithRetryPolicy(options);
 
-	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesWithRetryPolicy(GetCookiesOptions options, int tries = 0) {
+	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesWithRetryPolicy(Options options, int tries = 0) {
 		try {
 			return tries switch {
 				0 => await GetCookiesAsync(options),
@@ -28,7 +28,7 @@ public static class Util {
 		}
 	}
 
-	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesAsync(GetCookiesOptions options) {
+	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesAsync(Options options) {
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
 		var context = options.Port != null ? (await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}")).Contexts[0]

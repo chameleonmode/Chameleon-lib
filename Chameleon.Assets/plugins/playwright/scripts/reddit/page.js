@@ -498,7 +498,8 @@ export class Reddit extends Base {
             }
             const ups = this.page.getByRole("button", { name: "Upvote" });
             const downs = this.page.getByRole("button", { name: "Downvote" });
-            const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
+            const upCount = await ups.count();
+            const downCount = await downs.count();
             const count = Math.min(upCount, downCount) - 1;
             const length = Math.min(count, rando(this.opts.settings.start.rando.min, this.opts.settings.start.rando.max));
             this.bang("Vote count", length, { upCount, downCount, count, length });

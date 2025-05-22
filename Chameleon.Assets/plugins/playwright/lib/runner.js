@@ -41,10 +41,11 @@ export async function run(args) {
             ...op,
             run: { file: args.file, port: args.port },
             settings: {
+                ...op?.settings,
                 start: {
-                    feature,
                     ...op?.settings?.start,
-                }
+                    feature,
+                },
             },
         };
         await plugin(ctx, opts);

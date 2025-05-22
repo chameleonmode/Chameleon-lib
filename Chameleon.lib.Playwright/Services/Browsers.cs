@@ -1,6 +1,4 @@
-﻿using Chameleon.lib.Playwright.Interfaces;
-
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Services;
 public class ChromeiumPlaywrightBrowserInstance(IBrowser browser) : IPlaywrightBrowserInstance {
@@ -26,7 +24,7 @@ public class ChromeiumPlaywrightBrowser : IPlaywrightBrowser {
 		GC.SuppressFinalize(this);
 	}
 
-	public virtual async Task<IPlaywrightBrowserInstance> Open(RunScriptOptions o) {
+	public virtual async Task<IPlaywrightBrowserInstance> Open(Arguments o) {
 		Playwright ??= await Microsoft.Playwright.Playwright.CreateAsync();
 		RunningAutomationBrowsers.Add(new ChromeiumPlaywrightBrowserInstance(await TryOpenByCDP(o.Port)));
 		return RunningAutomationBrowsers.Last();

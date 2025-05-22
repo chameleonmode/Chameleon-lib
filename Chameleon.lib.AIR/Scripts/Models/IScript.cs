@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Chameleon.AIR.Scripts.Models;
+namespace Chameleon.lib.AIR.Scripts.Models;
 
 public interface IScript {
   string File { get; }

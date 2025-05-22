@@ -1,13 +1,13 @@
-﻿using Chameleon.AIR.Scripts.Models;
-using Chameleon.AIR.Scripts.Reddit.Post;
+﻿using Chameleon.AIR.Scripts.Reddit.Post;
 using Chameleon.AIR.Scripts.Reddit.Subreddit;
+using Chameleon.lib.AIR.Scripts.Models;
 using Chameleon.lib.Common.Util;
-using Chameleon.lib.Playwright.Interfaces;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 
 namespace Chameleon.lib.Playwright.Services;
 
+public record ScriptDescription(Dictionary<string, string> Parameters, string? Title = null, string? Description = null, string? FilePath = null);
 public class BundledScriptsService {
 	public IDictionary<string, IBundledCSScript> BundledCSScripts { get; } = new Dictionary<string, IBundledCSScript> {
 		{ nameof(KeepGmailAlive), new KeepGmailAlive() },
@@ -26,16 +26,16 @@ public class BundledScriptsService {
 		// obsoleted { nameof(Gsites), new Gsites() },
 	};
 
-	public async Task<IList<RunScriptOptions>> GetAll(string filepath) {
-		var returned = new List<RunScriptOptions>(await GetUserScripts(filepath));
+	public async Task<IList<Arguments>> GetAll(string filepath) {
+		var returned = new List<Arguments>(await GetUserScripts(filepath));
 		returned.AddRange(GetBundledScrits());
 		return returned;
 	}
 
-	public IList<RunScriptOptions> GetBundledScrits() {
-		List<RunScriptOptions> AddMappedScripts<T>(IDictionary<string, T> scripts, Func<T, RunScriptOptions> createOptions) where T : IScript {
+	public IList<Arguments> GetBundledScrits() {
+		List<Arguments> AddMappedScripts<T>(IDictionary<string, T> scripts, Func<T, Arguments> createOptions) where T : IScript {
 			return [.. scripts.Select(s => {
-				 var description = new PlaywrightScriptDescription (
+				 var description = new ScriptDescription (
 					 Title: s.Value.Title,
 					 Description: s.Value.Description,
 					 FilePath: s.Value.File,
@@ -47,19 +47,19 @@ public class BundledScriptsService {
 			 })];
 		}
 
-		var returned = new List<RunScriptOptions>();
-		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new RunScriptOptions { Script = script }));
-		returned.AddRange(AddMappedScripts(BundledCSScripts, script => new RunScriptOptions { Script = script }));
+		var returned = new List<Arguments>();
+		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new Arguments { Script = script }));
+		returned.AddRange(AddMappedScripts(BundledCSScripts, script => new Arguments { Script = script }));
 
 		return returned;
 	}
-	public static Task<IList<RunScriptOptions>> GetUserScripts(string filepath) => Task.Run<IList<RunScriptOptions>>(() => {
-		var returned = new List<RunScriptOptions>();
+	public static Task<IList<Arguments>> GetUserScripts(string filepath) => Task.Run<IList<Arguments>>(() => {
+		var returned = new List<Arguments>();
 		foreach (var item in IOtil.ReadDirectory(filepath)) {
 			var inf = new FileInfo(item);
 			if (inf.Extension != ".js")
 				continue;
-			returned.Add(new RunScriptOptions {
+			returned.Add(new Arguments {
 				Description = new(
 					Title: inf.Name,
 					Description: inf.Directory?.Name ?? inf.FullName,

@@ -2,10 +2,22 @@
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
+using Chameleon.lib.WebBrowser.Models;
 
 using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Services;
+
+public record Options(SysBrowserOpenOptions Browser, int? Port) {
+	public Proxy? Proxy => Browser.Profile.Proxy.Server == null ? null
+	 : new() {
+		 Server = Browser.Profile.Proxy.Server,
+		 Username = Browser.Profile.Proxy.UserName,
+		 Password = Browser.Profile.Proxy.Password,
+	 };
+
+	public string Dir => Path.Combine(FilePaths.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());
+}
 
 public sealed class PlaywrightCookiesSyncService {
 	readonly List<DB.Routes.Cooky.CookyPayload<BrowserContextCookiesResult>> cookyPayloads = [];
@@ -27,10 +39,9 @@ public sealed class PlaywrightCookiesSyncService {
 	}
 
 	// Syncs cookies to browser
-	public async Task SyncCookies(Enums.SystemBrowserType browserType)
-	{
+	public async Task SyncCookies(Enums.SystemBrowserType browserType) {
 		// Check latest cookies on server
-		if(!await HasCookies()) {
+		if (!await HasCookies()) {
 			Toaster.Info("No cookies to sync");
 			return;
 		}
