@@ -59,5 +59,5 @@ public static class Project {
 #else
 		false;
 #endif
-	public static bool Stage { get; } = true && Debugger.IsAttached;
+	public static bool Stage { get; } = false && Debugger.IsAttached;
 }
