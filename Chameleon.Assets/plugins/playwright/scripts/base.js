@@ -209,12 +209,12 @@ export class Base {
         });
     }
     error(message, cause) {
-        const error = new Error(`[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts.settings.start)}] ${message}`, { cause });
-        Logger.error(`${message}`, cause);
+        const error = new Error(`[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts)}] ${message}`, { cause });
+        Logger.error(`(error/${this.opts.settings.start.feature}) ${error.message}`, cause);
         return error;
     }
     bang(message, expect, source) {
-        Logger.debug(`Bang: (${this.opts.settings.start.feature}) ${message}`, expect, source);
+        Logger.debug(`(bang/${this.opts.settings.start.feature}) ${message}`, expect, source);
         if (expect)
             return expect;
         throw this.error(message, { source, expect });

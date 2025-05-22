@@ -1,4 +1,4 @@
-export const sleep = (ms) => {
+export const delay = (ms) => {
     return new Promise((resolve) => {
         setTimeout(() => resolve(ms), ms);
     });
@@ -20,8 +20,8 @@ export function rando(thing, thinger) {
 }
 export async function sleepRandom({ min = 256, max = 512, multiplier = 0 }) {
     const ms = random(min, max);
-    const delay = Math.floor(ms * (multiplier > 0 ? multiplier : random(3, 6)));
-    return await sleep(delay);
+    const span = Math.floor(ms * (multiplier > 0 ? multiplier : random(3, 6)));
+    return await delay(span);
 }
 export async function tryForEach(promises) {
     const fulfilled = [];

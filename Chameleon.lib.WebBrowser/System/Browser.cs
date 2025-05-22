@@ -55,7 +55,7 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 		if (Brocess is null) {
 			async Task<Ipapi> Ipapi() {
 				Ipapi? ipapi = null;
-				Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
+				
 				var dir = Resources.Assert(
 					Settings.CachedExtentionsDir, "geo"
 				);
@@ -74,14 +74,15 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 								proxy.Password == Settings.Profile.Proxy.Password
 								) {
 								Toaster.Info($"Using cached timezone/geo data for {Settings.Profile.Proxy.Host}");
+								return ipapi;
 							} else {
 								Toaster.Info($"Cached timezone/geo data for {Settings.Profile.Proxy.Host} is invalid");
-								ipapi = null;
 							}
 						}
 					}
 				}
-				ipapi ??= await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
+				Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
+				ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
 					timezone = "Pacific/Honolulu",
 					lat = 34.052235,
 					lon = -118.243683,
@@ -89,10 +90,10 @@ public abstract class SysBrowserInstance : IBrowserInstance {
 				};
 				ipapi.proxy = JS.Serialize(Settings.Profile.Proxy);
 				await File.WriteAllTextAsync(file, JS.Serialize(ipapi));
-				Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");
 				return ipapi;
 			}
 			var ipapi = await Ipapi();
+			Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");
 
 			// set the extension settings
 			AddonsServer.Instance.AddonInstances[SessionId] = new {

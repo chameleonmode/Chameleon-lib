@@ -1,7 +1,9 @@
 import readline from "node:readline";
 import { Logger } from "./lib/logger.js";
+import { delay } from "./lib/utils.js";
 import { Playwrighteer } from "./lib/computers/browser.js";
 async function main() {
+    await delay(1000);
     readline
         .createInterface({ input: process.stdin, output: process.stdout, terminal: false })
         .on("line", async (line) => {
@@ -39,7 +41,7 @@ async function main() {
             }
         }
     });
-    Logger.log("command ({arg: 'run', file, port, options}, play, exit):");
+    Logger.log("command ({arg: 'run', file, port, opts}, play, exit):");
 }
 main().catch((error) => {
     Logger.log(`Error: ${error}`, error);
