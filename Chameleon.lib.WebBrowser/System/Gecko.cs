@@ -10,8 +10,8 @@ using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 
-namespace Chameleon.lib.WebBrowser.System.Firefox;
-public class FirefoxSysBrowserInstance : SysBrowserInstance {
+namespace Chameleon.lib.WebBrowser.System;
+public class Gecko : SysBrowserInstance {
 	// public override Process Start(ProcessStartInfo startInfo) {
 	// 	startInfo.EnvironmentVariables["MOZ_REMOTE_SETTINGS_DEVTOOLS"] = "1";
 	// 	return base.Start(startInfo);
@@ -53,7 +53,7 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 		var geckoleon = await Resources.CopyFile(
 			"addons",
 			"geckoleon.xpi", 
-			FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "gecko")
+			Project.Extensions.Gecko
 		);
 
 		await File.WriteAllTextAsync(
@@ -272,9 +272,8 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 						var match = regex.Match(line);
 						if (match.Success) {
 							var prefName = match.Groups[1].Value;
-							if (!deprecatedPrefs.Contains(prefName)) {
-								filteredLines.Add(line);
-							} else {
+							if (!deprecatedPrefs.Contains(prefName)) 								filteredLines.Add(line);
+else {
 								Console.WriteLine($"Removed: {prefName}");
 							}
 						} else {
@@ -329,11 +328,11 @@ public class FirefoxSysBrowserInstance : SysBrowserInstance {
 						}
 						return true;
 					});
-					if (Brocess?.MainWindowHandle != IntPtr.Zero)
+					if (Brocess?.MainWindowHandle != nint.Zero)
 						break;
 					Thread.Sleep(100);
 				}
-				if (Brocess?.MainWindowHandle == IntPtr.Zero)
+				if (Brocess?.MainWindowHandle == nint.Zero)
 					_ = thisTcs.TrySetResult(null);
 			}).Start();
 			try {

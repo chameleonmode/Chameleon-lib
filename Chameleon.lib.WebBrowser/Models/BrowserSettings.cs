@@ -2,8 +2,8 @@
 
 using Chameleon.lib.Common.Util;
 using static Chameleon.lib.Common.Constants.Enums;
-using Chameleon.lib.Const;
 using chameleon.assets;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.WebBrowser.Models;
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
@@ -11,9 +11,6 @@ public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfil
 public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port) {
 	public SystemBrowserType BrowserType => OpenOptions.BrowserType;
 	public BrowserProfile Profile => OpenOptions.Profile;
-	public string SysBrowseUserExtDir => Path.Combine(
-		Consts.Addons.DefaultExtensionsFolderPath, BrowserType.GetDescription()
-		);
 
 	public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(
 		Path.Combine(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString())

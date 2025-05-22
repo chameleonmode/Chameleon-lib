@@ -1,8 +1,10 @@
-﻿using Chameleon.lib.Common.Util;
+﻿using Chameleon.lib.Common.Constants;
+using Chameleon.lib.Common.Util;
+using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 
-namespace Chameleon.lib.WebBrowser.System.Chromium;
-public class ChromiumSysBrowserInstance : SysBrowserInstance {
+namespace Chameleon.lib.WebBrowser.System;
+public class Chromium : SysBrowserInstance {
 	public override string PrefsFile => Path.Combine(
 		Settings.SysBrowserProfileCachePath,
 		"Default",
@@ -19,7 +21,7 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	protected override string GetCommandLineArguments() {
 		var exts = string.Join(",", new[] {
 			Project.Extensions.Chromium,
-			Settings.SysBrowseUserExtDir,
+			Path.Combine(FilePaths.BrowserExtensions, Settings.BrowserType.GetDescription()),
 		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories));
 
 		return string.Join(" ", new[] {
@@ -141,9 +143,8 @@ public class ChromiumSysBrowserInstance : SysBrowserInstance {
 	}
 
 	protected override async Task WaitForWinHandle() {
-		if (OperatingSystem.IsWindows()) {
-			_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != IntPtr.Zero, 18);
-		} else if (OperatingSystem.IsMacOS()) {
+		if (OperatingSystem.IsWindows()) 			_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != nint.Zero, 18);
+else if (OperatingSystem.IsMacOS()) {
 			await base.WaitForWinHandle();
 		}
 	}

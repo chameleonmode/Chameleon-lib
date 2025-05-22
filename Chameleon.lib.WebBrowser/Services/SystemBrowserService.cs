@@ -97,9 +97,9 @@ public class SystemBrowserService {
 		// };
 		// 
 		var browser = Instances[settings.OpenOptions] = settings.BrowserType switch {
-			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = settings },
-			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = settings },
-			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = settings },
+			SystemBrowserType.Brave => new Brave() { Settings = settings },
+			SystemBrowserType.Chrome => new Chrome() { Settings = settings },
+			SystemBrowserType.Firefox => new Firefox() { Settings = settings },
 			_ => throw new NotImplementedException(),
 		};
 		await browser.Ensure();

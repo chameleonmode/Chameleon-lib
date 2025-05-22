@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using chameleon.assets;
-using Chameleon.lib.Const;
+using Chameleon.lib.Util;
 
 namespace Tests.WebBrowser;
 public class ExtensionLoaderServiceTests {

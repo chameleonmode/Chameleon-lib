@@ -1,11 +1,11 @@
 using System.Diagnostics;
 
 using chameleon.assets;
-using Chameleon.lib.Const;
 using Microsoft.Playwright;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.AIR.Scripts.Models;
 using Chameleon.lib.Playwright.Services;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Playwright;
 
@@ -32,7 +32,7 @@ public static class Project {
 			: "../Resources/.playwright"
 		);
 		public static string Dir { get; } = Path.Combine(FilePaths.AppDataDir, "playwright");
-		public static string App { get; } = Stage
+		public static string App { get; } = Staging
 		? Path.Combine("/Users/dev/src/chameleon-playwright/dist", "app.js")
 		: Path.Combine(Dir, "app.js");
 		public static string Node { get; } = Path.Combine(DotPlaywright, "node", OperatingSystem.IsWindows() ? "win32_x64\\node.exe" : "darwin-x64/node");
@@ -44,7 +44,7 @@ public static class Project {
 		var source = "plugins";
 		var target = FilePaths.AppDataDir;
 		var success = File.Exists(Plugins.App);
-		if (!Stage && (!success || Debug)) {
+		if (!Staging && (!success || Debug)) {
 			Toaster.Info("Installing updates...");
 			success = await Resources.Mapped(source, target);
 			if (success) Toaster.Success("Updates installed.");
@@ -53,11 +53,11 @@ public static class Project {
 		return Initialized.TrySetResult(success);
 	}
 	
+	public static bool Staging { get; } = true && Debugger.IsAttached;
 	public static bool Debug { get; } =
 #if DEBUG
 		true;
 #else
 		false;
 #endif
-	public static bool Stage { get; } = false && Debugger.IsAttached;
 }

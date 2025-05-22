@@ -1,5 +1,5 @@
 using chameleon.assets;
-using Chameleon.lib.Const;
+using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser;
@@ -8,6 +8,9 @@ public static class Project {
   public static class Extensions {
     public static string Chromium => Resources.Assert(
       FilePaths.AppDataDir, "chromium", "extensions"
+    );
+    public static string Gecko => Resources.Assert(
+      FilePaths.AppDataDir, "gecko", "extensions"
     );
   }
   

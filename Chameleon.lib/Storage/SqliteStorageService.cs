@@ -1,6 +1,6 @@
 using System.Data;
 using System.Data.SQLite;
-using Chameleon.lib.Const;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Storage;
 
