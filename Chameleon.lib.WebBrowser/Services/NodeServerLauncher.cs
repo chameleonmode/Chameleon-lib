@@ -20,7 +20,7 @@ public class NodeServerLauncher {
 #if DEBUG
       "/Users/dev/src/chameleon-cli";
 #else
-      Path.Combine(FilePaths.AppDataLocalDir, "node");
+      Path.Combine(Chameleon.lib.Util.FilePaths.AppDataLocalDir, "node");
 #endif
 
     serverJsPath = Path.Combine(serverJsDirPath, "server.cjs");
