@@ -19,7 +19,7 @@ public abstract class TestSetup : IAsyncLifetime {
 			_ = services;
 		});
 
-		IoC.Instance.Init(_ => {
+		IoC.Instance.Init( _ => {
 			IoC.SetJsonValue(new LoginSettings(
 				Environment.Directory[dictionary].email,
 				Environment.Directory[dictionary].license
@@ -29,5 +29,5 @@ public abstract class TestSetup : IAsyncLifetime {
 	}
 
 	public Task DisposeAsync() => Task.CompletedTask;
-	public async Task InitializeAsync() => await _tcs.Task;
+	public virtual async Task InitializeAsync() => await _tcs.Task;
 }

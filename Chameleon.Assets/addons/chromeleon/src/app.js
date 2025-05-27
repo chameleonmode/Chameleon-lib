@@ -61,6 +61,24 @@ export const config = {
   },
 };
 
+  // Find the app server
+  const discoverServer = async () => {
+    // Try each port in the list
+    for (const port of [3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696]) {
+      try {
+        const url = `http://127.0.0.1:${port}`;
+        const response = await fetch(`${url}/ping`, {
+          signal: AbortSignal.timeout(5000), // 500ms timeout
+        });
+
+        return { port, url };
+      } catch (error) {
+        // Continue to next port
+        console.error(error);
+      }
+    }
+    return discoverServer();
+  }
 const App = {
   server: null,
   port: null,
@@ -127,25 +145,10 @@ const App = {
 
   // Find the app server
   discoverServer: async function () {
-    // Try each port in the list
-    for (const port of [3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696]) {
-      try {
-        const url = `http://127.0.0.1:${port}`;
-        const response = await fetch(`${url}/ping`, {
-          signal: AbortSignal.timeout(5000), // 500ms timeout
-        });
-        // if (!response.ok) continue;
-        // With no-cors we can't check response.ok, but if we get here without error it might be working
-        this.port = port;
-        this.server = url;
-
-        return true;
-      } catch (error) {
-        // Continue to next port
-        console.error(error);
-      }
-    }
-    return false;
+    const { port, url } = await discoverServer();
+    this.server = url;
+    this.port = port;
+    return true;
   },
 
   // Send data to the app

@@ -364,3 +364,6 @@ FodyWeavers.xsd
 /Chameleon.lib.Tests/Api/Environment.cs
 /Tests/Environment.cs
 .DS_Store
+Chameleon.Assets/js/node/node
+.gitignore
+Chameleon.Assets/js/node/node.exe

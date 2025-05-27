@@ -1,5 +1,4 @@
 ﻿using Microsoft.Playwright;
-using Chameleon.lib.Playwright.Interfaces;
 
 namespace Chameleon.lib.Playwright.Scripts.CS;
 public class KeepGmailAlive : Base, IBundledCSScript {

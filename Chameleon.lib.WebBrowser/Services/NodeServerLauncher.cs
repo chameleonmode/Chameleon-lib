@@ -20,7 +20,7 @@ public class NodeServerLauncher {
 #if DEBUG
       "/Users/dev/src/chameleon-cli";
 #else
-      Path.Combine(FilePaths.AppDataLocalDir, "node");
+      Path.Combine(Chameleon.lib.Util.FilePaths.AppDataLocalDir, "node");
 #endif
 
     serverJsPath = Path.Combine(serverJsDirPath, "server.cjs");
@@ -34,7 +34,7 @@ public class NodeServerLauncher {
   public async Task StartServer() {
     if(node != null) return;
 
-    await EmbeddedLoader.LoadFiles("js.node", serverJsDirPath);
+    await Resources.Dir("js.node", serverJsDirPath);
     node = Process.Start(new ProcessStartInfo {
       FileName = $"\"{nodeServerPath}\"",
       Arguments = $"\"{serverJsPath}\"",

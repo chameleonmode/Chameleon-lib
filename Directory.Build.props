@@ -1,6 +1,5 @@
 <Project>
 	<PropertyGroup>
-		<TargetDotnetVersion>net8.0</TargetDotnetVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>true</ImplicitUsings>
     	<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>

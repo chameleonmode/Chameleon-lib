@@ -7,7 +7,8 @@ public class Toaster {
 
 	// Format the message
 	static string Format(params string[] msg) {
-		var message = string.Join('\n', msg);
+		var message = string.Join('\n', msg)
+		.Replace("\nObject reference not set to an instance of an object.", "");
 		Debug.WriteLine(message);
 		return message;
 	}

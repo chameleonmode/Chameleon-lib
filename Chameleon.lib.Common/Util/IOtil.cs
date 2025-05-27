@@ -1,5 +1,5 @@
 ﻿using System.IO.Compression;
-using Chameleon.lib.Const;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Common.Util;
 public static class IOtil {

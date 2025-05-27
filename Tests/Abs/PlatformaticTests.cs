@@ -3,7 +3,7 @@ using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models.Dto;
 using Chameleon.lib.Const;
-using Chameleon.lib.Playwright.Utils;
+using Chameleon.lib.Playwright.Services;
 
 using Microsoft.Playwright;
 
@@ -86,19 +86,19 @@ public class PlatformaticTests : TestSetup {
 		Assert.NotNull(update);
 		Assert.Equal(name, update.Name);
 
-		var tag = new TagDto(update.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(update.Items)!);
+		var tag = new TagDto(update.Name, JS.Deserialize<Dictionary<string, List<string>>>(update.Items)!);
 		Assert.Contains("folder", tag.Items.Keys);
 		Assert.Contains("id", tag.Items["folder"]);
 		Assert.Contains("id2", tag.Items["folder"]);
 
 		// Verify update
 		get = await DB.Instance.GetTag(create.Id);
-		tag = new TagDto(get!.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(get.Items)!);
+		tag = new TagDto(get!.Name, JS.Deserialize<Dictionary<string, List<string>>>(get.Items)!);
 		Assert.Contains("id3", tag.Items["folder"]);
 
 		// List all tags
 		var list = (await DB.Instance.GetTags())?.Select(
-				t => new TagDto(t.Name, JS.DeserializeSafely<Dictionary<string, List<string>>>(t.Items)!)
+				t => new TagDto(t.Name, JS.Deserialize<Dictionary<string, List<string>>>(t.Items)!)
 		);
 		Assert.NotNull(list);
 		Assert.NotEmpty(list);
@@ -150,7 +150,7 @@ public class PlatformaticTests : TestSetup {
 		});
 		Assert.NotNull(update);
 		var updatedTag = await DB.Instance.GetTag(tag.Id);
-		var itemsDict = JS.DeserializeSafely<Dictionary<string, List<string>>>(updatedTag!.Items) ?? new();
+		var itemsDict = JS.Deserialize<Dictionary<string, List<string>>>(updatedTag!.Items) ?? new();
 		Assert.Contains("document", itemsDict.Keys);
 		Assert.Contains("doc123", itemsDict["document"]);
 
@@ -253,7 +253,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_Routes_Cooky() {
-		var cookies = await PlaywrightUtil.GetCookies(new(new(Enums.SystemBrowserType.Chrome, new() { Id = 25541 }), null));
+		var cookies = await Util.GetCookies(new(new(Enums.SystemBrowserType.Chrome, new() { Id = 25541 }), null));
 		var email = "elimdadia@gmail.com";
 		//var email = "ezexerael@gmail.com";
 		var data = await DB.Routes.Cooky.SendCookies(email, "25541", cookies);

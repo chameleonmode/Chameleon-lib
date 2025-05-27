@@ -1,6 +1,5 @@
 ﻿using System.Runtime.Versioning;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.WebBrowser.Models;
 using Microsoft.Win32;
 
 namespace Chameleon.lib.WebBrowser.Services;

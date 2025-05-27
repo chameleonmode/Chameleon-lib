@@ -1,0 +1,56 @@
+import { state, tones } from "./types/index.js";
+import { Logger } from "./logger.js";
+import { rando } from "./utils.js";
+export async function endpoint() {
+    return (state.api ||= await (async () => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 300);
+            await fetch("http://127.0.0.1:3042", { signal: controller.signal });
+            clearTimeout(timeoutId);
+            return "http://127.0.0.1:3042";
+        }
+        catch (error) {
+            return "https://chameleon-ws.onrender.com";
+        }
+    })());
+}
+export async function req(route, args) {
+    const from = `${await endpoint()}${route}`;
+    const init = {
+        headers: {
+            "Content-Type": "application/json",
+            ...args.headers,
+        },
+        method: args.method ?? "POST",
+        body: args.body ? JSON.stringify(args.body) : undefined,
+    };
+    Logger.log("Request:", { from, init: JSON.stringify(init) });
+    const request = await fetch(from, init);
+    const response = await request.json();
+    Logger.log("Generated:", response);
+    return response;
+}
+export var promptee;
+(function (promptee) {
+    async function requesito(route, ctx) {
+        ctx.decorators.tone ||= rando(tones);
+        const args = { headers: { ai: "origato", model: ctx.model }, body: ctx };
+        return await req("/promptee" + route, args);
+    }
+    function responsito(request) {
+        const out = request.reply;
+        Logger.log("Reply:", out);
+        return out;
+    }
+    async function prompt(ctx) {
+        const request = await requesito("/prompt", ctx);
+        return responsito(request);
+    }
+    promptee.prompt = prompt;
+    async function genorate(ctx) {
+        const request = await requesito("/genorate", ctx);
+        return responsito(request);
+    }
+    promptee.genorate = genorate;
+})(promptee || (promptee = {}));

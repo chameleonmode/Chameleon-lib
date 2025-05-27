@@ -4,8 +4,6 @@ using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
-using Chameleon.lib.WebBrowser.Interfaces;
-using Chameleon.lib.WebBrowser.Models;
 using Chameleon.lib.WebBrowser.System.Brave;
 using Chameleon.lib.WebBrowser.System.Chrome;
 using Chameleon.lib.WebBrowser.System.Firefox;
@@ -82,6 +80,7 @@ public class SystemBrowserService {
 	#endregion
 
 	public async Task<IBrowserInstance?> OpenWithSettings(SysBrowserSettings settings) {
+		_ = await Project.Initialized.Task;
 		// TODO: test node console standard server launcher vs tcp server 
 		// await NodeServerLauncher.Instance.StartServer();
 		// TODO: move to app startup or possibly add a lib startup module
@@ -96,9 +95,9 @@ public class SystemBrowserService {
 		// };
 		// 
 		var browser = Instances[settings.OpenOptions] = settings.BrowserType switch {
-			SystemBrowserType.Brave => new BraveSysBrowserInstance() { Settings = settings },
-			SystemBrowserType.Chrome => new ChromeSysBrowserInstance() { Settings = settings },
-			SystemBrowserType.Firefox => new FirefoxSysBrowserInstance() { Settings = settings },
+			SystemBrowserType.Brave => new Brave() { Settings = settings },
+			SystemBrowserType.Chrome => new Chrome() { Settings = settings },
+			SystemBrowserType.Firefox => new Firefox() { Settings = settings },
 			_ => throw new NotImplementedException(),
 		};
 		await browser.Ensure();

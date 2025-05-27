@@ -10,7 +10,26 @@
 	<ItemGroup>
 		<EmbeddedResource Include="addons\**" />
 		<EmbeddedResource Include="js\**" />
-		<EmbeddedResource Include="json\**" />
+		<EmbeddedResource Include="plugins\**" />
 	</ItemGroup>
+
+  <Target Name="GenerateResourceMapping" BeforeTargets="PrepareForBuild">
+  <ItemGroup>
+    <ResourceFiles Include="plugins\**" />
+  </ItemGroup>
+  <PropertyGroup>
+    <MappingFile>$(IntermediateOutputPath)resource-mapping.json</MappingFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ResourceMappingContents></ResourceMappingContents>
+  </PropertyGroup>
+  <WriteLinesToFile
+    File="$(MappingFile)"
+    Lines="@(ResourceFiles->'%(RecursiveDir)%(Filename)%(Extension)')"
+    Overwrite="true" />
+  <ItemGroup>
+    <EmbeddedResource Include="$(MappingFile)" LogicalName="$(RootNamespace).resource-mapping.json" />
+  </ItemGroup>
+</Target>
 
 </Project>

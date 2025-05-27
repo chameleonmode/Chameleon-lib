@@ -36,17 +36,6 @@ public static class Consts {
 	public static class Json {
 		public const string JsonFontsEmbeddedDir = "embedded://chameleon.assets.json.fa_symbolfonts.json";
 	}
-
-	public static class Addons {
-		public static string DefaultExtensionsFolderPath => OperatingSystem.IsMacOS()
-			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..Resources/BrowserExtensions")
-			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources\\BrowserExtensions");
-
-		public static string DefaultExtensionsFolderPath_Brave => Path.Combine(DefaultExtensionsFolderPath, "brave");
-		public static string DefaultExtensionsFolderPath_Chrome => Path.Combine(DefaultExtensionsFolderPath, "chrome");
-		public static string DefaultExtensionsFolderPath_FF => Path.Combine(DefaultExtensionsFolderPath, "firefox");
-	}
-
 	public static class Permissions {
 		public const string Pages = "Pages.";
 

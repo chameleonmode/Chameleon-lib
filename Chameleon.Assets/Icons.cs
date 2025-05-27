@@ -42,7 +42,7 @@ public partial class Jsonz : JsonSerializerContext {
 }
 
 public class Icons {
-	public const string JsonFontsEmbeddedDir = "chameleon.assets.json.fa_symbolfonts.json";
+	public const string JsonFontsEmbeddedDir = "chameleon.assets.js.json.fa_symbolfonts.json";
 
 	public static Icons Instance { get; } = new Icons();
 

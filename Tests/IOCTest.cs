@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Chameleon.lib;
-using Chameleon.lib.WebBrowser.Models;
+using Chameleon.lib.WebBrowser;
 
 namespace Tests;
 
