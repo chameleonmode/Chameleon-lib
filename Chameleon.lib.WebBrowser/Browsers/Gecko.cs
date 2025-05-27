@@ -51,12 +51,6 @@ public class Gecko : Browser {
 	}
 
 	protected override async Task InitializeExtensionPath() {
-		var geckoleon = await Resources.CopyFile(
-			"addons",
-			"geckoleon.xpi", 
-			Project.Extensions.Gecko
-		);
-
 		await File.WriteAllTextAsync(
 			Path.Combine(await IOtil.DC(OperatingSystem.IsMacOS()
 			? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
@@ -114,7 +108,7 @@ public class Gecko : Browser {
 								installation_mode = "normal_installed",
 								default_area = "navbar",
 								private_browsing = true,
-								install_url = $"file:///{geckoleon.Replace("\\", "/")}" // Correct path handling
+								install_url = $"file:///{Project.Extensions.Geckoleon.Replace("\\", "/")}" // Correct path handling
 					    }
 						}
 					}

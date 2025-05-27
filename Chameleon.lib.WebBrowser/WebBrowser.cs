@@ -137,10 +137,13 @@ public class EmulationOptions {
 public static class Project {
   public static class Extensions {
     public static string Chromium => Resources.Assert(
-      FilePaths.AppDataDir, "chromium", "extensions"
+      FilePaths.AppDataDir, "extensions", "chromium"
     );
     public static string Gecko => Resources.Assert(
-      FilePaths.AppDataDir, "gecko", "extensions"
+      FilePaths.AppDataDir, "extensions", "gecko"
+    );
+    public static string Geckoleon => Resources.Assert(
+      Gecko, "geckoleon.xpi"
     );
   }
 
@@ -148,8 +151,16 @@ public static class Project {
   public static async Task<bool> Init() {
     await AddonsServer.Instance.Start();
 
-    Directory.Delete(Extensions.Chromium, true);
+    var version = IoC.GetValue("Extensions");
+    var assemled = global::System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0";
+    if (version is not string ver || ver != assemled) {
+      IoC.SetValue("Extensions", assemled);
+      await Resources.CopyFile("addons", "geckoleon.xpi", Project.Extensions.Gecko);
+
+      Directory.Delete(Extensions.Chromium, true);
     _ = await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
+    }
+    
     return Initialized.TrySetResult(true);
   }
 }
