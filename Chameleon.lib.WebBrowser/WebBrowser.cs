@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Reflection;
 using chameleon.assets;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Interfaces.Sys;
@@ -151,14 +152,12 @@ public static class Project {
   public static async Task<bool> Init() {
     await AddonsServer.Instance.Start();
 
-    var version = IoC.GetValue("Extensions");
-    var assemled = global::System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0";
+    var version = IoC.GetValue(nameof(Extensions));
+    var assemled = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0";
     if (version is not string ver || ver != assemled) {
-      IoC.SetValue("Extensions", assemled);
-      await Resources.CopyFile("addons", "geckoleon.xpi", Project.Extensions.Gecko);
-
-      Directory.Delete(Extensions.Chromium, true);
-    _ = await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
+      IoC.Instance.Config?.SetValue(nameof(Extensions), assemled);
+      await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
+      await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
     }
     
     return Initialized.TrySetResult(true);

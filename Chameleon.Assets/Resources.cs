@@ -133,11 +133,11 @@ public static partial class Resources {
 	}
 
 	public static async Task<string> LoadExtension(
-		ExtensionType extension,
-		string destinationPath,
+		ExtensionType extension, string destinationPath,
 		string? settings = null,
 		string? version = null
 	) {
+		  Directory.Delete(destinationPath, true);
 		var assembly = Assembly.GetExecutingAssembly();
 		var prefix = assembly.GetName().Name + ".";
 		try {
