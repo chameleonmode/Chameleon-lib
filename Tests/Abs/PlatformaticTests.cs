@@ -3,8 +3,7 @@ using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models.Dto;
 using Chameleon.lib.Const;
-using Chameleon.lib.Playwright.Utils;
-
+using Chameleon.lib.Playwright.Services;
 using Microsoft.Playwright;
 
 namespace Tests.Abs;
@@ -253,7 +252,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_Routes_Cooky() {
-		var cookies = await PlaywrightUtil.GetCookies(new(new(Enums.SystemBrowserType.Chrome, new() { Id = 25541 }), null));
+		var cookies = await Util.GetCookies(new(new(Enums.SystemBrowserType.Chrome, new() { Id = 25541 }), null));
 		var email = "elimdadia@gmail.com";
 		//var email = "ezexerael@gmail.com";
 		var data = await DB.Routes.Cooky.SendCookies(email, "25541", cookies);
