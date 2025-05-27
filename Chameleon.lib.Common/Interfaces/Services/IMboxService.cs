@@ -8,7 +8,5 @@ public interface IMboxService {
 		Enums.MBoxButtons btns = Enums.MBoxButtons.YesNo,
 		string icon = "Info");
 
-	Task<Enums.MboxResult> ShowContentDialog<TView, TViewModel>(Action<TViewModel> initialize);
-
 	Task<Enums.TaskDialogResult> ShowTaskDialog<TViewModel>(Func<TViewModel> initialize, object content, string header, string? subHeader = null, string title = Variables.AppName, object? footer = null, Enums.Symbas symbas = Enums.Symbas.Alert, Enums.MBoxButtons btns = Enums.MBoxButtons.YesNo);
 }

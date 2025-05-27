@@ -30,9 +30,6 @@ public class Mbox {
 		return Instance.MboxService!.ShowTaskDialog(parameters.Initialize, new TView(), parameters.Header, parameters.SubHeader, parameters.Title, parameters.Footer, parameters.Symbas, parameters.Btns);
 	}
 
-	public static Task<Enums.MboxResult> ShowContentDialog<TView, TViewModel>(Action<TViewModel> initialize) {
-		return Instance.MboxService!.ShowContentDialog<TView, TViewModel>(initialize);
-	}
 	public static Mbox Instance { get; } = new Mbox();
 	private Mbox() {
 		MboxService = IoC.GetService<IMboxService>();
