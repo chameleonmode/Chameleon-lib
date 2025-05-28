@@ -12,7 +12,6 @@ public static class Consts {
 	public const string FacebookGroupUrl = "https://www.facebook.com/groups/962349154557466";
 	public const string PricingUrl = "https://chameleonmode.com/pricing/";
 	public const string DefaultHomePage = "https://example.com/";
-	public const int PageinationPageItems = 13;
 
 	public static class Api {
 		public const string ApiBaseUrl = "https://api.chameleonmode.com/api/";

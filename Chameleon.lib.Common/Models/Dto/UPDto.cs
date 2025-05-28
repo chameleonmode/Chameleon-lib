@@ -15,7 +15,7 @@ public class WebrowserDto {
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
-public class UserProfileDto : Interfaces.Dto {
+public class UserProfileDto : Dto {
 	public int creatorUserId { get; set; }
 	public int? folderId { get; set; }
 	public bool isFavourite { get; set; }
@@ -29,7 +29,7 @@ public class UserProfileDto : Interfaces.Dto {
 	public ProxDto proxy { get; set; } = new();
 	public WebrowserDto webBrowser { get; set; } = new();
 }
-public abstract class UP : Interfaces.Dto {
+public abstract class UP : Dto {
 	public int? ProfileId { get; set; }
 }
 public class UPPersonDto : UP {

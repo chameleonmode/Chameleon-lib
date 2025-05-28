@@ -8,8 +8,7 @@ namespace Chameleon.lib.Api.Repos;
 public class UserProfilesFolderRepo : ApiBase<UPFolderDto> {
 	private UserProfilesFolderRepo() : base(Consts.Api.Endpoints.Folder) { }
 
-	public static Task<UPFolderDto> CreateFolder(string title) => Instance.Create(new
-	{
+	public static Task<UPFolderDto> CreateFolder(string title) => Instance.Create(new {
 		Title = title
 	});
 
@@ -22,13 +21,12 @@ public class UserProfilesFolderRepo : ApiBase<UPFolderDto> {
 	public static IObservable<IChangeSet<UPFolderDto, int>> Connect(Func<UPFolderDto, bool>? predicate = null, bool suppressEmptyChangeSets = true)
 		=> Instance.ObservableCache.Connect(predicate, suppressEmptyChangeSets);
 
-	public override async Task Load()
-	{
+	public override async Task Load() {
 		var response = await GetAll<UPFolderDto>();
 
 		SourceCache.Edit(innerCache => {
 			innerCache.Clear();
-			innerCache.AddOrUpdate(new UPFolderDto() { title = "All profiles" });
+			innerCache.AddOrUpdate(new UPFolderDto());
 			innerCache.AddOrUpdate(response);
 		});
 	}

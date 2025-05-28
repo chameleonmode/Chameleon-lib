@@ -1,5 +1,5 @@
 ﻿namespace Chameleon.lib.Common.Models.Dto;
-public class AssistDto : Interfaces.Dto {
+public class AssistDto : Dto {
 	public string? UserName { get; set; }
 	public string? Name { get; set; }
 	public string? Surname { get; set; }
@@ -14,25 +14,25 @@ public class AssistDto : Interfaces.Dto {
 	public IList<int> FolderPermissionIds { get; set; } = [];
 }
 
-public class AssisProfileDto : Interfaces.Dto {
+public class AssisProfileDto : Dto {
 	public int ProfileId { get; set; }
 	public string? ProfileName { get; set; }
 }
 
-public class AssisProfilePermissionDto : Interfaces.Dto {
+public class AssisProfilePermissionDto : Dto {
 	public string? PermissionName { get; set; }
 	public string? DisplayName { get; set; }
 	public bool IsGranted { get; set; }
 	public long ProfileAssistantId { get; set; }
 }
 
-public class AssisShareFolderDto : Interfaces.Dto {
+public class AssisShareFolderDto : Dto {
 	public long UserId { get; set; }
 	public int FolderId { get; set; }
 	public string? FolderName { get; set; }
 	public List<AssisShareFolderPermission> FolderPermissions { get; set; } = [];
 }
-public class AssisShareFolderPermission : Interfaces.Dto {
+public class AssisShareFolderPermission : Dto {
 	public int PermissionId { get; set; }
 	public string? PermissionName { get; set; }
 	public string? DisplayName { get; set; }
