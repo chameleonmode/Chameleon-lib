@@ -13,6 +13,10 @@ using Chameleon.lib.Helpers;
 using Chameleon.lib.Interfaces.Services;
 
 namespace Chameleon.lib;
+public static class Variables {
+	public const string AppName = "Chameleon";
+	public const string AppSettingsFileName = "appsettings.json";
+}
 public class IoC {
 	private bool isInitialized = false;
 

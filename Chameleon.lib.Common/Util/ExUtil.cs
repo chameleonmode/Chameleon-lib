@@ -1,6 +1,4 @@
-﻿using Chameleon.lib.Common.ServiceManagers;
-
-namespace Chameleon.lib.Common.Util;
+﻿namespace Chameleon.lib.Common.Util;
 
 public static class ExUtil {
 	public static bool TryCatch(Func<bool> action, Action? caught = null)
