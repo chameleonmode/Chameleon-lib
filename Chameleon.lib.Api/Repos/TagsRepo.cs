@@ -4,7 +4,7 @@ using Chameleon.lib.Const;
 using DynamicData;
 using System.Data;
 
-namespace Chameleon.lib.Api.Repos;
+namespace Chameleon.lib.Api.Repos; 
 public class TagsRepo {
 	TagsRepo() { }
 
@@ -13,7 +13,7 @@ public class TagsRepo {
 
 	public async Task Load() {
 		List<TagDto> list = [new TagDto("Favourites", [])];
-		
+
 		list.AddRange(
 			(await DB.Instance.GetTags())?
 				.Select(t => new TagDto(t.Name, JS.Deserialize<Dictionary<string, List<string>>>(t.Items) ?? [])) ?? []
