@@ -1,4 +1,6 @@
-﻿namespace Chameleon.lib.Common.Util;
+﻿using System.Diagnostics;
+
+namespace Chameleon.lib.Common.Util;
 
 public static class ExUtil {
 	public static bool TryCatch(Func<bool> action, Action? caught = null)
@@ -25,10 +27,9 @@ public static class ExUtil {
 	private static void PrintException(Exception? ex)
 	{
 		if (ex != null) {
-			Console.WriteLine($"Message: {ex.Message}");
-			Console.WriteLine("Stacktrace:");
-			Console.WriteLine(ex.StackTrace);
-			Console.WriteLine();
+			Debug.WriteLine($"Message: {ex.Message}");
+			Debug.WriteLine("Stacktrace:");
+			Debug.WriteLine(ex.StackTrace);
 			PrintException(ex.InnerException);
 		}
 	}
