@@ -20,6 +20,7 @@ public static class JS {
 	};
 	public static readonly JsonSerializerOptions EnumConverter = new() {
 		WriteIndented = true,
+		IncludeFields = true,
 		Converters = { new JsonStringEnumConverter() },
 	};
 

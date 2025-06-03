@@ -13,9 +13,11 @@ using Chameleon.lib.Helpers;
 using Chameleon.lib.Interfaces.Services;
 
 namespace Chameleon.lib;
-public static class Variables {
+
+public static class Project {
 	public const string AppName = "Chameleon";
 	public const string AppSettingsFileName = "appsettings.json";
+	public static readonly string Assembled = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0";
 }
 public class IoC {
 	private bool isInitialized = false;

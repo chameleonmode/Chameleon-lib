@@ -43,18 +43,18 @@ public static class Project {
 
 	public static TaskCompletionSource<bool> Initialized { get; } = new();
 	public static async Task<bool> Init() {
-		var source = "plugins";
-		var target = FilePaths.AppDataDir;
-		var success = File.Exists(Plugins.App);
-		if (!Staging && (!success || Debug)) {
+		var version = IoC.GetValue(nameof(Plugins));
+		if (!Staging && (version is not string ver || ver != lib.Project.Assembled)) {
+			IoC.Instance.Config?.SetValue(nameof(Plugins), lib.Project.Assembled);
 			Toaster.Info("Installing updates...");
-			success = await Resources.Mapped(source, target);
+			
+			var success = await Resources.Mapped("plugins", FilePaths.AppDataDir);
 			if (success) Toaster.Success("Updates installed.");
 			else Toaster.Error("Failed to install updates.");
 		}
-		return Initialized.TrySetResult(success);
+		return Initialized.TrySetResult(true);
 	}
-	
+
 	public static bool Staging { get; } = true && Debugger.IsAttached;
 	public static bool Debug { get; } =
 #if DEBUG

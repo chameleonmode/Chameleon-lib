@@ -531,7 +531,7 @@ public interface IMboxService {
 	Task<MboxResult> Show(string title, string content,
 		MBoxButtons btns = MBoxButtons.YesNo, string icon = "Info");
 	Task<TaskDialogResult> ShowTaskDialog<TViewModel>(Func<TViewModel> initialize, object content, string header,
-		string? subHeader = null, string title = Variables.AppName, object? footer = null, Symbas symbas = Symbas.Alert, MBoxButtons btns = MBoxButtons.YesNo);
+		string? subHeader = null, string title = Project.AppName, object? footer = null, Symbas symbas = Symbas.Alert, MBoxButtons btns = MBoxButtons.YesNo);
 }
 public class MessageBox {
 	private readonly IMboxService MboxService;
@@ -549,7 +549,7 @@ public class MessageBox {
 	
 
 	public record Options<TViewModel>(Func<TViewModel> Initialize, string Header,
-		string? SubHeader = null, string Title = Variables.AppName, object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo);
+		string? SubHeader = null, string Title = Project.AppName, object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo);
 
 	public static Task<TaskDialogResult> ShowTaskDialog<TView, TViewModel>(Options<TViewModel> parameters) where TView : new() {
 		return Instance.MboxService.ShowTaskDialog(parameters.Initialize, new TView(), parameters.Header, parameters.SubHeader, parameters.Title, parameters.Footer, parameters.Symbas, parameters.Btns);

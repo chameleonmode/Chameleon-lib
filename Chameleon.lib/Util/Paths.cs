@@ -4,13 +4,13 @@ using Chameleon.lib.Helpers;
 namespace Chameleon.lib.Util;
 public static class FilePaths {
 	public static string AppDataDir => EnsureDirectoryExists(
-		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Variables.AppName
+		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Project.AppName
 	);
 	public static string AppDataLocalDir => EnsureDirectoryExists(
-		Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Variables.AppName
+		Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Project.AppName
 	);
 	public static string AppTempDir => EnsureDirectoryExists(
-		Path.GetTempPath(), Variables.AppName
+		Path.GetTempPath(), Project.AppName
 	);
 	public static string AppDownloadDir => EnsureDirectoryExists(
 		AppTempDir, "Downloads"
