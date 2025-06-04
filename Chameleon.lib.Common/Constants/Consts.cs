@@ -75,3 +75,7 @@ public static class Consts {
 		public const string Automation_Edit = Automation + ".Edit";
 	}
 }
+public class Project {
+	public const string AppName = "Chameleon Mode";
+	public const string AppSettingsFileName = "appsettings.json";
+}
