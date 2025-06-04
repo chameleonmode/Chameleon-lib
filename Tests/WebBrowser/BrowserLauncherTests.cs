@@ -35,7 +35,7 @@ public class BrowserLauncherTests : TestSetup {
 		var bi = await SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(SystemBrowserType.Chrome,
 				new BrowserProfile() {
-					Id = 28296,
+					Id = 10,
 					Proxy = new BrowserProxy() {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
@@ -63,7 +63,7 @@ public class BrowserLauncherTests : TestSetup {
 		var bi = await SystemBrowserService.Instance.Open(
 			new SysBrowserOpenOptions(SystemBrowserType.Brave,
 				new BrowserProfile() {
-					Id = 8,
+					Id = 99,
 					Proxy = new BrowserProxy() {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,

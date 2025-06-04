@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 using chameleon.assets;
 using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Interfaces.Sys;
@@ -140,12 +139,12 @@ public static class Project {
     public static string Chromium => Resources.Assert(
       FilePaths.AppDataDir, "extensions", "chromium"
     );
+    public static string Chromeleon => Path.Combine(Chromium, ExtensionType.chromeleon.ToString());
+
     public static string Gecko => Resources.Assert(
       FilePaths.AppDataDir, "extensions", "gecko"
     );
-    public static string Geckoleon => Resources.Assert(
-      Gecko, "geckoleon.xpi"
-    );
+    public static string Geckoleon => Path.Combine(Gecko, "geckoleon.xpi");
   }
 
   public static TaskCompletionSource<bool> Initialized { get; } = new();

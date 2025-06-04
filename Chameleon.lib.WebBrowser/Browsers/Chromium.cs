@@ -1,11 +1,19 @@
-﻿using Chameleon.lib.Common.Constants;
+﻿using System.Diagnostics;
+using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
+using chameleon.assets;
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System;
-public class Chromium : Browser {
+
+public class Chromium : Browser
+{
 	public override string PrefsFile => Path.Combine(
 		Settings.SysBrowserProfileCachePath,
 		"Default",
@@ -19,11 +27,12 @@ public class Chromium : Browser {
 	// override string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
 
 	// ...
-	protected override string GetCommandLineArguments() {
-		var exts = string.Join(",", new[] {
-			Project.Extensions.Chromium,
-			Path.Combine(FilePaths.BrowserExtensions, Settings.BrowserType.GetDescription()),
-		}.Where(Directory.Exists).SelectMany(Directory.GetDirectories));
+	protected override string GetCommandLineArguments()
+	{
+		// var exts = string.Join(",", new[] {
+		// 	Settings.DestExtentionsDir,
+		// 	Path.Combine(FilePaths.BrowserExtensions, Settings.BrowserType.GetDescription()),
+		// }.Where(Directory.Exists).SelectMany(Directory.GetDirectories));
 
 		return string.Join(" ", new[] {
 			"--enable-features=" + string.Join(",", [
@@ -66,6 +75,7 @@ public class Chromium : Browser {
 				// webrtc-hw-encoding	Enables HW encode acceleration for WebRTC. ✅
 				// "WebRtcHWDecoding",
 				// "WebRtcHWEncoding",
+				"DisableLoadExtensionCommandLineSwitch"
 			]),
 			// Disable all chrome extensions
 			//"--disable-extensions",
@@ -128,26 +138,101 @@ public class Chromium : Browser {
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
-			$"--load-extension=\"{exts}\"",
-			//$"--load-extension=\"{exts},/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon\"",
+			$"--load-extension=\"{Project.Extensions.Chromeleon}\"",
+			//$"--load-extension=\"/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon\"",
 			InitUrl,
 			//"about:blank"
 		}.Where(x => !string.IsNullOrWhiteSpace(x)));
 	}
 
 	// ...
-	protected override async Task InitializeExtensionPath() {
+	protected override async Task InitializeExtensionPath()
+	{
 		_ = await Project.Initialized.Task;
 		// return;
 		// await IOtil.DirectoryDelete(Path.Combine(FilePaths.AppDataLocalDir, "extensions", "chrome"));
 		// _ = await Resources.LoadExtension(ExtensionType.chromeleon, Settings.DestExtentionsDir);
 	}
 
-	protected override async Task WaitForWinHandle() {
-		if (OperatingSystem.IsWindows()) 			_ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != nint.Zero, 18);
-else if (OperatingSystem.IsMacOS()) {
-			await base.WaitForWinHandle();
-		}
+	protected override async Task WaitForWinHandle()
+	{
+		if (OperatingSystem.IsWindows()) _ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != nint.Zero, 18);
+		else if (OperatingSystem.IsMacOS()) await base.WaitForWinHandle();
+		// TODO:  return;
+		// if (Settings.BrowserType == Enums.SystemBrowserType.Chrome)
+		// 	      async Task<string?> GetWebSocketDebuggerUrl()
+    //     {
+    //         using var httpClient = new HttpClient();
+    //         // Query Chrome's /json/version endpoint to get the active WebSocket URL
+    //         var resp = await httpClient.GetStringAsync($"http://localhost:{Settings.Port}/json/version");
+    //         using var doc = JsonDocument.Parse(resp);
+    //         if (doc.RootElement.TryGetProperty("webSocketDebuggerUrl", out var wsUrl))
+    //         {
+    //             return wsUrl.GetString();
+    //         }
+    //         return null;
+    //     }
+		// {
+		// 	try
+		// 	{
+		// 		// 1. Fetch the WebSocket Debugger URL
+		// 		var webSocketUrl = await GetWebSocketDebuggerUrl();
+		// 		if (string.IsNullOrEmpty(webSocketUrl))
+		// 		{
+		// 			await MessageBox.ShowErrorAsync(
+		// 				"WebSocket URL Error",
+		// 				"Failed to retrieve WebSocket Debugger URL. Ensure that the browser is running with remote debugging enabled."
+		// 			);
+		// 			return;
+		// 		}
+
+		// 		Debug.WriteLine($"Debugger WebSocket URL: {webSocketUrl}");
+
+		// 		// 2. Connect to Chrome DevTools Protocol via WebSocket
+		// 		using var ws = new ClientWebSocket();
+		// 		await ws.ConnectAsync(new Uri(webSocketUrl), CancellationToken.None);
+		// 		Debug.WriteLine("WebSocket connected.");
+
+		// 		// 3. Build the CDP message for Extensions.loadUnpacked
+		// 		//    Method: "Extensions.loadUnpacked"
+		// 		//    Params: { path: "<absolute_path_to_unpacked_extension>" }
+		// 		var cdpMessage = new
+		// 		{
+		// 			id = 1,
+		// 			method = "Extensions.loadUnpacked",
+		// 			@params = new
+		// 			{
+		// 				path = Project.Extensions.Chromeleon.Replace("\\", "\\\\")
+		// 			}
+		// 		};
+		// 		var jsonPayload = JsonSerializer.Serialize(cdpMessage);
+
+		// 		// 4. Send the JSON payload over WebSocket
+		// 		var bytesToSend = Encoding.UTF8.GetBytes(jsonPayload);
+		// 		await ws.SendAsync(new ArraySegment<byte>(bytesToSend), WebSocketMessageType.Text, true, CancellationToken.None);
+		// 		Debug.WriteLine("Sent Extensions.loadUnpacked command.");
+
+		// 		// 5. Await and print the response
+		// 		var buffer = new byte[8192];
+		// 		var sb = new StringBuilder();
+		// 		WebSocketReceiveResult result;
+		// 		do
+		// 		{
+		// 			result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+		// 			sb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+		// 		} while (!result.EndOfMessage);
+
+		// 		Debug.WriteLine("Response from CDP:");
+		// 		Debug.WriteLine(sb.ToString());
+
+		// 		// 6. Close the WebSocket
+		// 		await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Done", CancellationToken.None);
+		// 	}
+		// 	catch (Exception ex)
+		// 	{
+		// 		Debug.WriteLine($"Error: {ex.Message}\n{ex.StackTrace}");
+		// 	}
+		// }
 	}
 }
 
