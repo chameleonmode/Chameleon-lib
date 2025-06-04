@@ -54,7 +54,7 @@ export class Playwrighteer {
         }
     }
     async runner(args) {
-        const { file, port, dir, opts } = args;
+        const { file, port, opts } = args;
         await run({
             file,
             opts,
@@ -166,7 +166,7 @@ export class Playwrighteer {
         await this.page.focus("body");
         if (funk !== "screenshot") {
             const frunker = this.funkers.length ? this.funkers[this.funkers.length - 1] : undefined;
-            Logger.debug("frunker !== funker", frunker !== funka, JSON.stringify(frunker), JSON.stringify(funka));
+            Logger.debug("frunker !== funker", frunker !== funka, frunker, funka);
             if (!frunker || frunker !== funka)
                 await this[funk](args);
             this.funkers.push(funka);

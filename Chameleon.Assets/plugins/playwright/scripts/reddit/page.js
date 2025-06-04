@@ -1,9 +1,9 @@
-import { random, rando, trySequentially } from "../../lib/utils.js";
+import { random, rando, trySequentially, tryForEach } from "../../lib/utils.js";
 import { configure, BASE_URL } from "./reddit.js";
-import { promptee } from "../../lib/requests.js";
-import { Player } from "../player.js";
 import { Base } from "../base.js";
+import { Player } from "../player.js";
 import { Logger } from "../../lib/logger.js";
+import { promptee } from "../../lib/requests.js";
 export class Reddit extends Base {
     ctx;
     opts;
@@ -30,7 +30,7 @@ export class Reddit extends Base {
             }
             else if (action) {
                 try {
-                    const expecto = await this.findo(async () => await action(), this.player.visited);
+                    const expecto = await this.findo(async () => await action());
                     return expecto.index;
                 }
                 catch (e) {
@@ -39,11 +39,11 @@ export class Reddit extends Base {
                 finally {
                     const text = this.opts.args.search[this.searched.length];
                     this.searched.push(text);
-                    Logger.log("Action function completed");
+                    Logger.log("Action function completed", text, this.searched);
                 }
             }
             else {
-                Logger.warn("No action provided");
+                Logger.warn("No action provided", url);
             }
             return undefined;
         });
@@ -52,20 +52,19 @@ export class Reddit extends Base {
         this.action = action;
     }
     status() {
-        const done = this.visited.length + this.searched.length;
         const todo = this.opts.settings.start.urls.length + this.opts.args.search.length;
         const visit = this.opts.settings.start.urls.length - this.visited.length;
         const search = this.opts.args.search.length - this.searched.length;
         const searched = search === 0 && this.opts.args.search.length > 0;
-        Logger.log(`Todo: ${todo} of ${done} completed`);
-        Logger.log(`Search: ${this.opts.args.search.length} of ${this.searched.length} completed`);
-        Logger.log(`Visit: ${this.opts.settings.start.urls.length} of ${this.visited.length} completed`);
-        return { todo, done, visit, search, searched };
+        const done = this.visited.length + this.searched.length;
+        const stats = { todo, done, visit, search, searched };
+        Logger.log(`Status:` + stats);
+        return stats;
     }
     async onTry(url) {
-        const { todo, done, visit, search, searched } = this.status();
-        const basic = this.scopeulation.community(url) || url === BASE_URL;
-        if (searched && !this.visited.includes(url) && basic) {
+        const { visit, search, searched } = this.status();
+        const basic = this.scopeulation.subreddit(url) || url === BASE_URL;
+        if (searched && this.scopeulation.subreddit(url) && !this.visited.includes(url)) {
             this.searched.length = 0;
             return await this.onTry(url);
         }
@@ -79,19 +78,44 @@ export class Reddit extends Base {
         await this.nap();
         const started = this.scopeulation.comments(url) || this.scopeulation.search(url)
             ? url
-            : url.endsWith("/")
-                ? url + "search"
-                : url + "/search";
+            : url.replace(/\/?$/, "/") + "search";
         while (!this.page.url().startsWith(started)) {
             await this.page.goBack({ waitUntil: "load" });
-            await this.nap({
-                ...this.timeouts.naps,
-                multiplier: random(3, 6),
-            });
+            await this.nap({ multiplier: random(3, 6) });
         }
     }
     async navigato(url) {
-        await this.navigate(url);
+        const tried = await tryForEach([
+            this.navigate(url),
+            (async () => {
+                const genorate = this.opts.settings.start.all &&
+                    this.opts.args.search.length > 0 &&
+                    this.player.state.iterations.length === 0 &&
+                    this.opts.settings.start.variations.max > 0;
+                if (genorate) {
+                    const result = await promptee.genorate({
+                        model: this.opts.ai.model,
+                        decorators: this.opts.ai.decorators,
+                        task: `generate search terms`,
+                        generations: {
+                            type: "term",
+                            sys: "you are creating variations of search terms",
+                            context: "current search terms",
+                            range: this.opts.settings.start.variations,
+                            input: {
+                                type: "search",
+                                data: this.opts.args.search,
+                                reason: "list of search terms to generate variations for",
+                            },
+                        },
+                    });
+                    const terms = result.map((i) => i.data);
+                    this.opts.args.search = [...this.opts.args.search, ...terms].sort(() => Math.random() - 0.5);
+                    Logger.info("Generated search terms:", this.opts.args.search, result);
+                }
+            })(),
+        ]);
+        this.bang("Navigation", tried.fulfilled.length > 0, { url, tried });
         this.visited.push(url);
     }
     async searcho() {
@@ -107,28 +131,24 @@ export class Reddit extends Base {
         await this.click(textbox);
         try {
             const clearButton = locator.getByRole("button", { name: "Clear search" });
-            await this.click(clearButton, random(3000, 9000));
+            await this.click(clearButton, { timeout: 3000, strict: false });
         }
-        catch (e) {
-            Logger.warn("Error clicking clear button:", e);
+        catch {
         }
         await this.pressSequentially(textbox, text, false);
-        await this.nap({
-            ...this.timeouts.naps,
-            multiplier: 3,
-        });
+        await this.nap({ multiplier: 3 });
         await textbox.press("Enter");
         await this.nap();
     }
-    async findo(funco, visited = []) {
+    async findo(funco, visited = this.player.state.visited) {
         const scopeulator = this.scopeulation.tranform();
         const findulator = (() => {
             const mapper = {
                 Posts: { ids: ["search-post-with-content-preview", "search-post-unit"], strat: "testId" },
-                Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
                 Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
-                People: { ids: ["search-author"], strat: "testId" },
+                Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
                 Communities: { ids: ["search-community"], strat: "testId" },
+                People: { ids: ["search-author"], strat: "testId" },
             };
             return mapper[scopeulator.scope];
         })();
@@ -254,7 +274,6 @@ export class Reddit extends Base {
                 await this.click(thread);
                 try {
                     this.bang("max attempts", this.opts.settings.start.attempts === 0, this.opts.settings.start.attempts);
-                    Logger.warn("Max attempts reached, restarting next iteration.");
                     return { index, visited };
                 }
                 catch (e) {
@@ -302,7 +321,7 @@ export class Reddit extends Base {
         return compleations.length;
     }
     scopeulation = {
-        community(url) {
+        subreddit(url) {
             const pattern = /\/r\/[^/]+\/?$/;
             return pattern.test(url);
         },
@@ -317,23 +336,18 @@ export class Reddit extends Base {
         tranform: () => {
             const scopes = ["People", "Communities"];
             const url = this.visited[this.visited.length - 1];
-            const Url = new URL(url);
-            const type = Url.searchParams.get("type");
             const scope = scopes.includes(this.opts.args.scope) &&
-                (this.scopeulation.community(url) ||
+                (this.scopeulation.subreddit(url) ||
                     this.scopeulation.comments(url) ||
                     this.scopeulation.search(url))
                 ? "Posts"
                 : this.opts.args.scope;
-            return {
-                scope,
-                url,
-                Url,
-                type,
-                sort: Url.searchParams.get("sort"),
-                t: Url.searchParams.get("t"),
-                community: scope === "Communities" || type === "communities",
-            };
+            const Url = new URL(url);
+            const type = Url.searchParams.get("type");
+            const sort = Url.searchParams.get("sort");
+            const t = Url.searchParams.get("t");
+            const community = scope === "Communities" || type === "communities";
+            return { url, scope, Url, type, sort, t, community };
         },
     };
     login = {
@@ -418,26 +432,18 @@ export class Reddit extends Base {
         },
         getComments: async (max) => {
             await this.scrollabit();
-            const locator = this.page.locator("shreddit-comment");
-            const count = await locator.count();
+            const loca = this.page.locator("shreddit-comment");
+            const count = await loca.count();
             const length = max ? Math.min(max, count) : count;
             const comments = [];
             for (let i = 0; i < length; i++) {
-                comments.push(await this.txtContent("div[slot='comment']", locator.nth(i)));
+                const locator = loca.nth(i);
+                const text = await this.txtContent("div[slot='comment']");
+                if (!text)
+                    continue;
+                comments.push({ text, locator });
             }
             return comments;
-        },
-        getComment: async (nth = -1) => {
-            await this.scrollabit();
-            const locator = this.page.locator("shreddit-comment");
-            const count = await locator.count();
-            const index = nth < 0 ? random(0, count - 1) : nth;
-            const comment = this.bang("Comment", locator.nth(index));
-            await comment.waitFor({ timeout: this.timeouts.wait });
-            return {
-                text: await this.txtContent("div[slot='comment']", comment),
-                locator: comment,
-            };
         },
         addComment: async (comment) => {
             const inside = "addComment";
@@ -538,34 +544,12 @@ export default async function (ctx, opts, action) {
     const options = configure(opts);
     const reddit = new Reddit(ctx, options, action);
     await reddit.init();
-    const genorate = options.settings.start.all && options.args.search.length && options.settings.start.variations.max > 0;
-    if (genorate) {
-        const result = await promptee.genorate({
-            model: options.ai.model,
-            decorators: options.ai.decorators,
-            task: `generate search terms`,
-            generations: {
-                type: "term",
-                sys: "you are creating variations of search terms",
-                context: "current search terms",
-                range: options.settings.start.variations,
-                input: {
-                    type: "search",
-                    data: options.args.search,
-                    reason: "list of search terms to generate variations for",
-                },
-            },
-        });
-        const terms = result.map((i) => i.data);
-        options.args.search = [...options.args.search, ...terms].sort(() => Math.random() - 0.5);
-        Logger.info("Generated search terms:", options.args.search, JSON.stringify(result));
-    }
     Logger.info("Feature:", {
         feature: options.settings.start.feature,
-        artifacts: JSON.stringify(options.args.artifacters),
+        artifacts: options.args.artifacters,
     });
     Logger.info("Options:", {
-        options: JSON.stringify(options),
+        options: options,
     });
     return { reddit };
 }

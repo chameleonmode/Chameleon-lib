@@ -1,7 +1,10 @@
 import { Logger } from "../lib/logger.js";
 export class Player {
     actor;
-    visited = [];
+    state = {
+        visited: [],
+        iterations: [],
+    };
     constructor(actor) {
         this.actor = actor;
     }
@@ -13,16 +16,17 @@ export class Player {
                 continue;
             Logger.log(`Url: ${j + 1} of ${length}`, url);
             while (!((await this.actor.onTry(url)) instanceof Error)) {
-                this.visited.length = 0;
+                this.state.visited.length = 0;
                 for (let i = 0; i < this.actor.iterations; i++) {
                     Logger.log(`Iteration: ${i + 1} of ${this.actor.iterations}`);
                     if (i > 0)
                         await this.actor.onIteration(url);
                     const resulto = await this.actor.scenario(url);
                     if (resulto && typeof resulto === "number")
-                        this.visited.push(resulto);
+                        this.state.visited.push(resulto);
                 }
             }
+            this.state.iterations.push(j);
         }
     }
 }

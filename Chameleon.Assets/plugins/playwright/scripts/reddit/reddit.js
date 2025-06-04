@@ -1,7 +1,7 @@
 import { Logger } from "../../lib/logger.js";
 export const BASE_URL = "https://www.reddit.com";
 export function configure(opts) {
-    Logger.log("Opts", { opts: JSON.stringify(opts, null, 2) });
+    Logger.log("Opts", { opts });
     const args = {
         scope: "Posts",
         sort: "Relevance",
@@ -12,7 +12,6 @@ export function configure(opts) {
     };
     const settings = {
         start: {
-            all: true,
             new: true,
             attempts: 9,
             feature: "reddit",
@@ -21,6 +20,7 @@ export function configure(opts) {
             variations: { min: 1, max: 3 },
             urls: [],
             ...opts?.settings?.start,
+            all: true,
         },
         timeouts: {
             navigate: 60,
@@ -50,16 +50,19 @@ export function configure(opts) {
             start: {
                 ...settings.start,
                 urls: [
-                    ...(settings.start.all && args.search.length ? [BASE_URL] : []),
-                    ...(settings.start.urls || []),
-                ],
+                    ...(args.search.length ? [BASE_URL] : []),
+                    ...(settings.start.all && settings.start.urls.length ? settings.start.urls : []),
+                ].filter(Boolean),
             },
             timeouts: {
                 ...settings.timeouts,
+                navigate: 1000 * settings.timeouts.navigate,
+                default: 1000 * settings.timeouts.default,
+                wait: 1000 * settings.timeouts.wait,
             },
         },
         ai: {
-            model: opts?.ai?.model || ai.model,
+            model: ai.model,
             decorators: {
                 tone: ai.decorators.tone,
                 system: opts?.ai?.decorators.system || ai.decorators.system,

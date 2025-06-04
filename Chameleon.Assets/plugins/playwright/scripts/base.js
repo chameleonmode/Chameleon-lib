@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { rando, sleepRandom, tryForEach, trySequentially } from "../lib/utils.js";
+import { rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
 import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";
 export class Base {
@@ -7,20 +7,13 @@ export class Base {
     opts;
     scenario;
     iterations;
-    timeouts;
     visited = [];
     page;
-    constructor(ctx, opts, scenario, iterations = rando(opts.settings.start.iterations.min, opts.settings.start.iterations.max), timeouts = {
-        ...opts.settings.timeouts,
-        navigate: 1000 * opts.settings.timeouts.navigate,
-        default: 1000 * opts.settings.timeouts.default,
-        wait: 1000 * opts.settings.timeouts.wait,
-    }) {
+    constructor(ctx, opts, scenario, iterations = rando(opts.settings.start.iterations.min, opts.settings.start.iterations.max)) {
         this.ctx = ctx;
         this.opts = opts;
         this.scenario = scenario;
         this.iterations = iterations;
-        this.timeouts = timeouts;
     }
     status() {
         const todo = this.opts.settings.start.urls.length;
@@ -31,8 +24,8 @@ export class Base {
         this.page = this.opts.settings.start.new
             ? await this.ctx.newPage()
             : this.ctx.pages()[this.ctx.pages().length - 1];
-        this.page.setDefaultTimeout(this.timeouts.default);
-        this.page.setDefaultNavigationTimeout(this.timeouts.navigate);
+        this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
+        this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
     }
     async navigate(url) {
         try {
@@ -43,15 +36,11 @@ export class Base {
         }
         catch (e) {
             Logger.error("Error navigating to URL:", e);
-            await sleepRandom({
-                min: 1000 * 7,
-                max: 1000 * 14,
-                multiplier: 1,
-            });
+            await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
             await this.navigate(url);
         }
     }
-    async waitForNavigation(timeout = this.timeouts.navigate) {
+    async waitForNavigation(timeout = this.opts.settings.timeouts.navigate) {
         return await tryForEach([
             this.page.waitForLoadState("load", { timeout }),
             this.page.waitForLoadState("domcontentloaded", { timeout }),
@@ -68,15 +57,28 @@ export class Base {
             };
         });
     }
+    async firstVisible(location) {
+        const locations = await location.count();
+        this.bang(`firstVisible: ${location}`, locations > 0, { location, locations });
+        for (let i = 0; i < locations; i++) {
+            const element = location.nth(i);
+            if (await element.isVisible()) {
+                await element.scrollIntoViewIfNeeded({ timeout: this.opts.settings.timeouts.wait });
+                const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
+                if (!text)
+                    continue;
+                return { element, text };
+            }
+        }
+        throw this.error(`No visible elements found for selector: ${location}`, { locations, location });
+    }
     async txtContent(selector, locator) {
-        const element = locator?.locator(selector).first() || this.page.locator(selector).first();
-        await expect(element).toBeVisible();
-        const result = await trySequentially([
-            async () => await element.scrollIntoViewIfNeeded({ timeout: this.timeouts.wait }),
-        ]);
-        this.banger(result, result);
-        const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
-        return this.bang("Element txt content" + selector, text);
+        const location = locator?.locator(selector) || this.page.locator(selector);
+        try {
+            const { element, text } = await this.firstVisible(location);
+            return this.bang("txtContent: " + selector, text, { element, text });
+        }
+        catch { }
     }
     async selectAll(locator, clear = false) {
         const modifierKey = process.platform === "win32" ? "Control" : "Meta";
@@ -99,19 +101,18 @@ export class Base {
             timeout: 1000 * 60 * 5,
         });
     }
-    async click(locator, timeout = this.timeouts.wait) {
+    async click(locator, { strict = true, timeout = this.opts.settings.timeouts.default } = {}) {
         await this.nap();
-        const expecto = await tryForEach([
-            expect(locator).toBeEnabled({ timeout }),
-            expect(locator).toBeVisible({ timeout }),
-        ]);
-        this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length);
-        const locato = await tryForEach([
-            locator.waitFor({ timeout }),
-            locator.scrollIntoViewIfNeeded({ timeout }),
-            locator.click({ timeout, force: true }),
-        ]);
-        this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length);
+        if (strict) {
+            const expecto = await tryForEach([
+                expect(locator).toBeEnabled({ timeout }),
+                expect(locator).toBeVisible({ timeout }),
+            ]);
+            this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto);
+            await locator.waitFor({ timeout });
+        }
+        const locato = await trySequentially([() => locator.scrollIntoViewIfNeeded({ timeout }), () => locator.click({ timeout, force: true })], { first: false });
+        this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato);
         await this.nap();
     }
     async scrollabit() {
@@ -140,13 +141,10 @@ export class Base {
             }
         }
     }
-    async nap(args = {
-        min: this.timeouts.naps.min,
-        max: this.timeouts.naps.max,
-        multiplier: this.timeouts.naps.multiplier,
-    }) {
-        const sleepo = await sleepRandom(args);
-        await this.page.waitForTimeout(sleepo);
+    async nap(args) {
+        const qargs = { ...this.opts.settings.timeouts.naps, ...args };
+        const sleep = await sleepo(qargs);
+        await this.page.waitForTimeout(sleep);
         await this.waitForNavigation();
     }
     async find(ids, strategy = "testId") {
@@ -209,12 +207,13 @@ export class Base {
         });
     }
     error(message, cause) {
-        const error = new Error(`[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts)}] ${message}`, { cause });
-        Logger.error(`(error/${this.opts.settings.start.feature}) ${error.message}`, cause);
+        const error = new Error(`${message}`, { cause });
+        const pretty = { cause, stack: error.stack, opts: this.opts };
+        Logger.error(`(error/${this.opts.settings.start.feature}): ${error.message}`, pretty);
         return error;
     }
     bang(message, expect, source) {
-        Logger.debug(`(bang/${this.opts.settings.start.feature}) ${message}`, expect, source);
+        Logger.debug(`(bang/${this.opts.settings.start.feature}): ${message}`, expect, source);
         if (expect)
             return expect;
         throw this.error(message, { source, expect });

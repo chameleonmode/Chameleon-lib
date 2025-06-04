@@ -1,3 +1,4 @@
+import { rando } from "../../../../lib/utils.js";
 import Pager from "../../page.js";
 export default async function (context, opts) {
     const { reddit } = await Pager(context, opts, async (url) => {
@@ -5,7 +6,7 @@ export default async function (context, opts) {
             await reddit.post.assert();
         const b64 = [await reddit.screenshot()];
         const comments = await reddit.post.getComments();
-        const { locator, text } = await reddit.post.getComment();
+        const { locator, text } = rando(comments);
         await reddit.post.replyToComment(locator, async () => {
             const result = await reddit.ask({
                 task: `reply to this reddit comment`,
@@ -17,7 +18,7 @@ export default async function (context, opts) {
                     context: reddit.page.url(),
                     input: {
                         type: "comment",
-                        data: comments,
+                        data: comments.map((c) => c.text),
                         reason: "existing array of comments on the post",
                     },
                 },

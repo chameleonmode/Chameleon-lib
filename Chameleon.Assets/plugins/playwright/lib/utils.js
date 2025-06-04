@@ -4,8 +4,8 @@ export const delay = (ms) => {
     });
 };
 export function random(...values) {
-    const smallest = Math.min(...values) + 1;
-    const largest = Math.max(...values) + 1;
+    const smallest = Math.min(...values);
+    const largest = Math.max(...values);
     const floor = Math.floor(Math.random() * (largest - smallest) + smallest);
     return floor;
 }
@@ -18,9 +18,9 @@ export function rando(thing, thinger) {
                 ? Math.floor(Math.random() * thing)
                 : Math.random() < 0.5;
 }
-export async function sleepRandom({ min = 256, max = 512, multiplier = 0 }) {
+export async function sleepo({ min = 256, max = 512, multiplier = 0 } = {}) {
     const ms = random(min, max);
-    const span = Math.floor(ms * (multiplier > 0 ? multiplier : random(3, 6)));
+    const span = Math.floor(ms * (multiplier > 0 ? multiplier : rando(3, 6)));
     return await delay(span);
 }
 export async function tryForEach(promises) {
@@ -34,6 +34,22 @@ export async function tryForEach(promises) {
             errors.push(outcome.reason);
         }
     }));
+    return { fulfilled, errors };
+}
+export async function trySequentially(promises, { first = true } = {}) {
+    const fulfilled = [];
+    const errors = [];
+    for (let i = 0; i < promises.length; i++) {
+        try {
+            const filled = await promises[i]();
+            fulfilled.push(filled);
+            if (first)
+                break;
+        }
+        catch (error) {
+            errors.push(error);
+        }
+    }
     return { fulfilled, errors };
 }
 export async function tryOnFirst(promises) {
@@ -51,28 +67,11 @@ export async function tryOnFirst(promises) {
     });
     try {
         const result = await Promise.race([...racingPromises, fallbackPromise]);
-        return { fulfilled: result, errors };
+        return { result, errors };
     }
     catch (error) {
-        return { fulfilled: null, errors };
+        return { errors };
     }
-}
-export async function trySequentially(promises) {
-    const errors = [];
-    for (let i = 0; i < promises.length; i++) {
-        try {
-            const fulfilled = await promises[i]();
-            return { fulfilled, errors, fulfilledIndex: i };
-        }
-        catch (error) {
-            errors.push(error);
-        }
-    }
-    return {
-        fulfilled: null,
-        errors,
-        fulfilledIndex: -1,
-    };
 }
 export function deepMerge(target, source) {
     if (!source)

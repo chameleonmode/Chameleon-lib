@@ -19,7 +19,7 @@ export default async function (context, opts) {
                     context: `context: ${context}\ncurrent page url: ${reddit.page.url()}`,
                     input: {
                         type: "comment",
-                        data: comments,
+                        data: comments.map((c) => c.text),
                         reason: "existing array of comments on the post",
                     },
                 },

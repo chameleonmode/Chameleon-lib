@@ -25,7 +25,7 @@ export async function req(route, args) {
         method: args.method ?? "POST",
         body: args.body ? JSON.stringify(args.body) : undefined,
     };
-    Logger.log("Request:", { from, init: JSON.stringify(init) });
+    Logger.log("Request:", { to: from });
     const request = await fetch(from, init);
     const response = await request.json();
     Logger.log("Generated:", response);
