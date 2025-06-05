@@ -36,6 +36,7 @@ public class Actor : IActor {
     )
   );
   public IEnumerable<IScript> Scripts { get; set; } = new ObservableCollection<IJSScript>() {
+    new Surf(),
     new Comment(), new Reply(),
     new Join(), new Post(), new Vote(),
   };

@@ -9,3 +9,11 @@ public record Vote : JSScript {
 		"Search for subreddit and rando vote up/down"
 	) { }
 }
+
+public record Surf : JSScript {
+	public Surf() : base(
+		"../scripts/reddit/plugins/subreddit/vote",
+		"Surf",
+		"Just surf the subreddits and ride the wave of content"
+	) { }
+}
