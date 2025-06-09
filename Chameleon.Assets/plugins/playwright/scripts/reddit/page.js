@@ -16,7 +16,7 @@ export class Reddit extends Base {
             if (action && this.scopeulation.comments(url)) {
                 for (let i = 0; i < this.opts.settings.start.attempts; i++) {
                     try {
-                        this.iterations = 1;
+                        this.opts.settings.start.iterations = { min: 1, max: 1 };
                         return await action(url);
                     }
                     catch (e) {

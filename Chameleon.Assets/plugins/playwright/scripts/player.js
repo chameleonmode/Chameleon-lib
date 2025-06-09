@@ -17,8 +17,8 @@ export class Player {
             Logger.log(`Url: ${j + 1} of ${length}`, url);
             while (!((await this.actor.onTry(url)) instanceof Error)) {
                 this.state.visited.length = 0;
-                for (let i = 0; i < this.actor.iterations; i++) {
-                    Logger.log(`Iteration: ${i + 1} of ${this.actor.iterations}`);
+                for (let i = 0; i < this.actor.opts.settings.start.iterations.max; i++) {
+                    Logger.log(`Iteration: ${i + 1} of ${this.actor.opts.settings.start.iterations.max}`);
                     if (i > 0)
                         await this.actor.onIteration(url);
                     const resulto = await this.actor.scenario(url);

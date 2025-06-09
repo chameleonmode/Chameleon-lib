@@ -6,14 +6,12 @@ export class Base {
     ctx;
     opts;
     scenario;
-    iterations;
     visited = [];
     page;
-    constructor(ctx, opts, scenario, iterations = rando(opts.settings.start.iterations.min, opts.settings.start.iterations.max)) {
+    constructor(ctx, opts, scenario) {
         this.ctx = ctx;
         this.opts = opts;
         this.scenario = scenario;
-        this.iterations = iterations;
     }
     status() {
         const todo = this.opts.settings.start.urls.length;

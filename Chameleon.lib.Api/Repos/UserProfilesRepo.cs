@@ -1,4 +1,5 @@
-﻿using Chameleon.lib.Common.Constants;
+﻿using System.Reflection;
+using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Models.Dto;
 
 using DynamicData;
@@ -29,18 +30,15 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 		}
 		return o;
 	}
-	public static async Task<RootResult> SetProfileIsFavorite(UserProfileDto profile, bool isFavorite) {
+	public static async Task<RootResult> SetProfileIsFavorite(UserProfileDto profile) {
+		var fave = !profile.isFavourite;
 		var o = await Instance.Post("SetProfileIsFavorite", new {
 			ProfileId = profile.id,
-			IsFavorite = isFavorite
+			IsFavorite = fave
 		});
 		if (o.success) {
-			profile.isFavourite = isFavorite;
-			var i = Instance.SourceCache.Items.First(p => p.id == profile.id);
-			if (i != null) {
-				i.isFavourite = isFavorite;
-				Instance.SourceCache.AddOrUpdate(i);
-			}
+			profile.isFavourite = fave;
+			Instance.SourceCache.AddOrUpdate(profile);
 		}
 		return o;
 	}
