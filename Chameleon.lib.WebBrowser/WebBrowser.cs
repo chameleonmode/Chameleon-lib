@@ -23,6 +23,9 @@ public interface IBrowserInstance : IAmInitializer {
 #endregion
 
 #region models
+public record BrowserOption(SystemBrowserType Option) {
+	public string IconName { get; } = Option.ToString().ToLower();
+}
 public class BrowserProxy {
   public string? HostForRequest => Host?.Contains("proxy.chameleonmode.com") == true ?
     "proxy.packetstream.io"
