@@ -4,6 +4,7 @@ using Chameleon.lib.AIR.Scripts.Models;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Playwright.Services;
 
@@ -26,12 +27,6 @@ public class BundledScriptsService {
 		// obsoleted { nameof(Gsites), new Gsites() },
 	};
 
-	public async Task<IList<Arguments>> GetAll(string filepath) {
-		var returned = new List<Arguments>(await GetUserScripts(filepath));
-		returned.AddRange(GetBundledScrits());
-		return returned;
-	}
-
 	public IList<Arguments> GetBundledScrits() {
 		List<Arguments> AddMappedScripts<T>(IDictionary<string, T> scripts, Func<T, Arguments> createOptions) where T : IScript {
 			return [.. scripts.Select(s => {
@@ -53,9 +48,12 @@ public class BundledScriptsService {
 
 		return returned;
 	}
-	public static Task<IList<Arguments>> GetUserScripts(string filepath) => Task.Run<IList<Arguments>>(() => {
+	public static Task<IEnumerable<Arguments>> GetUserScripts() => Task.Run<IEnumerable<Arguments>>(() => {
+		var path = IoC.GetValue<string>("UserScriptsDirectory");
+		if (path.Is() || !Directory.Exists(path)) return []; 
+		
 		var returned = new List<Arguments>();
-		foreach (var item in IOtil.ReadDirectory(filepath)) {
+		foreach (var item in IOtil.ReadDirectory(path)) {
 			var inf = new FileInfo(item);
 			if (inf.Extension != ".js")
 				continue;

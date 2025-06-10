@@ -3,7 +3,7 @@
 namespace Chameleon.lib.Common.Util;
 
 public static class ExUtil {
-	public static bool TryCatch(Func<bool> action, Action? caught = null)
+	public static T? TryCatch<T>(Func<T> action, Action? caught = null)
 	{
 		try {
 			return action();
@@ -11,7 +11,7 @@ public static class ExUtil {
 			caught?.Invoke();
 			PrintException(ex);
 		}
-		return false;
+		return default;
 	}
 
 	public static async Task AsyncTryCatch(Func<Task> action, Action<Exception>? caught = null)
