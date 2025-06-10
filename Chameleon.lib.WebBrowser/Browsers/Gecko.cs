@@ -286,7 +286,7 @@ else {
 
 		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.SysBrowserProfileCachePath);
 	}
-	protected override string GetCommandLineArguments() {
+	protected override string GetCommandLineArguments(bool args) {
 		return string.Join(" ", [
 			"-allow-downgrade",
 			"-no-remote",
@@ -295,7 +295,7 @@ else {
 			//"-jsconsole",
 			#endif
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
-			InitUrl
+			args ? InitUrl : "",
 		]);
 	}
 

@@ -43,8 +43,8 @@ public class UPPersonDto : UP {
 	public string? Notes { get; set; }
 	public DateTime BirthDate { get; set; } = DateTimeOffset.Now.AddYears(-20).DateTime;
 	public DateTimeOffset BirthDateOffset => new(BirthDate);
-	public Enums.GenderType Gender { get; set; } = Enums.GenderType.Female;
-	public string Gendertext => Gender.ToString();
+	public object Gender { get; set; } = "Hmm";
+	public string Gendertext => Convert.ToString(Gender) ?? "Herm";
 }
 public class UPBusinessDto : UP {
 	public string? CompanyName { get; set; }

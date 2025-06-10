@@ -27,7 +27,7 @@ public class Chromium : Browser
 	// override string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
 
 	// ...
-	protected override string GetCommandLineArguments()
+	protected override string GetCommandLineArguments(bool args)
 	{
 		// var exts = string.Join(",", new[] {
 		// 	Settings.DestExtentionsDir,
@@ -140,9 +140,9 @@ public class Chromium : Browser
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			$"--load-extension=\"{Project.Extensions.Chromeleon}\"",
 			//$"--load-extension=\"/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon\"",
-			InitUrl,
+			args ? InitUrl : "about:blank",
 			//"about:blank"
-		}.Where(x => !string.IsNullOrWhiteSpace(x)));
+		}.Where(x => x != null));
 	}
 
 	// ...

@@ -1,26 +1,11 @@
-using System.Diagnostics;
 using System.Net;
 using chameleon.assets;
-using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Interfaces.Sys;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser;
-
-#region types
-public interface IBrowserInstance : IAmInitializer {
-  event Delegatorz.Event<SysBrowserEvent>? OnEvent;
-  Process? Brocess { get; set; }
-  SysBrowserSettings Settings { get; init; }
-  string SessionId { get; }
-  void InvokeEvent(Enums.SysBrowserEventType eventType);
-  void Close();
-  Task Ensure();
-}
-#endregion
 
 #region models
 public record BrowserOption(SystemBrowserType Option) {
@@ -89,7 +74,6 @@ public record class BrowserRecord(string Name, string Path) {
     return Name ?? Path;
   }
 }
-public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
 public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile);
 public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port) {
   public SystemBrowserType BrowserType => OpenOptions.BrowserType;
@@ -119,10 +103,6 @@ public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port) {
       return cachedExtentionsDir;
     }
   }
-
-  public SysBrowserEvent CreateEvent(SysBrowserEventType sysBrowserEventType) => new(OpenOptions, sysBrowserEventType);
-
-  public Dictionary<ExtensionType, (string? settings, string guid, string destDir)> ExtentionsDirs { get; } = [];
 }
 public class EmulationOptions {
   public bool AutoTimezone { get; set; } = true;

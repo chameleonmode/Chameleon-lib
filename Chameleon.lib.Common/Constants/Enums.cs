@@ -29,17 +29,6 @@ public static class Enums {
 		Chromium
 	}
 
-	public enum SysBrowserEventType {
-		Unknown,
-		Error,
-		Closed,
-		Opened,
-		Foreground,
-		Background
-	}
-
-
-
 	public static string GetDescription(this Enum value) {
 		var field = value.GetType().GetField(value.ToString());
 		if (field == null)
@@ -53,11 +42,4 @@ public static class Enums {
 		Ascending,
 		Descending
 	}
-
-	public enum GenderType {
-		Unknown,
-		Male,
-		Female
-	}
-
 }
