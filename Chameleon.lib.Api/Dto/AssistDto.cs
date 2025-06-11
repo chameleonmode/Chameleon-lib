@@ -1,4 +1,4 @@
-﻿namespace Chameleon.lib.Common.Models.Dto;
+﻿namespace Chameleon.lib.Api.Dto;
 public class AssistDto : Dto {
 	public string? UserName { get; set; }
 	public string? Name { get; set; }

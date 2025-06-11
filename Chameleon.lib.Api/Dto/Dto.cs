@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Chameleon.lib.Common.Models.Dto;
+namespace Chameleon.lib.Api.Dto;
 public interface IDto {
 	int id { get; set; }
 	public string? title { get; set; }

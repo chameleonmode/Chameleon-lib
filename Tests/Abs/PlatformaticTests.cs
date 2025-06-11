@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using Chameleon.lib;
 using Chameleon.lib.Abs.Platformatic;
+using Chameleon.lib.Api.Dto;
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Models.Dto;
 using Chameleon.lib.Playwright.Services;
 
 using Microsoft.Playwright;

@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Text;
 using System.Text.Json;
+using Chameleon.lib.Api.Dto;
 
-using Chameleon.lib.Common.Models.Dto;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Api;

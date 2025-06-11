@@ -1,4 +1,4 @@
-﻿namespace Chameleon.lib.Common.Models.Dto;
+﻿namespace Chameleon.lib.Api.Dto;
 
 public enum ProxyHostType { IpAddress, Hostname }
 public enum ProxyIpType { Random, Sticky }

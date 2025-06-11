@@ -1,9 +1,5 @@
 ﻿using System.Text.Json;
-
-using Chameleon.lib.Common.Constants;
-
-
-namespace Chameleon.lib.Common.Models.Dto;
+namespace Chameleon.lib.Api.Dto;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
 public class WebrowserDto {
 	public bool webRTC { get; set; }
