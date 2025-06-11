@@ -88,9 +88,8 @@ export class Reddit extends Base {
         const tried = await tryForEach([
             this.navigate(url),
             (async () => {
-                const genorate = this.opts.settings.start.all &&
-                    this.opts.args.search.length > 0 &&
-                    this.player.state.iterations.length === 0 &&
+                Logger.debug("variations:", this.opts.settings.start.variations);
+                const genorate = this.opts.args.search.length > 0 &&
                     this.opts.settings.start.variations.max > 0;
                 if (genorate) {
                     const result = await promptee.genorate({

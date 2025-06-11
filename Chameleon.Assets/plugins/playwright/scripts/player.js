@@ -1,4 +1,5 @@
 import { Logger } from "../lib/logger.js";
+import { delay } from "../lib/utils.js";
 export class Player {
     actor;
     state = {
@@ -9,6 +10,7 @@ export class Player {
         this.actor = actor;
     }
     async play() {
+        Logger.log("Delay", { delay: this.actor.opts.settings.timeouts.artifacto.delay });
         const length = this.actor.opts.settings.start.urls.length;
         for (let j = 0; j < length; j++) {
             const url = this.actor.opts.settings.start.urls[j];
@@ -25,6 +27,7 @@ export class Player {
                     if (resulto && typeof resulto === "number")
                         this.state.visited.push(resulto);
                 }
+                await delay(this.actor.opts.settings.timeouts.artifacto.delay);
             }
             this.state.iterations.push(j);
         }

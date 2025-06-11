@@ -19,7 +19,8 @@
     "reddit:run": "node --loader ts-node/esm src/app.ts ../scripts/reddit",
     "scripts:download": "node .scripts/downode.cjs",
     "examples:ask:prompt": "node --loader ts-node/esm tests/examples/ask-prompt.ts",
-    "examples:ask:genorate": "node --loader ts-node/esm tests/examples/ask-genorate.ts"
+    "examples:ask:genorate": "node --loader ts-node/esm tests/examples/ask-genorate.ts",
+    "examples:page:base": "node --loader ts-node/esm tests/examples/page-base.ts ../scripts/reddit/plugins/subreddit/vote"
   },
   "dependencies": {
     "@playwright/test": "^1.50.1"

@@ -1,6 +1,7 @@
-import { state, tones } from "./types/index.js";
+import { tones } from "./types/index.js";
 import { Logger } from "./logger.js";
 import { rando } from "./utils.js";
+export const state = { api: undefined };
 export async function endpoint() {
     return (state.api ||= await (async () => {
         try {

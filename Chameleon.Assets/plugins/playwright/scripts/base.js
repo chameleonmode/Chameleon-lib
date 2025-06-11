@@ -25,7 +25,7 @@ export class Base {
         this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
         this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
     }
-    async navigate(url) {
+    async navigate(url, attempt = 0) {
         try {
             if (url)
                 await this.page.goto(url, { waitUntil: "load" });
@@ -35,7 +35,8 @@ export class Base {
         catch (e) {
             Logger.error("Error navigating to URL:", e);
             await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
-            await this.navigate(url);
+            this.banger(this.opts.settings.start.attempts > attempt++);
+            await this.navigate(url, attempt);
         }
     }
     async waitForNavigation(timeout = this.opts.settings.timeouts.navigate) {
@@ -192,7 +193,6 @@ export class Base {
                 scale: "css",
                 type: "jpeg",
                 quality: 18,
-                clip: { x: 0, y: 0, width, height: height - height / 2 },
             })).toString("base64");
         }
         return (await this.page.screenshot({ fullPage: false })).toString("base64");
