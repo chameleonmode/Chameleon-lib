@@ -1,6 +1,5 @@
 ﻿using Chameleon.lib.Abs.Platformatic.Shared;
 using Chameleon.lib.Auth;
-using Chameleon.lib.Const;
 
 namespace Chameleon.lib.Abs.Platformatic;
 public class DB : Base {

@@ -1,4 +1,4 @@
-﻿namespace Chameleon.lib.Interfaces.Services;
+﻿namespace Chameleon.lib.Services;
 public interface IToasterService {
 	void SetHostWindow(object? hostWindow);
 	void ShowInformation(string message);

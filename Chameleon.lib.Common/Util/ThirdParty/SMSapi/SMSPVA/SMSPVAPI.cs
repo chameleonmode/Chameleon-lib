@@ -1,8 +1,4 @@
-﻿using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Records;
-using Chameleon.lib.Common.Util;
-using Chameleon.lib.Common.Util.ThirdParty.SMSapi;
-using Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPVA.Models;
+﻿using Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPVA.Models;
 
 using System.Text.Json;
 

@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
 using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Extensions;
 
 namespace Chameleon.lib.Common.Util.Win;
 /**

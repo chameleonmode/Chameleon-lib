@@ -1,16 +1,15 @@
-﻿using Chameleon.lib.Const;
-using Chameleon.lib.Helpers;
+﻿using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Util;
 public static class FilePaths {
 	public static string AppDataDir => EnsureDirectoryExists(
-		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Project.AppName
+		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Const.AppName
 	);
 	public static string AppDataLocalDir => EnsureDirectoryExists(
-		Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Project.AppName
+		Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Const.AppName
 	);
 	public static string AppTempDir => EnsureDirectoryExists(
-		Path.GetTempPath(), Project.AppName
+		Path.GetTempPath(), Const.AppName
 	);
 	public static string AppDownloadDir => EnsureDirectoryExists(
 		AppTempDir, "Downloads"

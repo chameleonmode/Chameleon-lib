@@ -7,16 +7,14 @@ using Chameleon.lib.WebBrowser.Services;
 using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 using Chameleon.lib.Common.Util.Win;
 using chameleon.assets;
-using Chameleon.lib.Const;
-using Chameleon.lib.Common.Models;
-using Chameleon.lib.Common.Interfaces.Sys;
+using Chameleon.lib.Common.Util.ThirdParty;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
 
 public enum SysBrowserEventType { Unknown, Error, Closed, Opened, Foreground, Background }
 public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
 
-public interface IBrowserInstance : IAmInitializer {
+public interface IBrowserInstance {
 	event Delegatorz.Event<SysBrowserEvent>? OnEvent;
 	Process? Brocess { get; set; }
 	SysBrowserSettings Settings { get; init; }
@@ -25,6 +23,8 @@ public interface IBrowserInstance : IAmInitializer {
 	void Close();
 	Task Ensure();
 	Process Brocessor(bool args);
+	TaskCompletionSource<bool> LoadedTCS { get; }
+	Task InitializeAsync(object? param = null);
 }
 public abstract class Browser : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();

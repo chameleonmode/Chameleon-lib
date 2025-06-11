@@ -10,11 +10,69 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using Chameleon.lib.Helpers;
-using Chameleon.lib.Interfaces.Services;
+using Chameleon.lib.Services;
+using System.Text.Json.Serialization;
+using System.Diagnostics;
 
 namespace Chameleon.lib;
 
-public static class Project {
+public static class Delegatorz {
+	public delegate void Event<T>(object sender, T options);
+}
+public static class JS {
+	public static readonly JsonSerializerOptions CamelCaseOptions = new() {
+		WriteIndented = true, // Pretty print JSON
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase, //Use camelCase
+	};
+	public static readonly JsonSerializerOptions CaseInsensitiveOptions = new() {
+		PropertyNameCaseInsensitive = true,
+		AllowTrailingCommas = true,
+	};
+	public static readonly JsonSerializerOptions InsensitiveCamelCaseOptions = new() {
+		PropertyNameCaseInsensitive = true,
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+	};
+	public static readonly JsonSerializerOptions EnumConverter = new() {
+		WriteIndented = true,
+		IncludeFields = true,
+		Converters = { new JsonStringEnumConverter() },
+	};
+
+	public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null) {
+		try {
+			return JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions);
+		} catch (Exception ex) {
+			Debug.WriteLine($"Error deserializing JSON: {ex.Message}");
+			return default;
+		}
+	}
+
+	public static string Serialize(object o, JsonSerializerOptions? options = null) =>
+	 JsonSerializer.Serialize(o, options ?? InsensitiveCamelCaseOptions);
+
+	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
+		public override T2? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
+			var jsonObject = JsonDocument.ParseValue(ref reader).RootElement;
+			return JsonSerializer.Deserialize<T1>(jsonObject.GetRawText(), options);
+		}
+
+		public override void Write(Utf8JsonWriter writer, T2 value, JsonSerializerOptions options) {
+			JsonSerializer.Serialize(writer, value, options);
+		}
+	}
+}
+public static class Const {
+	public const string LocalHostUrl = "http://localhost:21021/api";
+	public const string ApiBaseUrl = "https://api.chameleonmode.com/api";
+	public const string NotionProfile = "https://www.notion.so/4-Setting-Up-Your-First-Profile-d2d001b2127e4a0e8e083fc13ad4cf99";
+	public const string NotionUrl = "https://intercom.help/chameleonmode/en";
+	public const string ApiSocialAnimalUrl = "https://api.socialanimal.com/api/v1/search";
+	public const string WebsiteUrl = "https://chameleonmode.com/";
+	public const string SupportUrl = "https://intercom.help/chameleonmode/en";
+	public const string FacebookGroupUrl = "https://www.facebook.com/groups/962349154557466";
+	public const string PricingUrl = "https://chameleonmode.com/pricing/";
+	public const string DefaultHomePage = "https://example.com/";
 	public const string AppName = "Chameleon";
 	public const string AppSettingsFileName = "appsettings.json";
 	public static readonly string Assembled = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0";

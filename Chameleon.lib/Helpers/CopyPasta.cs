@@ -1,5 +1,4 @@
-
-using Chameleon.lib.Interfaces.Services;
+using Chameleon.lib.Services;
 
 namespace Chameleon.lib.Helpers;
 public class CopyPasta {

@@ -1,4 +1,6 @@
-﻿namespace Chameleon.lib.Common.Models;
+﻿namespace Chameleon.lib.Common.Util.ThirdParty;
+public record RCountry(string Name);
+public record RService(string Name);
 
 //http://ip-api.com/json
 public class Ipapi {
@@ -18,4 +20,15 @@ public class Ipapi {
 	public string? _as { get; set; }
 	public string? query { get; set; }
 	public string? proxy { get; set; }
+}
+public interface IPVAInstance {
+	string Name { get; }
+	string? ApiKey { get; set; }
+	IEnumerable<RCountry> Countries { get; }
+	IEnumerable<RService> Services { get; }
+	Task Init();
+	Task Save();
+	Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app);
+	Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData);
+	Task<Tuple<string, string>> CancelOrderAsync(string orderId);
 }

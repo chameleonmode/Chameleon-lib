@@ -1,5 +1,4 @@
-﻿using Chameleon.lib.Common.Records;
-using Chameleon.lib.Common.Util.ThirdParty.SMSapi.Codesverify.Models;
+﻿using Chameleon.lib.Common.Util.ThirdParty.SMSapi.Codesverify.Models;
 
 namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.Codesverify;
 

@@ -1,5 +1,4 @@
 ﻿using Chameleon.lib.Auth;
-using Chameleon.lib.Const;
 using System.Net;
 using System.Net.Http.Json;
 

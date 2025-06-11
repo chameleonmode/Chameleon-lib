@@ -20,9 +20,4 @@
 	  <ProjectReference Include="..\Chameleon.assets\chameleon.assets.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Extensions/" />
-	  <Folder Include="ServiceManagers/" />
-	</ItemGroup>
-
 </Project>

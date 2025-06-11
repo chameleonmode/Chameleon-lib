@@ -135,8 +135,8 @@ public static class Project {
     await AddonsServer.Instance.Start();
 
     var version = IoC.GetValue(nameof(Extensions));
-    if (version is not string ver || ver != lib.Project.Assembled) {
-      IoC.Instance.Config?.SetValue(nameof(Extensions), lib.Project.Assembled);
+    if (version is not string ver || ver != lib.Const.Assembled) {
+      IoC.Instance.Config?.SetValue(nameof(Extensions), lib.Const.Assembled);
       await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
       await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
     }

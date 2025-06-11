@@ -3,21 +3,6 @@
 namespace Chameleon.lib.Common.Constants;
 
 public static class Enums {
-	public static class Api {
-		public enum ProxyHostType {
-			IpAddress,
-			Hostname
-		}
-		public enum ProxyIpType {
-			Random,
-			Sticky
-		}
-		public enum ProxyProtocolType {
-			Http,
-			Ssl
-		}
-	}
-
 	public enum SystemBrowserType {
 		Unknown,
 		[Description("chrome")]

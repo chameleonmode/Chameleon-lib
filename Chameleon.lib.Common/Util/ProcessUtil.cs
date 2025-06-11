@@ -1,15 +1,10 @@
-﻿using System.Collections.Specialized;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-
-using Chameleon.lib.Common.Extensions;
-using Chameleon.lib.Common.Util.Mac;
-using Chameleon.lib.Common.Util.Win;
-using Chameleon.lib.Const;
 using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Common.Util;
-public static class ProUtil {
+
+public static partial class ProUtil {
 	public static void GoToUrlDefault(string Url) {
 		try {
 			_ = Process.Start(Url);
@@ -27,8 +22,7 @@ public static class ProUtil {
 		}
 	}
 
-	public static async Task TryKillProcess(Process? p)
-	{
+	public static async Task TryKillProcess(Process? p) {
 		if (p != null && !p.HasExited) {
 			try {
 				// Attempt to close the browser gracefully
@@ -53,15 +47,32 @@ public static class ProUtil {
 		}
 	}
 
-	public static Process? GetChildProcess(int parentId)
-	{
-		return Process.GetProcesses().FirstOrDefault(p =>
-		{
+	public static Process? GetChildProcess(int parentId) {
+		return Process.GetProcesses().FirstOrDefault(p => {
 			try {
 				return p.Id != 0 && p.ParentProcessId() == parentId;
 			} catch {
 				return false;
 			}
 		});
+	}
+		[LibraryImport("ntdll.dll", SetLastError = true)]
+	private static partial int NtQueryInformationProcess(IntPtr processHandle, int processInformationClass, ref PROCESS_BASIC_INFORMATION processInformation, uint processInformationLength, out uint returnLength);
+
+		private struct PROCESS_BASIC_INFORMATION {
+		public IntPtr ExitStatus;
+		public IntPtr PebBaseAddress;
+		public IntPtr AffinityMask;
+		public IntPtr BasePriority;
+		public IntPtr UniqueProcessId;
+		public IntPtr InheritedFromUniqueProcessId;
+	}
+
+		public static int ParentProcessId(this Process process) {
+		var pbi = new PROCESS_BASIC_INFORMATION();
+		var status = NtQueryInformationProcess(process.Handle, 0, ref pbi, (uint)Marshal.SizeOf(pbi), out _);
+		return status != 0
+			? throw new Exception("NtQueryInformationProcess failed with status: " + status)
+			: pbi.InheritedFromUniqueProcessId.ToInt32();
 	}
 }

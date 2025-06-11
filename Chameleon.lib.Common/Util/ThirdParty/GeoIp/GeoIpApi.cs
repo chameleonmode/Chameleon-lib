@@ -1,7 +1,4 @@
 ﻿using System.Net;
-
-using Chameleon.lib.Common.Models;
-using Chameleon.lib.Const;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Common.Util.ThirdParty.GeoIp;

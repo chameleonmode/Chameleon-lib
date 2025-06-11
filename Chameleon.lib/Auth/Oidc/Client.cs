@@ -1,5 +1,4 @@
-﻿using Chameleon.lib.Const;
-using Chameleon.lib.Util;
+﻿using Chameleon.lib.Util;
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;

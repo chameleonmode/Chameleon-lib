@@ -44,8 +44,8 @@ public static class Project {
 	public static TaskCompletionSource<bool> Initialized { get; } = new();
 	public static async Task<bool> Init() {
 		var version = IoC.GetValue(nameof(Plugins));
-		if (!Staging && (version is not string ver || ver != lib.Project.Assembled)) {
-			IoC.Instance.Config?.SetValue(nameof(Plugins), lib.Project.Assembled);
+		if (!Staging && (version is not string ver || ver != lib.Const.Assembled)) {
+			IoC.Instance.Config?.SetValue(nameof(Plugins), lib.Const.Assembled);
 			Toaster.Info("Installing updates...");
 			
 			var success = await Resources.Mapped("plugins", FilePaths.AppDataDir);
