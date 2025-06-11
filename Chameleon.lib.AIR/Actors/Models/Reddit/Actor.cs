@@ -29,8 +29,7 @@ public class Actor : IActor {
         Feature: "Reddit",
         Attempts: 9,
         Variations: new Rando(1, 1),
-        Iterations: new Rando(1, 1),
-        Rando: new Rando(1, 1)
+        Iterations: new Rando(1, 1)
       ),
       Timeouts: new Timeouts(30, 15, 60, new Rando(256, 512, null))
     )
