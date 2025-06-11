@@ -15,33 +15,73 @@ namespace Chameleon.lib.Playwright.Services;
 public static class Util {
 	public static Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(Options options) =>
 		GetCookiesWithRetryPolicy(options);
-
 	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesWithRetryPolicy(Options options, int tries = 0) {
 		try {
 			return tries switch {
 				0 => await GetCookiesAsync(options),
-				1 => await GetCookiesAsync(new(options.Browser, null)),
-				_ => throw new InvalidOperationException("Failed to connect a browser context check your currently running browsers and try again"),//TODO: instead of warn ChromeProcessExtensions.CloseAllChrome();
+				1 when options.Port != null => await GetCookiesAsync(new(options.Browser, null)),
+				2 when options.Port == null => await GetCookiesAsync(options),
+				_ => throw new InvalidOperationException("Failed to connect to browser context"),
 			};
-		} catch (Exception ex) when (ex.Message.Contains("Target page, context or browser has been closed") && tries < 3) {
+		} catch (Exception ex) when ((ex.Message.Contains("Target page, context or browser has been closed") ||
+																	 ex.Message.Contains("Connection closed") ||
+																	 ex.Message.Contains("Browser has been closed") ||
+																	 ex.Message.Contains("Protocol error") ||
+																	 ex.Message.Contains("WebSocket") ||
+																	 ex.Message.Contains("net::ERR_CONNECTION_REFUSED")) && tries < 3) {
+			// Add progressive delay before retrying to allow any pending operations to complete
+			await Task.Delay(500 * (tries + 1));
 			return await GetCookiesWithRetryPolicy(options, ++tries);
 		}
 	}
-
 	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesAsync(Options options) {
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
-		var context = options.Port != null ? (await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}")).Contexts[0]
-		 : await playwrightBrowser.LaunchPersistentContextAsync(
-				options.Dir,
-				new() {
-					Headless = true,
-					Args = ["--allow-downgrade"],
-					Proxy = options.Proxy,
-					ExecutablePath = await GetBrowseExecutablePath(options.Browser.BrowserType),
+		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium; 
+		
+		if (options.Port != null) {
+			try {
+				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}");
+
+				var context = browser.Contexts.Count > 0 ? browser.Contexts[0] : await browser.NewContextAsync();
+				return await context.CookiesAsync();
+			} catch (Exception ex) {
+				throw new InvalidOperationException($"Failed to connect to browser on port {options.Port}. " +
+					$"Ensure the browser is running with remote debugging enabled. Error: {ex.Message}", ex);
+			}
+		} else {
+			// Create a temporary directory for cookie extraction to avoid conflicts
+			var tempDir = Path.Combine(Path.GetTempPath(), "chameleon-cookie-temp", Guid.NewGuid().ToString());
+			try {
+
+				_ = Directory.CreateDirectory(tempDir);
+				var originalCookiesPath = Path.Combine(options.Dir, "Default", "Cookies");
+				var tempCookiesDir = Path.Combine(tempDir, "Default");
+				_ = Directory.CreateDirectory(tempCookiesDir);
+
+				if (File.Exists(originalCookiesPath)) {
+					File.Copy(originalCookiesPath, Path.Combine(tempCookiesDir, "Cookies"), true);
 				}
-		);
-		return await context.CookiesAsync();
+
+				await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
+					tempDir,
+					new() {
+						Headless = true,
+						Args = ["--allow-downgrade"],
+						Proxy = options.Proxy,
+						ExecutablePath = await GetBrowseExecutablePath(options.Browser.BrowserType),
+					}
+				);
+				return await context.CookiesAsync();
+			} finally {
+				try {
+					if (Directory.Exists(tempDir)) {
+						Directory.Delete(tempDir, true);
+					}
+				} catch {
+					// Ignore cleanup errors
+				}
+			}
+		}
 	}
 
 	public static async Task<string> GetBrowseExecutablePath(SystemBrowserType browserType) {
