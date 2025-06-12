@@ -298,77 +298,77 @@ public static class U32til {
 	}
 }
 
-[SupportedOSPlatform("windows")]
-public class MWHandleTrackerUtility(Process aprocess, Enums.SystemBrowserType systemBrowserType, CancellationTokenSource cts) {
-	private readonly List<int> _childProcessIds = [];
+// [SupportedOSPlatform("windows")]
+// public class MWHandleTrackerUtility(Process aprocess, SystemBrowserType systemBrowserType, CancellationTokenSource cts) {
+// 	private readonly List<int> _childProcessIds = [];
 
-	private IntPtr _mainWindowHandle = IntPtr.Zero;
-	private TaskCompletionSource<Tuple<IntPtr, Process?>> _tcs = new();
+// 	private IntPtr _mainWindowHandle = IntPtr.Zero;
+// 	private TaskCompletionSource<Tuple<IntPtr, Process?>> _tcs = new();
 
-	private Process _process = aprocess ?? throw new ArgumentNullException(nameof(aprocess));
+// 	private Process _process = aprocess ?? throw new ArgumentNullException(nameof(aprocess));
 
-	public void StartTracking()
-	{
-		new Thread(() => TrackMainWindowHandle(cts.Token)) { IsBackground = true }.Start();
-	}
+// 	public void StartTracking()
+// 	{
+// 		new Thread(() => TrackMainWindowHandle(cts.Token)) { IsBackground = true }.Start();
+// 	}
 
-	private void TrackMainWindowHandle(CancellationToken token)
-	{
-		while (!token.IsCancellationRequested) {
-			try {
-				if (_process.HasExited) {
-					_tcs.SetResult(new(0, null));
-					break;
-				}
-				if (_mainWindowHandle == IntPtr.Zero) {
-					if (systemBrowserType == Enums.SystemBrowserType.Firefox) {
-						Thread.Sleep(500);
-						var currentProcesses = Process.GetProcessesByName(
-								systemBrowserType == Enums.SystemBrowserType.Firefox ? "firefox"
-								: systemBrowserType == Enums.SystemBrowserType.Chrome ? "chrome"
-								: "chrome").Where(p => p.Id != 0);
-						foreach (var p in currentProcesses) {
-							if (!_childProcessIds.Contains(p.Id) && p.ParentProcessId() == _process.Id) {
-								_childProcessIds.Add(p.Id);
-								var childProcess = Process.GetProcessById(p.Id);
-								if (childProcess != null && !childProcess.HasExited) {
-									var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
-									if (U32.IsWindow(thishandle)) {
-										_process = childProcess;
-										break;
-									}
-								}
-							}
-						}
-					}
-				}
+// 	private void TrackMainWindowHandle(CancellationToken token)
+// 	{
+// 		while (!token.IsCancellationRequested) {
+// 			try {
+// 				if (_process.HasExited) {
+// 					_tcs.SetResult(new(0, null));
+// 					break;
+// 				}
+// 				if (_mainWindowHandle == IntPtr.Zero) {
+// 					if (systemBrowserType == SystemBrowserType.Firefox) {
+// 						Thread.Sleep(500);
+// 						var currentProcesses = Process.GetProcessesByName(
+// 								systemBrowserType == SystemBrowserType.Firefox ? "firefox"
+// 								: systemBrowserType == SystemBrowserType.Chrome ? "chrome"
+// 								: "chrome").Where(p => p.Id != 0);
+// 						foreach (var p in currentProcesses) {
+// 							if (!_childProcessIds.Contains(p.Id) && p.ParentProcessId() == _process.Id) {
+// 								_childProcessIds.Add(p.Id);
+// 								var childProcess = Process.GetProcessById(p.Id);
+// 								if (childProcess != null && !childProcess.HasExited) {
+// 									var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
+// 									if (U32.IsWindow(thishandle)) {
+// 										_process = childProcess;
+// 										break;
+// 									}
+// 								}
+// 							}
+// 						}
+// 					}
+// 				}
 
-				var handle = U32til.FindMainWindowHandle(_process.Id);
-				if (handle != _mainWindowHandle && U32.IsWindow(handle)) {
-					_mainWindowHandle = handle;
-					var tcs = _tcs;
-					_tcs = new();
-					tcs.SetResult(new(_mainWindowHandle, _process));
-					break;
-				}
+// 				var handle = U32til.FindMainWindowHandle(_process.Id);
+// 				if (handle != _mainWindowHandle && U32.IsWindow(handle)) {
+// 					_mainWindowHandle = handle;
+// 					var tcs = _tcs;
+// 					_tcs = new();
+// 					tcs.SetResult(new(_mainWindowHandle, _process));
+// 					break;
+// 				}
 
-			} catch (Exception ex) {
-				Console.WriteLine(ex.StackTrace);
-				_tcs.SetResult(new(0, null));
-				break;
-			}
+// 			} catch (Exception ex) {
+// 				Console.WriteLine(ex.StackTrace);
+// 				_tcs.SetResult(new(0, null));
+// 				break;
+// 			}
 
-			Thread.Sleep(1000);  // Poll every second
-		}
-	}
+// 			Thread.Sleep(1000);  // Poll every second
+// 		}
+// 	}
 
-	public void StopTracking()
-	{
-		cts.Cancel();
-	}
+// 	public void StopTracking()
+// 	{
+// 		cts.Cancel();
+// 	}
 
-	public Task<Tuple<IntPtr, Process?>> WaitForMainWindowHandleChangeAsync() => _tcs.Task;
-}
+// 	public Task<Tuple<IntPtr, Process?>> WaitForMainWindowHandleChangeAsync() => _tcs.Task;
+// }
 
 /*
     [StructLayout(LayoutKind.Sequential)]

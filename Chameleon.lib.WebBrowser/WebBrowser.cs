@@ -1,11 +1,19 @@
+using System.ComponentModel;
 using System.Net;
 using chameleon.assets;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
-using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser;
+
+	public enum SystemBrowserType {
+		Unknown,
+		Chromium,
+		[Description("chrome")] Chrome,
+		[Description("firefox")] Firefox,
+		[Description("brave")] Brave,
+	}
 
 #region models
 public record BrowserOption(SystemBrowserType Option) {

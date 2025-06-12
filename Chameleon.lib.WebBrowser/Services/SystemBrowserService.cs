@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
@@ -7,7 +6,6 @@ using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.System.Brave;
 using Chameleon.lib.WebBrowser.System.Chrome;
 using Chameleon.lib.WebBrowser.System.Firefox;
-using static Chameleon.lib.Common.Constants.Enums;
 
 namespace Chameleon.lib.WebBrowser.Services;
 

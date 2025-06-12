@@ -87,10 +87,10 @@ public static class SysBrowserInfoUtil {
             $"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
    }
 
-   public static BrowserRecord Find(Enums.SystemBrowserType BrowserType) => BrowserType switch {
-      Enums.SystemBrowserType.Chrome => FindByName("chrome.exe"),
-      Enums.SystemBrowserType.Brave => FindByName("brave.exe"),
-      Enums.SystemBrowserType.Firefox => FindByName("firefox.exe"),
+   public static BrowserRecord Find(SystemBrowserType BrowserType) => BrowserType switch {
+      SystemBrowserType.Chrome => FindByName("chrome.exe"),
+      SystemBrowserType.Brave => FindByName("brave.exe"),
+      SystemBrowserType.Firefox => FindByName("firefox.exe"),
       _ => throw new NotSupportedException("Browser type not found."),
    };
 }

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text.RegularExpressions;
 
 namespace Chameleon.lib.Util;
@@ -27,6 +28,15 @@ public static class Extensions {
         source.RemoveAt(i);
     }
   }
+
+  public static string GetDescription(this Enum value) {
+		var field = value.GetType().GetField(value.ToString());
+		if (field == null)
+			return value.ToString();
+
+		var attribute = Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) as DescriptionAttribute;
+		return attribute == null ? value.ToString() : attribute.Description;
+	}
 }
 
 public static class TaskExtensions {

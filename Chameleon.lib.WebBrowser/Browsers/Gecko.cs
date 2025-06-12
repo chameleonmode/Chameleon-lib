@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using chameleon.assets;
-using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
@@ -30,7 +29,7 @@ public class Gecko : Browser {
 
 		var system = OperatingSystem.IsMacOS()
 			? "/Applications/firefox.app"
-			: SysBrowserInfoUtil.Find(Enums.SystemBrowserType.Firefox).Path;
+			: SysBrowserInfoUtil.Find(SystemBrowserType.Firefox).Path;
 
 		var needsUpdate = !Path.Exists(ExePath) || (OperatingSystem.IsMacOS()
 				? UMacFileVersionInfo.GetVersionInfo(ExeDir).ProductVersion != UMacFileVersionInfo.GetVersionInfo(system).ProductVersion

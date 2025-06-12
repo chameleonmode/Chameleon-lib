@@ -1,5 +1,4 @@
 ﻿using Chameleon.lib.Abs.Platformatic;
-using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser;
@@ -39,7 +38,7 @@ public sealed class PlaywrightCookiesSyncService {
 	}
 
 	// Syncs cookies to browser
-	public async Task SyncCookies(Enums.SystemBrowserType browserType) {
+	public async Task SyncCookies(SystemBrowserType browserType) {
 		// Check latest cookies on server
 		if (!await HasCookies()) {
 			Toaster.Info("No cookies to sync");
@@ -50,7 +49,7 @@ public sealed class PlaywrightCookiesSyncService {
 		var exePath = await Util.GetBrowseExecutablePath(browserType);
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = browserType == Enums.SystemBrowserType.Firefox
+		var playwrightBrowser = browserType == SystemBrowserType.Firefox
 				? playwright.Firefox
 				: playwright.Chromium;
 

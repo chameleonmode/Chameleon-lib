@@ -1,14 +1,14 @@
-using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Util;
 using Chameleon.lib.AIR.Scripts.Models;
+using Chameleon.lib.WebBrowser;
 
 namespace Chameleon.lib.Playwright.Services;
 
 public class Arguments {
   public int Port { get; set; }
   public bool Record { get; set; } = false;
-  public Enums.SystemBrowserType BrowserType { get; set; } = Enums.SystemBrowserType.Chromium;
+  public SystemBrowserType BrowserType { get; set; } = SystemBrowserType.Chromium;
   public IScript? Script { get; set; }
   public object? Opts { get; set; }
   public ScriptDescription? Description { get; set; }
@@ -38,11 +38,11 @@ public class Run {
           .WaitAsync(token);
       } else if (args.Script is IBundledCSScript csScript) {
         using var browser = args.BrowserType switch {
-          Enums.SystemBrowserType.Chrome or
-          Enums.SystemBrowserType.Chromium or
-          Enums.SystemBrowserType.Brave => new ChromeiumPlaywrightBrowser(),
-          Enums.SystemBrowserType.Unknown => throw new NotImplementedException(),
-          Enums.SystemBrowserType.Firefox => throw new NotImplementedException(),
+          SystemBrowserType.Chrome or
+          SystemBrowserType.Chromium or
+          SystemBrowserType.Brave => new ChromeiumPlaywrightBrowser(),
+          SystemBrowserType.Unknown => throw new NotImplementedException(),
+          SystemBrowserType.Firefox => throw new NotImplementedException(),
           _ => throw new NotImplementedException()
         };
         using var context = await browser.Open(args);
