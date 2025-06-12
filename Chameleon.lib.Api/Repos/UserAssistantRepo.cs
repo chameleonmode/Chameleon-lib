@@ -83,23 +83,26 @@ public class ShareFoldersRepo : ApiBase<AssisShareFolderDto> {
 
 	public static async Task<AssisShareFolderDto[]> Share(
 		long assistantId, IEnumerable<int> folderIds, IEnumerable<int>? folderpermissionIds = null
-	) {
-		return folderIds.Any() ? await Instance.Post<AssisShareFolderDto[]>("Share", new {
-			UserId = assistantId,
-			FolderIds = folderIds,
-			PermissionIds = folderpermissionIds ?? []
-		}) : [];
-		// List<AssisShareFolderDto> sharedFolders = [];
-		// foreach (var folderId in folderIds) { //ToDo: fix server side issue ??
+	)
+	{
+		// var added = await Instance.Post<AssisShareFolderDto[]>("Share", new {
+		// 	UserId = assistantId,
+		// 	FolderIds = folderIds,
+		// 	PermissionIds = folderpermissionIds ?? []
+		// }); 
+		// return added;
+		
+		List<AssisShareFolderDto> shared = [];
+		foreach (var folderId in folderIds) { //ToDo: fix server side issue ?? no keep this fix here for now
 
-		// 	var folders = await Instance.Post<AssisShareFolderDto[]>("Share", new {
-		// 		UserId = assistantId,
-		// 		FolderIds = new List<int>([folderId]),
-		// 		PermissionIds = folderpermissionIds
-		// 	});
-		// 	sharedFolders.AddRange(folders);
-		// }
-		// return [.. sharedFolders];
+			var folders = await Instance.Post<AssisShareFolderDto[]>("Share", new {
+				UserId = assistantId,
+				FolderIds = new List<int>([folderId]),
+				PermissionIds = folderpermissionIds
+			});
+			shared.AddRange(folders);
+		}
+		return [.. shared];
 	}
 
 	public static ShareFoldersRepo Instance { get; } = new ShareFoldersRepo();
