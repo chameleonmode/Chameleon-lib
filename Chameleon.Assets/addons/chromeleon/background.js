@@ -13,9 +13,6 @@ const startup = async (id = -1) => {
   log.info("App initialized with config:", App.config);
 
   // Only update the tab if id is valid (not undefined, null, or -1)
-  if (id !== undefined && id !== null && id !== -1) {
-    await chrome.tabs.update(id, { url: App.config.urls.start });
-  } 
   // TODO:
   // else {
   //   // Create a new tab if id is invalid
@@ -29,55 +26,45 @@ const startup = async (id = -1) => {
   // );
 
   // Add bookmarks for home pages
-  await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
 };
 
 const on = async () => {
   log.info("On installed or started");
   await checkForExtensionUpdate();
   await App.discoverServer();
-  await new Promise(resolve => setTimeout(resolve, 1234)); // Wait for 1 second
-
-  // Query all tabs
-  const tabs = await chrome.tabs.query({});
-  // Sort tabs by ID (higher IDs are more recently created)
-  tabs.sort((a, b) => b.id - a.id);
-  const initializer = tabs[0];
-  // const initializer = tabs.find((tab) => {
-  //   try {
-  //     return tab.url && tab.url.startsWith(App.server);
-  //   } catch (error) {
-  //     log.error("Error parsing URL:", error);
-  //     try {
-  //       const url = new URL(tab.url);
-  //       return url.hostname === "127.0.0.1";
-  //     } catch {
-  //       return false;
-  //     }
-  //   }
-  // });
-
-  if (initializer) {
-    const url = new URL(initializer.url);
+  await new Promise(resolve => setTimeout(resolve, 500)); // Wait for .5 second
+  let retry = 0;
+  const initializer = async () =>{
+    const tabs = await chrome.tabs.query({});
+    return tabs.find(t=>t.url.includes(App.server));
+  };
+  while(!(await initializer()) && retry++ < 3)
+  await new Promise(resolve => setTimeout(resolve, 500)); // Wait for 1 second
+  const tab = await initializer();
+  if (tab) {
+    const url = new URL(tab.url);
     const sessionId = url.searchParams.get("sessionId");
     const instanceId = url.searchParams.get("instanceId");
 
     // Wait for page to fully load
-    await waitForTabLoad(initializer.id);
+    await waitForTabLoad(tab.id);
 
     // Get page content
     const results = await chrome.scripting.executeScript({
-      target: { tabId: initializer.id },
+      target: { tabId: tab.id },
       func: () => document.body.textContent,
     });
 
     await App.initialize(sessionId, instanceId, JSON.parse(results[0].result));
-  }
+  }  
 
   // Common startup operations
   await App.startup();
   await proxy(App.config.proxy);
-  await startup(initializer?.id);
+  await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
+  
+  const id = tab?.id || tab?.id || (await chrome.tabs.query({}))[0].id;
+  await chrome.tabs.update(id, { url: App.config.urls.start});
 };
 
 // Helper function to wait for tab to load
@@ -132,18 +119,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       App.sendData(message.data)
         .then((response) => sendResponse({ success: true, data: response }))
         .catch((error) => sendResponse({ success: false, error: error.message }));
-      break;
-    case "registerAppLaunch":
-      const { sessionId, instanceId, data } = message;
-      App.initialize(sessionId, instanceId)
-        .then(async (result) => {
-          await startup();
-          sendResponse({ success: result === true, url: App.config.urls.start });
-        })
-        .catch((error) => {
-          log.error("Error registering app launch", error);
-          sendResponse({ success: false, error: error.message });
-        });
       break;
     default:
       log.warn("Unknown message action:", message.action);

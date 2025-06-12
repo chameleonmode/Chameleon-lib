@@ -1,7 +1,18 @@
 export default async function (opts) {
-  return function (params = { uuid: "bloop", noise: "mid", random: false }) {
-    const { uuid, noise, random } = params;
+  return function (params = { uuid: "bloop", noise: "mid", hash: Math.random(), random: false }) {
+    const { uuid, noise, random, hash } = params;
     window[uuid] = window[uuid] || {};
+
+    // Get noise value for random or fixed noise setting
+    const noiseify = () => {
+      const noiseKey = random
+        ? Object.keys(noises)[Math.floor(Math.random() * Object.keys(noises).length)]
+        : noise;
+      // Use hash to create micro-variations for uniqueness
+      const baseLevel = noises[noiseKey] || 4;
+      // console.log(`${baseLevel}\n`);
+      return hash + baseLevel;
+    };
 
     // Map different noise levels from smallest to largest
     const noises = {
@@ -15,13 +26,6 @@ export default async function (opts) {
       ultra: Number.EPSILON * 1000000, // 2.22e-10
       super: 0.000000001, // 1e-9
       max: 0.00000001, // 1e-8
-    };
-
-    // Get noise level for random or fixed noise setting
-    const noiseify = () => {
-      return noises[
-        random ? Object.keys(noises)[Math.floor(Math.random() * Object.keys(noises).length)] : noise
-      ];
     };
 
     const define = (prototype, property) => {

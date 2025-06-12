@@ -38,6 +38,7 @@ class PageMutations {
     const defaults = {
       uuid: App.session.sessionId,
       noise: App.config.noise,
+      hash: App.config.hash,
     };
     // Define configurations for all scripts at once
     this.scriptConfigs = {

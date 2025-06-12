@@ -138,7 +138,7 @@ public class Chromium : Browser
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
-			$"--load-extension=\"{Project.Extensions.Chromeleon}\"",
+			$"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
 			//$"--load-extension=\"/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon\"",
 			args ? InitUrl : "about:blank",
 			//"about:blank"

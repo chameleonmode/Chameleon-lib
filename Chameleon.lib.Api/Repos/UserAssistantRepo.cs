@@ -93,7 +93,7 @@ public class ShareFoldersRepo : ApiBase<AssisShareFolderDto> {
 		// return added;
 		
 		List<AssisShareFolderDto> shared = [];
-		foreach (var folderId in folderIds) { //ToDo: fix server side issue ?? no keep this fix here for now
+		foreach (var folderId in folderIds) { //TODO: fix server side issue ?? no keep this fix here for now
 
 			var folders = await Instance.Post<AssisShareFolderDto[]>("Share", new {
 				UserId = assistantId,

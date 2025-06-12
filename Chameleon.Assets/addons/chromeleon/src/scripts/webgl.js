@@ -1,7 +1,18 @@
 export default async function (opts) {
-  return function (params = { uuid: "bloop", noise: "mid", random: false }) {
-    const { uuid, noise: level, random } = params;
+  return function (params = { uuid: "bloop", noise: "mid", hash: Math.random(), random: false }) {
+    const { uuid, noise, random, hash } = params;
     window[uuid] = window[uuid] || {};
+
+    // Get noise value for random or fixed noise setting
+    const noiseify = () => {
+      const noiseKey = random
+        ? Object.keys(noises)[Math.floor(Math.random() * Object.keys(noises).length)]
+        : noise;
+      // Use hash to create micro-variations for uniqueness
+      const baseLevel = noises[noiseKey] || 4;
+      // console.log(`${baseLevel}\n`);
+      return hash + baseLevel;
+    };
 
     // PRNG configuration
     const prngConfig = {
@@ -27,7 +38,7 @@ export default async function (opts) {
     };
 
     // Define noise values for different noise levels
-    const noiseValues = {
+    const noises = {
       nano: 0.1,
       mini: 0.2,
       low: 0.3,
@@ -40,8 +51,8 @@ export default async function (opts) {
     };
 
     // Use the predefined noise value based on level if not using random
-    const noiseValue = noiseValues[level] || 0.5;
-    const WebGLnoiseAmplitude = amplitudes[level] || amplitudes.mid;
+    const noiseValue = noiseify();
+    const WebGLnoiseAmplitude = amplitudes[noise] || amplitudes.mid;
 
     // Common WebGL parameter enum values used for fingerprinting
     const IMPORTANT_PARAMS_ENUM = [

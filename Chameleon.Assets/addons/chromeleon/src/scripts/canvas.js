@@ -1,7 +1,18 @@
 export default async function (opts) {
-  return function (params = { uuid: "bloop", noise: "mid", random: false }) {
-    const { uuid, noise, random } = params;
+  return function (params = { uuid: "bloop", noise: "mid", hash: Math.random(), random: false }) {
+    const { uuid, noise, random, hash } = params;
     window[uuid] = window[uuid] || {};
+
+    // Get noise value for random or fixed noise setting
+    const noiseify = () => {
+      const noiseKey = random
+        ? Object.keys(noises)[Math.floor(Math.random() * Object.keys(noises).length)]
+        : noise;
+      // Use hash to create micro-variations for uniqueness
+      const baseLevel = noises[noiseKey] || 4;
+      // console.log(`${baseLevel}\n`);
+      return hash + baseLevel;
+    };
 
     // Store original methods
     const originalMethods = {
@@ -12,35 +23,34 @@ export default async function (opts) {
     // Noise levels - using small consistent values
     const noises = {
       nano: 0.1, // Very subtle
-      mini: 0.5, // Barely perceptible
-      low: 0.75, // Slight change
-      mid: 1.5, // Small but effective
-      bold: 1.75, // Noticeable but minimal
-      high: 2.5, // More significant
-      ultra: 2.75, // Clearly visible change
-      super: 3.5, // Substantial adjustment
-      max: 4, // Maximum recommended for subtlety
+      mini: 1, // Barely perceptible
+      low: 1.75, // Slight change
+      mid: 2.5, // Small but effective
+      bold: 3.75, // Noticeable but minimal
+      high: 4.5, // More significant
+      ultra: 5.75, // Clearly visible change
+      super: 6.5, // Substantial adjustment
+      max: 7, // Even more
     };
 
-    // Get noise level for random or fixed noise setting
-    const getNoiseValue = () => {
-      const noiseKey = random
-        ? Object.keys(noises)[Math.floor(Math.random() * Object.keys(noises).length)]
-        : noise;
-      return noises[noiseKey] || 1.5; // Default to 'mid' if invalid
-    };
+    // console.log(getNoiseValue());
 
-    // Define the modification points based on canvas dimensions
+    // Generate more modification points for better uniqueness
     const generatePoints = (w, h) => [
       { x: Math.floor(w / 2), y: Math.floor(h / 2) },
       { x: Math.floor(w / 4), y: Math.floor(h / 4) },
       { x: Math.floor((w * 3) / 4), y: Math.floor(h / 4) },
       { x: Math.floor(w / 4), y: Math.floor((h * 3) / 4) },
       { x: Math.floor((w * 3) / 4), y: Math.floor((h * 3) / 4) },
+      // Additional points for more uniqueness
+      { x: Math.floor(w / 8), y: Math.floor(h / 8) },
+      { x: Math.floor((w * 7) / 8), y: Math.floor(h / 8) },
+      { x: Math.floor(w / 8), y: Math.floor((h * 7) / 8) },
+      { x: Math.floor((w * 7) / 8), y: Math.floor((h * 7) / 8) },
     ];
 
-    // Ensure value stays within 0-255 range
-    const clamp = (value) => Math.min(255, Math.max(0, value));
+    // Ensure value stays within 0-255 range with high precision
+    const clamp = (value) => Math.min(255, Math.max(0, Math.round(value * 10000) / 10000));
 
     if (!window[uuid]["canvi"]) {
       window[uuid]["canvi"] = true;
@@ -59,20 +69,26 @@ export default async function (opts) {
             const allPoints = generatePoints(width, height);
 
             // Get noise value once for consistency
-            const noiseValue = getNoiseValue();
+            const noiseValue = noiseify();
 
-            // Apply modifications to each selected point
-            allPoints.forEach((point) => {
+            // Apply modifications to each selected point with unique variations
+            allPoints.forEach((point, index) => {
               // Ensure point is within canvas bounds
               const x = Math.min(width - 1, Math.max(0, point.x));
               const y = Math.min(height - 1, Math.max(0, point.y));
+              
               // Get original pixel data
               const pixelData = ctx.getImageData(x, y, 1, 1);
 
-              // Apply consistent noise to each channel
-              pixelData.data[0] = clamp(pixelData.data[0] + noiseValue);
-              pixelData.data[1] = clamp(pixelData.data[1] + noiseValue);
-              pixelData.data[2] = clamp(pixelData.data[2] + noiseValue);
+              // Apply unique noise to each channel with micro-variations per point
+              const pointVariation = (index * 0.00001) % 0.0001;
+              const r = clamp(pixelData.data[0] + noiseValue + pointVariation);
+              const g = clamp(pixelData.data[1] + noiseValue + (pointVariation * 1.1));
+              const b = clamp(pixelData.data[2] + noiseValue + (pointVariation * 1.2));
+
+              pixelData.data[0] = r;
+              pixelData.data[1] = g;
+              pixelData.data[2] = b;
 
               // Apply the modified pixel
               ctx.putImageData(pixelData, x, y);
@@ -98,10 +114,5 @@ export default async function (opts) {
 
     // Return clean-up function
     return true;
-    // return function() {
-    //   HTMLCanvasElement.prototype.toDataURL = originalMethods.toDataURL;
-    //   HTMLCanvasElement.prototype.getContext = originalMethods.getContext;
-    //   delete window[uuid]["canvi"];
-    // };
   };
 }
