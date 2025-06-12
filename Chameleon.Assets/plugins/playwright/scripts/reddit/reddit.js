@@ -60,9 +60,9 @@ export function configure(opts) {
             timeouts: {
                 ...settings.timeouts,
                 ...opts?.settings?.timeouts,
-                navigate: 1000 * settings.timeouts.navigate,
-                default: 1000 * settings.timeouts.default,
-                wait: 1000 * settings.timeouts.wait,
+                navigate: 1000 * 60,
+                default: 1000 * 30,
+                wait: 1000 * 15,
             },
         },
         ai: {
@@ -81,6 +81,8 @@ export function configure(opts) {
     options.settings.start.rando.max = options.settings.start.rando.min;
     options.settings.start.iterations.max = options.settings.start.iterations.min;
     options.settings.start.variations.max = options.settings.start.variations.min;
+    options.settings.timeouts.naps.multiplier = undefined;
+    options.settings.timeouts.naps.max = options.settings.start.variations.min + 512;
     options.settings.timeouts.artifacto.delay = 1000 * options.settings.timeouts.artifacto.delay;
     Logger.debug("Options", options);
     return options;
