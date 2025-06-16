@@ -29,7 +29,7 @@ public class HttpApiClient {
 	public Task<T> Delete<T>(string path) => Send<T>(HttpMethod.Delete, path);
 
 	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default) {
-		var response = await PolyUtil.RetryWithPolicyAsync(async () => {
+		var response = await Exceptionz.RetryWithPolicyAsync(async () => {
 			var request = new HttpRequestMessage(method, "http://18.157.103.1/api/" + path);
 			if (Auther.AuthToken.IsNot())
 				request.Headers.Authorization = new("Bearer", Auther.AuthToken);

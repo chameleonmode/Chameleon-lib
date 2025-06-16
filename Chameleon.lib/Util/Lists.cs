@@ -1,6 +1,8 @@
 namespace Chameleon.lib.Util;
 public static class ULists {
-  public static void UpdateMapped<TSource, TDestination>(this IList<TDestination> cur, IEnumerable<TSource> collection, Func<TSource, TDestination> mapper, Func<TDestination, TSource, bool> contains) {
+  public static void UpdateMapped<TSource, TDestination>(this IList<TDestination> cur,
+    IEnumerable<TSource> collection, Func<TSource, TDestination> mapper, Func<TDestination, TSource, bool> contains
+  ) {
     var itemsToRemove = cur.Where(destItem => !collection.Any(srcItem => contains(destItem, srcItem)));
     for (var i = cur.Count - 1; i >= 0; i--) {
       if (itemsToRemove.Contains(cur[i])) {

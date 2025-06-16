@@ -1,8 +1,8 @@
 ﻿using System.Runtime.Versioning;
-using Chameleon.lib.Common.Constants;
 using Microsoft.Win32;
 
 namespace Chameleon.lib.WebBrowser.Services;
+
 public static class SysBrowserInfoUtil {
 
    [SupportedOSPlatform("windows")]
@@ -49,7 +49,7 @@ public static class SysBrowserInfoUtil {
                using var subKey = key.OpenSubKey(subKeyName);
                var displayName = subKey?.GetValue("DisplayName") as string;
                if (
-                  !string.IsNullOrEmpty(displayName) && 
+                  !string.IsNullOrEmpty(displayName) &&
                   displayName.Contains(Path.GetFileNameWithoutExtension(executable), StringComparison.OrdinalIgnoreCase)
                ) {
                   var installLocation = subKey?.GetValue("InstallLocation") as string;
@@ -82,7 +82,7 @@ public static class SysBrowserInfoUtil {
          var (installed, filepath) = CheckApplication(executable);
          if (installed && !string.IsNullOrWhiteSpace(filepath)) return new BrowserRecord(executable, filepath);
       }
-      
+
       throw new NotSupportedException(
             $"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
    }
@@ -103,7 +103,7 @@ public static class SysBrowserInfoUtil {
 //             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Google", "Chrome", "Application", "chrome.exe"),
 //             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Google", "Chrome", "Application", "chrome.exe")
 //         };
-        
+
 //         return possiblePaths.FirstOrDefault(File.Exists) ?? ExePath; // Fall back to existing ExePath
 //     }
 //     else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -112,7 +112,7 @@ public static class SysBrowserInfoUtil {
 //             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 //             "/Applications/Chromium.app/Contents/MacOS/Chromium"
 //         };
-        
+
 //         return possiblePaths.FirstOrDefault(File.Exists) ?? ExePath;
 //     }
 //     else // Linux
@@ -122,7 +122,7 @@ public static class SysBrowserInfoUtil {
 //             "/usr/bin/chromium-browser",
 //             "/usr/bin/chromium"
 //         };
-        
+
 //         return possiblePaths.FirstOrDefault(File.Exists) ?? ExePath;
 //     }
 // }

@@ -57,7 +57,7 @@ public class AddonsServer : IStartUp {
       await response.OutputStream.WriteAsync(errorJson);
       return;
     }
-    var json = JS.Serialize(instance);
+    var json = JSON.Serialize(instance);
     var jsonBytes = Encoding.UTF8.GetBytes(json);
     await response.OutputStream.WriteAsync(jsonBytes);
   }
@@ -100,7 +100,7 @@ public class AddonsServer : IStartUp {
       );
 
       app.MapGet("/init", ([FromQuery] string instanceId, [FromQuery] string sessionId) => {
-        return $"{JS.Serialize(AddonInstances[sessionId])}";
+        return $"{JSON.Serialize(AddonInstances[sessionId])}";
       });
 
       // Get application state endpoint

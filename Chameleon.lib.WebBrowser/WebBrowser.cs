@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Net;
 using chameleon.assets;
-using Chameleon.lib.Common.Util;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 
@@ -136,6 +135,10 @@ public static class Project {
       FilePaths.AppDataDir, "extensions", "gecko"
     );
     public static string Geckoleon => Path.Combine(Gecko, "geckoleon.xpi");
+
+	  public static string Defaults => OperatingSystem.IsMacOS()
+			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..Resources/browser/extensions")
+			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources\\browser\\extensions");
   }
 
   public static TaskCompletionSource<bool> Initialized { get; } = new();

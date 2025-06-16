@@ -8,6 +8,7 @@ using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
+
 public class Gecko : Browser {
 	// public override Process Start(ProcessStartInfo startInfo) {
 	// 	startInfo.EnvironmentVariables["MOZ_REMOTE_SETTINGS_DEVTOOLS"] = "1";
@@ -51,7 +52,7 @@ public class Gecko : Browser {
 			Path.Combine(await IOtil.DC(OperatingSystem.IsMacOS()
 			? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
 			: Path.Combine(ExeDir, "distribution")), "policies.json"),
-			JS.Serialize(new {
+			JSON.Serialize(new {
 				policies = new {
 					AppAutoUpdate = false,
 					BackgroundAppUpdate = false,
@@ -116,9 +117,9 @@ public class Gecko : Browser {
 		);
 
 		if (Path.Exists(PrefsFile)) {
-				// Build the list of deprecated/removed prefs to filter out
-				var deprecatedPrefs = new HashSet<string>
-				{
+			// Build the list of deprecated/removed prefs to filter out
+			var deprecatedPrefs = new HashSet<string>
+			{
 			  // DEPRECATED
 			  "webchannel.allowObject.urlWhitelist",
 				"browser.contentanalysis.default_allow",
@@ -249,35 +250,35 @@ public class Gecko : Browser {
 				"ui.systemUsesDarkTheme"
 			};
 
-				try {
-					// Read the user.js file
-					var lines = await File.ReadAllLinesAsync(PrefsFile);
+			try {
+				// Read the user.js file
+				var lines = await File.ReadAllLinesAsync(PrefsFile);
 
-					// Pattern to extract preference name from user_pref
-					var regex = new Regex(@"user_pref\([""'](.+?)[""'],");
+				// Pattern to extract preference name from user_pref
+				var regex = new Regex(@"user_pref\([""'](.+?)[""'],");
 
-					// Filter out the deprecated prefs
-					var filteredLines = new List<string>();
+				// Filter out the deprecated prefs
+				var filteredLines = new List<string>();
 
-					foreach (var line in lines) {
-						var match = regex.Match(line);
-						if (match.Success) {
-							var prefName = match.Groups[1].Value;
-							if (!deprecatedPrefs.Contains(prefName)) 								filteredLines.Add(line);
-else {
-								Console.WriteLine($"Removed: {prefName}");
-							}
-						} else {
-							// Keep non-pref lines (like comments)
-							filteredLines.Add(line);
+				foreach (var line in lines) {
+					var match = regex.Match(line);
+					if (match.Success) {
+						var prefName = match.Groups[1].Value;
+						if (!deprecatedPrefs.Contains(prefName)) filteredLines.Add(line);
+						else {
+							Console.WriteLine($"Removed: {prefName}");
 						}
+					} else {
+						// Keep non-pref lines (like comments)
+						filteredLines.Add(line);
 					}
-
-					// Write the cleaned file
-					File.WriteAllLines(PrefsFile, filteredLines);
-				} catch (Exception ex) {
-					Console.WriteLine($"Error: {ex.Message}");
 				}
+
+				// Write the cleaned file
+				File.WriteAllLines(PrefsFile, filteredLines);
+			} catch (Exception ex) {
+				Console.WriteLine($"Error: {ex.Message}");
+			}
 		}
 
 		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.SysBrowserProfileCachePath);
@@ -297,41 +298,118 @@ else {
 
 	protected override async Task WaitForWinHandle() {
 		if (OperatingSystem.IsWindows()) {
+			if (Brocess == null || Brocess.HasExited) {
+				Close(); // Or handle as appropriate if Brocess is already invalid
+				return;
+			}
+
+			var initialParentProcessId = Brocess.Id;
+			var tcs = new TaskCompletionSource<Process?>();
+
+			_ = Task.Run(async () => {
+				const int maxAttempts = 18; // Approx 1.8 seconds timeout (18 * 100ms)
+				const int delayPerAttemptMs = 100;
+
+				try {
+					for (var attempt = 0; attempt < maxAttempts; attempt++) {
+						if (tcs.Task.IsCompleted) return;
+
+						// Check if the original parent process is still running
+						try {
+							using var parentProcessCheck = Process.GetProcessById(initialParentProcessId);
+							if (parentProcessCheck.HasExited) {
+								tcs.TrySetResult(null);
+								return;
+							}
+						} catch (ArgumentException) // Process with initialParentProcessId not found
+							{
+							tcs.TrySetResult(null);
+							return;
+						} catch (InvalidOperationException) // Process exited after getting but before checking HasExited
+							{
+							tcs.TrySetResult(null);
+							return;
+						}
+						
+						Process[] currentFirefoxProcesses;
+						try {
+							currentFirefoxProcesses = Process.GetProcessesByName("firefox");
+						} catch (Exception ex) // Errors like system shutting down, etc.
+							{
+							Debug.WriteLine($"Error in GetProcessesByName: {ex.Message}");
+							await Task.Delay(delayPerAttemptMs);
+							continue;
+						}
+
+						Process? foundChildProcess = null;
+						foreach (var ffProcess in currentFirefoxProcesses) {
+							try {
+								if (ffProcess.HasExited) continue;
+
+								// GetParentProcessId is an extension method; ensure it handles potential exceptions.
 #pragma warning disable CA1416 // Validate platform compatibility
-			TaskCompletionSource<Process?> thisTcs = new();
-			new Thread(() => {
-				for (var i = 0; i < 18; i++) {
-					_ = ExUtil.TryCatch(() => {
-						var currentProcesses = Process.GetProcessesByName("firefox");
-						foreach (var p in currentProcesses) {
-							if (Brocess != null && p.ParentProcessId() == Brocess.Id) {
-								var childProcess = Process.GetProcessById(p.Id);
-								if (childProcess?.HasExited == false) {
 
-									var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
-
-									if (U32.IsWindow(thishandle)) {
-										_ = thisTcs.TrySetResult(childProcess);
-										break;
+								if (ffProcess.GetParentProcessId() == initialParentProcessId) {
+									var windowHandle = U32til.FindMainWindowHandle(ffProcess.Id);
+									if (U32.IsWindow(windowHandle)) {
+										// Found the target child process. Get a new Process instance for it.
+										foundChildProcess = Process.GetProcessById(ffProcess.Id);
+										tcs.TrySetResult(foundChildProcess);
+										break; // Exit foreach loop
 									}
 								}
+#pragma warning restore CA1416 // Validate platform compatibility
+
+							} catch (Exception ex) // Catch errors accessing individual process info
+								{
+								Debug.WriteLine($"Error inspecting Firefox process {ffProcess.Id}: {ex.Message}");
+							} finally {
+								// Dispose the Process object from GetProcessesByName iteration
+								ffProcess.Dispose();
 							}
 						}
-						return true;
-					});
-					if (Brocess?.MainWindowHandle != nint.Zero)
-						break;
-					Thread.Sleep(100);
+
+						if (foundChildProcess != null) // If found, task is completed, and we can exit the polling task.
+						{
+							// Ensure any remaining processes in currentFirefoxProcesses (those not iterated due to break) are disposed.
+							// This is implicitly handled as ffProcess.Dispose() is in the finally for those iterated.
+							// Non-iterated ones will be GC'd. For Process objects, explicit Dispose is better but complex here.
+							// The current approach disposes iterated ones.
+							return;
+						}
+
+						await Task.Delay(delayPerAttemptMs);
+					}
+
+					// If loop completes, no suitable process was found (timeout)
+
+					if (!tcs.Task.IsCompleted) tcs.TrySetResult(null);
+				} catch (Exception ex) // Catch-all for unexpected errors in the polling task
+					{
+					Debug.WriteLine($"Critical error in WaitForWinHandle polling task: {ex.Message}");
+					if (!tcs.Task.IsCompleted) tcs.TrySetException(ex);
 				}
-				if (Brocess?.MainWindowHandle == nint.Zero)
-					_ = thisTcs.TrySetResult(null);
-			}).Start();
+			});
+
 			try {
-				Brocess = await thisTcs.Task;
-			} catch {
+				var newMainProcess = await tcs.Task;
+
+				var oldBrocess = Brocess; // Keep current Brocess to dispose if replaced
+
+				if (newMainProcess != null) {
+					Brocess = newMainProcess; // Assign the found child process
+					if (oldBrocess != null && oldBrocess.Id != Brocess.Id) {
+						oldBrocess.Dispose();
+					}
+				} else {
+					// Timeout, original parent died, or no suitable child found.
+					Close();
+				}
+			} catch (Exception ex) // Catches exceptions from tcs.Task (e.g., if TrySetException was called)
+				{
+				Debug.WriteLine($"Failed to get window handle for Firefox: {ex.Message}");
 				Close();
 			}
-#pragma warning restore CA1416 // Validate platform compatibility
 		} else if (OperatingSystem.IsMacOS()) {
 			await base.WaitForWinHandle();
 		}

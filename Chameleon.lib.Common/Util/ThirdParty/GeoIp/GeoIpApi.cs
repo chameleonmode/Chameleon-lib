@@ -5,7 +5,7 @@ namespace Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 
 public class GeoIpApi {
 	public static async Task<Ipapi?> GetIpapi(WebProxy? proxy, Action<string> onretry) =>
-		JS.Deserialize<Ipapi>(await GetIPApi(proxy, onretry));
+		JSON.Deserialize<Ipapi>(await GetIPApi(proxy, onretry));
 
 	private static Task<string> GetIPApi(WebProxy? proxy, Action<string> onretry) {
 		return GetHttpResponseContent(proxy, "http://ip-api.com/json", onretry);
@@ -17,7 +17,7 @@ public class GeoIpApi {
 
 		var httpClientTimeoutInSeconds = 5;
 		try {
-			return await PolyUtil.RetryWithPolicyAsync(
+			return await Exceptionz.RetryWithPolicyAsync(
 				async () => {
 					client.Timeout = TimeSpan.FromSeconds(httpClientTimeoutInSeconds);
 					var response = await client.GetAsync(requestUri);

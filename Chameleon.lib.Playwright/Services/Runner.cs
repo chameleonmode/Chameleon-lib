@@ -53,7 +53,7 @@ public class Runner : IDisposable {
 
 	public async Task Run(int port, string file, object? opts = null) {
 		var command = new { arg = "run", file, port, opts };
-		await Send(JS.Serialize(command));
+		await Send(JSON.Serialize(command));
 	}
 
 	public async Task Send(string options) {

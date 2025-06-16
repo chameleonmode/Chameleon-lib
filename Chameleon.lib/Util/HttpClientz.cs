@@ -1,9 +1,9 @@
 ﻿using System.Net.Http.Headers;
 
-namespace Chameleon.lib.Common.Util;
+namespace Chameleon.lib.Util;
+
 public static class HttpClientUtil {
-	public static async Task<string> GetAsync(string url, IEnumerable<KeyValuePair<string, string>>? headers = null)
-	{
+	public static async Task<string> GetAsync(string url, IEnumerable<KeyValuePair<string, string>>? headers = null) {
 		using HttpClient client = new();
 		if (headers != null) {
 			foreach (var header in headers)
@@ -14,8 +14,9 @@ public static class HttpClientUtil {
 		return await response.Content.ReadAsStringAsync();
 	}
 
-	public static async Task<HttpResponseMessage> PostAsync(string url, AuthenticationHeaderValue? authorization = null, IEnumerable<KeyValuePair<string, string>>? headers = null, MultipartFormDataContent? content = null)
-	{
+	public static async Task<HttpResponseMessage> PostAsync(string url,
+		AuthenticationHeaderValue? authorization = null, IEnumerable<KeyValuePair<string, string>>? headers = null, MultipartFormDataContent? content = null
+	) {
 		using HttpClient client = new();
 		if (authorization != null)
 			client.DefaultRequestHeaders.Authorization = authorization;
@@ -31,8 +32,7 @@ public static class HttpClientUtil {
 		return await client.SendAsync(request);
 	}
 
-	public async static Task<string> PutAsync(string url, IEnumerable<KeyValuePair<string, string>>? headers = null)
-	{
+	public async static Task<string> PutAsync(string url, IEnumerable<KeyValuePair<string, string>>? headers = null) {
 		using HttpClient client = new();
 		using var request = new HttpRequestMessage(HttpMethod.Put, url);
 		if (headers != null) {
@@ -41,7 +41,7 @@ public static class HttpClientUtil {
 		}
 
 		using var response = await client.SendAsync(request);
-
-		return await response.Content.ReadAsStringAsync();
+		var content = await response.Content.ReadAsStringAsync();
+		return content;
 	}
 }

@@ -87,19 +87,19 @@ public class PlatformaticTests : TestSetup {
 		Assert.NotNull(update);
 		Assert.Equal(name, update.Name);
 
-		var tag = new TagDto(update.Name, JS.Deserialize<Dictionary<string, List<string>>>(update.Items)!);
+		var tag = new TagDto(update.Name, JSON.Deserialize<Dictionary<string, List<string>>>(update.Items)!);
 		Assert.Contains("folder", tag.Items.Keys);
 		Assert.Contains("id", tag.Items["folder"]);
 		Assert.Contains("id2", tag.Items["folder"]);
 
 		// Verify update
 		get = await DB.Instance.GetTag(create.Id);
-		tag = new TagDto(get!.Name, JS.Deserialize<Dictionary<string, List<string>>>(get.Items)!);
+		tag = new TagDto(get!.Name, JSON.Deserialize<Dictionary<string, List<string>>>(get.Items)!);
 		Assert.Contains("id3", tag.Items["folder"]);
 
 		// List all tags
 		var list = (await DB.Instance.GetTags())?.Select(
-				t => new TagDto(t.Name, JS.Deserialize<Dictionary<string, List<string>>>(t.Items)!)
+				t => new TagDto(t.Name, JSON.Deserialize<Dictionary<string, List<string>>>(t.Items)!)
 		);
 		Assert.NotNull(list);
 		Assert.NotEmpty(list);
@@ -151,7 +151,7 @@ public class PlatformaticTests : TestSetup {
 		});
 		Assert.NotNull(update);
 		var updatedTag = await DB.Instance.GetTag(tag.Id);
-		var itemsDict = JS.Deserialize<Dictionary<string, List<string>>>(updatedTag!.Items) ?? new();
+		var itemsDict = JSON.Deserialize<Dictionary<string, List<string>>>(updatedTag!.Items) ?? new();
 		Assert.Contains("document", itemsDict.Keys);
 		Assert.Contains("doc123", itemsDict["document"]);
 

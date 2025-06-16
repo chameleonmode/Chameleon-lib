@@ -1,7 +1,6 @@
 ﻿using System.IO.Compression;
-using Chameleon.lib.Util;
 
-namespace Chameleon.lib.Common.Util;
+namespace Chameleon.lib.Util;
 public static class IOtil {
 	public static Task<string> DC(string dir) => Task.Run(() => {
 		DeleteDir(dir);
@@ -16,9 +15,7 @@ public static class IOtil {
 	}
 
 	public static Task CreateZipAsync(string sourceDir, string zipDir, string? zipFile = null, bool dc = true) => Task.Run(async () => {
-		if (!Directory.Exists(sourceDir)) {
-			throw new DirectoryNotFoundException($"The directory '{sourceDir}' does not exist.");
-		}
+		if (!Directory.Exists(sourceDir)) 			throw new DirectoryNotFoundException($"The directory '{sourceDir}' does not exist.");
 
 		if (dc) await DC(zipDir);
 		else if (!Directory.Exists(zipDir)) _ = Directory.CreateDirectory(zipDir);
@@ -43,7 +40,7 @@ public static class IOtil {
 							await DeleteFExists(Path.Combine(filePath, file.Key));
 						}
 					});
-	public static string[] ReadDirectory(string path) => Directory.Exists(path) ? Directory.GetFiles(path) : ([]);
+	public static string[] ReadDirectory(string path) => Directory.Exists(path) ? Directory.GetFiles(path) : [];
 	public static Task<string[]> ReadDirectoryAsync(string path)
 					=> Task.Run(() => ReadDirectory(path));
 
@@ -99,9 +96,7 @@ public static class IOtil {
 
 			// Create the directory structure for the destination file if it doesn't exist
 			var destDir = Path.GetDirectoryName(destFile);
-			if (!string.IsNullOrWhiteSpace(destDir) && !Directory.Exists(destDir)) {
-				_ = Directory.CreateDirectory(destDir);
-			}
+			if (!string.IsNullOrWhiteSpace(destDir) && !Directory.Exists(destDir)) 				_ = Directory.CreateDirectory(destDir);
 
 			// Copy the file
 			File.Copy(file, destFile, true);
@@ -153,9 +148,7 @@ public static class IOtil {
 			} catch (IOException ex) {
 				attempt++;
 				Console.WriteLine($"IO error (attempt {attempt}): {ex.Message}");
-				if (attempt >= maxRetries) {
-					throw; // Re-throw the exception if maximum retries are reached
-				}
+				if (attempt >= maxRetries) 					throw; // Re-throw the exception if maximum retries are reached
 				await Task.Delay(delayMilliseconds); // Wait before retrying
 			} catch (Exception ex) {
 				Console.WriteLine($"Unexpected error: {ex.Message}");
@@ -167,9 +160,7 @@ public static class IOtil {
 	public static string IncrementVersion(string version) {
 		// Example: Increment the minor version for simplicity
 		var parts = version.Split('.');
-		if (parts.Length >= 2 && int.TryParse(parts[^1], out var buildNumber)) {
-			parts[^1] = (buildNumber + 1).ToString();
-		}
+		if (parts.Length >= 2 && int.TryParse(parts[^1], out var buildNumber)) 			parts[^1] = (buildNumber + 1).ToString();
 		return string.Join('.', parts);
 	}
 }

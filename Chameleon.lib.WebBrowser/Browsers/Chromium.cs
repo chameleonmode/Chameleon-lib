@@ -1,19 +1,11 @@
 ﻿using System.Diagnostics;
-using System.Net.WebSockets;
-using System.Text;
-using System.Text.Json;
-using chameleon.assets;
-using Chameleon.lib.Common.Constants;
-using Chameleon.lib.Common.Util;
-using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser.System;
 
-public class Chromium : Browser
-{
+public class Chromium : Browser {
 	public override string PrefsFile => Path.Combine(
 		Settings.SysBrowserProfileCachePath,
 		"Default",
@@ -27,8 +19,7 @@ public class Chromium : Browser
 	// override string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
 
 	// ...
-	protected override string GetCommandLineArguments(bool args)
-	{
+	protected override string GetCommandLineArguments(bool args) {
 		// var exts = string.Join(",", new[] {
 		// 	Settings.DestExtentionsDir,
 		// 	Path.Combine(FilePaths.BrowserExtensions, Settings.BrowserType.GetDescription()),
@@ -146,32 +137,30 @@ public class Chromium : Browser
 	}
 
 	// ...
-	protected override async Task InitializeExtensionPath()
-	{
+	protected override async Task InitializeExtensionPath() {
 		_ = await Project.Initialized.Task;
 		// return;
 		// await IOtil.DirectoryDelete(Path.Combine(FilePaths.AppDataLocalDir, "extensions", "chrome"));
 		// _ = await Resources.LoadExtension(ExtensionType.chromeleon, Settings.DestExtentionsDir);
 	}
 
-	protected override async Task WaitForWinHandle()
-	{
+	protected override async Task WaitForWinHandle() {
 		if (OperatingSystem.IsWindows()) _ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != nint.Zero, 18);
 		else if (OperatingSystem.IsMacOS()) await base.WaitForWinHandle();
 		// TODO:  return;
 		// if (Settings.BrowserType == Enums.SystemBrowserType.Chrome)
 		// 	      async Task<string?> GetWebSocketDebuggerUrl()
-    //     {
-    //         using var httpClient = new HttpClient();
-    //         // Query Chrome's /json/version endpoint to get the active WebSocket URL
-    //         var resp = await httpClient.GetStringAsync($"http://localhost:{Settings.Port}/json/version");
-    //         using var doc = JsonDocument.Parse(resp);
-    //         if (doc.RootElement.TryGetProperty("webSocketDebuggerUrl", out var wsUrl))
-    //         {
-    //             return wsUrl.GetString();
-    //         }
-    //         return null;
-    //     }
+		//     {
+		//         using var httpClient = new HttpClient();
+		//         // Query Chrome's /json/version endpoint to get the active WebSocket URL
+		//         var resp = await httpClient.GetStringAsync($"http://localhost:{Settings.Port}/json/version");
+		//         using var doc = JsonDocument.Parse(resp);
+		//         if (doc.RootElement.TryGetProperty("webSocketDebuggerUrl", out var wsUrl))
+		//         {
+		//             return wsUrl.GetString();
+		//         }
+		//         return null;
+		//     }
 		// {
 		// 	try
 		// 	{

@@ -30,13 +30,13 @@ public static class Extensions {
   }
 
   public static string GetDescription(this Enum value) {
-		var field = value.GetType().GetField(value.ToString());
-		if (field == null)
-			return value.ToString();
+    var field = value.GetType().GetField(value.ToString());
+    if (field == null)
+      return value.ToString();
 
-		var attribute = Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) as DescriptionAttribute;
-		return attribute == null ? value.ToString() : attribute.Description;
-	}
+    var attribute = Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) as DescriptionAttribute;
+    return attribute == null ? value.ToString() : attribute.Description;
+  }
 }
 
 public static class TaskExtensions {

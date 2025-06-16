@@ -1,10 +1,19 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-using Chameleon.lib.Common.Constants;
-
 namespace Chameleon.lib.Common.Util.Win;
+
+[StructLayout(LayoutKind.Sequential)]
+public struct PROCESS_BASIC_INFORMATION {
+	internal IntPtr Reserved1;
+	internal IntPtr PebBaseAddress;
+	internal IntPtr Reserved2_0;
+	internal IntPtr Reserved2_1;
+	internal IntPtr UniqueProcessId;
+	internal IntPtr InheritedFromUniqueProcessId; // This is the Parent Process ID
+}
 /**
  * This is a subset of events from winuser.h.
  * See: https://docs.microsoft.com/en-us/windows/win32/winauto/event-constants
@@ -49,7 +58,7 @@ public enum User32Events : uint {
 	EVENT_OBJECT_NAMECHANGE = 0x800C,
 
 	WINEVENT_OUTOFCONTEXT = 0x0000,
-	
+
 	WINEVENT_SKIPOWNPROCESS = 0x0002
 }
 
@@ -156,6 +165,14 @@ public static partial class U32 {
 	[DllImport("user32.dll")]
 	[return: MarshalAs(UnmanagedType.Bool)]
 	public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
+	[DllImport("ntdll.dll")]
+	public static extern int NtQueryInformationProcess(
+		IntPtr processHandle,
+		int processInformationClass, // 0 for ProcessBasicInformation (PROCESSINFOCLASS enum)
+		ref PROCESS_BASIC_INFORMATION processInformation,
+		int processInformationLength,
+		out int returnLength);
 }
 
 [SupportedOSPlatform("windows")]
@@ -166,8 +183,7 @@ public class WindowEventHandler {
 	public event Action<nint>? OnForeground;
 	public event Action<nint>? OnDestroy;
 
-	public void StartListening(int tries = 0)
-	{
+	public void StartListening(int tries = 0) {
 		_delegate = new U32.WinEventDelegate(WinEventProc);
 		_hook = U32.SetWinEventHook(
 				(uint)User32Events.EVENT_SYSTEM_FOREGROUND,
@@ -192,8 +208,7 @@ public class WindowEventHandler {
 		}
 	}
 
-	public void StopListening()
-	{
+	public void StopListening() {
 		if (_hook != IntPtr.Zero) {
 			_ = U32.UnhookWinEvent(_hook);
 			_hook = IntPtr.Zero;
@@ -201,8 +216,7 @@ public class WindowEventHandler {
 	}
 
 	private void WinEventProc(IntPtr hWinEventHook, uint eventType,
-			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
-	{
+			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime) {
 		switch (eventType) {
 			case (uint)User32Events.EVENT_SYSTEM_FOREGROUND:
 				OnForeground?.Invoke(hwnd);
@@ -220,8 +234,7 @@ public class WindowEventHandler {
 
 [SupportedOSPlatform("windows")]
 public static class U32til {
-	public static IntPtr FindMainWindowHandle(int processId)
-	{
+	public static IntPtr FindMainWindowHandle(int processId) {
 		var foundWindow = IntPtr.Zero;
 		_ = U32.EnumWindows((hWnd, lParam) => {
 			_ = U32.GetWindowThreadProcessId(hWnd, out var windowProcessId);
@@ -234,16 +247,14 @@ public static class U32til {
 		return foundWindow;
 	}
 
-	public static Process GetProcessByMainWindowHandle(IntPtr mainWindowHandle)
-	{
+	public static Process GetProcessByMainWindowHandle(IntPtr mainWindowHandle) {
 		_ = U32.GetWindowThreadProcessId(mainWindowHandle, out var processId);
 		return processId == 0
 			? throw new InvalidOperationException("Unable to get process ID from window handle.")
 			: Process.GetProcessById((int)processId);
 	}
 
-	public static bool BringWindowToForeground(IntPtr hWnd)
-	{
+	public static bool BringWindowToForeground(IntPtr hWnd) {
 		// Check if the window handle is valid
 		if (hWnd == IntPtr.Zero) {
 			return false;
@@ -272,7 +283,7 @@ public static class U32til {
 			if (wasMinimized) {
 				// Restore the window if it's minimized
 				_ = U32.ShowWindow(hWnd, (int)ShowWindowCommands.SW_RESTORE);
-			}	
+			}
 
 			// Set the window as the foreground window
 			var result = U32.SetForegroundWindow(hWnd);
@@ -295,7 +306,70 @@ public static class U32til {
 				_ = U32.AttachThreadInput(currentThreadId, targetThreadId, false);
 			}
 		}
+	}   // Gets the parent process ID for a given process.
+			// Returns -1 if the parent process ID cannot be determined (e.g., process has exited, access denied, or other error).
+	public static int GetParentProcessId(this Process process) {
+		if (process == null) {
+			return -1;
+		}
+		var processNameForDebug = "unknown";
+		var processIdForDebug = -1;
+
+		try {
+			// Try to get ProcessName and Id for logging, but be careful as they can throw if process state is odd.
+			try { processNameForDebug = process.ProcessName; processIdForDebug = process.Id; } catch { /* ignore for logging */ }
+
+			if (process.HasExited) {
+				Debug.WriteLine($"Process (ID: {processIdForDebug}, Name: {processNameForDebug}) has exited. Cannot get parent PID.");
+				return -1;
+			}
+		} catch (InvalidOperationException) {
+			Debug.WriteLine($"InvalidOperationException accessing handle for process (ID: {processIdForDebug}, Name: {processNameForDebug}). Likely exited. Cannot get parent PID.");
+			return -1;
+		} catch (Win32Exception ex) {
+			Debug.WriteLine($"Win32Exception accessing handle for process (ID: {processIdForDebug}, Name: {processNameForDebug}): {ex.Message}. Cannot get parent PID.");
+			return -1;
+		} catch (Exception ex) {
+			Debug.WriteLine($"Unexpected error accessing handle for process (ID: {processIdForDebug}, Name: {processNameForDebug}): {ex.Message}. Cannot get parent PID.");
+			return -1;
+		}
+
+		if (process.Handle == IntPtr.Zero) {
+			Debug.WriteLine($"Failed to obtain a valid handle for process (ID: {processIdForDebug}, Name: {processNameForDebug}). Cannot get parent PID.");
+			return -1;
+		}
+
+		var pbi = new PROCESS_BASIC_INFORMATION();
+		var sizeOfPbi = Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION));
+
+		var status = U32.NtQueryInformationProcess(process.Handle, 0, ref pbi, sizeOfPbi, out var _);
+
+		if (status != 0) // NT_SUCCESS is 0. Any non-zero status is an error.
+		{
+			Debug.WriteLine($"NtQueryInformationProcess failed for process (ID: {processIdForDebug}, Name: {processNameForDebug}) with NTSTATUS: 0x{status:X}");
+			return -1;
+		}
+
+		return pbi.InheritedFromUniqueProcessId.ToInt32();
 	}
+
+	// public static Process? GetChildProcess(int parentId) {
+	// 	return Process.GetProcesses().FirstOrDefault(p => {
+	// 		try {
+	// 			return p.Id != 0 && p.ParentProcessId() == parentId;
+	// 		} catch {
+	// 			return false;
+	// 		}
+	// 	});
+	// }
+
+	// public static int ParentProcessId(this Process process) {
+	// 	var pbi = new PROCESS_BASIC_INFORMATION();
+	// 	var status = LibraryImports.NtQueryInformationProcess(process.Handle, 0, ref pbi, (uint)Marshal.SizeOf(pbi), out _);
+	// 	return status != 0
+	// 		? throw new Exception("NtQueryInformationProcess failed with status: " + status)
+	// 		: pbi.InheritedFromUniqueProcessId.ToInt32();
+	// }
 }
 
 // [SupportedOSPlatform("windows")]
@@ -409,8 +483,7 @@ public struct RECT {
 		}
 	}
 
-	public override readonly string ToString()
-	{
+	public override readonly string ToString() {
 		return string.Format("({0}, {1}), {2} x {3}", Left, Top, Width, Height);
 	}
 }

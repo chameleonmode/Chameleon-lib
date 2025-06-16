@@ -1,6 +1,4 @@
-﻿using Chameleon.lib.Common.Util;
-using Chameleon.lib.Common.Util.Mac;
-using Chameleon.lib.Common.Constants;
+﻿using Chameleon.lib.Common.Util.Mac;
 using System.Diagnostics;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser.Services;
@@ -8,6 +6,7 @@ using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 using Chameleon.lib.Common.Util.Win;
 using chameleon.assets;
 using Chameleon.lib.Common.Util.ThirdParty;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
 
@@ -51,11 +50,7 @@ public abstract class Browser : IBrowserInstance {
 	}
 
 	public void Close() {
-		if (OperatingSystem.IsMacOS()) {
-			if (Brocess?.Id is int id)
-				MacOSWindowListener.Instance.RemPid(id);
-		}
-
+		if (OperatingSystem.IsMacOS()) MacOSWindowListener.Instance.RemPid(Brocess?.Id);
 		_ = LoadedTCS.TrySetResult(false);
 		Brocess?.Dispose();
 		Brocess = null;
@@ -75,9 +70,9 @@ public abstract class Browser : IBrowserInstance {
 			if (File.Exists(file)) {
 				var json = await File.ReadAllTextAsync(file);
 				if (json != null) {
-					ipapi = JS.Deserialize<Ipapi>(json);
+					ipapi = JSON.Deserialize<Ipapi>(json);
 					if (ipapi?.proxy != null) {
-						var proxy = JS.Deserialize<BrowserProxy>(ipapi.proxy);
+						var proxy = JSON.Deserialize<BrowserProxy>(ipapi.proxy);
 						if (
 							proxy != null &&
 							proxy.Host == Settings.Profile.Proxy.Host &&
@@ -100,8 +95,8 @@ public abstract class Browser : IBrowserInstance {
 				lon = -118.243683,
 				tzSystem = true
 			};
-			ipapi.proxy = JS.Serialize(Settings.Profile.Proxy);
-			await File.WriteAllTextAsync(file, JS.Serialize(ipapi));
+			ipapi.proxy = JSON.Serialize(Settings.Profile.Proxy);
+			await File.WriteAllTextAsync(file, JSON.Serialize(ipapi));
 			return ipapi;
 		}
 		var ipapi = await Ipapi();

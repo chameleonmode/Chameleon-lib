@@ -19,7 +19,7 @@ namespace Chameleon.lib;
 public static class Delegatorz {
 	public delegate void Event<T>(object sender, T options);
 }
-public static class JS {
+public static class JSON {
 	public static readonly JsonSerializerOptions CamelCaseOptions = new() {
 		WriteIndented = true, // Pretty print JSON
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase, //Use camelCase

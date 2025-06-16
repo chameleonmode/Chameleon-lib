@@ -46,7 +46,7 @@ public class Client {
 	}
 
 	private TokenResponse DeserializeToken(string res) {
-		var token = JsonSerializer.Deserialize<TokenResponse>(res, JS.CaseInsensitiveOptions);
+		var token = JsonSerializer.Deserialize<TokenResponse>(res, JSON.CaseInsensitiveOptions);
 		ArgumentNullException.ThrowIfNull(token, "Token not found in response");
 		
 		SaveToken(token);
@@ -117,7 +117,7 @@ public class Client {
 		// Get the payload as a JSON string
 		var payload = jwtToken.Payload.SerializeToJson();
 
-		return JsonSerializer.Deserialize<TokenPayload>(payload!, JS.CaseInsensitiveOptions)!;
+		return JsonSerializer.Deserialize<TokenPayload>(payload!, JSON.CaseInsensitiveOptions)!;
 	}
 
 	internal async Task<AuthenticationHeaderValue> TryLogIn() {

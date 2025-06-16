@@ -50,14 +50,14 @@ public class NodeServerLauncher {
 
   // Send command
   public async Task SendLine(string command, object data) {
-    var jsonCommand = JS.Serialize(new { command, data });
+    var jsonCommand = JSON.Serialize(new { command, data });
     await node!.StandardInput.WriteLineAsync(jsonCommand);
   }
 
 	// POST request
   public async Task PostMessage(object data) {
 		using var client = new HttpClient();
-		var response = await client.PostAsync(url, JsonContent.Create(data, mediaType: null, JS.InsensitiveCamelCaseOptions));
+		var response = await client.PostAsync(url, JsonContent.Create(data, mediaType: null, JSON.InsensitiveCamelCaseOptions));
 		var responseBody = await response.Content.ReadAsStringAsync();
 		Console.WriteLine($"Response: {responseBody}");
 	}

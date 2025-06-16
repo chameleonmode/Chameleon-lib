@@ -13,7 +13,7 @@ public class Client {
 		HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead
 	) {
 		public HttpContent? Content => Body == null ? null
-			: JsonContent.Create(Body, mediaType: null, JS.InsensitiveCamelCaseOptions);
+			: JsonContent.Create(Body, mediaType: null, JSON.InsensitiveCamelCaseOptions);
 	}
 	public record ReqError(string Error, string Message);
 
@@ -55,11 +55,11 @@ public class Client {
 
 		var content = await response.Content.ReadAsStringAsync();
 		return
-			response.IsSuccessStatusCode ? JS.Deserialize<T>(content)
+			response.IsSuccessStatusCode ? JSON.Deserialize<T>(content)
 			: @params.EnsureSuccess == true
 				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
 					(
-						JS.Deserialize<ReqError>(content) is ReqError err
+						JSON.Deserialize<ReqError>(content) is ReqError err
 							? $"{err.Error}\n{err.Message}" : content
 					)
 				)

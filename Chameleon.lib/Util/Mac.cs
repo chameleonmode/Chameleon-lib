@@ -1,51 +1,34 @@
 ﻿using System.Runtime.InteropServices;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Common.Util.Mac;
+
 public class MacOSWindowListener {
 	public static MacOSWindowListener Instance { get; } = new MacOSWindowListener();
 
 	public event Action<int>? WindowForegroundChanged;
-	private readonly System.Timers.Timer _pollingTimer;
-	private readonly List<int> _targetPids = [];
+	private readonly System.Timers.Timer pollingTimer;
+	private readonly List<int> targetPids = [];
 
-	public MacOSWindowListener()
-	{
-		_pollingTimer = new System.Timers.Timer(1000); // Poll every second
-		_pollingTimer.Elapsed += OnPollingTimerElapsed;
+	public MacOSWindowListener() {
+		pollingTimer = new System.Timers.Timer(1000); // Poll every second
+		pollingTimer.Elapsed += OnPollingTimerElapsed;
 	}
 
-	private async void OnPollingTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
-	{
+	private async void OnPollingTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e) {
 		var fgPid = await Task.Run(MacOSUtil.GetWindowForeground);
-		if (fgPid.HasValue && _targetPids.Contains(fgPid.Value))
+		if (fgPid.HasValue && targetPids.Contains(fgPid.Value))
 			WindowForegroundChanged?.Invoke(fgPid.Value);
 	}
-
-	public void Start()
-	{
-		_pollingTimer.Start();
+	
+	public void AddPid(int pid) {
+		if (!targetPids.Contains(pid)) targetPids.Add(pid);
+		if (targetPids.Count >= 1) pollingTimer.Start();
 	}
 
-	public void Stop()
-	{
-		_pollingTimer.Stop();
-	}
-
-	public void AddPid(int pid)
-	{
-		if (!_targetPids.Contains(pid))
-			_targetPids.Add(pid);
-
-		if (_targetPids.Count == 1)
-			Start();
-	}
-
-	public void RemPid(int pid)
-	{
-		_ = _targetPids.Remove(pid);
-
-		if (_targetPids.Count == 0)
-			Stop();
+	public void RemPid(int? pid) {
+		if (pid is int id) _ = targetPids.Remove(id);
+		if (targetPids.Count == 0) pollingTimer.Stop();
 	}
 }
 
@@ -54,21 +37,18 @@ internal enum NSApplicationActivateOptions : uint {
 }
 
 public static class MacOSUtil {
-	public static bool SetForegroundWindow(int pid)
-	{
-		return ExUtil.TryCatch(() => {
+	public static bool SetForegroundWindow(int pid) {
+		return Exceptionz.TryCatch(() => {
 			var windowId = FindWindowByPID(pid);
 			return windowId.HasValue && BringWindowToForeground(pid);
 		});
 	}
 
-	private static IntPtr GetWindowList()
-	{
+	private static IntPtr GetWindowList() {
 		return MacOSInterop.CGWindowListCopyWindowInfo(0x00000001, 0);
 	}
 
-	public static int? FindWindowByPID(int pid)
-	{
+	public static int? FindWindowByPID(int pid) {
 		var windowListInfo = GetWindowList();
 		if (windowListInfo == IntPtr.Zero)
 			return null;
@@ -85,8 +65,7 @@ public static class MacOSUtil {
 		return null;
 	}
 
-	private static bool BringWindowToForeground(int pid)
-	{
+	private static bool BringWindowToForeground(int pid) {
 		var nsRunningApplicationClass = ObjectiveCRuntime.ObjCGetClass("NSRunningApplication");
 		var runningApp = ObjectiveCRuntime.ObjCMsgSend(nsRunningApplicationClass, ObjectiveCRuntime.SelRegisterName("runningApplicationWithProcessIdentifier:"), new IntPtr(pid));
 
@@ -101,8 +80,7 @@ public static class MacOSUtil {
 		}
 	}
 
-	public static int? GetWindowForeground()
-	{
+	public static int? GetWindowForeground() {
 		var windowListInfo = GetWindowList(); // Get list of all windows
 		if (windowListInfo == IntPtr.Zero)
 			return null;
@@ -134,24 +112,22 @@ internal static partial class MacOSInterop {
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1401:P/Invokes should not be visible", Justification = "<Pending>")]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "SYSLIB1054:Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time", Justification = "<Pending>")]
-public class ObjectiveCRuntime
-{
-  [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "sel_registerName", CharSet = CharSet.Unicode)]
-  public static extern IntPtr SelRegisterName(string name);
+public class ObjectiveCRuntime {
+	[DllImport("/usr/lib/libobjc.dylib", EntryPoint = "sel_registerName", CharSet = CharSet.Unicode)]
+	public static extern IntPtr SelRegisterName(string name);
 
-  [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_getClass", CharSet = CharSet.Unicode)]
-  public static extern IntPtr ObjCGetClass(string name);
+	[DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_getClass", CharSet = CharSet.Unicode)]
+	public static extern IntPtr ObjCGetClass(string name);
 
-  [DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
-  public static extern IntPtr ObjCMsgSend(IntPtr receiver, IntPtr selector, IntPtr arg);
+	[DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
+	public static extern IntPtr ObjCMsgSend(IntPtr receiver, IntPtr selector, IntPtr arg);
 }
 
 internal partial class MacOSWindowManipulator {
 	[LibraryImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
 	internal static partial IntPtr CGWindowListCopyWindowInfo(uint option, uint relativeToWindow);
 
-	public static IntPtr GetWindowInfo(int processId)
-	{
+	public static IntPtr GetWindowInfo(int processId) {
 		return CGWindowListCopyWindowInfo(0, (uint)processId);
 	}
 }
@@ -163,8 +139,7 @@ public partial class CFArray(IntPtr array) : IDisposable {
 
 	public IntPtr this[int index] => CFArrayGetValueAtIndex(_array, index);
 
-	public void Dispose()
-	{
+	public void Dispose() {
 		if (_array != IntPtr.Zero) {
 			MacOSInterop.CFRelease(_array);
 			_array = IntPtr.Zero;
@@ -182,14 +157,12 @@ public partial class CFArray(IntPtr array) : IDisposable {
 public partial class CFDictionary(IntPtr dict) {
 	private readonly IntPtr _dict = dict;
 
-	public bool ContainsKey(string key)
-	{
+	public bool ContainsKey(string key) {
 		var cfKey = CFString.Create(key);
 		return CFDictionaryContainsKey(_dict, cfKey);
 	}
 
-	public int GetInt32Value(string key)
-	{
+	public int GetInt32Value(string key) {
 		var cfKey = CFString.Create(key);
 		var value = CFDictionaryGetValue(_dict, cfKey);
 		return CFNumber.ToInt32(value);
@@ -204,8 +177,7 @@ public partial class CFDictionary(IntPtr dict) {
 }
 
 public static partial class CFString {
-	public static IntPtr Create(string str)
-	{
+	public static IntPtr Create(string str) {
 		return CFStringCreateWithCString(IntPtr.Zero, str, 0x08000100); // kCFStringEncodingUTF8
 	}
 
@@ -214,12 +186,11 @@ public static partial class CFString {
 }
 
 public static partial class CFNumber {
-	public static int ToInt32(IntPtr number)
-	{
+	public static int ToInt32(IntPtr number) {
 		return number == IntPtr.Zero
-			?      throw new ArgumentNullException(nameof(number))
+			? throw new ArgumentNullException(nameof(number))
 			: !CFNumberGetValue(number, 9, out var value)
-			?      throw new InvalidOperationException("Could not convert CFNumber to Int32.")
+			? throw new InvalidOperationException("Could not convert CFNumber to Int32.")
 			: value;
 	}
 

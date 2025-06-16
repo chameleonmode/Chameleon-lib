@@ -14,10 +14,6 @@ public static class FilePaths {
 	public static string AppDownloadDir => EnsureDirectoryExists(
 		AppTempDir, "Downloads"
 	);
-	
-	public static string BrowserExtensions => OperatingSystem.IsMacOS()
-			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..Resources/browser/extensions")
-			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources\\browser\\extensions");
 	public static string Roboto => EnsureDirectoryExists(
 		AppDataDir, "Roboto"
 	);

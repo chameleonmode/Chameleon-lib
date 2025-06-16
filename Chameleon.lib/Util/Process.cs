@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Util;
+
 public static class ProcessUtil {
 	public static void OpenBrowser(string Url) {
 		try {
@@ -41,6 +43,30 @@ public static class ProcessUtil {
 			_ = Process.Start("open", folderPath);
 		} else {
 			throw new PlatformNotSupportedException("This platform is not supported.");
+		}
+	}
+
+	public static async Task TryKillProcess(Process? p) {
+		if (p != null && !p.HasExited) {
+			try {
+				// Attempt to close the browser gracefully
+				_ = p.CloseMainWindow();
+
+				try {
+					// Wait for the process to exit
+					await p.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromMilliseconds(3000)).Token); // Wait for 3 seconds
+					p.Close();
+				} catch (TaskCanceledException) {
+					// If the process hasn't, kill it
+					p.Kill();
+					// Wait for the process to be killed
+					await p.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromMilliseconds(1000)).Token); // Wait for 1 seconds
+				}
+			} catch (Exception ex) {
+				if (ex.GetType() == typeof(InvalidOperationException) && ex.Message.Contains("No process is associated with this object.")) return;
+				// Log or handle the exception if closing the process fails
+				Toaster.Error($"Failed to close: {ex.Message}");
+			}
 		}
 	}
 }

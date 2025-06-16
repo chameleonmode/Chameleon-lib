@@ -15,7 +15,7 @@ public class TagsRepo {
 
 		list.AddRange(
 			(await DB.Instance.GetTags())?
-				.Select(t => new TagDto(t.Name, JS.Deserialize<Dictionary<string, List<string>>>(t.Items) ?? [])) ?? []
+				.Select(t => new TagDto(t.Name, JSON.Deserialize<Dictionary<string, List<string>>>(t.Items) ?? [])) ?? []
 		);
 		cache.Edit(updater => {
 			updater.Clear();
@@ -26,7 +26,7 @@ public class TagsRepo {
 	public async Task<TagDto?> FindTagAsync(string tagName) {
 		var tag = await DB.Instance.GetTagBy(tagName);
 		return tag == null ? null
-			: new TagDto(tag.Name, JS.Deserialize<Dictionary<string, List<string>>>(tag.Items) ?? []);
+			: new TagDto(tag.Name, JSON.Deserialize<Dictionary<string, List<string>>>(tag.Items) ?? []);
 	}
 
 	public async Task<IEnumerable<string>> SetTagsAsync(string tagItemType, string tagItemId, IEnumerable<string> tags) {

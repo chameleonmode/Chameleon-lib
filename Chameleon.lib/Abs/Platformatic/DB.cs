@@ -85,7 +85,7 @@ public class DB : Base {
 			public record CookyPayload<T>(string ProfileId, T[] CookiesJs);
 			public static async Task<IEnumerable<CookyPayload<T>>?> GetCookies<T>() =>
 			 (await Get<IEnumerable<DataInteraction>?>(prefix + "/"))?
-			 		.Select(i => JS.Deserialize<CookyPayload<T>>(i.DataPayload))
+			 		.Select(i => JSON.Deserialize<CookyPayload<T>>(i.DataPayload))
 			 		.Where(x => x != null)!;
 
 			public static async Task<DataInteraction?> SendCookies<T>(
@@ -161,7 +161,7 @@ public class DB : Base {
 				senderId = DBuser.UserId,
 				receiverId = request.ReceiverId,
 				dataType = request.DataType,
-				dataPayload = JS.Serialize(request.DataPayload)
+				dataPayload = JSON.Serialize(request.DataPayload)
 			}
 		));
 	}
@@ -195,7 +195,7 @@ public class DB : Base {
 		return await Post<Tag>($"{Routes.tags}/", new(
 				Body: new {
 					name,
-					items = JS.Serialize(items),
+					items = JSON.Serialize(items),
 					tenantId = DBuser!.TenantId
 				}
 		));
@@ -205,7 +205,7 @@ public class DB : Base {
 		return await Put<Tag>($"{Routes.tags}/{id}", new(
 				Body: new {
 					name,
-					items = JS.Serialize(items),
+					items = JSON.Serialize(items),
 					tenantId = DBuser!.TenantId
 				}
 		));
