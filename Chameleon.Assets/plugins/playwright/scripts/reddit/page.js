@@ -510,7 +510,7 @@ export class Reddit extends Base {
             this.bang("Vote count", length, { upCount, downCount, count, length });
             for (let i = 0; i < length; i++) {
                 const index = random(0, count);
-                await (rando() ? this.click(ups.nth(index)) : this.click(downs.nth(index)));
+                await this.click(rando(100) <= 95 ? ups.nth(index) : downs.nth(index));
             }
             return {
                 ups: { locator: ups, count: upCount },

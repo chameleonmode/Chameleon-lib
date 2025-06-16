@@ -29,32 +29,28 @@ export const settings = {
 export const ai = {
     model: "gpt",
     decorators: {
-        tone: "adaptive to the general tone of context",
         system: "You are helpful!",
-        prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
         human: "reddit content creator",
         audience: "adaptive to the general audience of the task context",
         background: "surfing reddit",
+        tone: "adaptive to the general tone of context",
+        prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
         suffix: "Respond as creative as possible.",
     },
 };
 export function configure(opts) {
     Logger.debug("Opts", { opts });
-    const search = opts?.args?.search || args.search;
+    const search = opts?.args?.search || [];
     const options = {
-        args: {
-            ...args,
-            ...opts?.args,
-        },
-        run: { ...opts?.run },
+        run: opts?.run ?? {},
+        args: { ...args, ...opts?.args },
         settings: {
-            ...settings,
             start: {
                 ...settings.start,
                 ...opts?.settings?.start,
                 urls: [
                     ...(search.length ? [BASE_URL] : []),
-                    ...(settings.start.urls.length ? settings.start.urls : []),
+                    ...settings.start.urls,
                 ].filter(Boolean),
             },
             timeouts: {
@@ -68,13 +64,8 @@ export function configure(opts) {
         ai: {
             model: ai.model,
             decorators: {
-                tone: ai.decorators.tone,
-                system: opts?.ai?.decorators.system || ai.decorators.system,
-                prefix: opts?.ai?.decorators.prefix || ai.decorators.prefix,
-                human: opts?.ai?.decorators.human || ai.decorators.human,
-                audience: opts?.ai?.decorators.audience || ai.decorators.audience,
-                background: opts?.ai?.decorators.background || ai.decorators.background,
-                suffix: opts?.ai?.decorators.suffix || ai.decorators.suffix,
+                ...ai.decorators,
+                ...opts?.ai?.decorators,
             },
         },
     };
