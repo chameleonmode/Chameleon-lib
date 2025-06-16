@@ -21,9 +21,9 @@ public class BundledScriptsService {
 		{ nameof(Join), new Join() },
 		{ nameof(Post), new Post() },
 		{ nameof(Vote), new Vote() },
-		{ nameof(Google), new Google() },
-		{ nameof(Credentials), new Credentials() },
-		// obsoleted { nameof(Gsites), new Gsites() },
+		// TODO: { nameof(Google), new Google() },
+		// TODO: { nameof(Credentials), new Credentials() },
+		// OBSOLETE: { nameof(Gsites), new Gsites() },
 	};
 
 	public IList<Arguments> GetBundledScrits() {

@@ -4,7 +4,7 @@ namespace Chameleon.lib.Playwright.Scripts.CS;
 public class GoogleCTR : Base, IBundledCSScript {
 	public string TableName => nameof(GoogleCTR);
 	public string File => "GoogleCTR";
-	public string Title => "Google Click Through Rate";
+	public string Title => "CTR";
 	public string Description => "Clicks through Google search results to a target URL";
 	public Dictionary<string, string> Args => new() {
 		{ "search", "Search" },

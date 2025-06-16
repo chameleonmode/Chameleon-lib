@@ -4,7 +4,7 @@ namespace Chameleon.lib.Playwright.Scripts.CS;
 public class URLsexplorer : Base, IBundledCSScript {
 	public string TableName => nameof(URLsexplorer);
 	public string File => "URLsexplorer";
-	public string Title => "URLs Explorer";
+	public string Title => "Explorer";
 	public string Description => "Opens a list of URLs in the browser.";
 
 	public Dictionary<string, string> Args => new() {
