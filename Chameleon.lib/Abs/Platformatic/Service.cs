@@ -2,22 +2,23 @@ using Chameleon.lib.Abs.Platformatic.Shared;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
-public record Response<T>(T Payload);
-public record Rep<T>(T Reply);
+
+public abstract class Route(string prefix) {
+  public string Prefix { get; } = '/' + prefix;
+}
 public class Service : Base {
   public static class Routes {
-    public static class App {
-      public const string prefix = "/app";
-
+    public class App() : Route("app") {
+      public static App Instance { get; } = new();
       public record AppClientInfo(string Latest);
-      public static Task<AppClientInfo?> GetLatestVersion => Get<AppClientInfo>($"{prefix}/latest",
+      public static Task<AppClientInfo?> GetLatestVersion => Get<AppClientInfo>($"{Instance.Prefix}/latest",
         new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authenticate: false)
       );
       public static async Task<bool> DownloadLatest(Action<string> onProgress) {
         // Local path where the downloaded file will be saved
         var ext = OperatingSystem.IsMacOS() ? "zip" : "7z";
         // Send an asynchronous GET request and ensure headers are read before downloading the stream
-        using var response = await Client.HttpClient.GetAsync($"{prefix}/download" + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
+        using var response = await Client.HttpClient.GetAsync($"{Instance.Prefix}/download" + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
         _ = response.EnsureSuccessStatusCode();
 
         // Get the file name from the Content-Disposition header
@@ -61,14 +62,15 @@ public class Service : Base {
       }
     }
 
-    public static class Air {
-      public const string prefix = "/air";
+    public class Air() : Route("air") {
+      public static Air Instance { get; } = new();
+      public record Response<T>(T Payload);
       public static readonly string[] backgrounds = ["sarcastic", "informative", "relatable", "straightforward"];
 
       public record AskRequest(string Feature, object Scenario, string? Background = null);
       public record AskResponse(string Response);
       public static Task<Response<AskResponse>?> Ask(AskRequest request) {
-        return Post<Response<AskResponse>>($"{prefix}/ask/gpt", new(
+        return Post<Response<AskResponse>>($"{Instance.Prefix}/ask/gpt", new(
           Q: $"?feature={Uri.EscapeDataString(request.Feature)}",
           Body: new {
             background = request.Background ?? backgrounds[new Random().Next(0, backgrounds.Length)],
@@ -78,8 +80,9 @@ public class Service : Base {
       }
     }
 
-    public static class Promptee {
-      public const string prefix = "/promptee";
+    public class Promptee() : Route("promptee") {
+      public static Promptee Instance { get; } = new();
+      public record Rep<T>(T Reply);
       public record Decorations(string System, string Tone, string Human, string Audience, string Background,
         string Prefix = "",
         string Suffix = ""
@@ -87,14 +90,14 @@ public class Service : Base {
       public record GenorateRequest(Decorations Decorators, int Variations, string Search);
       public record GenorateResponse(string Type, string Data, object Reason);
       public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
-        return Post<Rep<IEnumerable<GenorateResponse>>>($"{prefix}/genorate", new(
-          Headers: new (){ { "ai", "origato" }, { "model", "gpt" } },
+        return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/genorate", new(
+          Headers: new() { { "ai", "origato" }, { "model", "gpt" } },
           Authenticate: false,
           Body: new {
-            model="gpt",
+            model = "gpt",
             decorators = request.Decorators,
-						task = "generate search terms",
-						generations = new {
+            task = "generate search terms",
+            generations = new {
 							type = "term",
 							sys = "you are creating variations of search terms",
 							context = "current search terms",
