@@ -1,15 +1,69 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
-using Chameleon.lib.Common.Util.ThirdParty.SMSapi;
-using Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPool.Models;
 using Chameleon.lib.Util;
 
-namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPool;
-public class SMSPoolAPI : PVAInstanceBase {
+namespace Chameleon.lib.ThirdParty.PVA;
+
+public class OrderBase {
+	public int success { get; set; }
+	public string? message { get; set; }
+}
+
+public class SMSOrder {
+	public int status { get; set; }
+	public string? message { get; set; }
+	public string? sms { get; set; }
+	public string? full_sms { get; set; }
+	public int resend { get; set; }
+	public long expiration { get; set; }
+	public long time_left { get; set; }
+}
+
+public class SuccessfullOrder : OrderBase {
+	public long number { get; set; }
+	public string? cc { get; set; }
+	public string? phonenumber { get; set; }
+	public string? order_id { get; set; }
+	public string? country { get; set; }
+	public string? service { get; set; }
+	public long pool { get; set; }
+	public object? expires_in { get; set; }
+	public long expiration { get; set; }
+	public string? cost { get; set; }
+	public int cost_in_cents { get; set; }
+}
+
+public class UnSuccessfullOrder : OrderBase {
+	public Pools? pools { get; set; }
+	public Error1[]? errors { get; set; }
+	public string? type { get; set; }
+}
+
+public class Pools {
+	public Foxtrot? Foxtrot { get; set; }
+}
+
+public class Foxtrot {
+	public int success { get; set; }
+	public string? message { get; set; }
+	public Error[]? errors { get; set; }
+	public string? type { get; set; }
+}
+
+public class Error {
+	public string? message { get; set; }
+}
+
+public class Error1 {
+	public string? message { get; set; }
+}
+
+public class SMSPoolAPI : PVAInstance {
+	public record Country(int ID, string Name, string Short_name, string Region) : RCountry(Name);
+	public record Service(int ID, string Name, int Favourite) : RService(Name);
 	private AuthenticationHeaderValue Authorization => new("Token", ApiKey);
 
-	public override async Task Init()
-	{
+	public override async Task Init() {
 		ApiKey = IoC.GetValue(nameof(SMSPoolAPI), nameof(ApiKey));
 
 		var getCountriesUrl = $"https://api.smspool.net/country/retrieve_all";
@@ -23,8 +77,7 @@ public class SMSPoolAPI : PVAInstanceBase {
 			Services = services;
 	}
 
-	public override async Task Save()
-	{
+	public override async Task Save() {
 		await IoC.SetValueAsync(ApiKey, nameof(SMSPoolAPI), nameof(ApiKey));
 	}
 
@@ -33,8 +86,7 @@ public class SMSPoolAPI : PVAInstanceBase {
 
 	private async Task<Tuple<string, string>> OrderSMSAsync<T1, T2>(T1 country, T2 service)
 	where T1 : Country
-	where T2 : Service
-	{
+	where T2 : Service {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
 		var apiUrl = $"https://api.smspool.net/purchase/sms";
@@ -59,8 +111,7 @@ public class SMSPoolAPI : PVAInstanceBase {
 				: new Tuple<string, string>(responseContent, response.StatusCode.ToString());
 	}
 
-	public override async Task<Tuple<string, string>> CancelOrderAsync(string orderid)
-	{
+	public override async Task<Tuple<string, string>> CancelOrderAsync(string orderid) {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
 		if (JsonSerializer.Deserialize<SuccessfullOrder>(orderid, JSOptions) is SuccessfullOrder phoneNumberData && phoneNumberData.order_id != null) {
@@ -79,8 +130,7 @@ public class SMSPoolAPI : PVAInstanceBase {
 		}
 	}
 
-	public override async Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData)
-	{
+	public override async Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData) {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
 		if (JsonSerializer.Deserialize<SuccessfullOrder>(numberData, JSOptions) is SuccessfullOrder phoneNumberData && phoneNumberData.order_id != null) {
@@ -107,8 +157,7 @@ public class SMSPoolAPI : PVAInstanceBase {
 	}
 
 	private SMSPoolAPI()
-			: base("SMS Pool", [], [])
-	{
+			: base("SMS Pool", [], []) {
 	}
 	public static SMSPoolAPI Instance { get; } = new SMSPoolAPI();
 }

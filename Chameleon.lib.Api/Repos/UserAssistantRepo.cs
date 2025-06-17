@@ -37,9 +37,7 @@ public class UserAssistantRepo : ApiBase<AssistDto> {
 	public static Task<AssisProfileDto[]> GetAllAssistantProfilesById(long assistantId) =>
 		 Instance.Get<AssisProfileDto[]>($"GetAllAssistantProfilesById?assistantId={assistantId}");
 
-	public static async Task<RootResult?> AddProfiles(
-		long assistantId, IEnumerable<int> profileIds, IEnumerable<int>? profilePermissions = null
-		) =>
+	public static async Task<RootResult?> AddProfiles(long assistantId, IEnumerable<int> profileIds, IEnumerable<int>? profilePermissions = null) =>
    profileIds.Any() ?	await Instance.Post<RootResult>("AddProfiles", new {
 			Id = assistantId,
 			ProfileIds = profileIds,

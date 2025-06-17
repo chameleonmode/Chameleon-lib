@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Util;
 
@@ -11,6 +12,15 @@ public static class Exceptionz {
 			PrintException(ex);
 		}
 		return default;
+	}
+	public static async Task TryCatch(Func<Task> action, string what, Action? caught = null) {
+		try {
+			await action();
+		} catch (Exception e) {
+			Toaster.Error(what, e.Message);
+			caught?.Invoke();
+			PrintException(e);
+		}
 	}
 
 	public static async Task AsyncTryCatch(Func<Task> action, Action<Exception>? caught = null) {

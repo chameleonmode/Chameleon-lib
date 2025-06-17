@@ -17,8 +17,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.lib.WebBrowser", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "chameleon.assets", "Chameleon.Assets\chameleon.assets.csproj", "{F2358F28-43B3-452B-A124-C7BD67174878}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.lib.Common", "Chameleon.lib.Common\Chameleon.lib.Common.csproj", "{5987F414-3F1A-4D3A-AABE-F5E3151220F1}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.lib.Api", "Chameleon.lib.Api\Chameleon.lib.Api.csproj", "{DA0C5DB8-AD43-4C75-A639-8AD9A8BD4A5D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chameleon.lib", "Chameleon.lib\Chameleon.lib.csproj", "{05BCCE4F-59B1-4DFE-8292-E71D4E44922A}"
@@ -136,36 +134,6 @@ Global
 		{F2358F28-43B3-452B-A124-C7BD67174878}.ReleaseWPF|x64.Build.0 = ReleaseWPF|Any CPU
 		{F2358F28-43B3-452B-A124-C7BD67174878}.ReleaseWPF|x86.ActiveCfg = ReleaseWPF|Any CPU
 		{F2358F28-43B3-452B-A124-C7BD67174878}.ReleaseWPF|x86.Build.0 = ReleaseWPF|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Debug|x64.Build.0 = Debug|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Debug|x86.Build.0 = Debug|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Release|x64.ActiveCfg = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Release|x64.Build.0 = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Release|x86.ActiveCfg = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.Release|x86.Build.0 = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvalonia|Any CPU.ActiveCfg = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvalonia|Any CPU.Build.0 = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvalonia|x64.ActiveCfg = ReleaseAvalonia|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvalonia|x64.Build.0 = ReleaseAvalonia|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvalonia|x86.ActiveCfg = ReleaseAvalonia|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvalonia|x86.Build.0 = ReleaseAvalonia|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.ActiveCfg = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.Build.0 = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvaloniaRemoteDebugSupport|x64.ActiveCfg = ReleaseAvaloniaRemoteDebugSupport|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvaloniaRemoteDebugSupport|x64.Build.0 = ReleaseAvaloniaRemoteDebugSupport|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvaloniaRemoteDebugSupport|x86.ActiveCfg = ReleaseAvaloniaRemoteDebugSupport|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseAvaloniaRemoteDebugSupport|x86.Build.0 = ReleaseAvaloniaRemoteDebugSupport|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseWPF|Any CPU.ActiveCfg = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseWPF|Any CPU.Build.0 = Release|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseWPF|x64.ActiveCfg = ReleaseWPF|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseWPF|x64.Build.0 = ReleaseWPF|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseWPF|x86.ActiveCfg = ReleaseWPF|Any CPU
-		{5987F414-3F1A-4D3A-AABE-F5E3151220F1}.ReleaseWPF|x86.Build.0 = ReleaseWPF|Any CPU
 		{DA0C5DB8-AD43-4C75-A639-8AD9A8BD4A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DA0C5DB8-AD43-4C75-A639-8AD9A8BD4A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA0C5DB8-AD43-4C75-A639-8AD9A8BD4A5D}.Debug|x64.ActiveCfg = Debug|Any CPU

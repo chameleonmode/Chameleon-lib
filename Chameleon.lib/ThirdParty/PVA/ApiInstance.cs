@@ -1,7 +1,20 @@
 ﻿using System.Text.Json;
 
-namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi;
-public abstract class PVAInstanceBase(string name, IEnumerable<RCountry> countries, IEnumerable<RService> services) : IPVAInstance {
+namespace Chameleon.lib.ThirdParty.PVA;
+public record RCountry(string Name);
+public record RService(string Name);
+public interface IPVAInstance {
+	string Name { get; }
+	string? ApiKey { get; set; }
+	IEnumerable<RCountry> Countries { get; }
+	IEnumerable<RService> Services { get; }
+	Task Init();
+	Task Save();
+	Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app);
+	Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData);
+	Task<Tuple<string, string>> CancelOrderAsync(string orderId);
+}
+public abstract class PVAInstance(string name, IEnumerable<RCountry> countries, IEnumerable<RService> services) : IPVAInstance {
 	public readonly JsonSerializerOptions JSOptions = new() {
 		PropertyNameCaseInsensitive = true,
 		WriteIndented = true,

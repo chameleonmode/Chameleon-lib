@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
+    <ProjectReference Include="../Chameleon.Assets/chameleon.assets.csproj" />
+    <ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
     <!-- ASP.NET Core references -->
     <!-- Use the Microsoft.AspNetCore.App metapackage for .NET 8 -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

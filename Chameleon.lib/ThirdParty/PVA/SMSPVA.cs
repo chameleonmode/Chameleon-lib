@@ -1,21 +1,71 @@
-﻿using Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPVA.Models;
-using Chameleon.lib.Util;
+﻿using Chameleon.lib.Util;
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
-namespace Chameleon.lib.Common.Util.ThirdParty.SMSapi.SMSPVA;
+namespace Chameleon.lib.ThirdParty.PVA;
 
-public class SMSPVAPI : PVAInstanceBase {
+public class ApiResponse<T> {
+	[JsonPropertyName("statusCode")]
+	public int StatusCode { get; set; }
+
+	[JsonPropertyName("data")]
+	public T? Data { get; set; }
+
+	[JsonPropertyName("error")]
+	public ErrorData? Error { get; set; }
+}
+public class DataBase {
+	[JsonPropertyName("orderId")]
+	public int OrderId { get; set; }
+}
+
+public class GetNumberData : DataBase {
+
+	[JsonPropertyName("phoneNumber")]
+	public string? PhoneNumber { get; set; }
+
+	[JsonPropertyName("countryCode")]
+	public string? CountryCode { get; set; }
+
+	[JsonPropertyName("orderExpireIn")]
+	public int OrderExpireIn { get; set; }
+}
+
+public class ReceiveSMSData : DataBase {
+	[JsonPropertyName("sms")]
+	public Sms? Sms { get; set; }
+
+	[JsonPropertyName("orderExpireIn")]
+	public int OrderExpireIn { get; set; }
+}
+
+public class Sms {
+	[JsonPropertyName("code")]
+	public string? Code { get; set; }
+	[JsonPropertyName("fullText")]
+	public string? FullText { get; set; }
+}
+
+public class ErrorData {
+	[JsonPropertyName("type")]
+	public string? Type { get; set; }
+
+	[JsonPropertyName("description")]
+	public string? Description { get; set; }
+}
+
+public class SMSPVAPI : PVAInstance {
+	public record class Service(int ID, string Logo, string Name, string Code) : RService(Name);
+	public record class Country(int ID, string Name, string Code) : RCountry(Name);
 	private List<KeyValuePair<string, string>> ApiKeyHeaders => [new("apikey", ApiKey!)];
 
-	public override Task Init()
-	{
+	public override Task Init() {
 		ApiKey = IoC.GetValue(nameof(SMSPVAPI), nameof(ApiKey));
 		return Task.CompletedTask;
 	}
 
-	public override async Task Save()
-	{
+	public override async Task Save() {
 		await IoC.SetValueAsync(ApiKey, nameof(SMSPVAPI), nameof(ApiKey));
 	}
 
@@ -24,8 +74,7 @@ public class SMSPVAPI : PVAInstanceBase {
 
 	private async Task<Tuple<string, string>> GetActivationNumberAsync<T1, T2>(T1 country, T2 service)
 			where T1 : Country
-			where T2 : Service
-	{
+			where T2 : Service {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
 		var url =
@@ -38,8 +87,7 @@ public class SMSPVAPI : PVAInstanceBase {
 		return new Tuple<string, string>(responseBody, jsonResponse?.Data?.PhoneNumber ?? "(+x)-xxx-xxx-xxxx");
 	}
 
-	public override async Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData)
-	{
+	public override async Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData) {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
 		if (JsonSerializer.Deserialize<ApiResponse<GetNumberData>>(numberData, JSOptions)?.Data?.OrderId is int oId) {
@@ -53,8 +101,7 @@ public class SMSPVAPI : PVAInstanceBase {
 		}
 	}
 
-	public override async Task<Tuple<string, string>> CancelOrderAsync(string orderId)
-	{
+	public override async Task<Tuple<string, string>> CancelOrderAsync(string orderId) {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
 		if (JsonSerializer.Deserialize<ApiResponse<GetNumberData>>(orderId, JSOptions)?.Data?.OrderId is int oId) {
@@ -381,8 +428,7 @@ public class SMSPVAPI : PVAInstanceBase {
 						new Service(234, "", "Zasilkovna", "opt225"),
 						new Service(235, "", "Zoho", "opt93"),
 						new Service(236, "", "ZoomInfo", "opt194")
-		])
-	{
+		]) {
 	}
 	public static SMSPVAPI Instance { get; } = new SMSPVAPI();
 }

@@ -18,8 +18,10 @@ public static class Extensions {
   }
 
   public static void ForEach<T>(this IEnumerable<T> source, Action<T> action) {
-    foreach (var item in source)
-      action(item);
+    foreach (var item in source) action(item);
+  }
+  public static async Task ForEach<T>(this IEnumerable<T> source, Func<T, Task> action) {
+    foreach (var item in source) await action(item);
   }
 
   public static async Task Empty<T>(this IList<T> source, Func<T, Task<bool>> predicate) {

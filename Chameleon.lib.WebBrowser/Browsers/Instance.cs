@@ -2,11 +2,10 @@
 using System.Diagnostics;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser.Services;
-using Chameleon.lib.Common.Util.ThirdParty.GeoIp;
 using Chameleon.lib.Common.Util.Win;
 using chameleon.assets;
-using Chameleon.lib.Common.Util.ThirdParty;
 using Chameleon.lib.Util;
+using Chameleon.lib.ThirdParty.GeoIp;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
 
