@@ -87,7 +87,7 @@ public class Service : Base {
         string Prefix = "",
         string Suffix = ""
       );
-      public record GenorateRequest(Decorations Decorators, int Variations, string Search);
+      public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
       public record GenorateResponse(string Type, string Data, object Reason);
       public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
         return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/genorate", new(
@@ -96,10 +96,10 @@ public class Service : Base {
           Body: new {
             model = "gpt",
             decorators = request.Decorators,
-            task = "generate search terms",
+            task = "generate different variations of search terms from each term",
             generations = new {
 							type = "term",
-							sys = "you are creating variations of search terms",
+							sys = "your reply must be valid json and seperate each generated term as its own reply object and only generate the requested minimum of each",
 							context = "current search terms",
 							range = new {min = request.Variations, max = request.Variations},
 							input = new {
