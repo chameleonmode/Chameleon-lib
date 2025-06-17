@@ -2,14 +2,14 @@
 using Chameleon.lib;
 using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Api.Dto;
-using Chameleon.lib.Common.Constants;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.WebBrowser;
 
 using Microsoft.Playwright;
 
 namespace Tests.Abs;
-public class PlatformaticTests : TestSetup {	
+
+public class PlatformaticTests : TestSetup {
 	public PlatformaticTests() : base(0) { }
 
 	[Fact]
@@ -179,6 +179,7 @@ public class PlatformaticTests : TestSetup {
 		Assert.Null(getTag);
 	}
 
+	#region Service
 	[Fact]
 	public async Task Service_Routes_App() {
 		var version = await Service.Routes.App.GetLatestVersion;
@@ -221,6 +222,14 @@ public class PlatformaticTests : TestSetup {
 		);
 		Assert.NotNull(res!.Payload);
 	}
+	[Fact]
+	public async Task Service_Routes_Promptee() {
+		var res = await Service.Routes.Promptee.Genorate(new(
+			new("you are helpful", "roboto", "mr", "roboto", "domo"), 2, "popeye, captain crunch")
+		);
+		Debug.WriteLine(JSON.Serialize(res!));
+	}
+	#endregion
 
 	[Fact]
 	public async Task DB_Routes_License() {

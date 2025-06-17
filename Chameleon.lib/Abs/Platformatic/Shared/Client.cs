@@ -1,4 +1,5 @@
 ﻿using Chameleon.lib.Auth;
+using Chameleon.lib.Util;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -10,7 +11,8 @@ public class Client {
 		object? Body = null,
 		bool EnsureSuccess = true,
 		bool Authenticate = true,
-		HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead
+		HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead,
+		Dictionary<string,string>? Headers = null
 	) {
 		public HttpContent? Content => Body == null ? null
 			: JsonContent.Create(Body, mediaType: null, JSON.InsensitiveCamelCaseOptions);
@@ -33,20 +35,21 @@ public class Client {
 		BaseAddress = new Uri(AddressUri)
 	};
 
-	internal async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Request @params) {
+	internal async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, Request req) {
 		using var client = this.HttpClient;
-		if (@params.Authenticate) {
+		if (req.Authenticate) {
 			var (auth0client, authentication) = await Session.Instance.Authenticate();
 			client.DefaultRequestHeaders.Authorization = authentication;
 			client.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
 		}
+		foreach (var header in req.Headers ?? []) client.DefaultRequestHeaders.Add(header.Key, header.Value);
 
-		var requestUri = $"{path}{@params.Q ?? ""}";
+		var requestUri = $"{path}{req.Q ?? ""}";
 		using var response = await client.SendAsync(new HttpRequestMessage(method, requestUri) {
-			Content = @params.Content
-		}, @params.CompletionOption);
+			Content = req.Content
+		}, req.CompletionOption);
 
-		if (@params.CompletionOption == HttpCompletionOption.ResponseHeadersRead) {
+		if (req.CompletionOption == HttpCompletionOption.ResponseHeadersRead) {
 			_ = response.EnsureSuccessStatusCode();
 			return typeof(T) == typeof(HttpResponseMessage) ?
 				(T)(object)await response.Content.ReadAsStreamAsync()
@@ -56,7 +59,7 @@ public class Client {
 		var content = await response.Content.ReadAsStringAsync();
 		return
 			response.IsSuccessStatusCode ? JSON.Deserialize<T>(content)
-			: @params.EnsureSuccess == true
+			: req.EnsureSuccess == true
 				? throw new HttpRequestException($"{method} {requestUri}: \n{response.StatusCode}\n" +
 					(
 						JSON.Deserialize<ReqError>(content) is ReqError err

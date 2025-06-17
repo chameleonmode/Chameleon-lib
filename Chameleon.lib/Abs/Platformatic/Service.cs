@@ -2,6 +2,8 @@ using Chameleon.lib.Abs.Platformatic.Shared;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
+public record Response<T>(T Payload);
+public record Rep<T>(T Reply);
 public class Service : Base {
   public static class Routes {
     public static class App {
@@ -58,7 +60,7 @@ public class Service : Base {
         return File.Exists(outputFile);
       }
     }
-    
+
     public static class Air {
       public const string prefix = "/air";
       public static readonly string[] backgrounds = ["sarcastic", "informative", "relatable", "straightforward"];
@@ -68,14 +70,44 @@ public class Service : Base {
       public static Task<Response<AskResponse>?> Ask(AskRequest request) {
         return Post<Response<AskResponse>>($"{prefix}/ask/gpt", new(
           Q: $"?feature={Uri.EscapeDataString(request.Feature)}",
-          Body: new { 
+          Body: new {
             background = request.Background ?? backgrounds[new Random().Next(0, backgrounds.Length)],
-            scenario = request.Scenario 
+            scenario = request.Scenario
           }
         ));
       }
+    }
 
-      public record Response<T>(T Payload);
+    public static class Promptee {
+      public const string prefix = "/promptee";
+      public record Decorations(string System, string Tone, string Human, string Audience, string Background,
+        string Prefix = "",
+        string Suffix = ""
+      );
+      public record GenorateRequest(Decorations Decorators, int Variations, string Search);
+      public record GenorateResponse(string Type, string Data, object Reason);
+      public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
+        return Post<Rep<IEnumerable<GenorateResponse>>>($"{prefix}/genorate", new(
+          Headers: new (){ { "ai", "origato" }, { "model", "gpt" } },
+          Authenticate: false,
+          Body: new {
+            model="gpt",
+            decorators = request.Decorators,
+						task = "generate search terms",
+						generations = new {
+							type = "term",
+							sys = "you are creating variations of search terms",
+							context = "current search terms",
+							range = new {min = request.Variations, max = request.Variations},
+							input = new {
+								type = "search",
+								data = request.Search,
+								reason = "list of search terms to generate variations for",
+							},
+						},
+					}
+        ));
+      }
     }
   }
 
