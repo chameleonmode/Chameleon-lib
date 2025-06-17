@@ -12,9 +12,3 @@ public class Dto : IDto {
 
 	public string? Tags { get; set; }
 }
-
-public class UPFolderDto : Dto {
-  public bool isFavorite { get; set; }
-  public int profilesCount { get; set; }
-  public long? creatorUserId { get; set; }
-}
