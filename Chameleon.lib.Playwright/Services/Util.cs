@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser;
 using Chameleon.lib.WebBrowser.Services;
+using Chameleon.lib.Util; // Added for FilePaths
 using Microsoft.Playwright;
 
 
@@ -50,17 +51,52 @@ public static class Util {
 					$"Ensure the browser is running with remote debugging enabled. Error: {ex.Message}", ex);
 			}
 		} else {
-			// Create a temporary directory for cookie extraction to avoid conflicts
+			var userProfileActualDir = options.Dir;
+			if (string.IsNullOrEmpty(userProfileActualDir) || !Directory.Exists(userProfileActualDir))
+			{
+				// Consider logging this error. If options.Dir is not set, cookies will be empty.
+				// This case should ideally be prevented by ensuring options.Dir is always populated.
+				Console.WriteLine($"Error: User profile directory 'options.Dir' is not set or does not exist: {userProfileActualDir}");
+				return new List<BrowserContextCookiesResult>(); // Return empty list
+			}
+
 			var tempDir = Path.Combine(Path.GetTempPath(), "chameleon-cookie-temp", Guid.NewGuid().ToString());
 			try {
-
 				_ = Directory.CreateDirectory(tempDir);
-				var originalCookiesPath = Path.Combine(options.Dir, "Default", "Cookies");
-				var tempCookiesDir = Path.Combine(tempDir, "Default");
-				_ = Directory.CreateDirectory(tempCookiesDir);
-
-				if (File.Exists(originalCookiesPath)) {
-					File.Copy(originalCookiesPath, Path.Combine(tempCookiesDir, "Cookies"), true);
+				 
+				if (options.Browser.BrowserType == SystemBrowserType.Firefox)
+				{
+					// For Firefox, Playwright expects cookies.sqlite at the root of the userDataDir.
+					var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
+					if (File.Exists(originalCookieFile))
+					{
+						File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
+					}
+					// Optionally, copy other essential files like prefs.js if they prove necessary.
+				}
+				else // Chromium-based (Chrome, Brave, Edge, etc.)
+				{
+					// For Chromium, copy the entire "Default" directory to make the temp profile more complete.
+					// Playwright expects Default/Network/Cookies within the userDataDir.
+					var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
+					var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
+					if (Directory.Exists(chromiumDefaultDirOriginal))
+					{
+						CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir, true);
+					}
+					else
+					{
+					    // If the Default directory doesn't exist, create the structure for the cookie file path
+					    // to avoid errors if we later try to copy just the cookie file to a non-existent Default/Network.
+					    var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
+                        _ = Directory.CreateDirectory(tempNetworkDir);
+					    // And attempt to copy the specific cookie file if the Default dir was missing but the cookie file might exist at its expected path.
+					    var originalCookieFile = Path.Combine(userProfileActualDir, "Default", "Network", "Cookies");
+					    if(File.Exists(originalCookieFile))
+					    {
+					        File.Copy(originalCookieFile, Path.Combine(tempNetworkDir, "Cookies"), true);
+					    }
+					}
 				}
 
 				await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
@@ -72,13 +108,16 @@ public static class Util {
 						ExecutablePath = await GetBrowseExecutablePath(options.Browser.BrowserType),
 					}
 				);
-				return await context.CookiesAsync();
+				var cookies = await context.CookiesAsync();
+				Console.WriteLine($"Found {cookies.Count} cookies in Util.cs for profile {options.Dir}"); // DEBUG LOG
+				return cookies;
 			} finally {
 				try {
 					if (Directory.Exists(tempDir)) {
 						Directory.Delete(tempDir, true);
 					}
-				} catch {
+				} catch (Exception ex) {
+					Console.WriteLine($"Error cleaning up temp directory {tempDir}: {ex.Message}"); // DEBUG LOG
 					// Ignore cleanup errors
 				}
 			}
@@ -192,4 +231,33 @@ public static class Util {
 					RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "Library/Caches" : ".cache",
 					"ms-playwright"
 			);
+
+	// Helper method to recursively copy a directory
+	private static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
+	{
+		var dir = new DirectoryInfo(sourceDir);
+		if (!dir.Exists) return; // Changed: If source doesn't exist, just return to avoid exception if Default dir is missing.
+
+		DirectoryInfo[] dirs = dir.GetDirectories();
+		Directory.CreateDirectory(destinationDir);
+
+		foreach (FileInfo file in dir.GetFiles())
+		{
+			string targetFilePath = Path.Combine(destinationDir, file.Name);
+			try { file.CopyTo(targetFilePath, true); }
+			catch (IOException ex) {
+			    Console.WriteLine($"IOException copying {file.FullName} to {targetFilePath}: {ex.Message}. File might be locked.");
+			    // Decide if you want to continue or re-throw. For cookie export, maybe continue with what could be copied.
+			}
+		}
+
+		if (recursive)
+		{
+			foreach (DirectoryInfo subDir in dirs)
+			{
+				string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+				CopyDirectory(subDir.FullName, newDestinationDir, true);
+			}
+		}
+	}
 }
