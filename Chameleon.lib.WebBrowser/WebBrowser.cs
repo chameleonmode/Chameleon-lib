@@ -81,7 +81,7 @@ public record class BrowserRecord(string Name, string Path) {
     return Name ?? Path;
   }
 }
-public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile);
+public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile, bool Foreground = true, bool Headless = false);
 public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port) {
   public SystemBrowserType BrowserType => OpenOptions.BrowserType;
   public BrowserProfile Profile => OpenOptions.Profile;

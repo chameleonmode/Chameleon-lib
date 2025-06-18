@@ -51,7 +51,15 @@ public abstract class Browser : IBrowserInstance {
 	public void Close() {
 		if (OperatingSystem.IsMacOS()) MacOSWindowListener.Instance.RemPid(Brocess?.Id);
 		_ = LoadedTCS.TrySetResult(false);
-		Brocess?.Dispose();
+		if (Brocess != null) {
+			try {
+				if (!Brocess.HasExited) {
+					Brocess.Kill(true); 
+					Brocess.WaitForExit(3000);
+				}
+			} catch { /* ignore exceptions if already exited or access denied */ }
+			Brocess.Dispose();
+		}
 		Brocess = null;
 		InvokeEvent(SysBrowserEventType.Closed);
 	}

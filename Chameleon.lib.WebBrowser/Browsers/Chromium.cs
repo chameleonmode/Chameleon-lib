@@ -20,12 +20,7 @@ public class Chromium : Browser {
 
 	// ...
 	protected override string GetCommandLineArguments(bool args) {
-		// var exts = string.Join(",", new[] {
-		// 	Settings.DestExtentionsDir,
-		// 	Path.Combine(FilePaths.BrowserExtensions, Settings.BrowserType.GetDescription()),
-		// }.Where(Directory.Exists).SelectMany(Directory.GetDirectories));
-
-		return string.Join(" ", new[] {
+		var arguments = new List<string> {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
 				//"NetworkQualityEstimatorWebHoldback",
@@ -45,23 +40,23 @@ public class Chromium : Browser {
 				"InstalledApp",
 				"InstalledAppProvider",
         // Disable built-in Google Translate service
-        "Translate",
+				"Translate",
         // Disable the Chrome Optimization Guide background networking
-        "OptimizationHints",
+				"OptimizationHints",
         //  Disable the Chrome Media Router (cast target discovery) background networking
-        "MediaRouter",
+				"MediaRouter",
         /// Avoid the startup dialog for _Do you want the application “Chromium.app” to accept incoming network connections?_. This is a sub-component of the MediaRouter.
-        "DialMediaRouteProvider",
+				"DialMediaRouteProvider",
         // Disable the feature of: Calculate window occlusion on Windows will be used in the future to throttle and potentially unload foreground tabs in occluded windows.
-        "CalculateNativeWinOcclusion",
+				"CalculateNativeWinOcclusion",
         // Disables the Discover feed on NTP
-        "InterestFeedContentSuggestions",
+				"InterestFeedContentSuggestions",
         // Don't update the CT lists
-        "CertificateTransparencyComponentUpdater",
+				"CertificateTransparencyComponentUpdater",
         // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
-        "AutofillServerCommunication",
+				"AutofillServerCommunication",
         // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
-        "PrivacySandboxSettings4",
+				"PrivacySandboxSettings4",
 				// webrtc-hw-decoding Enables HW decode acceleration for WebRTC. ✅
 				// webrtc-hw-encoding	Enables HW encode acceleration for WebRTC. ✅
 				// "WebRtcHWDecoding",
@@ -131,9 +126,16 @@ public class Chromium : Browser {
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
 			$"--load-extension=\"{Project.Extensions.Chromeleon}\"",
-			args ? InitUrl : "about:blank",
-			//"about:blank"
-		}.Where(x => x != null));
+			args ? InitUrl : "about:blank"
+		};
+
+		// Add headless flag if requested
+		if (Settings.OpenOptions.Headless)
+		{
+			arguments.Add("--headless=new"); // Use --headless for older versions if needed
+		}
+
+		return string.Join(" ", arguments.Where(x => x != null));
 	}
 
 	// ...

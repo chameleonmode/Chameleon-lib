@@ -38,8 +38,8 @@ public static class Util {
 	}
 	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesAsync(Options options) {
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium; 
-		
+		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+
 		if (options.Port != null) {
 			try {
 				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}");
@@ -52,50 +52,32 @@ public static class Util {
 			}
 		} else {
 			var userProfileActualDir = options.Dir;
-			if (string.IsNullOrEmpty(userProfileActualDir) || !Directory.Exists(userProfileActualDir))
-			{
-				// Consider logging this error. If options.Dir is not set, cookies will be empty.
-				// This case should ideally be prevented by ensuring options.Dir is always populated.
-				Console.WriteLine($"Error: User profile directory 'options.Dir' is not set or does not exist: {userProfileActualDir}");
-				return new List<BrowserContextCookiesResult>(); // Return empty list
+			if (string.IsNullOrEmpty(userProfileActualDir) || !Directory.Exists(userProfileActualDir)) {
+				Debug.WriteLine($"Error: User profile directory 'options.Dir' is not set or does not exist: {userProfileActualDir}");//Should normally use a logger instead
+				return new List<BrowserContextCookiesResult>();
 			}
 
 			var tempDir = Path.Combine(Path.GetTempPath(), "chameleon-cookie-temp", Guid.NewGuid().ToString());
 			try {
 				_ = Directory.CreateDirectory(tempDir);
-				 
-				if (options.Browser.BrowserType == SystemBrowserType.Firefox)
-				{
-					// For Firefox, Playwright expects cookies.sqlite at the root of the userDataDir.
+
+				if (options.Browser.BrowserType == SystemBrowserType.Firefox) {
 					var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
-					if (File.Exists(originalCookieFile))
-					{
+					if (File.Exists(originalCookieFile)) {
 						File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
 					}
-					// Optionally, copy other essential files like prefs.js if they prove necessary.
-				}
-				else // Chromium-based (Chrome, Brave, Edge, etc.)
-				{
-					// For Chromium, copy the entire "Default" directory to make the temp profile more complete.
-					// Playwright expects Default/Network/Cookies within the userDataDir.
+				} else {
 					var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
 					var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
-					if (Directory.Exists(chromiumDefaultDirOriginal))
-					{
+					if (Directory.Exists(chromiumDefaultDirOriginal)) {
 						CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir, true);
-					}
-					else
-					{
-					    // If the Default directory doesn't exist, create the structure for the cookie file path
-					    // to avoid errors if we later try to copy just the cookie file to a non-existent Default/Network.
-					    var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
-                        _ = Directory.CreateDirectory(tempNetworkDir);
-					    // And attempt to copy the specific cookie file if the Default dir was missing but the cookie file might exist at its expected path.
-					    var originalCookieFile = Path.Combine(userProfileActualDir, "Default", "Network", "Cookies");
-					    if(File.Exists(originalCookieFile))
-					    {
-					        File.Copy(originalCookieFile, Path.Combine(tempNetworkDir, "Cookies"), true);
-					    }
+					} else {
+						var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
+						_ = Directory.CreateDirectory(tempNetworkDir);
+						var originalCookieFile = Path.Combine(userProfileActualDir, "Default", "Network", "Cookies");
+						if (File.Exists(originalCookieFile)) {
+							File.Copy(originalCookieFile, Path.Combine(tempNetworkDir, "Cookies"), true);
+						}
 					}
 				}
 
@@ -109,7 +91,7 @@ public static class Util {
 					}
 				);
 				var cookies = await context.CookiesAsync();
-				Console.WriteLine($"Found {cookies.Count} cookies in Util.cs for profile {options.Dir}"); // DEBUG LOG
+				Debug.WriteLine($"Found {cookies.Count} cookies in Util.cs for profile {options.Dir}");
 				return cookies;
 			} finally {
 				try {
@@ -117,8 +99,7 @@ public static class Util {
 						Directory.Delete(tempDir, true);
 					}
 				} catch (Exception ex) {
-					Console.WriteLine($"Error cleaning up temp directory {tempDir}: {ex.Message}"); // DEBUG LOG
-					// Ignore cleanup errors
+					Debug.WriteLine($"Error cleaning up temp directory {tempDir}: {ex.Message}");
 				}
 			}
 		}
@@ -232,31 +213,109 @@ public static class Util {
 					"ms-playwright"
 			);
 
-	// Helper method to recursively copy a directory
-	private static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
-	{
+	private static void CopyDirectory(string sourceDir, string destinationDir, bool recursive) {
 		var dir = new DirectoryInfo(sourceDir);
 		if (!dir.Exists) return; // Changed: If source doesn't exist, just return to avoid exception if Default dir is missing.
 
 		DirectoryInfo[] dirs = dir.GetDirectories();
 		Directory.CreateDirectory(destinationDir);
 
-		foreach (FileInfo file in dir.GetFiles())
-		{
+		foreach (FileInfo file in dir.GetFiles()) {
 			string targetFilePath = Path.Combine(destinationDir, file.Name);
-			try { file.CopyTo(targetFilePath, true); }
-			catch (IOException ex) {
-			    Console.WriteLine($"IOException copying {file.FullName} to {targetFilePath}: {ex.Message}. File might be locked.");
-			    // Decide if you want to continue or re-throw. For cookie export, maybe continue with what could be copied.
+			try { file.CopyTo(targetFilePath, true); } catch (IOException ex) {
+				Console.WriteLine($"IOException copying {file.FullName} to {targetFilePath}: {ex.Message}. File might be locked.");
+				// Decide if you want to continue or re-throw. For cookie export, maybe continue with what could be copied.
 			}
 		}
 
-		if (recursive)
-		{
-			foreach (DirectoryInfo subDir in dirs)
-			{
+		if (recursive) {
+			foreach (DirectoryInfo subDir in dirs) {
 				string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
 				CopyDirectory(subDir.FullName, newDestinationDir, true);
+			}
+		}
+	}
+
+	public static Task SetCookies(Options options, IEnumerable<Cookie> cookies) =>
+			SetCookiesWithRetryPolicy(options, [.. cookies]);
+
+	private static async Task SetCookiesWithRetryPolicy(Options options, List<Cookie> cookies, int tries = 0) {
+		try {
+			await SetCookiesAsync(options, cookies);
+		} catch (Exception ex) when ((ex.Message.Contains("Target page, context or browser has been closed") ||
+																	ex.Message.Contains("Connection closed") ||
+																	ex.Message.Contains("Browser has been closed") ||
+																	ex.Message.Contains("Protocol error") ||
+																	ex.Message.Contains("WebSocket") ||
+																	ex.Message.Contains("net::ERR_CONNECTION_REFUSED")) && tries < 3) {
+			await Task.Delay(500 * (tries + 1));
+			await SetCookiesWithRetryPolicy(options, cookies, ++tries);
+		}
+	}
+
+	private static async Task SetCookiesAsync(Options options, List<Cookie> cookies) {
+		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+
+		if (options.Port != null) {
+			try {
+				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}");
+				var context = browser.Contexts.Count > 0 ? browser.Contexts[0] : await browser.NewContextAsync();
+				await context.AddCookiesAsync(cookies);
+			} catch (Exception ex) {
+				throw new InvalidOperationException($"Failed to connect to browser on port {options.Port}. " +
+						$"Ensure the browser is running with remote debugging enabled. Error: {ex.Message}", ex);
+			}
+		} else {
+			var userProfileActualDir = options.Dir;
+			if (string.IsNullOrEmpty(userProfileActualDir) || !Directory.Exists(userProfileActualDir)) {
+				Debug.WriteLine($"Error: User profile directory 'options.Dir' is not set or does not exist: {userProfileActualDir}");
+				return;
+			}
+
+			var tempDir = Path.Combine(Path.GetTempPath(), "chameleon-cookie-temp", Guid.NewGuid().ToString());
+			try {
+				_ = Directory.CreateDirectory(tempDir);
+
+				if (options.Browser.BrowserType == SystemBrowserType.Firefox) {
+					var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
+					if (File.Exists(originalCookieFile)) {
+						File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
+					}
+				} else {
+					var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
+					var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
+					if (Directory.Exists(chromiumDefaultDirOriginal)) {
+						CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir, true);
+					} else {
+						var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
+						_ = Directory.CreateDirectory(tempNetworkDir);
+						var originalCookieFile = Path.Combine(userProfileActualDir, "Default", "Network", "Cookies");
+						if (File.Exists(originalCookieFile)) {
+							File.Copy(originalCookieFile, Path.Combine(tempNetworkDir, "Cookies"), true);
+						}
+					}
+				}
+
+				await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
+						tempDir,
+						new() {
+							Headless = true,
+							Args = ["--allow-downgrade"],
+							Proxy = options.Proxy,
+							ExecutablePath = await GetBrowseExecutablePath(options.Browser.BrowserType),
+						}
+				);
+				await context.AddCookiesAsync(cookies);
+				await context.CloseAsync();
+			} finally {
+				try {
+					if (Directory.Exists(tempDir)) {
+						Directory.Delete(tempDir, true);
+					}
+				} catch (Exception ex) {
+					Debug.WriteLine($"Error cleaning up temp directory {tempDir}: {ex.Message}");
+				}
 			}
 		}
 	}

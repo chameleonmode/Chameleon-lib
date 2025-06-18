@@ -284,16 +284,20 @@ public class Gecko : Browser {
 		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.SysBrowserProfileCachePath);
 	}
 	protected override string GetCommandLineArguments(bool args) {
-		return string.Join(" ", [
+		var arguments = new List<string> {
 			"-allow-downgrade",
 			"-no-remote",
-			#if DEBUG
-			//"-devtools",
-			//"-jsconsole",
-			#endif
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
-			args ? InitUrl : "",
-		]);
+			args ? InitUrl : ""
+		};
+
+		// Add headless flag if requested
+		if (Settings.OpenOptions.Headless)
+		{
+			arguments.Add("-headless");
+		}
+
+		return string.Join(" ", arguments.Where(x => !string.IsNullOrWhiteSpace(x)));
 	}
 
 	protected override async Task WaitForWinHandle() {

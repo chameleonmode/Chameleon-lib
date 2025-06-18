@@ -99,7 +99,14 @@ public class SystemBrowserService {
 		_ = browser.InitializeAsync();
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
 			browser.InvokeEvent(SysBrowserEventType.Opened);
-			browser.InvokeEvent(SysBrowserEventType.Foreground);
+            if (settings.OpenOptions.Foreground)
+            {
+                browser.InvokeEvent(SysBrowserEventType.Foreground);
+            }
+            else
+            {
+                browser.InvokeEvent(SysBrowserEventType.Background);
+            }
 			// TODO: ?  await AddonsServer.Instance.WaitListener();
 		} else {
 			throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
@@ -130,7 +137,16 @@ public class SystemBrowserService {
 				await Task.Delay(256);
 				_ = Open(options);
 			} else {
-				browser.InvokeEvent(SysBrowserEventType.Foreground);
+				if (!options.Headless && browser.Settings.OpenOptions.Headless) {
+					browser.Close();
+					await Task.Delay(256);
+					var settings = new SysBrowserSettings(options, TcpUtil.NextFreePort(9613));
+					browser = await OpenWithSettings(settings);
+					Instances[options] = browser;
+				}
+				else {
+					browser.InvokeEvent(SysBrowserEventType.Foreground);
+				}
 			}
 		}
 		return browser;
