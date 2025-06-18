@@ -57,7 +57,10 @@ public abstract class Browser : IBrowserInstance {
 					Brocess.Kill(true); 
 					Brocess.WaitForExit(3000);
 				}
-			} catch { /* ignore exceptions if already exited or access denied */ }
+			} catch(Exception ex) 
+			{
+				Debug.WriteLine($"Failed to close browser instance: {ex.Message}");
+			}
 			Brocess.Dispose();
 		}
 		Brocess = null;

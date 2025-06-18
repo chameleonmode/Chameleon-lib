@@ -291,7 +291,6 @@ public class Gecko : Browser {
 			args ? InitUrl : ""
 		};
 
-		// Add headless flag if requested
 		if (Settings.OpenOptions.Headless)
 		{
 			arguments.Add("-headless");

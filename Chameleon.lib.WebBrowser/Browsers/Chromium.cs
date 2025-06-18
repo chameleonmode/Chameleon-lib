@@ -129,7 +129,6 @@ public class Chromium : Browser {
 			args ? InitUrl : "about:blank"
 		};
 
-		// Add headless flag if requested
 		if (Settings.OpenOptions.Headless)
 		{
 			arguments.Add("--headless=new"); // Use --headless for older versions if needed
