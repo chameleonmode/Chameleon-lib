@@ -14,7 +14,7 @@ public class Gecko : Browser {
 	// 	startInfo.EnvironmentVariables["MOZ_REMOTE_SETTINGS_DEVTOOLS"] = "1";
 	// 	return base.Start(startInfo);
 	// }
-	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
+	public override string PrefsFile => Path.Combine(Settings.BrowserCache, "prefs.js");
 	public override string ExeDir { get; } = OperatingSystem.IsMacOS()
 		? Path.Combine(FilePaths.AppDataLocalDir, "gecko", "firefox.app")
 		: Path.Combine(FilePaths.AppDataLocalDir, "gecko");
@@ -281,7 +281,7 @@ public class Gecko : Browser {
 			}
 		}
 
-		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.SysBrowserProfileCachePath);
+		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.BrowserCache);
 	}
 	protected override string GetCommandLineArguments(bool args) {
 		return string.Join(" ", [
@@ -291,7 +291,7 @@ public class Gecko : Browser {
 			//"-devtools",
 			//"-jsconsole",
 			#endif
-			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
+			$"-profile \"{Settings.BrowserCache}\"",
 			args ? InitUrl : "",
 		]);
 	}

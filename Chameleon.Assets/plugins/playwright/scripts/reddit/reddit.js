@@ -41,6 +41,10 @@ export const ai = {
 export function configure(opts) {
     Logger.debug("Opts", { opts });
     const search = opts?.args?.search || [];
+    const urls = [
+        ...(opts?.settings?.start?.urls || []),
+        ...settings.start.urls,
+    ];
     const options = {
         run: opts?.run ?? {},
         args: { ...args, ...opts?.args },
@@ -49,9 +53,8 @@ export function configure(opts) {
                 ...settings.start,
                 ...opts?.settings?.start,
                 urls: [
-                    ...(search.length && !settings.start.urls ? [BASE_URL] : []),
-                    ...settings.start.urls,
-                    ...(opts?.settings?.start?.urls || []),
+                    ...(search.length && !urls.length ? [BASE_URL] : []),
+                    ...urls,
                 ].filter(Boolean),
             },
             timeouts: {

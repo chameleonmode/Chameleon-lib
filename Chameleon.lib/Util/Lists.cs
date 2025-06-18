@@ -1,4 +1,5 @@
 namespace Chameleon.lib.Util;
+
 public static class ULists {
   public static void UpdateMapped<TSource, TDestination>(this IList<TDestination> cur,
     IEnumerable<TSource> collection, Func<TSource, TDestination> mapper, Func<TDestination, TSource, bool> contains
@@ -23,16 +24,17 @@ public static class ULists {
     }
   }
 
-  public static async Task AddMappedAsync<TSource, TDestination>(this IList<TDestination> cur, IEnumerable<TSource> collection, Func<TSource, Task<TDestination>> mapper) {
+  public static async Task AddMapped<TSource, TDestination>(this IList<TDestination> cur, IEnumerable<TSource> collection, Func<TSource, Task<TDestination>> mapper) {
     foreach (var item in collection) {
       var destination = await mapper(item);
       cur.Add(destination);
     }
   }
 
-	public static void AddIfNotExists<T>(this IList<T> list, T item, Func<T, bool> predicate) {
-		if (!list.Any(predicate)) {
-			list.Add(item);
-		}
-	}
+  public static void AddIfNot<T>(this IList<T> list, T item, Func<T, bool> predicate) {
+    if (!list.Any(predicate)) list.Add(item);
+  }
+  public static void AddIfNot<T>(this IList<T> list, T item) {
+    if (!list.Contains(item)) list.Add(item);
+  }
 }

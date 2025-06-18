@@ -7,7 +7,7 @@ namespace Chameleon.lib.WebBrowser.System;
 
 public class Chromium : Browser {
 	public override string PrefsFile => Path.Combine(
-		Settings.SysBrowserProfileCachePath,
+		Settings.BrowserCache,
 		"Default",
 		"Preferences"
 	);
@@ -127,7 +127,7 @@ public class Chromium : Browser {
 			"--hide-crash-restore-bubble",
 			// "--restore-last-session",
 			$"--remote-debugging-port={Settings.Port}",
-			$"--user-data-dir=\"{Settings.SysBrowserProfileCachePath}\"",
+			$"--user-data-dir=\"{Settings.BrowserCache}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
 			$"--load-extension=\"{Project.Extensions.Chromeleon}\"",

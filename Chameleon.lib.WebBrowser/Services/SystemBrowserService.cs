@@ -109,8 +109,10 @@ public class SystemBrowserService {
 	public async Task<IBrowserInstance?> Open(SysBrowserOpenOptions options) {
 		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
 		if (browser == null) {
-			var settings = new SysBrowserSettings(options, TcpUtil.NextFreePort(9613));
-			try {
+      var settings = new SysBrowserSettings(options) {
+        Port = TcpUtil.NextFreePort(9613)
+      };
+      try {
 				browser = await OpenWithSettings(settings);
 			} catch (Exception e) {
 				if (browser != null) browser.InvokeEvent(SysBrowserEventType.Error);
