@@ -13,6 +13,7 @@ using Chameleon.lib.Helpers;
 using Chameleon.lib.Services;
 using System.Text.Json.Serialization;
 using System.Diagnostics;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib;
 
@@ -40,12 +41,10 @@ public static class JSON {
 	};
 
 	public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null) {
-		try {
-			return JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions);
-		} catch (Exception ex) {
-			Debug.WriteLine($"Error deserializing JSON: {ex.Message}");
-			return default;
-		}
+			return Exceptionz.TryCatch(()=> JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions));
+	}
+	public static T Deserializer<T>(string json, JsonSerializerOptions? options = null) where T : new() {
+			return Deserialize<T>(json,options) ?? new();
 	}
 
 	public static string Serialize(object o, JsonSerializerOptions? options = null) =>

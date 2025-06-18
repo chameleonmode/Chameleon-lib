@@ -1,14 +1,10 @@
-using Chameleon.lib.Abs.Platformatic.Shared;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
 
-public abstract class Route(string prefix) {
-  public string Prefix { get; } = '/' + prefix;
-}
-public class Service : Base {
+public class Service : Web {
   public static class Routes {
-    public class App() : Route("app") {
+    public class App() : Root("app") {
       public static App Instance { get; } = new();
       public record AppClientInfo(string Latest);
       public static Task<AppClientInfo?> GetLatestVersion => Get<AppClientInfo>($"{Instance.Prefix}/latest",
@@ -18,7 +14,7 @@ public class Service : Base {
         // Local path where the downloaded file will be saved
         var ext = OperatingSystem.IsMacOS() ? "zip" : "7z";
         // Send an asynchronous GET request and ensure headers are read before downloading the stream
-        using var response = await Client.HttpClient.GetAsync($"{Instance.Prefix}/download" + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
+        using var response = await Client.Instance.HttpClient.GetAsync($"{Instance.Prefix}/download" + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
         _ = response.EnsureSuccessStatusCode();
 
         // Get the file name from the Content-Disposition header
@@ -62,7 +58,7 @@ public class Service : Base {
       }
     }
 
-    public class Air() : Route("air") {
+    public class Air() : Root("air") {
       public static Air Instance { get; } = new();
       public record Response<T>(T Payload);
       public static readonly string[] backgrounds = ["sarcastic", "informative", "relatable", "straightforward"];
@@ -80,7 +76,7 @@ public class Service : Base {
       }
     }
 
-    public class Promptee() : Route("promptee") {
+    public class Promptee() : Root("promptee") {
       public static Promptee Instance { get; } = new();
       public record Rep<T>(T Reply);
       public record Decorations(string System, string Tone, string Human, string Audience, string Background,
@@ -98,17 +94,17 @@ public class Service : Base {
             decorators = request.Decorators,
             task = "generate different variations of search terms from each term",
             generations = new {
-							type = "term",
-							sys = "your reply must be valid json and seperate each generated term as its own reply object and only generate the requested minimum of each",
-							context = "current search terms",
-							range = new {min = request.Variations, max = request.Variations},
-							input = new {
-								type = "search",
-								data = request.Search,
-								reason = "list of search terms to generate variations for",
-							},
-						},
-					}
+              type = "term",
+              sys = "your reply must be valid json and seperate each generated term as its own reply object and only generate the requested minimum of each",
+              context = "current search terms",
+              range = new { min = request.Variations, max = request.Variations },
+              input = new {
+                type = "search",
+                data = request.Search,
+                reason = "list of search terms to generate variations for",
+              },
+            },
+          }
         ));
       }
     }

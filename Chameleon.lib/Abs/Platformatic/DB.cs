@@ -1,8 +1,7 @@
-﻿using Chameleon.lib.Abs.Platformatic.Shared;
-using Chameleon.lib.Auth;
+﻿using Chameleon.lib.Auth;
 
 namespace Chameleon.lib.Abs.Platformatic;
-public class DB : Base {
+public class DB : Web {
 	DB() { }
 
 	#region Models / Dto's
@@ -10,10 +9,10 @@ public class DB : Base {
 		object Id,
 		string UserId,
 		string Email,
-		string LicenseKey,
+		string? LicenseKey,
 		string TenantId,
 		string Provider,
-		string ProviderId,
+		string? ProviderId,
 		DateTime CreatedAt,
 		DateTime UpdatedAt
 	);
@@ -106,7 +105,7 @@ public class DB : Base {
 	#endregion
 
 	#region Props
-	public User? DBuser { get; private set; }
+	public User? DBuser { get; set; }
 	public IEnumerable<User>? DBusers { get; private set; }
 	public Routes.License.Status? KickLickenseStatus { get; private set; }
 	public Routes.License.Customer? KickCustomer { get; private set; }

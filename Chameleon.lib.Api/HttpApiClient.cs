@@ -29,25 +29,24 @@ public class HttpApiClient {
 	public Task<T> Delete<T>(string path) => Send<T>(HttpMethod.Delete, path);
 
 	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default) {
-		var response = await Exceptionz.RetryWithPolicyAsync(async () => {
+		var response = await Exceptionz.RetryPolicy(async () => {
 			var request = new HttpRequestMessage(method, "http://18.157.103.1/api/" + path);
 			if (Auther.AuthToken.IsNot())
 				request.Headers.Authorization = new("Bearer", Auther.AuthToken);
 
 			if (body != null) {
-				request.Content = new StringContent(JsonSerializer.Serialize(body, options), Encoding.UTF8, "application/json");
+				request.Content = new StringContent(JSON.Serialize(body, options), Encoding.UTF8, "application/json");
 			}
 			return await _httpClient.SendAsync(request);
-		}, OnError: (e, i) => {
+		}, caught: (e, i) => {
 			OnRetry?.Invoke(e.Message);
-			if (e.Message.Contains("401"))
-				_ = (OnAuthError?.Invoke());
+			if (e.Message.Contains("401")) _ = OnAuthError?.Invoke();
 			//if (e.Message.Contains("429")) // TODO: check
 			OnCircuitBreaker?.Invoke(e.Message);
 		});
 
-		if (typeof(T) == typeof(RootResult))
-			return await Read<T>(response);
+		ArgumentNullException.ThrowIfNull(response);
+		if (typeof(T) == typeof(RootResult)) return await Read<T>(response!);
 
 		var read = await Read<RootResponse<T>>(response);
 		ArgumentNullException.ThrowIfNull(read.result, $"Response could not be determined for {nameof(T)}");
@@ -57,7 +56,7 @@ public class HttpApiClient {
 	private async Task<T> Read<T>(HttpResponseMessage response) {
 		_ = response.EnsureSuccessStatusCode();
 		var responseString = await response.Content.ReadAsStringAsync();
-		var responseContent = JsonSerializer.Deserialize<T>(responseString, options);
+		var responseContent = JSON.Deserialize<T>(responseString, options);
 		ArgumentNullException.ThrowIfNull(responseContent, $"Response is unserializable for {nameof(T)}");
 		return responseContent;
 	}
