@@ -49,8 +49,9 @@ export function configure(opts) {
                 ...settings.start,
                 ...opts?.settings?.start,
                 urls: [
-                    ...(search.length ? [BASE_URL] : []),
+                    ...(search.length && !settings.start.urls ? [BASE_URL] : []),
                     ...settings.start.urls,
+                    ...(opts?.settings?.start?.urls || []),
                 ].filter(Boolean),
             },
             timeouts: {

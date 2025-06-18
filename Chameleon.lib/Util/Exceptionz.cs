@@ -4,25 +4,26 @@ using Chameleon.lib.Helpers;
 namespace Chameleon.lib.Util;
 
 public static class Exceptionz {
-	public static T? TryCatch<T>(Func<T> action, Action? caught = null) {
+	public static T? TryCatch<T>(Func<T> action, Action<Exception>? caught = null) {
 		try {
 			return action();
-		} catch (Exception ex) {
-			caught?.Invoke();
-			PrintException(ex);
+		} catch (Exception e) {
+			caught?.Invoke(e);
+			PrintException(e);
 			return default;
 		}
 	}
 
-	public static async Task TryCatch(Func<Task> action, Action<Exception>? caught = null, string? what = null) {
+	public static void TryCatch(Action action, Action<Exception>? caught = null) {
+		_ = TryCatch(() => { action(); return true; }, caught);
+	}
+
+	public static async Task TryCatch(Func<Task> action, Action<Exception>? caught = null) {
 		try {
 			await action();
-		} catch (Exception ex) {
-			if (!string.IsNullOrEmpty(what)) {
-				Toaster.Error(what, ex.Message);
-			}
-			caught?.Invoke(ex);
-			PrintException(ex);
+		} catch (Exception e) {
+			caught?.Invoke(e);
+			PrintException(e);
 		}
 	}
 
@@ -40,9 +41,9 @@ public static class Exceptionz {
 		}
 	}
 
-	private static void PrintException(Exception? ex) {
-		if (ex == null) return;
-		Debug.WriteLine($"Message: {ex.Message}\nStackTrace:\n{ex.StackTrace}");
-		PrintException(ex.InnerException);
+	private static void PrintException(Exception? e) {
+		if (e == null) return;
+		Debug.WriteLine($"Message: {e.Message}\nStackTrace:\n{e.StackTrace}");
+		PrintException(e.InnerException);
 	}
 }
