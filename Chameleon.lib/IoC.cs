@@ -12,7 +12,6 @@ using Microsoft.Extensions.Primitives;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Services;
 using System.Text.Json.Serialization;
-using System.Diagnostics;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib;
@@ -39,6 +38,8 @@ public static class JSON {
 		IncludeFields = true,
 		Converters = { new JsonStringEnumConverter() },
 	};
+	public static readonly JsonSerializerOptions InsensitiveEnumConverter = new() {
+		 PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } };
 
 	public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null) {
 			return Exceptionz.TryCatch(()=> JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions));

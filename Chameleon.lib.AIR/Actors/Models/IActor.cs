@@ -39,13 +39,33 @@ public record Timeouts(int Default, int Wait, int Navigate, Rando Naps) {
 }
 public record Start(string Feature, int Attempts,Rando Variations, Rando Iterations, bool New = true, string? Url = null, bool All = true) {
   public Rando Rando { get; set; } = new Rando(1, 1);
-  public IEnumerable<string>? Urls { get; set; } = Url?.Split('\n').Select(x => x.Trim());
+  public IEnumerable<string>? Urls { get; set; }
 }
-public record Settings(Start Start, Timeouts Timeouts);
+public record Settings(Start Start, Timeouts Timeouts)
+{
+  public bool EachProfile { get; set; }
+  public bool CloseAfterRun { get; set; }
+  public int Delay { get; set; } = 120;
+  	public Settings ToRecord(IEnumerable<string>? urls = null, Rando? rando = null, Rando? variations = null) {
+		return new(
+			Start with {
+				Rando = rando ?? Start.Rando,
+				Variations = variations ?? Start.Variations,
+				Urls = urls ?? Start.Url?.Split('\n').Select(x => x.Trim())
+			},
+			 Timeouts with {
+				Artifacto = new() { ["delay"] =  Delay }
+			}
+		);
+	}
+}
 public record Opts(AI AI, DictionaryArgs Args, Settings Settings);
 
 // A Dictionary-based IArgs implementation that serializes properly
-public class DictionaryArgs : Dictionary<string, object>, IArgs {
+public class DictionaryArgs : Dictionary<string, object>, IArgs
+{
   public DictionaryArgs() : base() { }
   public DictionaryArgs(IDictionary<string, object> dictionary) : base(dictionary) { }
 }
+
+public record Selection(Script Script, bool Selected = false);
