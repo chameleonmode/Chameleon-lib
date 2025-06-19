@@ -283,7 +283,7 @@ public class Gecko : Browser {
 		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.BrowserCache);
 	}
 	protected override string GetCommandLineArguments(bool args) {
-		return string.Join(" ", [
+		var arguments = new List<string> {
 			"-allow-downgrade",
 			"-no-remote",
 			#if DEBUG
@@ -292,7 +292,10 @@ public class Gecko : Browser {
 			#endif
 			$"-profile \"{Settings.BrowserCache}\"",
 			args ? InitUrl : "about:blank",
-		]);
+			Settings.OpenOptions.Headless ? "-headless" : "",
+		};
+
+		return string.Join(" ", arguments.Where(x => !string.IsNullOrWhiteSpace(x)));
 	}
 
 	protected override async Task WaitForWinHandle() {

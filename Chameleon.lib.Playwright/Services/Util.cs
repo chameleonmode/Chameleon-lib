@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.WebBrowser;
 using Chameleon.lib.WebBrowser.Services;
+using Chameleon.lib.Util; // Added for FilePaths
 using Microsoft.Playwright;
 
 
@@ -37,8 +38,8 @@ public static class Util {
 	}
 	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookiesAsync(Options options) {
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium; 
-		
+		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+
 		if (options.Port != null) {
 			try {
 				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}");
@@ -50,17 +51,34 @@ public static class Util {
 					$"Ensure the browser is running with remote debugging enabled. Error: {ex.Message}", ex);
 			}
 		} else {
-			// Create a temporary directory for cookie extraction to avoid conflicts
+			var userProfileActualDir = options.Dir;
+			if (string.IsNullOrEmpty(userProfileActualDir) || !Directory.Exists(userProfileActualDir)) {
+				Debug.WriteLine($"Error: User profile directory 'options.Dir' is not set or does not exist: {userProfileActualDir}");//Should normally use a logger instead
+				return new List<BrowserContextCookiesResult>();
+			}
+
 			var tempDir = Path.Combine(Path.GetTempPath(), "chameleon-cookie-temp", Guid.NewGuid().ToString());
 			try {
-
 				_ = Directory.CreateDirectory(tempDir);
-				var originalCookiesPath = Path.Combine(options.Dir, "Default", "Cookies");
-				var tempCookiesDir = Path.Combine(tempDir, "Default");
-				_ = Directory.CreateDirectory(tempCookiesDir);
 
-				if (File.Exists(originalCookiesPath)) {
-					File.Copy(originalCookiesPath, Path.Combine(tempCookiesDir, "Cookies"), true);
+				if (options.Browser.BrowserType == SystemBrowserType.Firefox) {
+					var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
+					if (File.Exists(originalCookieFile)) {
+						File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
+					}
+				} else {
+					var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
+					var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
+					if (Directory.Exists(chromiumDefaultDirOriginal)) {
+						await IOtil.CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir);
+					} else {
+						var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
+						_ = Directory.CreateDirectory(tempNetworkDir);
+						var originalCookieFile = Path.Combine(userProfileActualDir, "Default", "Network", "Cookies");
+						if (File.Exists(originalCookieFile)) {
+							File.Copy(originalCookieFile, Path.Combine(tempNetworkDir, "Cookies"), true);
+						}
+					}
 				}
 
 				await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
@@ -72,14 +90,16 @@ public static class Util {
 						ExecutablePath = await GetBrowseExecutablePath(options.Browser.BrowserType),
 					}
 				);
-				return await context.CookiesAsync();
+				var cookies = await context.CookiesAsync();
+				Debug.WriteLine($"Found {cookies.Count} cookies in Util.cs for profile {options.Dir}");
+				return cookies;
 			} finally {
 				try {
 					if (Directory.Exists(tempDir)) {
 						Directory.Delete(tempDir, true);
 					}
-				} catch {
-					// Ignore cleanup errors
+				} catch (Exception ex) {
+					Debug.WriteLine($"Error cleaning up temp directory {tempDir}: {ex.Message}");
 				}
 			}
 		}
@@ -192,4 +212,88 @@ public static class Util {
 					RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "Library/Caches" : ".cache",
 					"ms-playwright"
 			);
+
+	public static Task SetCookies(Options options, IEnumerable<Cookie> cookies) =>
+			SetCookiesWithRetryPolicy(options, [.. cookies]);
+
+	private static async Task SetCookiesWithRetryPolicy(Options options, List<Cookie> cookies, int tries = 0) {
+		try {
+			await SetCookiesAsync(options, cookies);
+		} catch (Exception ex) when ((ex.Message.Contains("Target page, context or browser has been closed") ||
+																	ex.Message.Contains("Connection closed") ||
+																	ex.Message.Contains("Browser has been closed") ||
+																	ex.Message.Contains("Protocol error") ||
+																	ex.Message.Contains("WebSocket") ||
+																	ex.Message.Contains("net::ERR_CONNECTION_REFUSED")) && tries < 3) {
+			await Task.Delay(500 * (tries + 1));
+			await SetCookiesWithRetryPolicy(options, cookies, ++tries);
+		}
+	}
+
+	private static async Task SetCookiesAsync(Options options, List<Cookie> cookies) {
+		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+
+		if (options.Port != null) {
+			try {
+				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}");
+				var context = browser.Contexts.Count > 0 ? browser.Contexts[0] : await browser.NewContextAsync();
+				await context.AddCookiesAsync(cookies);
+			} catch (Exception ex) {
+				throw new InvalidOperationException($"Failed to connect to browser on port {options.Port}. " +
+						$"Ensure the browser is running with remote debugging enabled. Error: {ex.Message}", ex);
+			}
+		} else {
+			var userProfileActualDir = options.Dir;
+			if (string.IsNullOrEmpty(userProfileActualDir) || !Directory.Exists(userProfileActualDir)) {
+				Debug.WriteLine($"Error: User profile directory 'options.Dir' is not set or does not exist: {userProfileActualDir}");
+				return;
+			}
+
+			var tempDir = Path.Combine(Path.GetTempPath(), "chameleon-cookie-temp", Guid.NewGuid().ToString());
+			try {
+				_ = Directory.CreateDirectory(tempDir);
+
+				if (options.Browser.BrowserType == SystemBrowserType.Firefox) {
+					var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
+					if (File.Exists(originalCookieFile)) {
+						File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
+					}
+				} else {
+					var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
+					var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
+					if (Directory.Exists(chromiumDefaultDirOriginal)) {
+						await IOtil.CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir);
+					} else {
+						var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
+						_ = Directory.CreateDirectory(tempNetworkDir);
+						var originalCookieFile = Path.Combine(userProfileActualDir, "Default", "Network", "Cookies");
+						if (File.Exists(originalCookieFile)) {
+							File.Copy(originalCookieFile, Path.Combine(tempNetworkDir, "Cookies"), true);
+						}
+					}
+				}
+
+				await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
+						tempDir,
+						new() {
+							Headless = true,
+							Args = ["--allow-downgrade"],
+							Proxy = options.Proxy,
+							ExecutablePath = await GetBrowseExecutablePath(options.Browser.BrowserType),
+						}
+				);
+				await context.AddCookiesAsync(cookies);
+				await context.CloseAsync();
+			} finally {
+				try {
+					if (Directory.Exists(tempDir)) {
+						Directory.Delete(tempDir, true);
+					}
+				} catch (Exception ex) {
+					Debug.WriteLine($"Error cleaning up temp directory {tempDir}: {ex.Message}");
+				}
+			}
+		}
+	}
 }

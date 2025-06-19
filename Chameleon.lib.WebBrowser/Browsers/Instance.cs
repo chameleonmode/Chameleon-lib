@@ -1,11 +1,11 @@
-﻿using Chameleon.lib.Common.Util.Mac;
-using System.Diagnostics;
-using Chameleon.lib.Helpers;
-using Chameleon.lib.WebBrowser.Services;
+﻿using chameleon.assets;
+using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
-using chameleon.assets;
-using Chameleon.lib.Util;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.ThirdParty.GeoIp;
+using Chameleon.lib.Util;
+using Chameleon.lib.WebBrowser.Services;
+using System.Diagnostics;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
 
@@ -50,7 +50,18 @@ public abstract class Browser : IBrowserInstance {
 	public void Close() {
 		if (OperatingSystem.IsMacOS()) MacOSWindowListener.Instance.RemPid(Brocess?.Id);
 		_ = LoadedTCS.TrySetResult(false);
-		Brocess?.Dispose();
+		if (Brocess != null) {
+			try {
+				if (!Brocess.HasExited) {
+					ProcessUtil.TryKillProcess(Brocess);
+					_ = Task.Delay(TimeSpan.FromSeconds(4));//Wait for exit
+				}
+			} catch(Exception ex) 
+			{
+				Debug.WriteLine($"Failed to close browser instance: {ex.Message}");
+			}
+			Brocess.Dispose();
+		}
 		Brocess = null;
 		InvokeEvent(SysBrowserEventType.Closed);
 	}
