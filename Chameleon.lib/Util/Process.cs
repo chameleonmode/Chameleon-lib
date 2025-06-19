@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Management;
 using System.Runtime.InteropServices;
 using Chameleon.lib.Helpers;
 
@@ -93,5 +94,58 @@ public static class ProcessUtil {
 		} finally {
 			p.Close();
 		}
+	}
+
+	public static string GetCommandLine(Process process)
+	{
+		if (OperatingSystem.IsWindows())
+		{
+			try
+			{
+				using var searcher = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + process.Id);
+				using var objects = searcher.Get();
+				var commandLine = objects.Cast<ManagementBaseObject>().SingleOrDefault()?["CommandLine"]?.ToString();
+				return commandLine ?? "";
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Could not get command line for process {process.Id} on Windows: {ex.Message}");
+				return "";
+			}
+		}
+		else if (OperatingSystem.IsLinux())
+		{
+			try
+			{
+				return File.ReadAllText($"/proc/{process.Id}/cmdline").Replace('\0', ' ');
+			}
+			catch (Exception ex)
+			{
+				Debug.WriteLine($"Could not get command line for process {process.Id} on Linux: {ex.Message}");
+				return "";
+			}
+		}
+		else if (OperatingSystem.IsMacOS())
+		{
+			Debug.WriteLine($"GetCommandLine is not implemented for macOS for process {process.Id}.");
+			return "";
+		}
+		return "";
+	}
+
+	public static bool HasCommandLineArgument(Process process, string argument)
+	{
+		if (process == null || process.HasExited)
+		{
+			return false;
+		}
+
+		var commandLine = GetCommandLine(process);
+		if (string.IsNullOrEmpty(commandLine))
+		{
+			return false;
+		}
+
+		return commandLine.Contains(argument, StringComparison.OrdinalIgnoreCase);
 	}
 }
