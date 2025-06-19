@@ -9,13 +9,13 @@ export default async function (ctx, opts) {
                 image: { des: "page screenshot", b64: [await reddit.screenshot()] },
                 generations: {
                     type: "comment",
-                    sys: "Match word count to the range of existing comments",
+                    sys: "1. You are creating a comment on a reddit post\n2. Match word count to the range of existing comments on the page",
                     range: { min: 1, max: 1 },
                     context: reddit.page.url(),
                     input: {
                         type: "comment",
-                        data: [comments[0].text],
-                        reason: "the top comment",
+                        data: comments.map((c) => c.text),
+                        reason: "existing array of comments on the post",
                     },
                 },
             });

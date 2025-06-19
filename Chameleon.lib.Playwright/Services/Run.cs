@@ -2,6 +2,7 @@ using Chameleon.lib.Abs.Platformatic;
 using Chameleon.lib.Util;
 using Chameleon.lib.AIR.Scripts.Models;
 using Chameleon.lib.WebBrowser;
+using System.Diagnostics;
 
 namespace Chameleon.lib.Playwright.Services;
 
@@ -16,6 +17,7 @@ public class Arguments {
 
 public class Run {
   public static async Task Script(Arguments args, CancellationToken token = default) {
+				Debug.WriteLine($"Running: \n\t '{args.Port}', '{args.Script?.Title}', {JSON.Serialize(args)}");
     if (args.Record) {
       using var runner = new Runner();
       await runner.Run(args.Port, "any/record").WaitAsync(token);

@@ -94,11 +94,13 @@ public class SystemBrowserService {
 				_ = await browser.LoadedTCS.Task;
 				_ = Instances.TryRemove(settings.OpenOptions, out _);
 			}
-			Observers[settings.Profile.Id]?.ForEach(x => x.Invoke(sender, args));
+			//if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
+			if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
 		};
 		_ = browser.InitializeAsync();
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
 			browser.InvokeEvent(SysBrowserEventType.Opened);
+
             if (settings.OpenOptions.Foreground)
             {
                 browser.InvokeEvent(SysBrowserEventType.Foreground);
@@ -116,8 +118,10 @@ public class SystemBrowserService {
 	public async Task<IBrowserInstance?> Open(SysBrowserOpenOptions options) {
 		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
 		if (browser == null) {
-			var settings = new SysBrowserSettings(options, TcpUtil.NextFreePort(9613));
-			try {
+      var settings = new SysBrowserSettings(options) {
+        Port = TcpUtil.NextFreePort(9613)
+      };
+      try {
 				browser = await OpenWithSettings(settings);
 			} catch (Exception e) {
 				if (browser != null) browser.InvokeEvent(SysBrowserEventType.Error);

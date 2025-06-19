@@ -13,13 +13,13 @@ export default async function (context, opts) {
                 image: { des: "page screenshot", b64 },
                 generations: {
                     type: "reply",
-                    sys: `1. Reply to this comment: ${text}\n2. Match word count to the range of existing comments and replies`,
+                    sys: `1. You are replying to a comment\n2. Match word count to the range of existing comments and replies on the page`,
                     range: { min: 1, max: 1 },
                     context: reddit.page.url(),
                     input: {
                         type: "comment",
-                        data: comments.map((c) => c.text),
-                        reason: "existing array of comments on the post",
+                        data: [text],
+                        reason: "comment to reply to",
                     },
                 },
             });

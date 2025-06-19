@@ -4,58 +4,46 @@ using Chameleon.lib.Helpers;
 namespace Chameleon.lib.Util;
 
 public static class Exceptionz {
-	public static T? TryCatch<T>(Func<T> action, Action? caught = null) {
+	public static T? TryCatch<T>(Func<T> action, Action<Exception>? caught = null) {
 		try {
 			return action();
-		} catch (Exception ex) {
-			caught?.Invoke();
-			PrintException(ex);
+		} catch (Exception e) {
+			caught?.Invoke(e);
+			PrintException(e);
+			return default;
 		}
-		return default;
 	}
-	public static async Task TryCatch(Func<Task> action, string what, Action? caught = null) {
+
+	public static void TryCatch(Action action, Action<Exception>? caught = null) {
+		_ = TryCatch(() => { action(); return true; }, caught);
+	}
+
+	public static async Task TryCatch(Func<Task> action, Action<Exception>? caught = null) {
 		try {
 			await action();
 		} catch (Exception e) {
-			Toaster.Error(what, e.Message);
-			caught?.Invoke();
+			caught?.Invoke(e);
 			PrintException(e);
 		}
 	}
 
-	public static async Task AsyncTryCatch(Func<Task> action, Action<Exception>? caught = null) {
-		try {
-			await action();
-		} catch (Exception ex) {
-			caught?.Invoke(ex);
-			PrintException(ex);
-		}
-	}
-	
-	public static async Task<T> RetryWithPolicyAsync<T>(
-		Func<Task<T>> operation,
-		Action<Exception, int>? OnError = null,
-		int sleep = 2500,
-		int maxRetries = 3
+	public static async Task<T?> RetryPolicy<T>(Func<Task<T>> operation,
+		Action<Exception, int>? caught = null,
+		int sleep = 2500, int retries = 3 
 	) {
-		for (var i = 1; i <= maxRetries; i++) {
-			try {
-				return await operation();
-			} catch (Exception ex) when (i < maxRetries) {
-				PrintException(ex);
-				OnError?.Invoke(ex, i);
-				await Task.Delay(sleep * i); // Exponential backoff
-			}
+		try {
+			return await operation();
+		} catch (Exception e) {
+			PrintException(e);
+			caught?.Invoke(e, retries);
+			await Task.Delay(sleep); // Exponential backoff
+			return retries > 0 ? await RetryPolicy(operation, caught, sleep *= 2, --retries) : default;
 		}
-		return await operation(); // Last try
 	}
 
-	private static void PrintException(Exception? ex) {
-		if (ex != null) {
-			Debug.WriteLine($"Message: {ex.Message}");
-			Debug.WriteLine("Stacktrace:");
-			Debug.WriteLine(ex.StackTrace);
-			PrintException(ex.InnerException);
-		}
+	private static void PrintException(Exception? e) {
+		if (e == null) return;
+		Debug.WriteLine($"Message: {e.Message}\nStackTrace:\n{e.StackTrace}");
+		PrintException(e.InnerException);
 	}
 }

@@ -248,16 +248,16 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_Routes_User() {
-		var user = await DB.Routes.User.GetDBuser;
+		var user = await DB.Routes.Uzer.GetDBuser;
 		Assert.NotNull(user);
 
 		var email = "2@example.com";
-		var create = await DB.Routes.User.CreateUser(email);
+		var create = await DB.Routes.Uzer.CreateUser(email);
 		Assert.NotNull(create);
-		var any = await DB.Routes.User.GetAnyDBuser(email);
+		var any = await DB.Routes.Uzer.GetAnyDBuser(email);
 		Assert.NotNull(any);
 
-		var users = await DB.Routes.User.GetDBusers;
+		var users = await DB.Routes.Uzer.GetDBusers;
 		Assert.NotNull(users);
 	}
 

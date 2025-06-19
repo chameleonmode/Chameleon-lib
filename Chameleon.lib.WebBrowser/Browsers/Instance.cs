@@ -36,12 +36,11 @@ public abstract class Browser : IBrowserInstance {
 
 	public void InvokeEvent(SysBrowserEventType eventType) {
 		if (eventType == SysBrowserEventType.Foreground && Brocess is not null) {
-			if (OperatingSystem.IsWindows()) {
-				if (Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
-					_ = U32til.BringWindowToForeground(handle);
-				} else if (OperatingSystem.IsMacOS()) {
-					if (MacOSUtil.SetForegroundWindow(Brocess.Id)) Brocess.Refresh();
-				}
+			if (OperatingSystem.IsWindows() && Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
+				_ = U32til.BringWindowToForeground(handle);
+			} else if (OperatingSystem.IsMacOS()) {
+				//if (MacOSUtil.SetForegroundWindow(Brocess.Id)) Brocess.Refresh();
+				Brocessor(false).Start();
 			}
 		}
 
@@ -74,7 +73,7 @@ public abstract class Browser : IBrowserInstance {
 			Ipapi? ipapi = null;
 
 			var dir = Resources.Assert(
-				Settings.CachedExtentionsDir, "geo"
+				Settings.Cached, "geo"
 			);
 			var file = Path.Combine(dir, "ipapi.json");
 			if (File.Exists(file)) {

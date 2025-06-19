@@ -82,34 +82,11 @@ public record class BrowserRecord(string Name, string Path) {
   }
 }
 public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile, bool Foreground = true, bool Headless = false);
-public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port) {
+public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port = 0) {
   public SystemBrowserType BrowserType => OpenOptions.BrowserType;
   public BrowserProfile Profile => OpenOptions.Profile;
-
-  public string SysBrowserProfileCachePath => IOtil.EnsureDirectoryExists(
-    Path.Combine(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString())
-    );
-
-  private string? destextPath;
-  public string DestExtentionsDir {
-    get {
-      if (destextPath == null) {
-        destextPath = Path.Combine(FilePaths.AppTempDir, "Addons", BrowserType.ToString(), Profile.Id.ToString());
-        IOtil.DeleteDir(destextPath);
-        destextPath = IOtil.EnsureDirectoryExists(Path.Combine(destextPath, Guid.NewGuid().ToString()));
-      }
-      return destextPath;
-    }
-  }
-  private string? cachedExtentionsDir;
-  public string CachedExtentionsDir {
-    get {
-      cachedExtentionsDir ??= IOtil.EnsureDirectoryExists(
-        Path.Combine(FilePaths.AppDataDir, "cache", BrowserType.ToString(), Profile.Id.ToString())
-      );
-      return cachedExtentionsDir;
-    }
-  }
+  public string BrowserCache => Resources.Assert(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString());
+  public string Cached => Resources.Assert(FilePaths.AppDataDir, "cache", BrowserType.ToString(), Profile.Id.ToString());
 }
 public class EmulationOptions {
   public bool AutoTimezone { get; set; } = true;
@@ -146,8 +123,8 @@ public static class Project {
     await AddonsServer.Instance.Start();
 
     var version = IoC.GetValue(nameof(Extensions));
-    if (version is not string ver || ver != lib.Const.Assembled) {
-      IoC.Instance.Config?.SetValue(nameof(Extensions), lib.Const.Assembled);
+    if (version is not string ver || ver != Const.Assembled) {
+      IoC.Instance.Config?.SetValue(nameof(Extensions), Const.Assembled);
       await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
       await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
     }

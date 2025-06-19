@@ -1,35 +1,8 @@
-﻿using Chameleon.lib.Abs.Platformatic.Shared;
-using Chameleon.lib.Auth;
+﻿using Chameleon.lib.Auth;
 
 namespace Chameleon.lib.Abs.Platformatic;
-public class DB : Base {
+public class DB : Web {
 	DB() { }
-
-	#region Models / Dto's
-	public record User(
-		object Id,
-		string UserId,
-		string Email,
-		string LicenseKey,
-		string TenantId,
-		string Provider,
-		string ProviderId,
-		DateTime CreatedAt,
-		DateTime UpdatedAt
-	);
-	public record DataInteraction(
-		object Id,
-		string InteractionId,
-		string TenantId,
-		string SenderId,
-		string ReceiverId,
-		string DataType,
-		string DataPayload,
-		DateTime CreatedAt
-	);
-	public record Tag(int Id, string Name, string Items, string TenantId);
-	public record ItemTag(string TagItemType, string TagItemId, string TagName, string TenantId);
-	#endregion
 
 	#region  Routes
 	public static class Routes {
@@ -41,7 +14,7 @@ public class DB : Base {
 		public static class License {
 			public const string prefix = "/license";
 			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
-			public static Task<DB.User?> Update => Post<DB.User>($"{prefix}/update",
+			public static Task<User?> Update => Post<User>($"{prefix}/update",
 				new(Body: new {
 					license_key = Session.Instance.Login!.LicenseKey,
 					email = Session.Instance.Login!.LoginName
@@ -64,18 +37,18 @@ public class DB : Base {
 			);
 		}
 
-		public static class User {
+		public static class Uzer {
 			public const string prefix = "/db/user";
-			public static Task<DB.User?> GetDBuser => Get<DB.User>($"{prefix}/", new(EnsureSuccess: false));
-			public static Task<IEnumerable<DB.User>?> GetDBusers => Get<IEnumerable<DB.User>>($"{prefix}/all");
-			public static Task<DB.User?> GetAnyDBuser(string email) => Get<DB.User>($"{prefix}/any",
+			public static Task<User?> GetDBuser => Get<User>($"{prefix}/", new(EnsureSuccess: false));
+			public static Task<IEnumerable<User>?> GetDBusers => Get<IEnumerable<User>>($"{prefix}/all");
+			public static Task<User?> GetAnyDBuser(string email) => Get<User>($"{prefix}/any",
 				new(
 					Q: $"?email={Uri.EscapeDataString(email)}",
 					EnsureSuccess: false
 				)
 			);
-			public static Task<IEnumerable<DB.User>?> CreateUser(string email) {
-				return Post<IEnumerable<DB.User>>($"{prefix}/", new(Q: $"?email={Uri.EscapeDataString(email)}"));
+			public static Task<IEnumerable<User>?> CreateUser(string email) {
+				return Post<IEnumerable<User>>($"{prefix}/", new(Q: $"?email={Uri.EscapeDataString(email)}"));
 			}
 		}
 
@@ -97,7 +70,7 @@ public class DB : Base {
 					new(Body: new { email, payload = new { profileId, cookiesJs } })
 				);
 				if(!Instance.DBusers!.Any(u => u.Email == email))
-					Instance.DBusers = await User.GetDBusers;
+					Instance.DBusers = await Uzer.GetDBusers;
 					
 				return res;
 			}
@@ -106,7 +79,7 @@ public class DB : Base {
 	#endregion
 
 	#region Props
-	public User? DBuser { get; private set; }
+	public User? DBuser { get; set; }
 	public IEnumerable<User>? DBusers { get; private set; }
 	public Routes.License.Status? KickLickenseStatus { get; private set; }
 	public Routes.License.Customer? KickCustomer { get; private set; }
@@ -116,7 +89,7 @@ public class DB : Base {
 	#region User's
 	public async Task EnsureUser() {
 		if (DBuser != null) return;
-		DBuser ??= await Routes.User.GetDBuser ?? await Routes.License.Update;
+		DBuser ??= await Routes.Uzer.GetDBuser ?? await Routes.License.Update;
 		KickCustomer ??= await Routes.License.KickCustomer;
 
 		if (DBuser!.LicenseKey == null && KickCustomer?.Status == true) {
@@ -128,11 +101,11 @@ public class DB : Base {
 			KickLicenseData ??= await Routes.License.KickLicenseData;
 		}
 
-		DBusers ??= await Routes.User.GetDBusers;
+		DBusers ??= await Routes.Uzer.GetDBusers;
 	}
 	public async Task<User?> CreateUser(string email) {
-		var res = await Routes.User.CreateUser(email);
-		DBusers = await Routes.User.GetDBusers;
+		var res = await Routes.Uzer.CreateUser(email);
+		DBusers = await Routes.Uzer.GetDBusers;
 		return DBusers?.FirstOrDefault((u) => u.Email == email);
 	}
 	public async Task<User?> DeleteUser(string email) {
@@ -140,7 +113,7 @@ public class DB : Base {
 		if (id == null) return null;
 
 		var user = await Delete<User>($"{Routes.users}/{id}");
-		DBusers = await Routes.User.GetDBusers;
+		DBusers = await Routes.Uzer.GetDBusers;
 		return user;
 	}
 	#endregion

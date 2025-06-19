@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using chameleon.assets;
-using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
@@ -14,7 +13,7 @@ public class Gecko : Browser {
 	// 	startInfo.EnvironmentVariables["MOZ_REMOTE_SETTINGS_DEVTOOLS"] = "1";
 	// 	return base.Start(startInfo);
 	// }
-	public override string PrefsFile => Path.Combine(Settings.SysBrowserProfileCachePath, "prefs.js");
+	public override string PrefsFile => Path.Combine(Settings.BrowserCache, "prefs.js");
 	public override string ExeDir { get; } = OperatingSystem.IsMacOS()
 		? Path.Combine(FilePaths.AppDataLocalDir, "gecko", "firefox.app")
 		: Path.Combine(FilePaths.AppDataLocalDir, "gecko");
@@ -281,15 +280,19 @@ public class Gecko : Browser {
 			}
 		}
 
-		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.SysBrowserProfileCachePath);
+		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.BrowserCache);
 	}
 	protected override string GetCommandLineArguments(bool args) {
 		var arguments = new List<string> {
 			"-allow-downgrade",
 			"-no-remote",
-			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
+			#if DEBUG
+			//"-devtools",
+			//"-jsconsole",
+			#endif
+			$"-profile \"{Settings.BrowserCache}\"",
+			args ? InitUrl : "about:blank",
 			Settings.OpenOptions.Headless ? "-headless" : "",
-			args ? InitUrl : ""
 		};
 
 		return string.Join(" ", arguments.Where(x => !string.IsNullOrWhiteSpace(x)));
