@@ -77,7 +77,7 @@ public class SystemBrowserService {
 	#region Hwnd
 	#endregion
 
-	public async Task<IBrowserInstance?> OpenWithSettings(SysBrowserSettings settings) {
+	public async Task<IBrowserInstance> OpenWithSettings(SysBrowserSettings settings) {
 		_ = await Project.Initialized.Task;
 		// TODO: test node console standard server launcher vs tcp server 
 		// await NodeServerLauncher.Instance.StartServer();
@@ -100,15 +100,14 @@ public class SystemBrowserService {
 		_ = browser.InitializeAsync();
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
 			browser.InvokeEvent(SysBrowserEventType.Opened);
-
-            if (settings.OpenOptions.Foreground)
-            {
-                browser.InvokeEvent(SysBrowserEventType.Foreground);
-            }
-            else
-            {
-                browser.InvokeEvent(SysBrowserEventType.Background);
-            }
+			// if (settings.OpenOptions.Foreground)
+			// {
+			//     browser.InvokeEvent(SysBrowserEventType.Foreground);
+			// }
+			// else
+			// {
+			//     browser.InvokeEvent(SysBrowserEventType.Background);
+			// }
 			// TODO: ?  await AddonsServer.Instance.WaitListener();
 		} else {
 			throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
@@ -125,8 +124,7 @@ public class SystemBrowserService {
 				browser = await OpenWithSettings(settings);
 			} catch (Exception e) {
 				if (browser != null) browser.InvokeEvent(SysBrowserEventType.Error);
-				else if (Observers.TryGetValue(settings.Profile.Id, out var events))
-					events.ForEach(x => x.Invoke(this, new(options, SysBrowserEventType.Error)));
+				else if (Observers.TryGetValue(settings.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, SysBrowserEventType.Error)));
 				
 				Toaster.Error(e.Message);
 				if (e is InvalidDataException or TimeoutException) {
@@ -145,8 +143,13 @@ public class SystemBrowserService {
 					browser.Close();
 					await Task.Delay(256);
 					var settings = new SysBrowserSettings(options, TcpUtil.NextFreePort(9613));
-					browser = await OpenWithSettings(settings);
-					Instances[options] = browser;
+					try {
+						browser = await OpenWithSettings(settings);
+						Instances[options] = browser;
+						ArgumentNullException.ThrowIfNull(browser, nameof(browser));
+					} catch (Exception e) {
+						Toaster.Error(e.Message);
+					}
 				}
 				else {
 					browser.InvokeEvent(SysBrowserEventType.Foreground);

@@ -50,18 +50,18 @@ public abstract class Browser : IBrowserInstance {
 	public void Close() {
 		if (OperatingSystem.IsMacOS()) MacOSWindowListener.Instance.RemPid(Brocess?.Id);
 		_ = LoadedTCS.TrySetResult(false);
-		if (Brocess != null) {
-			try {
-				if (!Brocess.HasExited) {
-					ProcessUtil.TryKillProcess(Brocess);
-					_ = Task.Delay(TimeSpan.FromSeconds(4));//Wait for exit
-				}
-			} catch(Exception ex) 
-			{
-				Debug.WriteLine($"Failed to close browser instance: {ex.Message}");
-			}
-			Brocess.Dispose();
-		}
+		// if (Brocess != null) {//no this isd y there was trouble with closing the browser
+		// 	try {
+		// 		if (!Brocess.HasExited) {
+		// 			ProcessUtil.TryKillProcess(Brocess);
+		// 			_ = Task.Delay(TimeSpan.FromSeconds(4));//Wait for exit
+		// 		}
+		// 	} catch(Exception ex) 
+		// 	{
+		// 		Debug.WriteLine($"Failed to close browser instance: {ex.Message}");
+		// 	}
+		// }
+		Brocess?.Dispose();
 		Brocess = null;
 		InvokeEvent(SysBrowserEventType.Closed);
 	}
