@@ -71,9 +71,9 @@ public static class ProcessUtil {
 			await p.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(3)).Token); // Wait for 1 seconds
 		} catch (Exception ex) {
 			if (ex.GetType() == typeof(InvalidOperationException) && ex.Message.Contains("No process is associated with this object.")) return;
-			// Log or handle the exception if closing the process fails
-			Toaster.Error($"Failed to close: {ex.Message}");
 		}
+		// Log or handle the exception if closing the process fails
+		if(!p.HasExited) Toaster.Error($"Failed to close process");
 	}
 	//??
 	// public static async Task TryKillProcess(Process? p) {
