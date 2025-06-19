@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using chameleon.assets;
-using Chameleon.lib.Common.Util;
 using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
@@ -292,7 +291,7 @@ public class Gecko : Browser {
 			//"-jsconsole",
 			#endif
 			$"-profile \"{Settings.BrowserCache}\"",
-			args ? InitUrl : "",
+			args ? InitUrl : "about:blank",
 		]);
 	}
 

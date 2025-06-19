@@ -82,10 +82,9 @@ public record class BrowserRecord(string Name, string Path) {
   }
 }
 public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile);
-public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions) {
+public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port = 0) {
   public SystemBrowserType BrowserType => OpenOptions.BrowserType;
   public BrowserProfile Profile => OpenOptions.Profile;
-  public int Port { get; set; }
   public string BrowserCache => Resources.Assert(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString());
   public string Cached => Resources.Assert(FilePaths.AppDataDir, "cache", BrowserType.ToString(), Profile.Id.ToString());
 }
@@ -124,8 +123,8 @@ public static class Project {
     await AddonsServer.Instance.Start();
 
     var version = IoC.GetValue(nameof(Extensions));
-    if (version is not string ver || ver != lib.Const.Assembled) {
-      IoC.Instance.Config?.SetValue(nameof(Extensions), lib.Const.Assembled);
+    if (version is not string ver || ver != Const.Assembled) {
+      IoC.Instance.Config?.SetValue(nameof(Extensions), Const.Assembled);
       await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
       await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
     }

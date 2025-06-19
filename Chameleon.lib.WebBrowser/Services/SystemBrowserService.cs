@@ -94,12 +94,13 @@ public class SystemBrowserService {
 				_ = await browser.LoadedTCS.Task;
 				_ = Instances.TryRemove(settings.OpenOptions, out _);
 			}
-			Observers[settings.Profile.Id]?.ForEach(x => x.Invoke(sender, args));
+			//if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
+			if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
 		};
 		_ = browser.InitializeAsync();
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
 			browser.InvokeEvent(SysBrowserEventType.Opened);
-			browser.InvokeEvent(SysBrowserEventType.Foreground);
+			// browser.InvokeEvent(SysBrowserEventType.Foreground);
 			// TODO: ?  await AddonsServer.Instance.WaitListener();
 		} else {
 			throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");

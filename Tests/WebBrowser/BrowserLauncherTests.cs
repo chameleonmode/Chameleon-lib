@@ -68,7 +68,7 @@ public class BrowserLauncherTests : TestSetup {
 						Host = "proxy.chameleonmode.com",
 						Port = 31112,
 						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-N2Vb4Jvy"
+						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
 					},
 					Emulations = new() {
 						AutoTimezone = true,
@@ -94,7 +94,7 @@ public class BrowserLauncherTests : TestSetup {
 				Host = "proxy.chameleonmode.com",
 				Port = 31112,
 				UserName = "elimdadia_gmail_com",
-				Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-mzBorsdy"
+				Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
 			},
 			Emulations = new() {
 				AutoTimezone = true,

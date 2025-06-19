@@ -5,6 +5,30 @@ using Chameleon.lib.Auth;
 
 namespace Chameleon.lib.Abs;
 
+#region Models / Dto's
+public record User(
+  object Id,
+  string UserId,
+  string Email,
+  string? LicenseKey,
+  string TenantId,
+  string Provider,
+  string? ProviderId,
+  DateTime CreatedAt,
+  DateTime UpdatedAt
+);
+public record DataInteraction(
+  object Id,
+  string InteractionId,
+  string TenantId,
+  string SenderId,
+  string ReceiverId,
+  string DataType,
+  string DataPayload,
+  DateTime CreatedAt
+);
+public record Tag(int Id, string Name, string Items, string TenantId);
+public record ItemTag(string TagItemType, string TagItemId, string TagName, string TenantId);
 public record Errorer(string Error, string Message);
 public record Request(
   string? Q = null,
@@ -27,6 +51,7 @@ public abstract class Web {
   public static Task<T?> Get<T>(string path, Request? request = null) => Sender<T>(HttpMethod.Get, path, request);
   public static Task<T?> Delete<T>(string path, Request? request = null) => Sender<T>(HttpMethod.Delete, path, request);
 }
+#endregion
 
 public class Client {
   public string AddressUri { get; } = Abs.TESTING ? "http://127.0.0.1:3042" : "https://chameleon-ws.onrender.com";
