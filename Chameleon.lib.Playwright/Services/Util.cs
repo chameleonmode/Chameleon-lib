@@ -70,7 +70,7 @@ public static class Util {
 					var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
 					var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
 					if (Directory.Exists(chromiumDefaultDirOriginal)) {
-						CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir, true);
+						await IOtil.CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir);
 					} else {
 						var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
 						_ = Directory.CreateDirectory(tempNetworkDir);
@@ -213,29 +213,6 @@ public static class Util {
 					"ms-playwright"
 			);
 
-	private static void CopyDirectory(string sourceDir, string destinationDir, bool recursive) {
-		var dir = new DirectoryInfo(sourceDir);
-		if (!dir.Exists) return; // Changed: If source doesn't exist, just return to avoid exception if Default dir is missing.
-
-		DirectoryInfo[] dirs = dir.GetDirectories();
-		Directory.CreateDirectory(destinationDir);
-
-		foreach (FileInfo file in dir.GetFiles()) {
-			string targetFilePath = Path.Combine(destinationDir, file.Name);
-			try { file.CopyTo(targetFilePath, true); } catch (IOException ex) {
-				Console.WriteLine($"IOException copying {file.FullName} to {targetFilePath}: {ex.Message}. File might be locked.");
-				// Decide if you want to continue or re-throw. For cookie export, maybe continue with what could be copied.
-			}
-		}
-
-		if (recursive) {
-			foreach (DirectoryInfo subDir in dirs) {
-				string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
-				CopyDirectory(subDir.FullName, newDestinationDir, true);
-			}
-		}
-	}
-
 	public static Task SetCookies(Options options, IEnumerable<Cookie> cookies) =>
 			SetCookiesWithRetryPolicy(options, [.. cookies]);
 
@@ -286,7 +263,7 @@ public static class Util {
 					var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
 					var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
 					if (Directory.Exists(chromiumDefaultDirOriginal)) {
-						CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir, true);
+						await IOtil.CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir);
 					} else {
 						var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
 						_ = Directory.CreateDirectory(tempNetworkDir);

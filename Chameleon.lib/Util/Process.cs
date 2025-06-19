@@ -47,26 +47,51 @@ public static class ProcessUtil {
 	}
 
 	public static async Task TryKillProcess(Process? p) {
-		if (p != null && !p.HasExited) {
-			try {
-				// Attempt to close the browser gracefully
-				_ = p.CloseMainWindow();
+		if (p == null || p.HasExited) {
+			return;
+		}
 
-				try {
-					// Wait for the process to exit
-					await p.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromMilliseconds(3000)).Token); // Wait for 3 seconds
-					p.Close();
-				} catch (TaskCanceledException) {
-					// If the process hasn't, kill it
-					p.Kill();
-					// Wait for the process to be killed
-					await p.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromMilliseconds(1000)).Token); // Wait for 1 seconds
-				}
-			} catch (Exception ex) {
-				if (ex.GetType() == typeof(InvalidOperationException) && ex.Message.Contains("No process is associated with this object.")) return;
-				// Log or handle the exception if closing the process fails
-				Toaster.Error($"Failed to close: {ex.Message}");
+		try {
+			var hasWindow = false;
+			try {
+				hasWindow = !p.HasExited && p.MainWindowHandle != IntPtr.Zero;
+			} catch (InvalidOperationException) {
+				Debug.WriteLine("The process has already exited");
 			}
+
+			if (hasWindow) {
+				// Attempt to gracefully close the window
+				_ = p.CloseMainWindow();
+				try {
+					// Wait for 3 seconds for the process to exit.
+					await p.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(3)).Token);
+				} catch (TaskCanceledException) {
+					Debug.WriteLine("The process did not close in time, it will be killed");
+				}
+			}
+
+			// This handles headless processes, and processes that failed to close gracefully
+			if (!p.HasExited) {
+				try {
+					if (OperatingSystem.IsWindows()) {
+						p.Kill(true); // Kill the entire process tree on Windows.
+					} else {
+						p.Kill();
+					}
+					// Wait for 1 second for the process to be killed.
+					await p.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(1)).Token);
+				} catch (TaskCanceledException) {
+					Debug.WriteLine("The process is stubborn");
+				}
+			}
+		} catch (Exception ex) {
+			if (ex is InvalidOperationException && ex.Message.Contains("No process is associated with this object.")) {
+				Debug.WriteLine("The process terminated unexpectedly");
+				return;
+			}
+			Toaster.Error($"Failed to terminate process {p.Id}: {ex.Message}");
+		} finally {
+			p.Close();
 		}
 	}
 }

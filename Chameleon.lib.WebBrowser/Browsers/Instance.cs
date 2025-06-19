@@ -1,11 +1,11 @@
-﻿using Chameleon.lib.Common.Util.Mac;
-using System.Diagnostics;
-using Chameleon.lib.Helpers;
-using Chameleon.lib.WebBrowser.Services;
+﻿using chameleon.assets;
+using Chameleon.lib.Common.Util.Mac;
 using Chameleon.lib.Common.Util.Win;
-using chameleon.assets;
-using Chameleon.lib.Util;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.ThirdParty.GeoIp;
+using Chameleon.lib.Util;
+using Chameleon.lib.WebBrowser.Services;
+using System.Diagnostics;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
 
@@ -54,8 +54,8 @@ public abstract class Browser : IBrowserInstance {
 		if (Brocess != null) {
 			try {
 				if (!Brocess.HasExited) {
-					Brocess.Kill(true); 
-					Brocess.WaitForExit(3000);
+					ProcessUtil.TryKillProcess(Brocess);
+					_ = Task.Delay(TimeSpan.FromSeconds(4));//Wait for exit
 				}
 			} catch(Exception ex) 
 			{

@@ -126,13 +126,9 @@ public class Chromium : Browser {
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
 			$"--load-extension=\"{Project.Extensions.Chromeleon}\"",
+			Settings.OpenOptions.Headless ? "--headless=new" : "",
 			args ? InitUrl : "about:blank"
 		};
-
-		if (Settings.OpenOptions.Headless)
-		{
-			arguments.Add("--headless=new"); // Use --headless for older versions if needed
-		}
 
 		return string.Join(" ", arguments.Where(x => x != null));
 	}

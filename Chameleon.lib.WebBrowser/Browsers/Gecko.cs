@@ -288,13 +288,9 @@ public class Gecko : Browser {
 			"-allow-downgrade",
 			"-no-remote",
 			$"-profile \"{Settings.SysBrowserProfileCachePath}\"",
+			Settings.OpenOptions.Headless ? "-headless" : "",
 			args ? InitUrl : ""
 		};
-
-		if (Settings.OpenOptions.Headless)
-		{
-			arguments.Add("-headless");
-		}
 
 		return string.Join(" ", arguments.Where(x => !string.IsNullOrWhiteSpace(x)));
 	}
