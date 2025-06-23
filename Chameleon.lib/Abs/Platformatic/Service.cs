@@ -1,3 +1,4 @@
+using Chameleon.AIR.Actors.Models;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
@@ -79,18 +80,17 @@ public class Service : Web {
     public class Promptee() : Root("promptee") {
       public static Promptee Instance { get; } = new();
       public record Rep<T>(T Reply);
-      public record Decorations(string System, string Tone, string Human, string Audience, string Background,
-        string Prefix = "",
-        string Suffix = ""
-      );
+      // public record Decorations(string System, string Tone, string Human, string Audience, string Background,
+      //   string Prefix = "",
+      //   string Suffix = ""
+      // );
       public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
       public record GenorateResponse(string Type, string Data, object Reason);
       public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
         return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/genorate", new(
-          Headers: new() { { "ai", "origato" }, { "model", "gpt" } },
+          Headers: new() { { "ai", "origato" }, { "model", "gpt-4.1" } },
           Authenticate: false,
           Body: new {
-            model = "gpt",
             decorators = request.Decorators,
             task = "generate different variations of search terms from each term",
             generations = new {
@@ -102,6 +102,7 @@ public class Service : Web {
                 type = "search",
                 data = request.Search,
                 reason = "list of search terms to generate variations for",
+                user_intent = "generate variations of search terms for use in website searches",
               },
             },
           }

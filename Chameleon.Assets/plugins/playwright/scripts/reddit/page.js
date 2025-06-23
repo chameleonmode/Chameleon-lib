@@ -1,9 +1,8 @@
-import { random, rando, trySequentially, tryForEach } from "../../lib/utils.js";
+import { random, rando, trySequentially } from "../../lib/utils.js";
 import { configure, BASE_URL } from "./reddit.js";
 import { Base } from "../base.js";
 import { Player } from "../player.js";
 import { Logger } from "../../lib/logger.js";
-import { promptee } from "../../lib/requests.js";
 export class Reddit extends Base {
     ctx;
     opts;
@@ -85,35 +84,7 @@ export class Reddit extends Base {
         }
     }
     async navigato(url) {
-        const tried = await tryForEach([
-            this.navigate(url),
-            (async () => {
-                Logger.debug("variations:", this.opts.settings.start.variations);
-                const genorate = this.opts.args.search.length > 0 && this.opts.settings.start.variations.max > 0;
-                if (genorate) {
-                    const result = await promptee.genorate({
-                        model: this.opts.ai.model,
-                        decorators: this.opts.ai.decorators,
-                        task: `generate search terms`,
-                        generations: {
-                            type: "term",
-                            sys: "you are creating variations of search terms",
-                            context: "current search terms",
-                            range: this.opts.settings.start.variations,
-                            input: {
-                                type: "search",
-                                data: this.opts.args.search,
-                                reason: "list of search terms to generate variations for",
-                            },
-                        },
-                    });
-                    const terms = result.map((i) => i.data);
-                    this.opts.args.search = [...this.opts.args.search, ...terms].sort(() => Math.random() - 0.5);
-                    Logger.info("Generated search terms:", this.opts.args.search, result);
-                }
-            })(),
-        ]);
-        this.bang("Navigation", tried.fulfilled.length > 0, { url, tried });
+        await this.navigate(url);
         this.visited.push(url);
     }
     async searcho() {

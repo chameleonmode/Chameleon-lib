@@ -14,13 +14,13 @@ export default async function (context, opts) {
                 image: { des: "page screenshots", b64 },
                 generations: {
                     type: "title",
-                    sys: `Your creating a post on a subreddit community page`,
                     range: { min: 1, max: 1 },
                     context: `context: ${context}\ncurrent page url: ${reddit.page.url()}`,
                     input: {
                         type: "comment",
                         data: comments.map((c) => c.text),
                         reason: "existing array of comments on the post",
+                        user_intent: `Creating a post on a subreddit community page`,
                     },
                 },
             });
@@ -34,13 +34,13 @@ export default async function (context, opts) {
                 image: { des: "page screenshots", b64 },
                 generations: {
                     type: "post",
-                    sys: `Your creating a post on a subreddit community page`,
                     range: { min: 1, max: 1 },
                     context: `context: ${context}\ncurrent page url: ${reddit.page.url()}`,
                     input: {
                         type: "title",
                         data: [titler.data],
                         reason: "the title of the post to generate content for",
+                        user_intent: `Creating a post on a subreddit community page`,
                     },
                 },
             });
