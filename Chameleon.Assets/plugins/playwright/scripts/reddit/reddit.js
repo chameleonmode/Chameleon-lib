@@ -27,15 +27,12 @@ export const settings = {
     },
 };
 export const ai = {
-    model: "gpt",
+    model: "o4-mini",
     decorators: {
-        system: "You are helpful!",
         human: "reddit content creator",
-        audience: "adaptive to the general audience of the task context",
+        audience: "reddit website users",
         background: "surfing reddit",
-        tone: "adaptive to the general tone of context",
-        prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
-        suffix: "Respond as creative as possible.",
+        tone: "adaptive to the general tone of provided context",
     },
 };
 export function configure(opts) {

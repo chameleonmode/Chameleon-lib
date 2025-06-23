@@ -20,6 +20,7 @@
     "scripts:download": "node .scripts/downode.cjs",
     "examples:ask:prompt": "node --loader ts-node/esm tests/examples/ask-prompt.ts",
     "examples:ask:genorate": "node --loader ts-node/esm tests/examples/ask-genorate.ts",
+    "examples:ask:robot": "node --loader ts-node/esm tests/examples/ask-robot.ts",
     "examples:page:base": "node --loader ts-node/esm tests/examples/page-base.ts ../scripts/reddit/plugins/subreddit/vote"
   },
   "dependencies": {

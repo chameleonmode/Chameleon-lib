@@ -29,7 +29,7 @@ export async function req(route, args) {
     Logger.log("Request:", { to: from });
     const request = await fetch(from, init);
     const response = await request.json();
-    Logger.log("Generated:", response);
+    Logger.log("Response:", response);
     return response;
 }
 export var promptee;
@@ -37,21 +37,25 @@ export var promptee;
     async function requesito(route, ctx) {
         ctx.decorators.tone ||= rando(tones);
         const args = { headers: { ai: "origato", model: ctx.model }, body: ctx };
-        return await req("/promptee" + route, args);
+        return await req("/promptee/" + route, args);
     }
     function responsito(request) {
         const out = request.reply;
-        Logger.log("Reply:", out);
         return out;
     }
     async function prompt(ctx) {
-        const request = await requesito("/prompt", ctx);
+        const request = await requesito("prompt", ctx);
         return responsito(request);
     }
     promptee.prompt = prompt;
     async function genorate(ctx) {
-        const request = await requesito("/genorate", ctx);
+        const request = await requesito("genorate", ctx);
         return responsito(request);
     }
     promptee.genorate = genorate;
+    async function robot(ctx) {
+        const request = await requesito("robot", ctx);
+        return responsito(request);
+    }
+    promptee.robot = robot;
 })(promptee || (promptee = {}));
