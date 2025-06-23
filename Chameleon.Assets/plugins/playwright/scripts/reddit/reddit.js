@@ -29,6 +29,7 @@ export const settings = {
 export const ai = {
     model: "o4-mini",
     decorators: {
+        system: "You are a my Reddit content creator assistant",
         human: "reddit content creator",
         audience: "reddit website users",
         background: "surfing reddit",
