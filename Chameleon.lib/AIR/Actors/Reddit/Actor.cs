@@ -1,24 +1,20 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Chameleon.AIR.Scripts.Reddit.Post;
-using Chameleon.AIR.Scripts.Reddit.Subreddit;
-using Chameleon.lib.AIR.Scripts.Models;
+using Chameleon.lib.AIR.Scripts;
+using Chameleon.lib.AIR.Scripts.Reddit.Post;
+using Chameleon.lib.AIR.Scripts.Reddit.Subreddit;
+using Chameleon.lib.AIR.Scripts.Reddit.User;
 
-namespace Chameleon.AIR.Actors.Models.Reddit;
+namespace Chameleon.lib.AIR.Actors.Reddit;
 
 public class Actor : IActor {
   public Opts Options { get; set; } = new Opts(
     AI: new AI(
       Decorators: new Decorations(
-        System: "You are helpful!",
-        Prefix: string.Empty,
+        System: "You are a Reddit-native assistant",
         Human: "reddit content creator",
-        Audience: "adaptive to the general audience of the task context",
+        Audience: "reddit website users",
         Background: "surfing reddit",
-        Tone: "adaptive to the general tone of context",
-        Suffix: string.Empty
+        Tone: "adaptive"
       )
     ),
     Args: new() {
@@ -40,6 +36,7 @@ public class Actor : IActor {
   public IEnumerable<IScript> Scripts { get; set; } = new ObservableCollection<IJSScript>() {
     new Surf(),
     new Comment(), new Reply(),
-    new Post(), new Join(),new Vote(),
+    new Post(), new Join(), new Vote(),
+    new Follow(),
   };
 }

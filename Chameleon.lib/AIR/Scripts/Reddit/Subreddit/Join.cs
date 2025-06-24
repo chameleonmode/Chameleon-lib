@@ -1,6 +1,4 @@
-﻿using Chameleon.lib.AIR.Scripts.Models;
-
-namespace Chameleon.AIR.Scripts.Reddit.Subreddit;
+﻿namespace Chameleon.lib.AIR.Scripts.Reddit.Subreddit;
 
 public record Join : JSScript {
 	public Join() : base(

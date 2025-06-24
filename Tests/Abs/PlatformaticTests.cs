@@ -226,7 +226,7 @@ public class PlatformaticTests : TestSetup {
 	[Fact]
 	public async Task Service_Routes_Promptee() {
 		var res = await Service.Routes.Promptee.Genorate(new(
-			new(System: "you are helpful", Tone: "roboto", Human: "mr", Audience: "roboto", Background: "domo", Prefix: "", Suffix: ""), 2, ["popeye", "captain crunch"])
+			new(System: "you are helpful", Tone: "roboto", Human: "mr", Audience: "roboto", Background: "domo"), 2, ["popeye", "captain crunch"])
 		);
 		Debug.WriteLine(JSON.Serialize(res!));
 	}

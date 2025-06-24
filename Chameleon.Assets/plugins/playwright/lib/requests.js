@@ -37,7 +37,7 @@ export var promptee;
     async function requesito(route, ctx) {
         ctx.decorators.tone ||= rando(tones);
         const args = { headers: { ai: "origato", model: ctx.model }, body: ctx };
-        return await req("/promptee/" + route, args);
+        return await req("/robo/" + route, args);
     }
     function responsito(request) {
         const out = request.reply;

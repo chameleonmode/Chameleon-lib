@@ -1,3 +1,5 @@
+import { spawn } from "child_process";
+import { Logger } from "./logger.js";
 export const delay = (ms) => {
     return new Promise((resolve) => {
         setTimeout(() => resolve(ms), ms);
@@ -35,6 +37,12 @@ export async function tryForEach(promises) {
         }
     }));
     return { fulfilled, errors };
+}
+export async function error(message, cause) {
+    const error = new Error(`${message}`, { cause });
+    const pretty = { cause, stack: error.stack };
+    Logger.error(`(error): ${error.message}`, pretty);
+    return error;
 }
 export async function trySequentially(promises, { first = true } = {}) {
     const fulfilled = [];
@@ -108,4 +116,12 @@ export function getChromePath() {
         default:
             return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
     }
+}
+export async function launcher() {
+    const child = spawn(getChromePath(), [`--remote-debugging-port=9613`, `--user-data-dir=/Users/dev/src/chameleon-playwright/.cache/examples`], {
+        detached: true,
+        stdio: "ignore",
+    });
+    child.unref();
+    await delay(3000);
 }

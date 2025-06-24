@@ -1,4 +1,4 @@
-using Chameleon.AIR.Actors.Models;
+using Chameleon.lib.AIR.Actors;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
@@ -14,8 +14,9 @@ public class Service : Web {
       public static async Task<bool> DownloadLatest(Action<string> onProgress) {
         // Local path where the downloaded file will be saved
         var ext = OperatingSystem.IsMacOS() ? "zip" : "7z";
+        using var client = await Abs.HttpClient();
         // Send an asynchronous GET request and ensure headers are read before downloading the stream
-        using var response = await Client.Instance.HttpClient.GetAsync($"{Instance.Prefix}/download" + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
+        using var response = await client.GetAsync($"{Instance.Prefix}/download" + $"?ext={ext}", HttpCompletionOption.ResponseHeadersRead);
         _ = response.EnsureSuccessStatusCode();
 
         // Get the file name from the Content-Disposition header
@@ -77,7 +78,7 @@ public class Service : Web {
       }
     }
 
-    public class Promptee() : Root("promptee") {
+    public class Promptee() : Root("robo") {
       public static Promptee Instance { get; } = new();
       public record Rep<T>(T Reply);
       // public record Decorations(string System, string Tone, string Human, string Audience, string Background,
@@ -85,24 +86,21 @@ public class Service : Web {
       //   string Suffix = ""
       // );
       public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
-      public record GenorateResponse(string Type, string Data, object Reason);
+      public record GenorateResponse(string Type, string[] Data, object Reason);
       public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
         return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/genorate", new(
           Headers: new() { { "ai", "origato" }, { "model", "gpt-4.1" } },
           Authenticate: false,
           Body: new {
             decorators = request.Decorators,
-            task = "generate different variations of search terms from each term",
+            task = "generate_search_terms",
             generations = new {
               type = "term",
-              sys = "your reply must be valid json and seperate each generated term as its own reply object and only generate the requested minimum of each",
-              context = "current search terms",
-              range = new { min = request.Variations, max = request.Variations },
+              range = new { min = request.Search.Count(), max = request.Search.Count() },
               input = new {
                 type = "search",
                 data = request.Search,
-                reason = "list of search terms to generate variations for",
-                user_intent = "generate variations of search terms for use in website searches",
+                user_intent = $"generate {request.Variations} variations of each search term",
               },
             },
           }

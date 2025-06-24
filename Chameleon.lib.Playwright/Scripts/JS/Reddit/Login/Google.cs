@@ -1,10 +1,10 @@
-using Chameleon.lib.AIR.Scripts.Models;
+using Chameleon.lib.AIR.Scripts;
 
 namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 
 public record Google : JSScript {
   public Google() : base(
-    "../scripts/reddit/plugins/login/google",
+    "../scripts/reddit/plugins/login/default/google",
     "Reddit Login With Google",
     "Authenticate to reddit using google account"
   ) { }

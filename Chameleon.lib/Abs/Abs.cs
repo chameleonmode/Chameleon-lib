@@ -45,7 +45,7 @@ public abstract class Root(string prefix) {
 }
 
 public abstract class Web {
-  static Task<T?> Sender<T>(HttpMethod method, string path, Request? request = null) => Client.Instance.Send<T>(method, path, request ?? new());
+  static Task<T?> Sender<T>(HttpMethod method, string path, Request? request = null) => Abs.Send<T>(method, path, request ?? new());
   public static Task<T?> Put<T>(string path, Request request) => Sender<T>(HttpMethod.Put, path, request);
   public static Task<T?> Post<T>(string path, Request request) => Sender<T>(HttpMethod.Post, path, request);
   public static Task<T?> Get<T>(string path, Request? request = null) => Sender<T>(HttpMethod.Get, path, request);
@@ -53,16 +53,28 @@ public abstract class Web {
 }
 #endregion
 
-public class Client {
-  public string AddressUri { get; } = Abs.TESTING ? "http://127.0.0.1:3042" : "https://chameleon-ws.onrender.com";
-  public HttpClient HttpClient => new(new HttpClientHandler {
+public static class Abs {
+  private static Task<bool>? testing;
+  public static Task<bool> TESTING => testing ??= Task.Run(async () => {
+    try {
+      using var client = new HttpClient();
+      client.Timeout = TimeSpan.FromMilliseconds(300);
+
+      _ = await client.GetAsync("http://127.0.0.1:3042");
+      return true && Debugger.IsAttached; // Local server is available
+    } catch {
+      return false; // Use fallback
+    }
+  });
+
+  public static async Task<HttpClient> HttpClient() => new HttpClient(new HttpClientHandler {
     AutomaticDecompression = DecompressionMethods.GZip,
     ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-  }) { BaseAddress = new Uri(AddressUri) };
+  }) { BaseAddress = new Uri(await TESTING ? "http://127.0.0.1:3042" : "https://chameleon-ws.onrender.com") };
 
-  public async Task<T?> Send<T>(HttpMethod method, string path, Request req) {
-    using var client = this.HttpClient;
-    if (req.Authenticate && !Abs.TESTING) {
+  public static async Task<T?> Send<T>(HttpMethod method, string path, Request req) {
+    using var client = await HttpClient();
+    if (req.Authenticate) {
       var (auth0client, authentication) = await Session.Instance.Authenticate();
       client.DefaultRequestHeaders.Authorization = authentication;
       client.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
@@ -84,12 +96,5 @@ public class Client {
       $"{requestUri}:\n{response.StatusCode}\n{(JSON.Deserialize<Errorer>(content) is Errorer err ? $"{err.Error}\n{err.Message}" : content)}");
   }
 
-  Client() { }
-  public static Client Instance { get; } = new();
-}
-
-public static class Abs {
-  public static bool TESTING => false && Debugger.IsAttached;
-  public static Client Client => Client.Instance;
 }
 

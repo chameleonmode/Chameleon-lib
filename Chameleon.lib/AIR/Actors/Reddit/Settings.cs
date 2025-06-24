@@ -2,10 +2,10 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Chameleon.AIR.Actors.Models.Reddit;
+namespace Chameleon.lib.AIR.Actors.Reddit;
 
-public enum Scope { Posts, Communities, Comments, Media, } // People
-public enum Sort { Relevance, Hot, Top, New, Comments, }
+public enum Scope { Posts, Communities, Comments, Media, People }
+public enum Sort { Relevance, Hot, Top, New, Comments, Posts }
 public enum Filter { All, Year, Month, Week, Today, Hour, }
 
 public record Args : IArgs {

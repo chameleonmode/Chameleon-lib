@@ -1,27 +1,26 @@
+import util from "util";
 export class Logger {
     static prefix = () => {
         const date = new Date();
         return `${date.toISOString().split("T")[0]} ${date.toTimeString().split(" ")[0]}`;
     };
-    static suffix = (message, objects) => {
-        return {
-            message: JSON.stringify(message),
-            objects: JSON.stringify(objects, null, 2),
-        };
-    };
+    static print(level, color, message, objects) {
+        const output = objects.map((o) => typeof o === "string" ? o : util.inspect(o, { depth: null, colors: true, compact: true }));
+        console.log(`[${this.prefix()}] \x1b[${color}m${level}\x1b[0m`, message, ...output);
+    }
     static log(message = "Chamelioneer", ...objects) {
-        console.log(`[${this.prefix()}] \x1b[32mLOG\x1b[0m`, this.suffix(message, objects));
+        this.print("LOG", "32", message, objects);
     }
     static info(message = "Chamelioneer", ...objects) {
-        console.log(`[${this.prefix()}] \x1b[35mINFO\x1b[0m`, this.suffix(message, objects));
+        this.print("INFO", "35", message, objects);
     }
     static debug(message = "Chamelioneer", ...objects) {
-        console.log(`[${this.prefix()}] \x1b[36mDEBUG\x1b[0m`, this.suffix(message, objects));
+        this.print("DEBUG", "36", message, objects);
     }
-    static warn(message = "Chamelioneer", ...objects) {
-        console.warn(`[${this.prefix()}()] \x1b[33mWARN\x1b[0m`, this.suffix(message, objects));
+    static warn(message = "WARN", ...objects) {
+        this.print("WARN", "33", message, objects);
     }
-    static error(message = "Chamelioneer", ...objects) {
-        console.error(`[${this.prefix()}] \x1b[31mERROR\x1b[0m`, this.suffix(message, objects));
+    static error(message = "ERROR", ...objects) {
+        this.print("ERROR", "31", message, objects);
     }
 }

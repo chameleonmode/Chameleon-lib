@@ -1,6 +1,6 @@
-using Chameleon.lib.AIR.Scripts.Models;
+using Chameleon.lib.AIR.Scripts;
 
-namespace Chameleon.AIR.Actors.Models;
+namespace Chameleon.lib.AIR.Actors;
 // A generic dictionary-like interface
 public interface IArti<T>
 {
@@ -31,7 +31,7 @@ public interface IActor
   // Integrations
 }
 
-public record Decorations(string System, string Prefix, string Human, string Audience, string Background, string Tone, string Suffix);
+public record Decorations(string System, string Human, string Audience, string Background, string Tone);
 public record AI(Decorations Decorators);
 public record Rando(int Min, int Max, int? Multiplier = null);
 public record Timeouts(int Default, int Wait, int Navigate, Rando Naps) {

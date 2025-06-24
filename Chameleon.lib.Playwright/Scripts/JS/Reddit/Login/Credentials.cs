@@ -1,10 +1,10 @@
-using Chameleon.lib.AIR.Scripts.Models;
+using Chameleon.lib.AIR.Scripts;
 
 namespace Chameleon.lib.Playwright.Scripts.JS.Reddit.Login;
 
 public record Credentials : JSScript {
 	public Credentials() : base(
-		"../scripts/reddit/plugins/login/credentials",
+		"../scripts/reddit/plugins/login/default/credentials",
 		"Reddit Login",
 		"Authenticate to reddit using credentials"
 	) { }

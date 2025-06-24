@@ -1,6 +1,4 @@
-﻿using Chameleon.lib.AIR.Scripts.Models;
-
-namespace Chameleon.AIR.Scripts.Reddit.Post;
+﻿namespace Chameleon.lib.AIR.Scripts.Reddit.Post;
 
 public record Comment : JSScript {
 	public Comment() : base(

@@ -3,9 +3,9 @@ using System.Diagnostics;
 using chameleon.assets;
 using Microsoft.Playwright;
 using Chameleon.lib.Helpers;
-using Chameleon.lib.AIR.Scripts.Models;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Util;
+using Chameleon.lib.AIR.Scripts;
 
 namespace Chameleon.lib.Playwright;
 
@@ -34,8 +34,8 @@ public static class Project {
 			: "../Resources/.playwright"
 		);
 		public static string Dir { get; } = Path.Combine(FilePaths.AppDataDir, "playwright");
-		public static string App { get; } = Staging
-		? Path.Combine("/Users/dev/src/chameleon-playwright/dist", "app.js")
+		public static string App { get; } = Staging &&
+		Path.Combine("/Users/dev/src/chameleon-playwright/dist", "app.js") is string str && File.Exists(str)? str
 		: Path.Combine(Dir, "app.js");
 		public static string Node { get; } = Path.Combine(DotPlaywright, "node", OperatingSystem.IsWindows() ? "win32_x64\\node.exe" : "darwin-x64/node");
 		// TODO: public static string Node { get; } = Path.Combine(Playwright, "node" + (OperatingSystem.IsWindows() ? ".exe" : ""));

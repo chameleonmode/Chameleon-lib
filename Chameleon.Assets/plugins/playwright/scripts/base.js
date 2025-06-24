@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
+import { error, rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
 import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";
 export class Base {
@@ -56,28 +56,31 @@ export class Base {
             };
         });
     }
-    async firstVisible(location) {
+    async txtContent(selector, locator) {
+        const location = locator?.locator(selector) || this.page.locator(selector);
         const locations = await location.count();
         this.bang(`firstVisible: ${location}`, locations > 0, { location, locations });
         for (let i = 0; i < locations; i++) {
             const element = location.nth(i);
             if (await element.isVisible()) {
-                await element.scrollIntoViewIfNeeded({ timeout: this.opts.settings.timeouts.wait });
+                await element.scrollIntoViewIfNeeded();
                 const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
                 if (!text)
                     continue;
-                return { element, text };
+                return this.bang("txtContent: " + selector, text, { element, text });
             }
         }
-        throw this.error(`No visible elements found for selector: ${location}`, { locations, location });
+        throw error(`No visible elements found for selector: ${location}`, { locations, location });
     }
-    async txtContent(selector, locator) {
-        const location = locator?.locator(selector) || this.page.locator(selector);
-        try {
-            const { element, text } = await this.firstVisible(location);
-            return this.bang("txtContent: " + selector, text, { element, text });
-        }
-        catch { }
+    async attributes(locator) {
+        const attributes = await locator.evaluate((node) => {
+            const attrs = {};
+            for (const attr of node.attributes) {
+                attrs[attr.name] = attr.value;
+            }
+            return attrs;
+        });
+        return this.bang("attributes: " + locator, attributes, { locator, attributes });
     }
     async selectAll(locator, clear = false) {
         const modifierKey = process.platform === "win32" ? "Control" : "Meta";
@@ -100,22 +103,31 @@ export class Base {
             timeout: 1000 * 60 * 5,
         });
     }
-    async click(locator, { strict = true, timeout = this.opts.settings.timeouts.default } = {}) {
+    async assert(locator, { timeout = 1000 * 6 } = {}) {
+        const expecto = await tryForEach([
+            expect(locator).toBeEnabled({ timeout }),
+            expect(locator).toBeVisible({ timeout }),
+        ]);
+        this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto);
+        await locator.waitFor({ timeout });
+        return this.bang(`assert: ${locator}`, locator, { timeout, locator });
+    }
+    async click(thang, options = {}) {
+        const locator = typeof thang === "string" ? this.page.locator(thang).first() : thang;
+        const { strict = true, timeout = this.opts.settings.timeouts.wait } = options;
         await this.nap();
+        const count = await locator.count();
+        this.banger(count, { locator, count });
         if (strict) {
-            const expecto = await tryForEach([
-                expect(locator).toBeEnabled({ timeout }),
-                expect(locator).toBeVisible({ timeout }),
-            ]);
-            this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto);
-            await locator.waitFor({ timeout });
+            await this.assert(locator, { timeout });
         }
         const locato = await trySequentially([() => locator.scrollIntoViewIfNeeded({ timeout }), () => locator.click({ timeout, force: true })], { first: false });
         this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato);
         await this.nap();
+        return this.bang(`click: ${locator}`, locator, { options, locator });
     }
-    async scrollabit() {
-        for (let i = 0; i < rando(3, 6); i++) {
+    async scrollabit(times = rando(3, 6)) {
+        for (let i = 0; i < times; i++) {
             await this.nap();
             try {
                 const { scrollTop, scrollHeight, clientHeight } = await this.page.evaluate(() => {
@@ -147,18 +159,45 @@ export class Base {
         await this.waitForNavigation();
     }
     async find(ids, strategy = "testId") {
-        for (const id of ids) {
-            const locator = strategy === "testId"
-                ? this.page.getByTestId(id)
-                : strategy === "selector"
-                    ? this.page.locator(id)
-                    : this.page.getByText(id);
-            const count = await locator.count();
-            if (count > 0) {
-                return { count, locator, id };
+        for (const selector of ids) {
+            const target = (() => {
+                switch (strategy) {
+                    case "testId":
+                        return this.page.getByTestId(selector);
+                    case "selector":
+                        return this.page.locator(selector);
+                    case "text":
+                        return this.page.getByText(selector);
+                    default:
+                        throw error(`Unknown strategy: ${strategy}`);
+                }
+            })();
+            try {
+                const findVisibleAncestor = async (current, maxDepth = 25, timeout = 50) => {
+                    Logger.log(`Finding visible ancestor for ${selector} with max depth ${maxDepth}`);
+                    if (maxDepth < 0)
+                        throw error(`Max depth reached while finding visible ancestor for ${selector}`);
+                    for (const location of await current.all()) {
+                        if (await location.isVisible({ timeout }).catch(() => false))
+                            return location;
+                        const siblings = location.locator(":scope > *");
+                        for (const sibling of await siblings.all()) {
+                            Logger.log(`Sibling: <${location}>`, sibling);
+                            if (await sibling.isVisible({ timeout }).catch(() => false))
+                                return sibling;
+                        }
+                        return findVisibleAncestor(location.locator(".."), maxDepth - 1);
+                    }
+                    throw error(`No visible ancestor found for ${selector}`);
+                };
+                const locator = strategy === "testId" ? target : await findVisibleAncestor(target);
+                return { target, locator, selector, count: await locator.count() };
+            }
+            catch (e) {
+                Logger.warn(`Failed to resolve ${strategy} locator for ${selector}`, e);
             }
         }
-        throw this.error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
+        throw error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
     }
     async findFrame(selectors) {
         for (const selector of selectors) {
@@ -175,7 +214,7 @@ export class Base {
                 continue;
             }
         }
-        throw this.error(`No frames found for selectors: ${selectors.join(", ")}`);
+        throw error(`No frames found for selectors: ${selectors.join(", ")}`);
     }
     async dimensions() {
         return await this.page.evaluate(() => {
@@ -204,19 +243,18 @@ export class Base {
             ...opts,
         });
     }
-    error(message, cause) {
-        const error = new Error(`${message}`, { cause });
-        const pretty = { cause, stack: error.stack, opts: this.opts };
-        Logger.error(`(error/${this.opts.settings.start.feature}): ${error.message}`, pretty);
-        return error;
-    }
     bang(message, expect, source) {
         Logger.debug(`(bang/${this.opts.settings.start.feature}): ${message}`, expect, source);
         if (expect)
             return expect;
-        throw this.error(message, { source, expect });
+        throw error(message, { source, expect });
     }
     banger(expect, source) {
         return this.bang(``, expect, source);
+    }
+    bing(expect, returnz, source) {
+        if (this.banger(expect))
+            return returnz;
+        throw error("", { source, expect });
     }
 }
