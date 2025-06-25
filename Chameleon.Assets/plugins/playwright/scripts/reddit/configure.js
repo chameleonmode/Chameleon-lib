@@ -37,12 +37,24 @@ export const ai = {
     },
 };
 export function configure(opts) {
-    Logger.debug("Opts", { opts });
     const search = opts?.args?.search || args.search;
     const urls = [
         ...(opts?.settings?.start?.urls || []),
         ...settings.start.urls,
     ];
+    if (!search.length && !urls.length) {
+        args.scope = "Posts";
+        args.sort = "Relevance";
+        args.filter = "All";
+        urls.push("https://www.reddit.com/r/cartoons/comments/1066oh1/anyone_remember_this_this_show_was_such_an/");
+        settings.start.attempts = 12;
+        settings.start.new = false;
+        settings.start.rando = { min: 9, max: 9 };
+        settings.start.iterations = { min: 1, max: 1 };
+        settings.start.variations = { min: 1, max: 1 };
+        Logger.warn("No search terms or URLs provided, using default values.");
+    }
+    Logger.debug("Opts", { opts });
     const options = {
         run: opts?.run ?? {},
         args: { ...args, ...opts?.args },

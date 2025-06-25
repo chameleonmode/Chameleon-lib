@@ -1,9 +1,9 @@
 export class User {
-    reddit;
-    constructor(reddit) {
-        this.reddit = reddit;
+    pager;
+    constructor(pager) {
+        this.pager = pager;
     }
     async follow() {
-        await this.reddit.click('div[slot="button-follow"] button:has-text("Follow")');
+        await this.pager.click('div[slot="button-follow"] button:has-text("Follow")');
     }
 }

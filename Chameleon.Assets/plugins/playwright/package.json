@@ -11,17 +11,17 @@
     "build:clean": "rm -rf dist",
     "build:prepare": "cp package.json dist && cd dist && npm install --omit=dev --no-package-lock --no-bin-links",
     "build:bundle": "esbuild src/app.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/bundle.js --external:@playwright/* --external:playwright* --external:chromium-bidi/* --external:*.node",
-    "reddit:reply": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/post/reply",
-    "reddit:comment": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/post/comment",
-    "reddit:vote": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/vote",
-    "reddit:post": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/post",
-    "reddit:join": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/join",
-    "reddit:follow": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/user/default/follow",
+    "reddit:repl": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/post/addons/reply",
+    "reddit:comm": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/post/addons/comment",
+    "reddit:vote": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/addons/vote",
+    "reddit:post": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/addons/post",
+    "reddit:join": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/addons/join",
+    "reddit:foll": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/user/addons/follow",
     "scripts:download": "node .scripts/downode.cjs",
     "examples:ask:prompt": "node --loader ts-node/esm tests/examples/ask-prompt.ts",
     "examples:ask:genorate": "node --loader ts-node/esm tests/examples/ask-genorate.ts",
     "examples:ask:robot": "node --loader ts-node/esm tests/examples/ask-robot.ts",
-    "examples:page:base": "node --loader ts-node/esm tests/examples/page-base.ts ../scripts/reddit/plugins/subreddit/vote"
+    "lunch": "node --loader ts-node/esm tests/examples/launcher.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.50.1"

@@ -1,5 +1,4 @@
 import { spawn } from "child_process";
-import { Logger } from "./logger.js";
 export const delay = (ms) => {
     return new Promise((resolve) => {
         setTimeout(() => resolve(ms), ms);
@@ -37,12 +36,6 @@ export async function tryForEach(promises) {
         }
     }));
     return { fulfilled, errors };
-}
-export async function error(message, cause) {
-    const error = new Error(`${message}`, { cause });
-    const pretty = { cause, stack: error.stack };
-    Logger.error(`(error): ${error.message}`, pretty);
-    return error;
 }
 export async function trySequentially(promises, { first = true } = {}) {
     const fulfilled = [];
