@@ -12,10 +12,9 @@ public static class Exceptionz {
 			return default;
 		}
 	}
+
+	public static bool Catch(Action action, Action<Exception>? caught = null) => Catch(() => { action(); return true; }, caught);
 	
-	public static bool Catch(Action action, Action<Exception>? caught = null) {
-		return Catch(() => { action(); return true; }, caught);
-	}
 	
 	public static T? Catch<T, TT>(Func<T> action, Action<TT>? caught = null)
 		where TT : Exception {
