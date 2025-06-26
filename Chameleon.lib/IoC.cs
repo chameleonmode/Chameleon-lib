@@ -42,7 +42,7 @@ public static class JSON {
 		 PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } };
 
 	public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null) {
-			return Exceptionz.TryCatch(()=> JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions));
+			return Exceptionz.Catch(()=> JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions));
 	}
 	public static T Deserializer<T>(string json, JsonSerializerOptions? options = null) where T : new() {
 			return Deserialize<T>(json,options) ?? new();

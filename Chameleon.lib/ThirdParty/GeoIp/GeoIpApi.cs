@@ -40,7 +40,7 @@ public class GeoIpApi {
 
 		var httpClientTimeoutInSeconds = 5;
 		try {
-			return await Exceptionz.RetryPolicy(
+			return await Exceptionz.Policy(
 				async () => {
 					client.Timeout = TimeSpan.FromSeconds(httpClientTimeoutInSeconds);
 					var response = await client.GetAsync(requestUri);
