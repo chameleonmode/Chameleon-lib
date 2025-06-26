@@ -15,7 +15,6 @@ public static class Exceptionz {
 
 	public static bool Catch(Action action, Action<Exception>? caught = null) => Catch(() => { action(); return true; }, caught);
 	
-	
 	public static T? Catch<T, TT>(Func<T> action, Action<TT>? caught = null)
 		where TT : Exception {
 		try {
@@ -36,8 +35,7 @@ public static class Exceptionz {
 		}
 	}
 	
-	public static async Task<T?> Policy<T>(Func<Task<T>> operation,
-		Action<Exception, int>? caught = null,
+	public static async Task<T?> Policy<T>(Func<Task<T>> operation, Action<Exception, int>? caught = null,
 		int sleep = 2500, int retries = 3
 	) {
 		try {
