@@ -25,6 +25,10 @@ public static class EX {
 			return default;
 		}
 	}
+	public static bool Catch<TT>(Action action, Action<TT>? caught = null) 
+		where TT : Exception => Catch(() => { action(); return true; }, caught);
+	public static void Try<TT>(Action action, Action<TT>? caught = null) 
+		where TT : Exception => Catch(() => { action(); return true; }, caught);
 
 	public static async Task<T?> Catch<T>(Func<Task<T>> action, Action<Exception>? caught = null) {
 		try {
@@ -43,6 +47,27 @@ public static class EX {
 		await action();
 	}, caught);
 	
+	public static async Task<T?> Catch<T, TT>(Func<Task<T>> action, Action<TT>? caught = null)
+		where TT : Exception {
+		try {
+			return await action();
+		} catch (TT e) {
+			caught?.Invoke(e);
+			PrintException(e);
+			return default;
+		}
+	}
+	public static async Task<bool> Catch<TT>(Func<Task> action, Action<TT>? caught = null) 
+		where TT : Exception => await Catch(async () => {
+		await action();
+		return true;
+	}, caught);
+	public static async Task Try<TT>(Func<Task> action, Action<TT>? caught = null) 
+		where TT : Exception => await Catch(async () => {
+		await action();
+		return true;
+	}, caught);
+
 	public static async Task<T?> Policy<T>(Func<Task<T>> operation, Action<Exception, int>? caught = null,
 		int sleep = 2500, int retries = 3
 	) {
@@ -55,6 +80,43 @@ public static class EX {
 			return retries > 0 ? await Policy(operation, caught, sleep *= 2, --retries) : default;
 		}
 	}
+	public static async Task<bool> Policy(Func<Task> operation, Action<Exception, int>? caught = null,
+		int sleep = 2500, int retries = 3
+	) => await Policy(async () => {
+		await operation();
+		return true;
+	}, caught, sleep, retries);
+	public static Task Try(Func<Task> operation, Action<Exception, int>? caught = null,
+		int sleep = 2500, int retries = 3
+	) => Policy(async () => {
+		await operation();
+		return true;
+	}, caught, sleep, retries);
+	
+	public static async Task<T?> Policy<T, TT>(Func<Task<T>> operation, Action<TT, int>? caught = null,
+		int sleep = 2500, int retries = 3
+	) where TT : Exception {
+		try {
+			return await operation();
+		} catch (TT e) {
+			PrintException(e);
+			caught?.Invoke(e, retries);
+			await Task.Delay(sleep); // Exponential backoff
+			return retries > 0 ? await Policy(operation, caught, sleep *= 2, --retries) : default;
+		}
+	}
+	public static async Task<bool> Policy<TT>(Func<Task> operation, Action<TT, int>? caught = null,
+		int sleep = 2500, int retries = 3
+	) where TT : Exception => await Policy(async () => {
+		await operation();
+		return true;
+	}, caught, sleep, retries);
+	public static Task Try<TT>(Func<Task> operation, Action<TT, int>? caught = null,
+		int sleep = 2500, int retries = 3
+	) where TT : Exception => Policy(async () => {
+		await operation();
+		return true;
+	}, caught, sleep, retries);
 
 	private static void PrintException(Exception? e) {
 		if (e == null) return;
