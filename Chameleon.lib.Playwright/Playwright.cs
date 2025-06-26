@@ -35,7 +35,7 @@ public static class Project {
 		);
 		public static string Dir { get; } = Path.Combine(FilePaths.AppDataDir, "playwright");
 		public static string App { get; } = Staging &&
-		Path.Combine("/Users/dev/src/chameleon-playwright/dist", "app.js") is string str && File.Exists(str)? str
+		Path.Combine("/Users/dev/src/chameleon-playwright/dist", "app.js") is string str && File.Exists(str) ? str
 		: Path.Combine(Dir, "app.js");
 		public static string Node { get; } = Path.Combine(DotPlaywright, "node", OperatingSystem.IsWindows() ? "win32_x64\\node.exe" : "darwin-x64/node");
 		// TODO: public static string Node { get; } = Path.Combine(Playwright, "node" + (OperatingSystem.IsWindows() ? ".exe" : ""));
@@ -55,7 +55,7 @@ public static class Project {
 		return Initialized.TrySetResult(true);
 	}
 
-	public static bool Staging { get; } = true && Debugger.IsAttached;
+	public static bool Staging { get; } = false && Debugger.IsAttached;
 	public static bool Debug { get; } =
 #if DEBUG
 		true;

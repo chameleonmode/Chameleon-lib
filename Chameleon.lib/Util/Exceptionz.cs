@@ -13,6 +13,15 @@ public static class Exceptionz {
 			return default;
 		}
 	}
+	public static T? TryCatch<T, TT>(Func<T> action, Action<TT>? caught = null) {
+		try {
+			return action();
+		} catch (Exception e) when (e is TT) {
+			caught?.Invoke((TT)(object)e);
+			PrintException(e);
+			return default;
+		}
+	}
 
 	public static void TryCatch(Action action, Action<Exception>? caught = null) {
 		_ = TryCatch(() => { action(); return true; }, caught);
