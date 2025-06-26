@@ -1,3 +1,4 @@
+import Reddito from "../../reddit.js";
 export class Subreddit {
     pager;
     constructor(pager) {
@@ -22,8 +23,8 @@ export class Subreddit {
         const upCount = await ups.count();
         const downCount = await downs.count();
         const count = Math.min(upCount, downCount) - 1;
-        const length = Math.min(count, Math.floor(Math.random() * (this.pager.opts.settings.start.rando.max - this.pager.opts.settings.start.rando.min + 1)) + this.pager.opts.settings.start.rando.min);
-        this.pager.bang("Vote count", length, { upCount, downCount, count, length });
+        const length = Math.min(count, this.pager.opts.settings.start.rando.min);
+        this.pager.bang("Vote count", length > 0, { upCount, downCount, count, length });
         for (let i = 0; i < length; i++) {
             await this.pager.click(Math.random() * 100 <= 95 ? ups.nth(i) : downs.nth(i));
         }
@@ -52,4 +53,9 @@ export class Subreddit {
             .getByRole("button");
         await this.pager.click(submitButton);
     }
+}
+export default async function (params, action) {
+    const { reddit } = await Reddito(params, action);
+    const subreddit = new Subreddit(reddit);
+    return { reddit, subreddit };
 }

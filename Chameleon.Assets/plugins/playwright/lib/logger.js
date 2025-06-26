@@ -18,7 +18,7 @@ export class Logger {
             return;
         const callerLine = this.getCallerLine();
         const output = objects.map((o) => typeof o === "string" ? o : util.inspect(o, { depth: null, colors: true, compact: true }));
-        console.log(`[${this.prefix()}] \x1b[${color}m${level}\x1b[0m \x1b[95m(${callerLine.method}):\x1b[0m ${message} {\n ${callerLine.filename},\n`, ...output, `\n}`);
+        console.log(`[${this.prefix()}] \x1b[${color}m${level}\x1b[0m \x1b[95m(${callerLine.method})\x1b[0m ${message} {\n ${callerLine.filename},\n`, ...output, `\n}`);
     }
     static return(message = "INFO", objects) {
         this.print("LOG", "32", message, [objects]);

@@ -1,3 +1,4 @@
+import Reddito from "../../reddit.js";
 export class Post {
     pager;
     constructor(pager) {
@@ -6,8 +7,8 @@ export class Post {
     async title() {
         return this.pager.txtContent('h1[id^="post-title-"][slot="title"]');
     }
-    async raw() {
-        const locator = this.pager.page.locator("#i18n-shreddit-post-translator-content >> shreddit-post");
+    async raw(max = 36) {
+        const locator = this.pager.page.locator("shreddit-post").first();
         await locator.waitFor();
         const screenshot = await this.pager.screenshot(locator);
         const content = await locator.evaluate((root) => {
@@ -59,12 +60,8 @@ export class Post {
                 media: extractMedia(root),
             };
         });
-        const comments = await this.pager.getComments();
+        const comments = await this.pager.getComments(max);
         return { id: crypto.randomUUID(), url: this.pager.page.url(), content, screenshot, comments };
-    }
-    async archived(func) {
-        await this.pager.nap();
-        return await this.pager.joinConversation();
     }
     async addComment(comment) {
         await this.pager.pressSequentially(this.pager.page.locator("#subgrid-container").getByRole("textbox"), await comment());
@@ -73,11 +70,16 @@ export class Post {
     async replyToComment(locator, reply) {
         await locator.scrollIntoViewIfNeeded();
         await this.pager.nap();
-        const comment = locator.locator("shreddit-comment-action-row button").first();
+        const comment = locator.locator('button:has-text("Reply")').first();
         await this.pager.click(comment);
         const replyBox = locator.locator("shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer");
         await replyBox.waitFor();
         await this.pager.type(await reply());
         await this.pager.click(replyBox.locator("button[slot='submit-button']").first());
     }
+}
+export default async function (params, action) {
+    const { reddit } = await Reddito(params, action);
+    const post = new Post(reddit);
+    return { reddit, post };
 }

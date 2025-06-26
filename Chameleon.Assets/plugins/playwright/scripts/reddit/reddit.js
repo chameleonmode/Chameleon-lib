@@ -76,7 +76,8 @@ export class Reddit extends Pager {
                     const findulator = await scopeulator.findulator();
                     await this.scrollabit();
                     const threads = await findulator.find.locator.all();
-                    const expecto = await this.findo(threads, async (thread) => {
+                    const shuffled = threads.sort(() => Math.random() - 0.5);
+                    const expecto = await this.findo(shuffled, async (thread) => {
                         await pre();
                         return await action(url, thread);
                     });
@@ -245,35 +246,25 @@ export class Reddit extends Pager {
         await this.scrollabit(3);
         const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
         const closed = await archived.isVisible().catch(() => false);
-        this.banger(!closed, archived);
+        this.bang(`checking archive`, closed === false, { closed, archived });
         const triggers = this.page.locator('comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]');
         const count = await triggers.count();
-        let clicked = false;
         for (let i = 0; i < count; i++) {
             const trigger = triggers.nth(i);
-            if (await trigger.isVisible()) {
+            if (await trigger.isVisible())
                 try {
                     await trigger.click({ force: true });
-                    clicked = true;
-                    break;
+                    return trigger;
                 }
-                catch (err) {
-                    Logger.warn(`Click failed on visible trigger #${i}:`, err);
-                }
-            }
+                catch { }
         }
-        if (!clicked) {
-            Logger.warn("Trying JS-based fallback trigger...");
-            await this.page.evaluate(() => {
-                const el = document.querySelector('comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]');
-                if (el)
-                    el.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }));
-            });
-        }
-        const editor = this.page.locator('shreddit-composer div[contenteditable="true"]');
-        await editor.waitFor({ state: "visible", timeout: 5000 });
-        await editor.click({ force: true });
-        return editor;
+        Logger.warn("Trying JS-based fallback trigger...");
+        return await this.page.evaluate(() => {
+            const el = document.querySelector('comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]');
+            if (el)
+                el.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }));
+            return el;
+        });
     }
     async findo(posts, funco) {
         const url = new URL(this.page.url());
@@ -312,7 +303,7 @@ export class Reddit extends Pager {
         const posts = this.page.locator(`a[slot='title'], shreddit-profile-comment a.absolute[href][aria-label^='Thread for']`);
         return await posts.all();
     }
-    async getComments(max = 1000) {
+    async getComments(max = 36) {
         const loca = this.page.locator("shreddit-comment");
         const count = await loca.count();
         const length = Math.min(max, count);
@@ -332,16 +323,10 @@ export class Reddit extends Pager {
         return comments;
     }
 }
-export default async function (ctx, opts, action) {
-    const options = configure(opts);
-    const reddit = new Reddit(ctx, options, action);
+export default async function (params, action) {
+    const options = configure(params.opts);
+    const reddit = new Reddit(params.ctx, options, action);
     await reddit.init();
-    Logger.info("Feature:", {
-        feature: options.settings.start.feature,
-        artifacts: options.args.artifacters,
-    });
-    Logger.info("Options:", {
-        options: options,
-    });
+    Logger.info("Feature", options.settings.start.feature, options.args.artifacters);
     return { reddit };
 }

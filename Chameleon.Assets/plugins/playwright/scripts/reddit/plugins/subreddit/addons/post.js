@@ -1,16 +1,14 @@
-import Reddit from "../../../reddit.js";
-import { Subreddit } from "../subreddit.js";
+import Subreddit from "../subreddit.js";
 import { promptee } from "../../../../../lib/requests.js";
-export default async function (context, opts) {
-    const { reddit } = await Reddit(context, opts, async (_) => {
-        const subreddit = new Subreddit(reddit);
+export default async function (ctx, opts) {
+    const { reddit, subreddit } = await Subreddit({ ctx, opts }, async (_, __) => {
         await reddit.navigateIntoPost();
-        const b64 = [await reddit.screenshot(reddit.page.locator('body'))];
+        const b64 = [await reddit.screenshot(reddit.page.locator("body"))];
         const comments = await reddit.getComments();
         const context = `The post will be based on ${reddit.page.url()}`;
         await subreddit.visitCommunity();
         await subreddit.canPost();
-        b64.push(await reddit.screenshot(reddit.page.locator('body')));
+        b64.push(await reddit.screenshot(reddit.page.locator("body")));
         await subreddit.poster(async () => {
             const titlee = await promptee.robot({
                 model: "o4-mini",
@@ -30,7 +28,7 @@ export default async function (context, opts) {
                 if (data.type === "title")
                     return data;
             }));
-            b64.push(await reddit.screenshot(reddit.page.locator('body')));
+            b64.push(await reddit.screenshot(reddit.page.locator("body")));
             const contentlee = await promptee.robot({
                 model: "o4-mini",
                 decorators: reddit.opts.ai.decorators,

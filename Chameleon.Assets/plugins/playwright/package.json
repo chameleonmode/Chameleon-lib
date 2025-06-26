@@ -17,6 +17,7 @@
     "reddit:post": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/addons/post",
     "reddit:join": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/addons/join",
     "reddit:foll": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/user/addons/follow",
+    "any:record": "node --loader ts-node/esm src/app.ts ../scripts/any/record",
     "scripts:download": "node .scripts/downode.cjs",
     "examples:ask:prompt": "node --loader ts-node/esm tests/examples/ask-prompt.ts",
     "examples:ask:genorate": "node --loader ts-node/esm tests/examples/ask-genorate.ts",

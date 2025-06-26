@@ -1,8 +1,6 @@
-import Reddit from "../../../reddit.js";
-import { Subreddit } from "../subreddit.js";
-export default async function (context, opts) {
-    const { reddit } = await Reddit(context, opts, async () => {
-        const subreddit = new Subreddit(reddit);
+import Subreddit from "../subreddit.js";
+export default async function (ctx, opts) {
+    const { reddit, subreddit } = await Subreddit({ ctx, opts }, async (_, __) => {
         await subreddit.voter();
     });
     await reddit.player.play();

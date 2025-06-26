@@ -20,13 +20,13 @@ async function main() {
                 await play({ file, port, opts: opts ? JSON.parse(opts) : undefined });
                 break;
             default:
-                Logger.log(`Unknown command: ${command}`);
+                Logger.log(`Unknown command ${command}`);
         }
     };
     readline
         .createInterface({ input: process.stdin, output: process.stdout, terminal: false })
         .on("line", async (line) => {
-        Logger.log(`Received: ${line}`);
+        Logger.log(`Received`, line);
         if (line.startsWith("{")) {
             const { arg, file, port, opts } = JSON.parse(line);
             switch (arg) {
@@ -38,7 +38,7 @@ async function main() {
                     await new Playwrighteer().cua(line);
                     break;
                 default:
-                    Logger.log(`Unknown command: ${arg}`);
+                    Logger.log(`Unknown command ${arg}`);
                     Logger.log("Available commands: run, exit");
             }
         }
@@ -51,6 +51,6 @@ async function main() {
         commander("play");
 }
 main().catch((error) => {
-    Logger.log(`Error: ${error}`, error);
+    Logger.log(`Error ${error}`, error);
     process.exit(1);
 });

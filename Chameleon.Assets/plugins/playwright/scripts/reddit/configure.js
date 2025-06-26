@@ -46,7 +46,7 @@ export function configure(opts) {
         args.scope = "Posts";
         args.sort = "Relevance";
         args.filter = "All";
-        urls.push("https://www.reddit.com/r/cartoons/comments/1066oh1/anyone_remember_this_this_show_was_such_an/");
+        urls.push("https://www.reddit.com/r/agedlikemilk/comments/1lcpl1n/aged_like_baby_spinach/");
         settings.start.attempts = 12;
         settings.start.new = false;
         settings.start.rando = { min: 9, max: 9 };
@@ -57,7 +57,7 @@ export function configure(opts) {
     Logger.debug("Opts", { opts });
     const options = {
         run: opts?.run ?? {},
-        args: { ...args, ...opts?.args },
+        args: { ...args, ...opts?.args, search },
         settings: {
             start: {
                 ...settings.start,

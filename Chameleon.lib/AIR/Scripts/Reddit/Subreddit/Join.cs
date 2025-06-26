@@ -2,7 +2,7 @@
 
 public record Join : JSScript {
 	public Join() : base(
-		"../scripts/reddit/plugins/subreddit/join",
+		"../scripts/reddit/plugins/subreddit/addons/join",
 		"Join",
 		"Search for reddit post finds subreddit and joins"
 	) { }

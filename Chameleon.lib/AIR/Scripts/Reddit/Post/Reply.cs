@@ -2,7 +2,7 @@
 
 public record Reply : JSScript {
 	public Reply() : base(
-		"../scripts/reddit/plugins/post/reply",
+		"../scripts/reddit/plugins/post/addons/reply",
 		"Reply",
 		"Search for a post to reply with context on a comment"
 	) { }
