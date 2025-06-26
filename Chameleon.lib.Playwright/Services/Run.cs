@@ -20,20 +20,13 @@ public class Run {
 				Debug.WriteLine($"Running: \n\t '{args.Port}', '{args.Script?.Title}', {JSON.Serialize(args)}");
     if (args.Record) {
       using var runner = new Runner();
-      await runner.Run(args.Port, "any/record").WaitAsync(token);
+      await runner.Run(args.Port, "../scripts/any/record").WaitAsync(token);
     } else {
       var savedOptions = args.Script?.TableName == null
         ? null
         : IoC.GetJsonValue<Dictionary<string, string>>(args.Script.TableName) ?? args.Description?.Parameters;
       if (args.Script is IJSScript jsScript) {
-        using var runner = new Runner(async (question) => {
-          if (!question.IsNot()) throw new ArgumentNullException(nameof(question));
-
-          var res = await Service.Routes.Air.Ask(new("reddit", new {
-            keyword = question,
-          }));
-          return res!.Payload.Response;
-        });
+        using var runner = new Runner();
         var opts = args.Opts ?? await jsScript.GetOptions(savedOptions);
         await runner
           .Run(args.Port, jsScript.File, opts)

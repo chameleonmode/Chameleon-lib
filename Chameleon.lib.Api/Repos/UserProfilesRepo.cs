@@ -1,5 +1,5 @@
 ﻿using Chameleon.lib.Api.Dto;
-
+using Chameleon.lib.Util;
 using DynamicData;
 
 namespace Chameleon.lib.Api.Repos;
@@ -41,10 +41,18 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 		return o;
 	}
 
-	public static Task<UserProfileDto> CreateProfile(string title, int? folderId = null) => Instance.Create(new {
-		Title = title,
-		FolderId = folderId,
-	});
+	public static Task<UserProfileDto> CreateProfile(string? title = null, int? folderId = null) {
+		if (title.Is()) {
+		  var count = Instance.ObservableCache.Items.Count;
+			do {
+				title = $"Profile - {++count}";
+			} while (Instance.ObservableCache.Items.Any(i => i.title == title));
+		}
+		return Instance.Create(new {
+			Title = title,
+			FolderId = folderId,
+		});
+	}
 
 	/// <summary>
 	/// Returns a filtered stream of cache changes preceded with the initial filtered state.

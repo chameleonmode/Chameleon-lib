@@ -6,15 +6,15 @@ namespace Chameleon.lib.Playwright.Services;
 public class Runner : IDisposable {
 	private readonly TaskCompletionSource<bool> _tcs = new();
 
-	readonly Func<string, Task<string>>? onAsk = null;
+	readonly Func<string, Task<string>>? onMessageReceived = null;
 	readonly Process nodeProcess;
 	readonly StreamWriter processInput;
 
 	public event EventHandler<string>? TestOutputReceived;
 	public event EventHandler<string>? TestErrorReceived;
 
-	public Runner(Func<string, Task<string>>? onAsk = null) {
-		this.onAsk = onAsk;
+	public Runner(Func<string, Task<string>>? onMessageReceived = null) {
+		this.onMessageReceived = onMessageReceived;
 		nodeProcess = new Process { 
 			StartInfo = new ProcessStartInfo {
 				FileName = OperatingSystem.IsWindows() ? $"\"{Project.Plugins.Node}\"" : Project.Plugins.Node,
@@ -47,8 +47,8 @@ public class Runner : IDisposable {
 		TestOutputReceived?.Invoke(this, output);
 		if (output.StartsWith("Try:") && output.EndsWith("success"))
 			_ = _tcs.TrySetResult(true);
-		else if (output.StartsWith("Ask:") && onAsk is not null)
-			processInput?.WriteLine($"Answer:{await onAsk(output[3..])}");
+		else if (output.StartsWith("Ask:") && onMessageReceived is not null)
+			processInput?.WriteLine($"Answer:{await onMessageReceived(output[3..])}");
 	}
 
 	public async Task Run(int port, string file, object? opts = null) {
