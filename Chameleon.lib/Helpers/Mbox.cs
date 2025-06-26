@@ -541,8 +541,8 @@ public class MessageBox {
 	public static MessageBox Instance { get; } = new MessageBox();
 
 	public static async Task<bool> Show(string title, string content,
-		MBoxButtons btns = MBoxButtons.YesNo, string? fontIconInfo = null, MboxResult retVal = MboxResult.Primary)
-	=> await Instance.MboxService.Show(title, content, btns, fontIconInfo ?? "Info") == retVal;
+		MBoxButtons btns = MBoxButtons.YesNo, string? icon = null, MboxResult retVal = MboxResult.Primary)
+	=> await Instance.MboxService.Show(title, content, btns, icon ?? "Info") == retVal;
 	
 	public static Task<bool> ShowErrorAsync(string title, string content)
 	=> Show(title, content, MBoxButtons.Ok, "Error");
