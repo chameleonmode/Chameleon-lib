@@ -28,7 +28,7 @@ public static class EX {
 	public static bool Catch<TT>(Action action, Action<TT>? caught = null) 
 		where TT : Exception => Catch(() => { action(); return true; }, caught);
 	public static void Try<TT>(Action action, Action<TT>? caught = null) 
-		where TT : Exception => Catch(() => { action(); return true; }, caught);
+		where TT : Exception => Catch(() => { action(); }, caught);
 
 	public static async Task<T?> Catch<T>(Func<Task<T>> action, Action<Exception>? caught = null) {
 		try {
@@ -65,7 +65,6 @@ public static class EX {
 	public static async Task Try<TT>(Func<Task> action, Action<TT>? caught = null) 
 		where TT : Exception => await Catch(async () => {
 		await action();
-		return true;
 	}, caught);
 
 	public static async Task<T?> Policy<T>(Func<Task<T>> operation, Action<Exception, int>? caught = null,
@@ -86,11 +85,10 @@ public static class EX {
 		await operation();
 		return true;
 	}, caught, sleep, retries);
-	public static Task Try(Func<Task> operation, Action<Exception, int>? caught = null,
+	public static Task TryPolicy(Func<Task> operation, Action<Exception, int>? caught = null,
 		int sleep = 2500, int retries = 3
 	) => Policy(async () => {
 		await operation();
-		return true;
 	}, caught, sleep, retries);
 	
 	public static async Task<T?> Policy<T, TT>(Func<Task<T>> operation, Action<TT, int>? caught = null,
@@ -111,11 +109,10 @@ public static class EX {
 		await operation();
 		return true;
 	}, caught, sleep, retries);
-	public static Task Try<TT>(Func<Task> operation, Action<TT, int>? caught = null,
+	public static Task TryPolicy<TT>(Func<Task> operation, Action<TT, int>? caught = null,
 		int sleep = 2500, int retries = 3
 	) where TT : Exception => Policy(async () => {
 		await operation();
-		return true;
 	}, caught, sleep, retries);
 
 	private static void PrintException(Exception? e) {
