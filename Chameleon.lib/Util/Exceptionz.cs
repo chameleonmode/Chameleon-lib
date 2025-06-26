@@ -23,8 +23,8 @@ public static class Exceptionz {
 		}
 	}
 
-	public static void TryCatch(Action action, Action<Exception>? caught = null) {
-		_ = TryCatch(() => { action(); return true; }, caught);
+	public static bool TryCatch(Action action, Action<Exception>? caught = null) {
+		return TryCatch(() => { action(); return true; }, caught);
 	}
 
 	public static async Task TryCatch(Func<Task> action, Action<Exception>? caught = null) {
