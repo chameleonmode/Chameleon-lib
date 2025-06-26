@@ -13,7 +13,7 @@ public static class EX {
 		}
 	}
 	public static bool Catch(Action action, Action<Exception>? caught = null) => Catch(() => { action(); return true; }, caught);
-	public static void Try(Action action, Action<Exception>? caught = null) => Catch(() => { action(); return true; }, caught);
+	public static void Try(Action action, Action<Exception>? caught = null) => Catch(() => { action(); }, caught);
 	
 	public static T? Catch<T, TT>(Func<T> action, Action<TT>? caught = null)
 		where TT : Exception {
@@ -26,14 +26,22 @@ public static class EX {
 		}
 	}
 
-	public static async Task Catch(Func<Task> action, Action<Exception>? caught = null) {
+	public static async Task<T?> Catch<T>(Func<Task<T>> action, Action<Exception>? caught = null) {
 		try {
-			await action();
+			return await action();
 		} catch (Exception e) {
 			caught?.Invoke(e);
 			PrintException(e);
+			return default;
 		}
 	}
+	public static async Task<bool> Catch(Func<Task> action, Action<Exception>? caught = null) => await Catch(async () => {
+		await action();
+		return true;
+	}, caught);
+	public static async Task Try(Func<Task> action, Action<Exception>? caught = null) => await Catch(async () => {
+		await action();
+	}, caught);
 	
 	public static async Task<T?> Policy<T>(Func<Task<T>> operation, Action<Exception, int>? caught = null,
 		int sleep = 2500, int retries = 3
