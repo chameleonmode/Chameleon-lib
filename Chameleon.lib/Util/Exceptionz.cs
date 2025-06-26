@@ -2,7 +2,7 @@
 
 namespace Chameleon.lib.Util;
 
-public static class Exceptionz {
+public static class EX {
 	public static T? Catch<T>(Func<T> action, Action<Exception>? caught = null) {
 		try {
 			return action();
