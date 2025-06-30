@@ -3,13 +3,13 @@ import Post from "../post.js";
 export default async function (ctx, opts) {
     const { reddit, post } = await Post({ ctx, opts }, async (_, __) => {
         const posts = (await reddit.navigateIntoPost()) ?? (await reddit.joinConversation());
-        const raw = Array.isArray(posts) && reddit.banger(posts.length)
+        const raw = Array.isArray(posts)
             ? await reddit.findo(posts.sort(() => Math.random() - 0.5), async (_) => {
                 await reddit.joinConversation();
                 return await post.raw();
             })
             : await post.raw();
-        const postee = { id: raw.id, url: raw.url, content: raw.content, comments: raw.comments };
+        const postee = { id: raw.id, url: raw.url, content: raw.content, comments: await reddit.getComments() };
         await post.addComment(async () => {
             const result = await promptee.robot({
                 model: "o4-mini",

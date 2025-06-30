@@ -1,32 +1,33 @@
 import Reddito from "../../reddit.js";
 export class Subreddit {
-    pager;
-    constructor(pager) {
-        this.pager = pager;
+    reddit;
+    constructor(reddit) {
+        this.reddit = reddit;
     }
     async canPost() {
-        await this.pager.nap();
-        await this.pager.click(this.pager.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
+        await this.reddit.nap();
+        await this.reddit.click(this.reddit.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
     }
     async visitCommunity() {
-        await this.pager.click(this.pager.bang("'visit' button", this.pager.page.locator('span.avatar a[href^="/r/"]').first()));
+        const locator = this.reddit.page.locator('span.avatar a[href^="/r/"]');
+        await this.reddit.click(this.reddit.bang("'visit' button", locator.first(), { locator }));
     }
     async voter() {
-        const scopeulator = this.pager.scopeulate();
+        const scopeulator = this.reddit.scopeulate();
         if (!scopeulator.community && !scopeulator.people) {
-            const banger = await this.pager.joinConversation();
-            this.pager.bang("vote", banger);
+            const banger = await this.reddit.joinConversation();
+            this.reddit.bang("vote", banger, { scopeulator });
         }
-        await this.pager.scrollabit();
-        const ups = this.pager.page.getByRole("button", { name: "Upvote" });
-        const downs = this.pager.page.getByRole("button", { name: "Downvote" });
+        await this.reddit.scrollabit();
+        const ups = this.reddit.page.getByRole("button", { name: "Upvote" });
+        const downs = this.reddit.page.getByRole("button", { name: "Downvote" });
         const upCount = await ups.count();
         const downCount = await downs.count();
         const count = Math.min(upCount, downCount) - 1;
-        const length = Math.min(count, this.pager.opts.settings.start.rando.min);
-        this.pager.bang("Vote count", length > 0, { upCount, downCount, count, length });
+        const length = Math.min(count, this.reddit.opts.settings.start.rando.min);
+        this.reddit.bang("Vote count", length > 0, { upCount, downCount, count, length });
         for (let i = 0; i < length; i++) {
-            await this.pager.click(Math.random() * 100 <= 95 ? ups.nth(i) : downs.nth(i));
+            await this.reddit.click(Math.random() * 100 <= 95 ? ups.nth(i) : downs.nth(i));
         }
         return {
             ups: { locator: ups, count: upCount },
@@ -34,24 +35,25 @@ export class Subreddit {
         };
     }
     async joiner() {
-        await this.pager.scrollabit();
-        await this.pager.click(this.pager.bang("'Join' button", this.pager.page.getByRole("button", { name: "Join", exact: true }).first()));
+        await this.reddit.scrollabit();
+        const locator = this.reddit.page.getByRole("button", { name: "Join", exact: true }).first();
+        await this.reddit.click(this.reddit.bang("'Join' button", locator.first(), { locator }));
     }
     async poster(contents) {
-        await this.pager.nap();
-        const titleLocator = this.pager.page.locator("#innerTextArea").first();
-        const bodyLocator = this.pager.page.locator('div[slot="rte"][aria-label="Post body text field"]');
-        const postTypeValue = await this.pager.page.locator('r-post-type-select[name="type"]').getAttribute("value");
-        this.pager.bang("Post type", postTypeValue === "TEXT");
-        this.pager.bang("Post body text field", await bodyLocator.innerText());
-        this.pager.bang("Post title text field", await titleLocator.count());
+        await this.reddit.nap();
+        const titleLocator = this.reddit.page.locator("#innerTextArea").first();
+        const bodyLocator = this.reddit.page.locator('div[slot="rte"][aria-label="Post body text field"]');
+        const postTypeValue = await this.reddit.page.locator('r-post-type-select[name="type"]').getAttribute("value");
+        this.reddit.bang("Post type", postTypeValue === "TEXT", { postTypeValue });
+        this.reddit.bang("Post body text field", await bodyLocator.innerText(), { bodyLocator });
+        this.reddit.bang("Post title text field", await titleLocator.count(), { titleLocator });
         const { title, content } = await contents();
-        await this.pager.pressSequentially(titleLocator, title);
-        await this.pager.pressSequentially(bodyLocator, content);
-        const submitButton = this.pager.page
+        await this.reddit.pressSequentially(titleLocator, title);
+        await this.reddit.pressSequentially(bodyLocator, content);
+        const submitButton = this.reddit.page
             .locator("r-post-form-submit-button#submit-post-button")
             .getByRole("button");
-        await this.pager.click(submitButton);
+        await this.reddit.click(submitButton);
     }
 }
 export default async function (params, action) {

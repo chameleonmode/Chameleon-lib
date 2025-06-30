@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import { Logger } from "./logger.js";
 export const delay = (ms) => {
     return new Promise((resolve) => {
         setTimeout(() => resolve(ms), ms);
@@ -18,6 +19,12 @@ export function rando(thing, thinger) {
             : thing && typeof thing === "number"
                 ? Math.floor(Math.random() * thing)
                 : Math.random() < 0.5;
+}
+export function ror(message, cause) {
+    const error = new Error(`${message}`, { cause });
+    const pretty = { cause, stack: error.stack };
+    Logger.error(`(error): ${error.message}`, pretty);
+    return error;
 }
 export async function sleepo({ min = 256, max = 512, multiplier = 0 } = {}) {
     const ms = random(min, max);

@@ -1,26 +1,18 @@
 import { expect } from "@playwright/test";
-import { rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
+import { rando, ror, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
 import { Logger } from "../lib/logger.js";
-export function ror(message, cause) {
-    const error = new Error(`${message}`, { cause });
-    const pretty = { cause, stack: error.stack };
-    Logger.error(`(error): ${error.message}`, pretty);
-    return error;
-}
-export class Pager {
-    ctx;
+import { Player } from "./player.js";
+export class Actor {
+    page;
     opts;
     scenario;
-    page;
-    constructor(ctx, opts, scenario) {
-        this.ctx = ctx;
+    player = new Player(this);
+    constructor(page, opts, scenario) {
+        this.page = page;
         this.opts = opts;
         this.scenario = scenario;
     }
     async init() {
-        this.page = this.opts.settings.start.new
-            ? await this.ctx.newPage()
-            : this.ctx.pages()[this.ctx.pages().length - 1];
         this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
         this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
     }
@@ -34,15 +26,13 @@ export class Pager {
         catch (e) {
             Logger.error("Error navigating to URL:", e);
             await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
-            this.bang("checking navigation attempts", this.opts.settings.start.attempts > attempt++, this.opts.settings.start.attempts);
-            await this.navigate(url, attempt);
+            this.bang("checking navigation attempts", this.opts.settings.start.attempts > attempt, this.opts.settings.start.attempts);
+            await this.navigate(url, attempt + 1);
         }
     }
     async waitForNavigation(timeout = this.opts.settings.timeouts.navigate) {
-        return await trySequentially([
-            () => this.page.waitForLoadState("load", { timeout }),
-            () => this.page.waitForLoadState("domcontentloaded", { timeout }),
-        ]);
+        await this.page.waitForLoadState("load", { timeout });
+        await this.page.waitForLoadState("domcontentloaded", { timeout });
     }
     async getFocusedElement() {
         return this.page.evaluate(() => {
@@ -61,6 +51,7 @@ export class Pager {
         this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }, { print: false });
         for (let i = 0; i < locations; i++) {
             const element = location.nth(i);
+            await sleepo(this.opts.settings.timeouts.naps);
             if (await element.isVisible()) {
                 await element.scrollIntoViewIfNeeded();
                 const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
@@ -244,7 +235,8 @@ export class Pager {
         throw ror(message, { source, expect });
     }
     bing(message, expect, returnz, source) {
-        if (this.bang(message, expect, source))
+        const caller = Logger.getCallerLine();
+        if (this.bang(message, expect, source, { caller }))
             return returnz;
         throw ror(message, { source, expect });
     }

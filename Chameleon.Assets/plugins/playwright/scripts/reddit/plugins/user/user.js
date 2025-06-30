@@ -1,11 +1,11 @@
 import Reddito from "../../reddit.js";
 export class User {
-    pager;
-    constructor(pager) {
-        this.pager = pager;
+    reddit;
+    constructor(reddit) {
+        this.reddit = reddit;
     }
     async follow() {
-        await this.pager.click('div[slot="button-follow"] button:has-text("Follow")');
+        await this.reddit.click('div[slot="button-follow"] button:has-text("Follow")');
     }
 }
 export default async function (params, action) {

@@ -2,10 +2,7 @@ import { Logger } from "../lib/logger.js";
 import { delay } from "../lib/utils.js";
 export class Player {
     actor;
-    state = {
-        visited: [],
-        iterations: [],
-    };
+    iterations = [];
     constructor(actor) {
         this.actor = actor;
     }
@@ -20,7 +17,6 @@ export class Player {
                 await delay(this.actor.opts.settings.timeouts.artifacto.delay);
             Logger.log(`Url: ${j + 1} of ${length}`, url);
             while (!((await this.actor.onWhile(url)) instanceof Error)) {
-                this.state.visited.length = 0;
                 for (let i = 0; i < this.actor.opts.settings.start.iterations.max; i++) {
                     Logger.log(`Iteration: ${i + 1} of ${this.actor.opts.settings.start.iterations.max}`);
                     if (i > 0) {
@@ -30,7 +26,7 @@ export class Player {
                     const resulto = await this.actor.scenario(url);
                 }
             }
-            this.state.iterations.push(j);
+            this.iterations.push(j);
         }
     }
 }

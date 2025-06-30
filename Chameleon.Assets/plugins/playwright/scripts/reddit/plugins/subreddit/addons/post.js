@@ -27,7 +27,7 @@ export default async function (ctx, opts) {
             const titler = reddit.bang("post title response", titlee.find((data) => {
                 if (data.type === "title")
                     return data;
-            }));
+            }), { titlee });
             b64.push(await reddit.screenshot(reddit.page.locator("body")));
             const contentlee = await promptee.robot({
                 model: "o4-mini",
@@ -46,7 +46,7 @@ export default async function (ctx, opts) {
             const contentler = reddit.bang("post content response", contentlee.find((data) => {
                 if (data.type === "post")
                     return data;
-            }));
+            }), { contentlee });
             return { title: titler.data, content: contentler.data };
         });
         await reddit.nap();

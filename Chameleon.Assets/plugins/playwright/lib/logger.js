@@ -11,6 +11,9 @@ export class Logger {
         const match = callerInfo.match(/^(.+?)\s+\((.+)\)$/);
         const method = match?.[1] || 'unknown';
         const filename = match?.[2] || 'unknown';
+        if (method === 'unknown' || filename === 'unknown') {
+            return { method: 'unknown', filename: stack || 'no stack available' };
+        }
         return { method, filename };
     }
     static print(level, color, message, objects) {
@@ -19,10 +22,6 @@ export class Logger {
         const callerLine = this.getCallerLine();
         const output = objects.map((o) => typeof o === "string" ? o : util.inspect(o, { depth: null, colors: true, compact: true }));
         console.log(`[${this.prefix()}] \x1b[${color}m${level}\x1b[0m \x1b[95m(${callerLine.method})\x1b[0m ${message} {\n ${callerLine.filename},\n`, ...output, `\n}`);
-    }
-    static return(message = "INFO", objects) {
-        this.print("LOG", "32", message, [objects]);
-        return objects;
     }
     static log(message = "INFO", ...objects) {
         this.print("LOG", "32", message, objects);

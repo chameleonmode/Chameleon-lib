@@ -1,4 +1,40 @@
 import { Logger } from "../../lib/logger.js";
+export class Scopeulation {
+    findos = [];
+    visited = [];
+    searched = [];
+    subreddit(url) {
+        const pattern = /\/r\/[^/]+\/?$/;
+        return pattern.test(url);
+    }
+    comments(url) {
+        const pattern = /\/r\/[^/]+\/comments(?:\/.*)?$/;
+        return pattern.test(url);
+    }
+    search(url) {
+        const pattern = /\/r\/[^/]+\/search(?:\/.*)?$/;
+        return pattern.test(url);
+    }
+    user(url) {
+        const pattern = /\.com\/user\/[^/]+/;
+        return pattern.test(url);
+    }
+    scoped(current) {
+        const url = this.visited[this.visited.length - 1];
+        const scope = ["People", "Communities"].includes(current) &&
+            (this.subreddit(url) || this.comments(url) || this.search(url))
+            ? "Posts"
+            : current;
+        const Url = new URL(url);
+        const type = Url.searchParams.get("type");
+        const sort = Url.searchParams.get("sort");
+        const t = Url.searchParams.get("t");
+        const community = scope === "Communities" || type === "communities";
+        const people = scope === "People" || type === "people" || this.user(url);
+        return { url, scope, type, sort, t, community, people };
+    }
+}
+export const scopeulation = new Scopeulation();
 export const BASE_URL = "https://www.reddit.com";
 export const args = {
     search: [],
@@ -36,17 +72,17 @@ export const ai = {
         tone: "adaptive",
     },
 };
-export function configure(opts) {
+export async function configure(ctx, opts) {
     const search = opts?.args?.search || args.search;
     const urls = [
         ...(opts?.settings?.start?.urls || []),
         ...settings.start.urls,
     ];
     if (!search.length && !urls.length) {
-        args.scope = "Posts";
-        args.sort = "Relevance";
+        args.scope = "Communities";
+        args.sort = "Posts";
         args.filter = "All";
-        urls.push("https://www.reddit.com/r/agedlikemilk/comments/1lcpl1n/aged_like_baby_spinach/");
+        search.push("popeye");
         settings.start.attempts = 12;
         settings.start.new = false;
         settings.start.rando = { min: 9, max: 9 };
@@ -90,5 +126,6 @@ export function configure(opts) {
     options.settings.timeouts.naps.max = options.settings.start.variations.min + 512;
     options.settings.timeouts.artifacto.delay = 1000 * options.settings.timeouts.artifacto.delay;
     Logger.debug("Options", options);
-    return options;
+    const page = options.settings.start.new ? await ctx.newPage() : ctx.pages()[ctx.pages().length - 1];
+    return { page, options };
 }

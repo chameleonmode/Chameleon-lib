@@ -1,38 +1,14 @@
-import { random } from "../../lib/utils.js";
-import { configure, BASE_URL } from "./configure.js";
-import { Pager, ror } from "../pager.js";
-import { Player } from "../player.js";
+import { random, ror } from "../../lib/utils.js";
+import { configure, BASE_URL, scopeulation } from "./configure.js";
+import { Actor } from "../actor.js";
 import { Logger } from "../../lib/logger.js";
-class Scopeulation {
-    visited = [];
-    searched = [];
-    constructor() { }
-    subreddit(url) {
-        const pattern = /\/r\/[^/]+\/?$/;
-        return pattern.test(url);
-    }
-    comments(url) {
-        const pattern = /\/r\/[^/]+\/comments(?:\/.*)?$/;
-        return pattern.test(url);
-    }
-    search(url) {
-        const pattern = /\/r\/[^/]+\/search(?:\/.*)?$/;
-        return pattern.test(url);
-    }
-    user(url) {
-        const pattern = /\.com\/user\/[^/]+/;
-        return pattern.test(url);
-    }
-}
-export const scopeulation = new Scopeulation();
-export class Reddit extends Pager {
-    ctx;
-    opts;
-    action;
-    player = new Player(this);
-    constructor(ctx, opts, action) {
-        super(ctx, opts, async (url) => {
-            Logger.log("Scenario URL:", url);
+export class Reddit extends Actor {
+    constructor(setup) {
+        super(setup.page, setup.options, async (url) => {
+            if (!setup.funco)
+                return this.bang("No action function provided", undefined, { url });
+            else
+                Logger.log("Scenario URL", url);
             const pre = async () => {
                 if (scopeulation.user(this.page.url()) || scopeulation.user(url)) {
                     await this.click(this.opts.args.sort === "Posts"
@@ -42,27 +18,22 @@ export class Reddit extends Pager {
                             : 'a[slot="page-1"]:has-text("Overview")');
                 }
             };
-            if (action && (scopeulation.comments(url) || scopeulation.user(url))) {
+            if (scopeulation.comments(url) || scopeulation.user(url)) {
                 for (let i = 0; i < this.opts.settings.start.attempts; i++) {
                     try {
-                        this.opts.settings.start.iterations = { min: 1, max: 1 };
                         await pre();
-                        return await action(url);
+                        return await setup.funco(url);
                     }
                     catch (e) {
-                        Logger.warn("Error in action function:", e);
-                        this.opts.settings.start.attempts--;
+                        Logger.warn("Error in action function", e);
                         while (!this.page.url().startsWith(url) && this.opts.settings.start.attempts > 0) {
                             await this.page.goBack();
                             await this.nap({ min: 50, max: 75, multiplier: random(3, 6) });
                         }
                     }
-                    finally {
-                        Logger.log("Action function completed");
-                    }
                 }
             }
-            else if (action) {
+            else {
                 try {
                     const scopeulator = this.scopeulate();
                     try {
@@ -71,57 +42,32 @@ export class Reddit extends Pager {
                         await scopeulator.clickTimeRangeByText();
                     }
                     catch (e) {
-                        Logger.warn("Error in findo setup:", e);
+                        Logger.warn("Error in findo setup", e);
                     }
                     const findulator = await scopeulator.findulator();
                     await this.scrollabit();
                     const threads = await findulator.find.locator.all();
                     const shuffled = threads.sort(() => Math.random() - 0.5);
-                    const expecto = await this.findo(shuffled, async (thread) => {
+                    return await this.findo(shuffled, async (thread) => {
                         await pre();
-                        return await action(url, thread);
+                        return await setup.funco(url, thread);
                     });
-                    return expecto;
                 }
                 catch (e) {
-                    Logger.warn("Error in action function:", e);
+                    Logger.warn("Error in action function", e);
                 }
                 finally {
                     const text = this.opts.args.search[scopeulation.searched.length];
                     scopeulation.searched.push(text);
-                    Logger.log("Action function completed", text, scopeulation.searched);
                 }
             }
-            else {
-                Logger.warn("No action provided", url);
-            }
-            return undefined;
+            Logger.log("Scenario function completed", scopeulation, url);
         });
-        this.ctx = ctx;
-        this.opts = opts;
-        this.action = action;
     }
     scopeulate() {
-        const url = scopeulation.visited[scopeulation.visited.length - 1];
-        const scope = ["People", "Communities"].includes(this.opts.args.scope) &&
-            (scopeulation.subreddit(url) || scopeulation.comments(url) || scopeulation.search(url))
-            ? "Posts"
-            : this.opts.args.scope;
-        const Url = new URL(url);
-        const type = Url.searchParams.get("type");
-        const sort = Url.searchParams.get("sort");
-        const t = Url.searchParams.get("t");
-        const community = scope === "Communities" || type === "communities";
-        const people = scope === "People" || type === "people" || scopeulation.user(url);
-        const scoped = {
-            url,
-            scope,
-            Url,
-            type,
-            sort,
-            t,
-            community,
-            people,
+        const scoped = scopeulation.scoped(this.opts.args.scope);
+        const scopeulated = {
+            ...scoped,
             findulator: async () => {
                 const mapper = {
                     Posts: {
@@ -133,13 +79,13 @@ export class Reddit extends Pager {
                     Communities: { ids: ["search-community"], strat: "testId" },
                     People: { ids: ["search-author"], strat: "testId" },
                 };
-                const scoped = mapper[scope];
-                return { scope: scoped, find: await this.find(scoped.ids, scoped.strat) };
+                const scope = mapper[scoped.scope];
+                return { scope, find: await this.find(scope.ids, scope.strat) };
             },
             clickSortOptionByText: async () => {
                 const scopes = ["Posts", "Comments", "Media"];
                 const sorts = ["Hot", "Top", "New", "Comments"];
-                const skips = sort || !scopes.includes(scope) || !sorts.includes(this.opts.args.sort);
+                const skips = scoped.sort || !scopes.includes(scoped.scope) || !sorts.includes(this.opts.args.sort);
                 if (skips)
                     return;
                 const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
@@ -159,8 +105,8 @@ export class Reddit extends Pager {
                 const scopes = ["Posts", "Media"];
                 const sorts = ["Relevance", "Top", "Comments"];
                 const filters = ["Year", "Month", "Week", "Today", "Hour"];
-                const skips = t ||
-                    !scopes.includes(scope) ||
+                const skips = scoped.t ||
+                    !scopes.includes(scoped.scope) ||
                     !sorts.includes(this.opts.args.sort) ||
                     !filters.includes(this.opts.args.filter);
                 if (skips)
@@ -177,27 +123,24 @@ export class Reddit extends Pager {
                 Logger.log(`Clicked on "${optionText}" time range option`);
             },
             click: async () => {
-                if (type)
+                if (scoped.type)
                     return;
-                await this.click(scope === "Posts"
-                    ? this.page.getByRole("button", { name: scope }).first()
-                    : this.page.locator(`#search-results-page-tab-${scope.toLowerCase()}`).first());
+                await this.click(scoped.scope === "Posts"
+                    ? this.page.getByRole("button", { name: scoped.scope }).first()
+                    : this.page.locator(`#search-results-page-tab-${scoped.scope.toLowerCase()}`).first());
             },
         };
-        return Logger.return(`Scoped:`, scoped);
+        return this.bang(`scopeulate`, scopeulated, scoped);
     }
-    status() {
+    async onWhile(url) {
+        const basic = scopeulation.subreddit(url) || url === BASE_URL;
         const todo = this.opts.settings.start.urls.length + this.opts.args.search.length;
         const visit = this.opts.settings.start.urls.length - scopeulation.visited.length;
         const search = this.opts.args.search.length - scopeulation.searched.length;
         const searched = search === 0 && this.opts.args.search.length > 0;
         const done = scopeulation.visited.length + scopeulation.searched.length;
-        const stats = { todo, done, visit, search, searched };
-        return Logger.return(`Status:`, stats);
-    }
-    async onWhile(url) {
-        const { visit, search, searched } = this.status();
-        const basic = scopeulation.subreddit(url) || url === BASE_URL;
+        const stats = { todo, done, visit, search, searched, basic };
+        Logger.log(`Status`, stats, scopeulation);
         if (searched && scopeulation.subreddit(url) && !scopeulation.visited.includes(url)) {
             scopeulation.searched.length = 0;
             return await this.onWhile(url);
@@ -241,6 +184,32 @@ export class Reddit extends Pager {
         await textbox.press("Enter");
         await this.nap();
     }
+    async findo(posts, funco) {
+        const url = new URL(this.page.url());
+        for (const listing of posts) {
+            const existing = scopeulation.findos.some((v) => JSON.stringify(v.listing) === JSON.stringify(listing));
+            if (existing)
+                continue;
+            try {
+                const thread = { listing, attributes: await this.attributes(listing) };
+                scopeulation.findos.push(thread);
+                await this.click(thread.listing);
+                return await funco(thread);
+            }
+            catch (error) {
+                this.bang("checking listing attempts", this.opts.settings.start.attempts > 0, { attempts: this.opts.settings.start.attempts, error });
+                this.opts.settings.start.attempts--;
+                while (true && this.opts.settings.start.attempts > 0) {
+                    const pUrl = new URL(this.page.url());
+                    if (pUrl.pathname === url.pathname)
+                        break;
+                    await this.page.goBack();
+                    await this.nap();
+                }
+            }
+        }
+        throw ror(`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`);
+    }
     async joinConversation() {
         await this.click('a:has-text("See full discussion")', { timeout: 600 }).catch(() => false);
         await this.scrollabit(3);
@@ -266,42 +235,14 @@ export class Reddit extends Pager {
             return el;
         });
     }
-    async findo(posts, funco) {
-        const url = new URL(this.page.url());
-        for (const listing of posts) {
-            this.banger(this.opts.settings.start.attempts > 0, this.opts.settings.start.attempts);
-            const existing = this.player.state.visited.some((v) => JSON.stringify(v.listing) === JSON.stringify(listing));
-            if (existing)
-                continue;
-            try {
-                const thread = { listing, attributes: await this.attributes(listing) };
-                this.player.state.visited.push(thread);
-                await thread.listing.scrollIntoViewIfNeeded();
-                await this.nap();
-                await thread.listing.click({ position: { x: 5, y: 5 } });
-                await this.nap();
-                return await funco(thread);
-            }
-            catch {
-                this.opts.settings.start.attempts--;
-                while (true && this.opts.settings.start.attempts > 0) {
-                    const pUrl = new URL(this.page.url());
-                    if (pUrl.pathname === url.pathname)
-                        break;
-                    await this.page.goBack();
-                    await this.nap();
-                }
-            }
-        }
-        throw ror(`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`);
-    }
     async navigateIntoPost() {
         const scopeulator = this.scopeulate();
         if (!scopeulator.community && !scopeulator.people)
             return;
         await this.scrollabit();
-        const posts = this.page.locator(`a[slot='title'], shreddit-profile-comment a.absolute[href][aria-label^='Thread for']`);
-        return await posts.all();
+        const locator = this.page.locator(`a[slot='title'], shreddit-profile-comment a.absolute[href][aria-label^='Thread for']`);
+        const posts = await locator.all();
+        return this.bing("found posts", posts.length, posts, { locator, scopeulator });
     }
     async getComments(max = 36) {
         const loca = this.page.locator("shreddit-comment");
@@ -323,10 +264,9 @@ export class Reddit extends Pager {
         return comments;
     }
 }
-export default async function (params, action) {
-    const options = configure(params.opts);
-    const reddit = new Reddit(params.ctx, options, action);
+export default async function (params, funco) {
+    const config = await configure(params.ctx, params.opts);
+    const reddit = new Reddit({ ...config, funco });
     await reddit.init();
-    Logger.info("Feature", options.settings.start.feature, options.args.artifacters);
     return { reddit };
 }
