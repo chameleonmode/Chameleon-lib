@@ -120,7 +120,10 @@ const App = {
 			  await chrome.storage.local.set({ config: sync.config });
 			}
 			await chrome.storage.local.set({ noise: this.config.noise, hash: this.config.hash });
-		} 
+		} else {
+			this.config.noise = noise;
+			this.config.hash = hash;
+		}
     // this.config.noise = noises[Math.floor(Math.random() * noises.length)];
     // this.config.hash = Math.random() * (100 - 1.5) + 1.5; // Random number between 1.5 and 100
 		// await chrome.storage.sync.set({ config: App.config });

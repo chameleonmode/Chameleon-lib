@@ -474,7 +474,7 @@ async function checkForExtensionUpdate() {
     const manifestData = await manifestResponse.json();
     const newVersion = manifestData.version;
 
-    const {currentVersion} = await chrome.storage.local.get(["currentVersion"]);
+    const { currentVersion } = await chrome.storage.local.get(["currentVersion"]);
     
     // Get the currently running version
     
