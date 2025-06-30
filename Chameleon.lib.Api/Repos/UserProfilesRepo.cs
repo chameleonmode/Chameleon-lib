@@ -50,7 +50,7 @@ public class UserProfilesRepo : ApiBase<UserProfileDto> {
 		}
 		return Instance.Create(new {
 			Title = title,
-			FolderId = folderId,
+			FolderId = folderId == 0 ? null : folderId,
 		});
 	}
 
