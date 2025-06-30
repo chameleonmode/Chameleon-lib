@@ -37,4 +37,8 @@ public static class ULists {
   public static void AddIfNot<T>(this IList<T> list, T item) {
     if (!list.Contains(item)) list.Add(item);
   }
+
+  public static void ThrowIfAny<T>(this IEnumerable<T> list, Func<T, bool> predicate, string? message = null) {
+    if (list.Any(predicate)) throw new InvalidOperationException(message ?? $"Invalid argument. {list.First(predicate)}");
+  }
 }

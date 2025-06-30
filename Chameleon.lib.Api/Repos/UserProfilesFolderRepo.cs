@@ -1,4 +1,5 @@
 ﻿using Chameleon.lib.Api.Dto;
+using Chameleon.lib.Util;
 
 using DynamicData;
 
@@ -7,9 +8,17 @@ namespace Chameleon.lib.Api.Repos;
 public class UserProfilesFolderRepo : ApiBase<UPFolderDto> {
 	private UserProfilesFolderRepo() : base(Consts.Api.Endpoints.Folder) { }
 
-	public static Task<UPFolderDto> CreateFolder(string title) => Instance.Create(new {
-		Title = title
-	});
+	public static Task<UPFolderDto> CreateFolder(string? title = null) {
+		if (title.Is()) {
+		  var count = Instance.ObservableCache.Items.Count;
+			do {
+				title = $"Folder - {++count}";
+			} while (Instance.ObservableCache.Items.Any(i => i.title == title));
+		}
+		return Instance.Create(new {
+			Title = title
+		});
+	}
 
 	/// <summary>
 	/// Returns a filtered stream of cache changes preceded with the initial filtered state.
