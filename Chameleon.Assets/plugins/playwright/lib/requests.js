@@ -1,6 +1,4 @@
-import { tones } from "./types/index.js";
 import { Logger } from "./logger.js";
-import { rando } from "./utils.js";
 export const state = { api: undefined };
 export async function endpoint() {
     return (state.api ||= await (async () => {
@@ -35,7 +33,7 @@ export async function req(route, args) {
 export var promptee;
 (function (promptee) {
     async function requesito(route, ctx) {
-        ctx.decorators.tone ||= rando(tones);
+        ctx.decorators.tone ||= "adaptive to the task, data, user metadata and user intent";
         const args = { headers: { ai: "origato", model: ctx.model }, body: ctx };
         Logger.log("Requesting:", ctx.generations);
         return await req("/robo/" + route, args);

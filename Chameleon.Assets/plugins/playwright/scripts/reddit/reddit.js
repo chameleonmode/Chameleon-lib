@@ -1,12 +1,13 @@
-import { random, ror } from "../../lib/utils.js";
-import { configure, BASE_URL, scopeulation } from "./configure.js";
+import { er, bang, bing, delay } from "../../lib/utils.js";
+import { configure, BASE_URL, scopeulation, } from "./configure.js";
 import { Actor } from "../actor.js";
 import { Logger } from "../../lib/logger.js";
+import { promptee } from "../../lib/requests.js";
 export class Reddit extends Actor {
     constructor(setup) {
         super(setup.page, setup.options, async (url) => {
             if (!setup.funco)
-                return this.bang("No action function provided", undefined, { url });
+                return bang("No action function provided", undefined, { url });
             else
                 Logger.log("Scenario URL", url);
             const pre = async () => {
@@ -19,47 +20,95 @@ export class Reddit extends Actor {
                 }
             };
             if (scopeulation.comments(url) || scopeulation.user(url)) {
-                for (let i = 0; i < this.opts.settings.start.attempts; i++) {
+                const attempter = async () => {
                     try {
                         await pre();
                         return await setup.funco(url);
                     }
                     catch (e) {
-                        Logger.warn("Error in action function", e);
-                        while (!this.page.url().startsWith(url) && this.opts.settings.start.attempts > 0) {
-                            await this.page.goBack();
-                            await this.nap({ min: 50, max: 75, multiplier: random(3, 6) });
-                        }
+                        await this.backscratcher(new URL(url), e);
+                        return attempter();
                     }
-                }
+                };
             }
             else {
+                const scopeulator = this.scopeulate();
                 try {
-                    const scopeulator = this.scopeulate();
-                    try {
-                        await scopeulator.click();
-                        await scopeulator.clickSortOptionByText();
-                        await scopeulator.clickTimeRangeByText();
-                    }
-                    catch (e) {
-                        Logger.warn("Error in findo setup", e);
-                    }
-                    const findulator = await scopeulator.findulator();
-                    await this.scrollabit();
-                    const threads = await findulator.find.locator.all();
-                    const shuffled = threads.sort(() => Math.random() - 0.5);
-                    return await this.findo(shuffled, async (thread) => {
-                        await pre();
-                        return await setup.funco(url, thread);
-                    });
+                    await scopeulator.click();
+                    await scopeulator.clickSortOptionByText();
+                    await scopeulator.clickTimeRangeByText();
                 }
                 catch (e) {
-                    Logger.warn("Error in action function", e);
+                    Logger.warn("Error in findo setup", e);
                 }
-                finally {
-                    const text = this.opts.args.search[scopeulation.searched.length];
-                    scopeulation.searched.push(text);
+                const findulator = await scopeulator.findulator();
+                await this.scrollabit();
+                let idx = 0;
+                const threads = [[]];
+                const count = await findulator.find.locator.count();
+                for (let i = 0; i < count; i++) {
+                    const thread = findulator.find.locator.nth(i);
+                    const { id, content, screenshot } = await this.raw(thread, false);
+                    if (threads[idx].length >= 10)
+                        threads[++idx] = [];
+                    threads[idx].push({
+                        id,
+                        content,
+                        listing: thread,
+                        attributes: await this.attributes(thread),
+                    });
                 }
+                const rank = async () => {
+                    for (const batch of threads) {
+                        const promptmise = promptee.robot({
+                            model: "o4-mini",
+                            task: "reddit_thread_ranking",
+                            decorators: this.opts.ai.decorators,
+                            generations: {
+                                type: "ranking",
+                                range: { min: 1, max: 1 },
+                                input: {
+                                    data: batch.map((t) => ({
+                                        id: t.id,
+                                        attributes: t.attributes,
+                                        content: t.content,
+                                    })),
+                                    user_intent: `Rank all of these threads ${this.opts.settings.start.feature} on from ${this.page.url()}`,
+                                },
+                            },
+                        });
+                        const wait = async (count = 0) => {
+                            try {
+                                while (count++ < 10) {
+                                    await this.scrollabit();
+                                    const racer = await Promise.race([promptmise, delay(100)]);
+                                    if (typeof racer === "number")
+                                        continue;
+                                    return racer[0].data
+                                        .sort((a) => a.rank)
+                                        .map((item) => {
+                                        const thread = batch.find((t) => t.id === item.id);
+                                        return thread?.listing;
+                                    });
+                                }
+                            }
+                            catch (error) {
+                                Logger.warn("Error in ranking wait", error);
+                            }
+                            return batch.map((t) => t.listing);
+                        };
+                        try {
+                            return await this.findo(await wait(), async (thread) => {
+                                await pre();
+                                return await setup.funco(url, thread);
+                            });
+                        }
+                        catch (error) {
+                            Logger.warn("Error in findo after ranking", batch, error);
+                        }
+                    }
+                };
+                return await rank();
             }
             Logger.log("Scenario function completed", scopeulation, url);
         });
@@ -125,12 +174,79 @@ export class Reddit extends Actor {
             click: async () => {
                 if (scoped.type)
                     return;
-                await this.click(scoped.scope === "Posts"
-                    ? this.page.getByRole("button", { name: scoped.scope }).first()
-                    : this.page.locator(`#search-results-page-tab-${scoped.scope.toLowerCase()}`).first());
+                const tab = scoped.scope === "Posts"
+                    ? this.page.getByRole("button", { name: scoped.scope })
+                    : this.page.locator(`#search-results-page-tab-${scoped.scope.toLowerCase()}`);
+                await this.click(tab);
             },
         };
-        return this.bang(`scopeulate`, scopeulated, scoped);
+        return bang(`scopeulate`, scopeulated, scoped);
+    }
+    async raw(locator = this.page.locator("shreddit-post").first(), screenshots = true) {
+        await locator.waitFor();
+        const screenshot = screenshots ? await this.screenshot(locator) : "";
+        const content = await locator.evaluate((root) => {
+            const relevantAttrPrefixes = [
+                "post-",
+                "subreddit-",
+                "author-",
+                "content-",
+                "comment-",
+                "domain",
+                "id",
+                "title",
+                "href",
+                "src",
+                "datetime",
+            ];
+            const extractAttributes = (el) => {
+                const data = {};
+                for (const { name, value } of el.attributes) {
+                    if (relevantAttrPrefixes.some((prefix) => name.startsWith(prefix) || prefix === name)) {
+                        data[name] = value;
+                    }
+                }
+                return data;
+            };
+            const extractTextContent = (node) => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    return node.textContent?.trim() || "";
+                }
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    return Array.from(node.childNodes)
+                        .map(extractTextContent)
+                        .filter(Boolean)
+                        .join(" ")
+                        .replace(/\s+/g, " ")
+                        .trim();
+                }
+                return "";
+            };
+            const extractMedia = (el) => Array.from(el.querySelectorAll("img, video"))
+                .map((node) => ({ type: node.tagName.toLowerCase(), src: node.getAttribute("src") }))
+                .filter((item) => item.src);
+            return {
+                tag: root.tagName.toLowerCase(),
+                attributes: extractAttributes(root),
+                title: root.querySelector("h1")?.textContent?.trim(),
+                flair: root.querySelector("shreddit-post-flair")?.textContent?.trim(),
+                body: extractTextContent(root.querySelector('[slot="text-body"]') || root),
+                media: extractMedia(root),
+            };
+        });
+        return { id: crypto.randomUUID(), url: this.page.url(), content, screenshot };
+    }
+    async backscratcher(url, error) {
+        bang("backscratcher checking listing attempts", !error || this.opts.settings.start.attempts-- > 0, {
+            attempts: this.opts.settings.start.attempts,
+            error,
+        });
+        while (await this.page.evaluate(() => window.history.length > 1)) {
+            if (new URL(this.page.url()).pathname === url.pathname)
+                break;
+            await this.page.goBack();
+            await this.nap();
+        }
     }
     async onWhile(url) {
         const basic = scopeulation.subreddit(url) || url === BASE_URL;
@@ -152,14 +268,7 @@ export class Reddit extends Actor {
                 : Logger.trace(`All terms completed.`);
     }
     async onReIteration(url) {
-        await this.nap();
-        const until = () => scopeulation.comments(url) || scopeulation.search(url) || scopeulation.user(url)
-            ? url
-            : url.replace(/\/?$/, "/") + "search";
-        while (!this.page.url().startsWith(until())) {
-            await this.page.goBack({ waitUntil: "load" });
-            await this.nap({ multiplier: random(3, 6) });
-        }
+        await this.backscratcher(new URL(scopeulation.iterative(url)));
     }
     async navigato(url) {
         await this.navigate(url);
@@ -177,45 +286,39 @@ export class Reddit extends Actor {
         const textbox = locator.getByRole("textbox");
         await this.click(textbox);
         const clearButton = locator.getByRole("button", { name: "Clear search" });
-        if (await clearButton.isVisible().catch(() => false))
+        if (await clearButton.isVisible())
             await clearButton.click().catch(() => false);
         await this.pressSequentially(textbox, text, false);
-        await this.nap({ multiplier: 3 });
         await textbox.press("Enter");
         await this.nap();
+        scopeulation.searched.push(text);
     }
     async findo(posts, funco) {
         const url = new URL(this.page.url());
         for (const listing of posts) {
-            const existing = scopeulation.findos.some((v) => JSON.stringify(v.listing) === JSON.stringify(listing));
-            if (existing)
-                continue;
             try {
-                const thread = { listing, attributes: await this.attributes(listing) };
-                scopeulation.findos.push(thread);
+                const thread = scopeulation.existing({
+                    id: crypto.randomUUID(),
+                    listing,
+                    attributes: await this.attributes(listing),
+                });
+                if (!thread || !thread.listing)
+                    continue;
                 await this.click(thread.listing);
                 return await funco(thread);
             }
             catch (error) {
-                this.bang("checking listing attempts", this.opts.settings.start.attempts > 0, { attempts: this.opts.settings.start.attempts, error });
-                this.opts.settings.start.attempts--;
-                while (true && this.opts.settings.start.attempts > 0) {
-                    const pUrl = new URL(this.page.url());
-                    if (pUrl.pathname === url.pathname)
-                        break;
-                    await this.page.goBack();
-                    await this.nap();
-                }
+                await this.backscratcher(url, error);
             }
         }
-        throw ror(`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`);
+        throw er(`Failed to find a thread.`, this.opts.settings.start.attempts);
     }
     async joinConversation() {
         await this.click('a:has-text("See full discussion")', { timeout: 600 }).catch(() => false);
         await this.scrollabit(3);
         const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
         const closed = await archived.isVisible().catch(() => false);
-        this.bang(`checking archive`, closed === false, { closed, archived });
+        bang(`checking archive`, closed === false, { closed, archived });
         const triggers = this.page.locator('comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]');
         const count = await triggers.count();
         for (let i = 0; i < count; i++) {
@@ -242,7 +345,7 @@ export class Reddit extends Actor {
         await this.scrollabit();
         const locator = this.page.locator(`a[slot='title'], shreddit-profile-comment a.absolute[href][aria-label^='Thread for']`);
         const posts = await locator.all();
-        return this.bing("found posts", posts.length, posts, { locator, scopeulator });
+        return bing("found posts", posts.length, posts, { locator, scopeulator });
     }
     async getComments(max = 36) {
         const loca = this.page.locator("shreddit-comment");

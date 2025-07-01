@@ -1,23 +1,20 @@
 import { Logger } from "../../lib/logger.js";
 export class Scopeulation {
-    findos = [];
+    threaded = [];
     visited = [];
     searched = [];
-    subreddit(url) {
-        const pattern = /\/r\/[^/]+\/?$/;
-        return pattern.test(url);
-    }
-    comments(url) {
-        const pattern = /\/r\/[^/]+\/comments(?:\/.*)?$/;
-        return pattern.test(url);
-    }
-    search(url) {
-        const pattern = /\/r\/[^/]+\/search(?:\/.*)?$/;
-        return pattern.test(url);
-    }
-    user(url) {
-        const pattern = /\.com\/user\/[^/]+/;
-        return pattern.test(url);
+    user = (url) => /\.com\/user\/[^/]+/.test(url);
+    subreddit = (url) => /\/r\/[^/]+\/?$/.test(url);
+    comments = (url) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
+    search = (url) => /\/r\/[^/]+\/search(?:\/.*)?$/.test(url);
+    iterative = (url) => this.comments(url) || this.search(url) || this.user(url)
+        ? url
+        : url.replace(/\/?(search)?$/, "/search");
+    existing(thread) {
+        if (!this.threaded.some((v) => JSON.stringify(v.listing) === JSON.stringify(thread.listing))) {
+            scopeulation.threaded.push(thread);
+            return thread;
+        }
     }
     scoped(current) {
         const url = this.visited[this.visited.length - 1];
@@ -76,13 +73,13 @@ export async function configure(ctx, opts) {
     const search = opts?.args?.search || args.search;
     const urls = [
         ...(opts?.settings?.start?.urls || []),
-        ...settings.start.urls,
-    ];
+        ...(opts?.args?.search.length && !opts?.settings?.start?.urls.length ? [BASE_URL] : [])
+    ].filter(Boolean);
     if (!search.length && !urls.length) {
-        args.scope = "Communities";
-        args.sort = "Posts";
+        args.scope = "Posts";
+        args.sort = "Relevance";
         args.filter = "All";
-        search.push("popeye");
+        urls.push("https://www.reddit.com/search/?q=popeye&type=posts");
         settings.start.attempts = 12;
         settings.start.new = false;
         settings.start.rando = { min: 9, max: 9 };
@@ -98,10 +95,7 @@ export async function configure(ctx, opts) {
             start: {
                 ...settings.start,
                 ...opts?.settings?.start,
-                urls: [
-                    ...(search.length && !urls.length ? [BASE_URL] : []),
-                    ...urls,
-                ].filter(Boolean),
+                urls
             },
             timeouts: {
                 ...settings.timeouts,

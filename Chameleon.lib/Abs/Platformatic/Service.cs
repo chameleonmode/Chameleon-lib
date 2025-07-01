@@ -81,26 +81,23 @@ public class Service : Web {
     public class Promptee() : Root("robo") {
       public static Promptee Instance { get; } = new();
       public record Rep<T>(T Reply);
-      // public record Decorations(string System, string Tone, string Human, string Audience, string Background,
-      //   string Prefix = "",
-      //   string Suffix = ""
-      // );
       public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
-      public record GenorateResponse(string Type, string[] Data, object Reason);
+      public record GenorateResponse(string Type, string[] Data, object? Id, object? Reason);
       public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
+        var ranger = request.Search.Count() + request.Variations;
         return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/genorate", new(
-          Headers: new() { { "ai", "origato" }, { "model", "gpt-4.1" } },
+          Headers: new() { { "ai", "origato" }, { "model", "o4-mini" } },
           Authenticate: false,
           Body: new {
             decorators = request.Decorators,
             task = "generate_search_terms",
             generations = new {
               type = "term",
-              range = new { min = request.Search.Count(), max = request.Search.Count() },
+              range = new { min = ranger, max = ranger },
               input = new {
                 type = "search",
                 data = request.Search,
-                user_intent = $"generate {request.Variations} variations of each search term",
+                user_intent = $"generate variations of each search term as Singular Concepts",
               },
             },
           }

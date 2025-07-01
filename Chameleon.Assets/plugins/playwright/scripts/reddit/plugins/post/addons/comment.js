@@ -6,9 +6,9 @@ export default async function (ctx, opts) {
         const raw = Array.isArray(posts)
             ? await reddit.findo(posts.sort(() => Math.random() - 0.5), async (_) => {
                 await reddit.joinConversation();
-                return await post.raw();
+                return await reddit.raw();
             })
-            : await post.raw();
+            : await reddit.raw();
         const postee = { id: raw.id, url: raw.url, content: raw.content, comments: await reddit.getComments() };
         await post.addComment(async () => {
             const result = await promptee.robot({

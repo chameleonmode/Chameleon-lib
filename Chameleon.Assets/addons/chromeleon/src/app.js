@@ -117,6 +117,7 @@ const App = {
 			const sync = await chrome.storage.sync.get(["config"]);
 			if (sync.config) {
 				sync.config.noise = this.config.noise;
+				sync.config.hash = this.config.hash;
 			  await chrome.storage.local.set({ config: sync.config });
 			}
 			await chrome.storage.local.set({ noise: this.config.noise, hash: this.config.hash });

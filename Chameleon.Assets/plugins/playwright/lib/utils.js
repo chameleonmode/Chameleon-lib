@@ -5,6 +5,11 @@ export const delay = (ms) => {
         setTimeout(() => resolve(ms), ms);
     });
 };
+export async function sleepo({ min = 256, max = 512, multiplier = 0 } = {}) {
+    const ms = random(min, max);
+    const span = Math.floor(ms * (multiplier > 0 ? multiplier : rando(3, 6)));
+    return await delay(span);
+}
 export function random(...values) {
     const smallest = Math.min(...values);
     const largest = Math.max(...values);
@@ -19,17 +24,6 @@ export function rando(thing, thinger) {
             : thing && typeof thing === "number"
                 ? Math.floor(Math.random() * thing)
                 : Math.random() < 0.5;
-}
-export function ror(message, cause) {
-    const error = new Error(`${message}`, { cause });
-    const pretty = { cause, stack: error.stack };
-    Logger.error(`(error): ${error.message}`, pretty);
-    return error;
-}
-export async function sleepo({ min = 256, max = 512, multiplier = 0 } = {}) {
-    const ms = random(min, max);
-    const span = Math.floor(ms * (multiplier > 0 ? multiplier : rando(3, 6)));
-    return await delay(span);
 }
 export async function tryForEach(promises) {
     const fulfilled = [];
@@ -124,4 +118,24 @@ export async function launcher() {
     });
     child.unref();
     await delay(3000);
+}
+export function er(message, cause) {
+    const error = new Error(`${message}`, { cause });
+    const pretty = { cause, stack: error.stack };
+    Logger.error(`(error): ${error.message}`, pretty);
+    return error;
+}
+export function bang(message, expect, source, { print = true, caller = Logger.getCallerLine() } = {}) {
+    if (print) {
+        Logger.debug(`bang`, `\x1b[38;5;208mmessage:\x1b[0m`, message, `\n`, `expect:`, expect, `\n`, `source:`, source, `\n`, "caller: {\n\t", caller.method, `\n\t`, caller.filename, "\n", "}");
+    }
+    if (expect)
+        return expect;
+    throw er(message, { source, expect });
+}
+export function bing(message, expect, returnz, source) {
+    const caller = Logger.getCallerLine();
+    if (bang(message, expect, source, { caller }))
+        return returnz;
+    throw er(message, { source, expect });
 }

@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { rando, ror, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
+import { rando, er, sleepo, tryForEach, bang } from "../lib/utils.js";
 import { Logger } from "../lib/logger.js";
 import { Player } from "./player.js";
 export class Actor {
@@ -26,7 +26,7 @@ export class Actor {
         catch (e) {
             Logger.error("Error navigating to URL:", e);
             await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
-            this.bang("checking navigation attempts", this.opts.settings.start.attempts > attempt, this.opts.settings.start.attempts);
+            bang("checking navigation attempts", this.opts.settings.start.attempts > attempt, this.opts.settings.start.attempts);
             await this.navigate(url, attempt + 1);
         }
     }
@@ -45,22 +45,21 @@ export class Actor {
             };
         });
     }
-    async txtContent(selector, locator) {
-        const location = locator?.locator(selector) || this.page.locator(selector);
-        const locations = await location.count();
-        this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }, { print: false });
-        for (let i = 0; i < locations; i++) {
-            const element = location.nth(i);
-            await sleepo(this.opts.settings.timeouts.naps);
-            if (await element.isVisible()) {
-                await element.scrollIntoViewIfNeeded();
-                const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
-                if (!text)
-                    continue;
-                return this.bang("txtContent: " + selector, text, { element, text }, { print: false });
+    async txtContent(selector, within) {
+        const locator = within?.locator(selector) || this.page.locator(selector);
+        let looper = 0;
+        for (const location of await locator.all()) {
+            if (!(await location.isVisible()))
+                continue;
+            if (looper++ > 3) {
+                await sleepo(this.opts.settings.timeouts.naps);
+                await location.scrollIntoViewIfNeeded();
             }
+            const text = await location.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
+            if (text)
+                return bang("txtContent: " + selector, text, { location, text }, { print: false });
         }
-        throw ror(`No visible elements found for selector: ${location}`, { locations, location });
+        throw er(`No visible elements found for ${selector}`, locator);
     }
     async attributes(locator) {
         const attributes = await locator.evaluate((node) => {
@@ -70,7 +69,7 @@ export class Actor {
             }
             return attrs;
         });
-        return this.bang("attributes: " + locator, attributes, { locator, attributes }, { print: false });
+        return bang("attributes: " + locator, attributes, { locator, attributes }, { print: false });
     }
     async selectAll(locator, clear = false) {
         const modifierKey = process.platform === "win32" ? "Control" : "Meta";
@@ -92,32 +91,28 @@ export class Actor {
             delay: rando(64, 128),
             timeout: 1000 * 60 * 5,
         });
+        await this.nap();
     }
     async assert(locator, { timeout = 1000 * 6 } = {}) {
         const expecto = await tryForEach([
             expect(locator).toBeEnabled({ timeout }),
             expect(locator).toBeVisible({ timeout }),
         ]);
-        this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto);
+        bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto);
         await locator.waitFor({ timeout });
-        return this.bang(`assert: ${locator}`, locator, { timeout, locator });
+        return bang(`assert: ${locator}`, locator, { timeout, locator });
     }
     async click(thang, options = {}) {
-        const locator = typeof thang === "string" ? this.page.locator(thang).first() : thang;
-        const { strict = true, timeout = this.opts.settings.timeouts.wait } = options;
+        const { timeout = this.opts.settings.timeouts.wait } = options;
         await this.nap();
-        const count = await locator.count();
-        this.bang("checking element count", count, { locator, count });
-        if (strict) {
-            await this.assert(locator, { timeout });
-        }
-        const locato = await trySequentially([
-            async () => await locator.scrollIntoViewIfNeeded({ timeout }),
-            async () => await locator.click({ timeout, force: true }),
-        ], { first: false });
-        this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato);
+        const things = typeof thang === "string" ? this.page.locator(thang).first() : thang;
+        const count = await things.count();
+        const locator = count > 1 ? things.first() : things;
+        bang("checking element count", count, { locator, count });
+        await this.assert(locator, { timeout });
+        await locator.click({ timeout, force: true });
         await this.nap();
-        return this.bang(`click: ${locator}`, locator, { options, locator });
+        return bang(`clicked locator`, locator, { locator });
     }
     async scrollabit(times = rando(3, 6)) {
         for (let i = 0; i < times; i++) {
@@ -132,7 +127,7 @@ export class Actor {
                 });
                 const direction = i > 0 && Math.random() > 0.875 ? -1 : 1;
                 const y = direction * rando(clientHeight / 2, clientHeight);
-                this.bang(`Scroll attempt ${i + 1}/${times}: ${y} (direction: ${direction})`, y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight, { y, scrollTop, clientHeight, scrollHeight });
+                bang(`Scroll attempt ${i + 1}/${times}: ${y} (direction: ${direction})`, y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight, { y, scrollTop, clientHeight, scrollHeight });
                 if (rando())
                     await this.page.mouse.wheel(0, y);
                 else
@@ -162,23 +157,23 @@ export class Actor {
                     case "text":
                         return this.page.getByText(selector);
                     default:
-                        throw ror(`Unknown strategy: ${strategy}`);
+                        throw er(`Unknown strategy: ${strategy}`);
                 }
             })();
             try {
                 const firstVisible = async (current, depth = 18, timeout = 36) => {
                     for (const location of await current.all()) {
-                        if (await location.isVisible({ timeout }).catch(() => false))
+                        if (await location.isVisible({ timeout }))
                             return location;
                         const siblings = location.locator(":scope > *");
                         for (const sibling of await siblings.all()) {
-                            if (await sibling.isVisible({ timeout }).catch(() => false))
+                            if (await sibling.isVisible({ timeout }))
                                 return sibling;
                         }
                         if (depth > 0)
-                            return firstVisible(location.locator(".."), depth - 1);
+                            return firstVisible(location.locator(".."), depth - 1, timeout * 2);
                     }
-                    throw ror(`Max depth reached while finding visible ancestor for ${selector}`);
+                    throw er(`Max depth reached while finding visible ancestor for ${selector}`);
                 };
                 const locator = strategy === "testId" ? target : await firstVisible(target);
                 return { target, locator, selector, count: await locator.count() };
@@ -187,20 +182,7 @@ export class Actor {
                 Logger.warn(`Failed to resolve ${strategy} locator for ${selector}`, e);
             }
         }
-        throw ror(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
-    }
-    async findAll(ids) {
-        const locations = [];
-        for (const selector of ids) {
-            const location = await this.find([selector], "selector").catch(() => false);
-            if (!location)
-                continue;
-            locations.push(location);
-        }
-        if (locations.length === 0)
-            throw ror(`No elements found for IDs: ${ids.join(", ")}`);
-        else
-            return locations;
+        throw er(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
     }
     async findFrame(selectors) {
         for (const selector of selectors) {
@@ -217,7 +199,7 @@ export class Actor {
                 continue;
             }
         }
-        throw ror(`No frames found for selectors: ${selectors.join(", ")}`);
+        throw er(`No frames found for selectors: ${selectors.join(", ")}`);
     }
     async screenshot(locator) {
         return (await locator.screenshot({
@@ -225,19 +207,5 @@ export class Actor {
             type: "jpeg",
             quality: 72,
         })).toString("base64");
-    }
-    bang(message, expect, source, { print = true, caller = Logger.getCallerLine() } = {}) {
-        if (print) {
-            Logger.debug(`bang/${this.opts.settings.start.feature}`, `\x1b[38;5;208mmessage:\x1b[0m`, message, `\n`, `expect:`, expect, `\n`, `source:`, source, `\n`, "caller: {\n\t", caller.method, `\n\t`, caller.filename, "\n", "}");
-        }
-        if (expect)
-            return expect;
-        throw ror(message, { source, expect });
-    }
-    bing(message, expect, returnz, source) {
-        const caller = Logger.getCallerLine();
-        if (this.bang(message, expect, source, { caller }))
-            return returnz;
-        throw ror(message, { source, expect });
     }
 }

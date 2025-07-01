@@ -1,3 +1,4 @@
+import { bang } from "../../../../lib/utils.js";
 export class Login {
     pager;
     constructor(pager) {
@@ -5,7 +6,7 @@ export class Login {
     }
     async checkLoginAuthentication() {
         const locato = this.pager.page.locator("#login-button").first();
-        this.pager.bang("Login button", await locato.isVisible(), locato);
+        bang("Login button", await locato.isVisible(), locato);
         await this.pager.click(locato);
     }
     async loginWithCredentials(email, password) {
