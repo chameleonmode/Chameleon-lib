@@ -84,7 +84,7 @@ public class Service : Web {
       public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
       public record GenorateResponse(string Type, string[] Data, object? Id, object? Reason);
       public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
-        var ranger = request.Search.Count() + request.Variations;
+        var ranger = request.Variations;
         return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/genorate", new(
           Headers: new() { { "ai", "origato" }, { "model", "o4-mini" } },
           Authenticate: false,

@@ -105,12 +105,19 @@ export class Actor {
     async click(thang, options = {}) {
         const { timeout = this.opts.settings.timeouts.wait } = options;
         await this.nap();
-        const things = typeof thang === "string" ? this.page.locator(thang).first() : thang;
+        const things = typeof thang === "string" ? this.page.locator(thang) : thang;
         const count = await things.count();
-        const locator = count > 1 ? things.first() : things;
-        bang("checking element count", count, { locator, count });
-        await this.assert(locator, { timeout });
-        await locator.click({ timeout, force: true });
+        const locator = count > 1 ? await (async () => {
+            let nth = -1;
+            while (++nth < count) {
+                const locator = things.nth(nth);
+                if (await locator.isVisible({ timeout }))
+                    return locator;
+            }
+        })() : things;
+        const locatoree = bang("checking element count", locator, { locator, count });
+        await this.assert(locatoree, { timeout });
+        await locatoree.click({ timeout, force: true });
         await this.nap();
         return bang(`clicked locator`, locator, { locator });
     }

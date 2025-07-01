@@ -79,7 +79,8 @@ export async function configure(ctx, opts) {
         args.scope = "Posts";
         args.sort = "Relevance";
         args.filter = "All";
-        urls.push("https://www.reddit.com/search/?q=popeye&type=posts");
+        search.push("spinach");
+        urls.push(BASE_URL);
         settings.start.attempts = 12;
         settings.start.new = false;
         settings.start.rando = { min: 9, max: 9 };
