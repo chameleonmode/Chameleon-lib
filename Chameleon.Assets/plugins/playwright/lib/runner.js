@@ -1,5 +1,6 @@
 import path from "path";
 import { fileURLToPath } from "url";
+import { Logger } from "./logger.js";
 export async function loader(file) {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
@@ -51,6 +52,7 @@ export async function run(args) {
     }
     catch (error) {
         console.error(`Catch: ${args.file} ${error instanceof Error ? error.message : String(error)}`);
+        Logger.error("Error in runner", error);
     }
     finally {
         console.log(`Finally: ${args.file} completed finally block`);

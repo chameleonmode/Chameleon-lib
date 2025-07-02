@@ -44,14 +44,14 @@ export class Reddit extends Actor {
                 const findulator = await scopeulator.findulator();
                 await this.scrollabit();
                 let idx = 0;
-                const threads = [[]];
+                const batches = [[]];
                 const count = await findulator.find.locator.count();
                 for (let i = 0; i < count; i++) {
                     const thread = findulator.find.locator.nth(i);
                     const { id, content, screenshot } = await this.raw(thread, false);
-                    if (threads[idx].length >= 10)
-                        threads[++idx] = [];
-                    threads[idx].push({
+                    if (batches[idx].length >= 10)
+                        batches[++idx] = [];
+                    batches[idx].push({
                         id,
                         content,
                         listing: thread,
@@ -59,8 +59,8 @@ export class Reddit extends Actor {
                     });
                 }
                 const rank = async () => {
-                    for (const batch of threads) {
-                        const promptmise = promptee.robot({
+                    for (const data of batches) {
+                        const promptmise = promptee.ranking({
                             model: "o4-mini",
                             task: "reddit_thread_ranking",
                             decorators: this.opts.ai.decorators,
@@ -68,11 +68,7 @@ export class Reddit extends Actor {
                                 type: "ranking",
                                 range: { min: 1, max: 1 },
                                 input: {
-                                    data: batch.map((t) => ({
-                                        id: t.id,
-                                        attributes: t.attributes,
-                                        content: t.content,
-                                    })),
+                                    data: data,
                                     user_intent: `Rank all of these threads ${this.opts.settings.start.feature} on from ${this.page.url()}`,
                                 },
                             },
@@ -87,7 +83,7 @@ export class Reddit extends Actor {
                                     return racer[0].data
                                         .sort((a) => a.rank)
                                         .map((item) => {
-                                        const thread = batch.find((t) => t.id === item.id);
+                                        const thread = data.find((t) => t.id === item.id);
                                         return thread?.listing;
                                     });
                                 }
@@ -95,7 +91,7 @@ export class Reddit extends Actor {
                             catch (error) {
                                 Logger.warn("Error in ranking wait", error);
                             }
-                            return batch.map((t) => t.listing);
+                            return data.map((t) => t.listing);
                         };
                         try {
                             return await this.findo(await wait(), async (thread) => {
@@ -104,7 +100,7 @@ export class Reddit extends Actor {
                             });
                         }
                         catch (error) {
-                            Logger.warn("Error in findo after ranking", batch, error);
+                            Logger.warn("Error in findo after ranking", data, error);
                         }
                     }
                 };
@@ -250,10 +246,10 @@ export class Reddit extends Actor {
     }
     async onWhile(url) {
         const basic = scopeulation.subreddit(url) || url === BASE_URL;
-        const todo = this.opts.settings.start.urls.length + this.opts.args.search.length;
+        const todo = this.opts.settings.start.urls.length + this.opts.settings.start.search.length;
         const visit = this.opts.settings.start.urls.length - scopeulation.visited.length;
-        const search = this.opts.args.search.length - scopeulation.searched.length;
-        const searched = search === 0 && this.opts.args.search.length > 0;
+        const search = this.opts.settings.start.search.length - scopeulation.searched.length;
+        const searched = search === 0 && this.opts.settings.start.search.length > 0;
         const done = scopeulation.visited.length + scopeulation.searched.length;
         const stats = { todo, done, visit, search, searched, basic };
         Logger.log(`Status`, stats, scopeulation);
@@ -281,7 +277,7 @@ export class Reddit extends Actor {
             await this.navigato(url);
         else
             await this.onReIteration(scopeulation.visited[scopeulation.visited.length - 1]);
-        const text = this.opts.args.search[scopeulation.searched.length];
+        const text = this.opts.settings.start.search[scopeulation.searched.length];
         const locator = this.page.locator(`faceplate-search-input`);
         const textbox = locator.getByRole("textbox");
         await this.click(textbox);

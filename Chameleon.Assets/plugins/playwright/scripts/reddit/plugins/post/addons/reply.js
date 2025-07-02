@@ -25,7 +25,7 @@ export default async function (ctx, opts) {
                 return { raw, comments: await reddit.getComments() };
             })();
         const postee = { id: raw.id, url: raw.url, content: raw.content, comments };
-        const result = await promptee.robot({
+        const result = await promptee.content({
             model: "o4-mini",
             decorators: reddit.opts.ai.decorators,
             task: "generate_reddit_reply",

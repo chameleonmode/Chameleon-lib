@@ -84,20 +84,19 @@ public class Service : Web {
       public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
       public record GenorateResponse(string Type, string[] Data, object? Id, object? Reason);
       public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
-        var ranger = request.Variations;
-        return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/genorate", new(
+        return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/terms", new(
           Headers: new() { { "ai", "origato" }, { "model", "o4-mini" } },
           Authenticate: false,
           Body: new {
             decorators = request.Decorators,
-            task = "generate_search_terms",
+            task = "research and suggest search term variations",
             generations = new {
               type = "term",
-              range = new { min = ranger, max = ranger },
+              range = new { min = request.Search.Count(), max = request.Search.Count() },
               input = new {
                 type = "search",
                 data = request.Search,
-                user_intent = $"generate variations of each search term as Singular Concepts",
+                user_intent = $"consider each of these terms as and respond with {request.Variations} of each as Singular Concepts unless otherwise specified",
               },
             },
           }

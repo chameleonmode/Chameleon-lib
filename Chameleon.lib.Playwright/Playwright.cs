@@ -55,7 +55,7 @@ public static class Project {
 		return Initialized.TrySetResult(true);
 	}
 
-	public static bool Staging { get; } = false && Debugger.IsAttached;
+	public static bool Staging { get; } = true && Debugger.IsAttached;
 	public static bool Debug { get; } =
 #if DEBUG
 		true;

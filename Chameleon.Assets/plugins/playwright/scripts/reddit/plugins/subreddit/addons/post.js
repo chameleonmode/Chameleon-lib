@@ -11,7 +11,7 @@ export default async function (ctx, opts) {
         await subreddit.canPost();
         b64.push(await reddit.screenshot(reddit.page.locator("body")));
         await subreddit.poster(async () => {
-            const titlee = await promptee.robot({
+            const titlee = await promptee.content({
                 model: "o4-mini",
                 decorators: reddit.opts.ai.decorators,
                 task: `generate_post_title.`,
@@ -30,7 +30,7 @@ export default async function (ctx, opts) {
                     return data;
             }), { titlee });
             b64.push(await reddit.screenshot(reddit.page.locator("body")));
-            const contentlee = await promptee.robot({
+            const contentlee = await promptee.content({
                 model: "o4-mini",
                 decorators: reddit.opts.ai.decorators,
                 task: `create_post_content`,

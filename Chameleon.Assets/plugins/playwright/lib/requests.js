@@ -57,4 +57,14 @@ export var promptee;
         return responsito(request);
     }
     promptee.robot = robot;
+    async function ranking(ctx) {
+        const request = await requesito("ranking", ctx);
+        return responsito(request);
+    }
+    promptee.ranking = ranking;
+    async function content(ctx) {
+        const request = await requesito("content", ctx);
+        return responsito(request);
+    }
+    promptee.content = content;
 })(promptee || (promptee = {}));
