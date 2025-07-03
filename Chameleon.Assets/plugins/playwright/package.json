@@ -4,8 +4,8 @@
   "description": "Dynamic Playwright test runner",
   "type": "module",
   "scripts": {
-    "dev": "node --loader ts-node/esm src/app.ts",
     "lunch": "node --loader ts-node/esm tests/examples/launcher.ts",
+    "dev": "node --loader ts-node/esm src/app.ts",
     "build": "tsc",
     "build:clean": "rm -rf dist",
     "build:prod": "npm run build:clean && tsc -p tsconfig.prod.json && npm run build:prepare",

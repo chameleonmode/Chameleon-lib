@@ -62,24 +62,24 @@ export const config = {
   },
 };
 
-  // Find the app server
-  const discoverServer = async () => {
-    // Try each port in the list
-    for (const port of [3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696]) {
-      try {
-        const url = `http://127.0.0.1:${port}`;
-        const response = await fetch(`${url}/ping`, {
-          signal: AbortSignal.timeout(5000), // 500ms timeout
-        });
-
-        return { port, url };
-      } catch (error) {
-        // Continue to next port
-        console.error(error);
-      }
-    }
-    return discoverServer();
-  }
+// Find the app server
+const discoverServer = async () => {
+	await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for .5 second
+	// Try each port in the list
+	for (const port of [3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696]) {
+		try {
+			const url = `http://127.0.0.1:${port}`;
+			const response = await fetch(`${url}/ping`, {
+				signal: AbortSignal.timeout(5000), // 5000ms timeout
+			});
+			return { port, url };
+		} catch (error) {
+			// Continue to next port
+			console.error(error);
+		}
+	}
+	return discoverServer();
+}
 const App = {
 	server: null,
 	port: null,
@@ -139,7 +139,6 @@ const App = {
 
 	// Register a new session launched by the app
 	initialize: async function (sessionId, instanceId, data) {
-		if (!(await this.discoverServer())) return false;
 		this.session = { sessionId, instanceId };
 		this.launchedSessions[sessionId] = this.session;
 

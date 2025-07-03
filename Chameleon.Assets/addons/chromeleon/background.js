@@ -30,16 +30,15 @@ const startup = async (id = -1) => {
 
 const on = async () => {
   log.info("On installed or started");
-  await checkForExtensionUpdate();
-  await App.discoverServer();
-  await new Promise(resolve => setTimeout(resolve, 500)); // Wait for .5 second
-  let retry = 0;
-  const initializer = async () =>{
-    const tabs = await chrome.tabs.query({});
-    return tabs.find(t=>t.url.includes(App.server));
-  };
-  while(!(await initializer()) && retry++ < 3)
   await new Promise(resolve => setTimeout(resolve, 500)); // Wait for 1 second
+  await checkForExtensionUpdate();
+  const initializer = async () => {
+    await App.discoverServer();
+    const tabs = await chrome.tabs.query({});
+    const tab = tabs.find(t=>t.url.includes(App.server));
+    if (tab) return tab;
+    else return await initializer();
+  };
   const tab = await initializer();
   if (tab) {
     const url = new URL(tab.url);

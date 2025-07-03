@@ -96,7 +96,7 @@ public class Service : Web {
               input = new {
                 type = "search",
                 data = request.Search,
-                user_intent = $"consider each of these terms as and respond with {request.Variations} of each as Singular Concepts unless otherwise specified",
+                user_intent = $"consider each of these terms as and respond with {request.Variations} of each as distinct meaning unless otherwise specified",
               },
             },
           }

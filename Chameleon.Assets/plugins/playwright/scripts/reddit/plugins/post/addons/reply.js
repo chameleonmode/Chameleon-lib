@@ -4,7 +4,7 @@ import Post from "../post.js";
 export default async function (ctx, opts) {
     const target = { type: "unknown" };
     const { reddit, post } = await Post({ ctx, opts }, async (_, __) => {
-        const posts = (await reddit.navigateIntoPost()) ?? (await reddit.joinConversation());
+        const posts = await reddit.navigateIntoPost().catch(async () => await reddit.joinConversation());
         const { raw, comments } = Array.isArray(posts)
             ? await reddit.findo(posts.sort(() => Math.random() - 0.5), async (thread) => {
                 await reddit.joinConversation();

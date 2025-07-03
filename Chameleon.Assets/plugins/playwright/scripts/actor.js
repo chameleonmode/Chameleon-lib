@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 import { rando, er, sleepo, tryForEach, bang } from "../lib/utils.js";
 import { Logger } from "../lib/logger.js";
 import { Player } from "./player.js";
+import { promptee } from "../lib/requests.js";
 export class Actor {
     page;
     opts;
@@ -11,6 +12,7 @@ export class Actor {
         this.page = page;
         this.opts = opts;
         this.scenario = scenario;
+        promptee.state.ai = opts.ai;
     }
     async init() {
         this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
@@ -132,7 +134,7 @@ export class Actor {
                         scrollHeight: document.body.scrollHeight,
                     };
                 });
-                const direction = i > 0 && Math.random() > 0.875 ? -1 : 1;
+                const direction = i > 0 && Math.random() > 0.875 || scrollTop + clientHeight >= scrollHeight ? -1 : 1;
                 const y = direction * rando(clientHeight / 2, clientHeight);
                 bang(`Scroll attempt ${i + 1}/${times}: ${y} (direction: ${direction})`, y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight, { y, scrollTop, clientHeight, scrollHeight });
                 if (rando())

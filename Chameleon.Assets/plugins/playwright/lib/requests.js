@@ -1,21 +1,51 @@
 import { Logger } from "./logger.js";
-export const state = { api: undefined };
-export async function endpoint() {
-    return (state.api ||= await (async () => {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 300);
-            await fetch("http://127.0.0.1:3042", { signal: controller.signal });
-            clearTimeout(timeoutId);
-            return "http://127.0.0.1:3042";
-        }
-        catch (error) {
-            return "https://chameleon-ws.onrender.com";
-        }
-    })());
-}
+import { bang } from "./utils.js";
+export var promptee;
+(function (promptee) {
+    promptee.state = { api: undefined, ai: undefined };
+    promptee.heading = { "Content-Type": "application/json", ai: "origato" };
+    async function endpoint(route) {
+        const from = `${(promptee.state.api ||= await (async () => {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 300);
+                await fetch("http://127.0.0.1:3042", { signal: controller.signal });
+                clearTimeout(timeoutId);
+                return "http://127.0.0.1:3042";
+            }
+            catch (error) {
+                return "https://chameleon-ws.onrender.com";
+            }
+        })())}/${route}`;
+        return bang("Fetching", from);
+    }
+    promptee.endpoint = endpoint;
+    function promptio(ctx) {
+        const prompt = {
+            model: "o4-mini",
+            task: bang("prompt request task", ctx.task),
+            decorators: bang("prompt request decorators", promptee.state.ai?.decorators, promptee.state),
+            generations: bang("prompt request generations", ctx.generations),
+        };
+        const headers = { ...promptee.heading, model: prompt.model };
+        return { method: "POST", headers, body: JSON.stringify(prompt) };
+    }
+    async function requesito(route, ctx) {
+        const request = await fetch(await endpoint(route), promptio(ctx));
+        const out = bang("request response", await request.json());
+        return out.reply;
+    }
+    async function ranking(ctx) {
+        return await requesito("robo/ranking", ctx);
+    }
+    promptee.ranking = ranking;
+    async function content(ctx) {
+        return await requesito("robo/content", ctx);
+    }
+    promptee.content = content;
+})(promptee || (promptee = {}));
 export async function req(route, args) {
-    const from = `${await endpoint()}${route}`;
+    const from = await promptee.endpoint(route);
     const init = {
         headers: {
             "Content-Type": "application/json",
@@ -30,41 +60,3 @@ export async function req(route, args) {
     Logger.log("Response:", response);
     return response;
 }
-export var promptee;
-(function (promptee) {
-    async function requesito(route, ctx) {
-        ctx.decorators.tone ||= "adaptive to the task, data, user metadata and user intent";
-        const args = { headers: { ai: "origato", model: ctx.model }, body: ctx };
-        Logger.log("Requesting:", ctx.generations);
-        return await req("/robo/" + route, args);
-    }
-    function responsito(request) {
-        const out = request.reply;
-        return out;
-    }
-    async function prompt(ctx) {
-        const request = await requesito("prompt", ctx);
-        return responsito(request);
-    }
-    promptee.prompt = prompt;
-    async function genorate(ctx) {
-        const request = await requesito("genorate", ctx);
-        return responsito(request);
-    }
-    promptee.genorate = genorate;
-    async function robot(ctx) {
-        const request = await requesito("robot", ctx);
-        return responsito(request);
-    }
-    promptee.robot = robot;
-    async function ranking(ctx) {
-        const request = await requesito("ranking", ctx);
-        return responsito(request);
-    }
-    promptee.ranking = ranking;
-    async function content(ctx) {
-        const request = await requesito("content", ctx);
-        return responsito(request);
-    }
-    promptee.content = content;
-})(promptee || (promptee = {}));

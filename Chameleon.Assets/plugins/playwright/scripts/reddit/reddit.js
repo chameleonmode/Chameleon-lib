@@ -1,8 +1,6 @@
-import { er, bang, bing, delay } from "../../lib/utils.js";
+import { er, bang, bing, delay, Logger, promptee } from "../../lib/index.js";
 import { configure, BASE_URL, scopeulation, } from "./configure.js";
 import { Actor } from "../actor.js";
-import { Logger } from "../../lib/logger.js";
-import { promptee } from "../../lib/requests.js";
 export class Reddit extends Actor {
     constructor(setup) {
         super(setup.page, setup.options, async (url) => {
@@ -19,51 +17,47 @@ export class Reddit extends Actor {
                             : 'a[slot="page-1"]:has-text("Overview")');
                 }
             };
-            if (scopeulation.comments(url) || scopeulation.user(url)) {
-                const attempter = async () => {
-                    try {
-                        await pre();
-                        return await setup.funco(url);
-                    }
-                    catch (e) {
-                        await this.backscratcher(new URL(url), e);
-                        return attempter();
-                    }
-                };
-            }
-            else {
-                const scopeulator = this.scopeulate();
+            const attempter = async (func) => {
                 try {
-                    await scopeulator.click();
-                    await scopeulator.clickSortOptionByText();
-                    await scopeulator.clickTimeRangeByText();
+                    return await func();
                 }
                 catch (e) {
-                    Logger.warn("Error in findo setup", e);
+                    await this.backscratcher(new URL(url), e);
+                    return await attempter(func);
                 }
-                const findulator = await scopeulator.findulator();
-                await this.scrollabit();
-                let idx = 0;
-                const batches = [[]];
-                const count = await findulator.find.locator.count();
-                for (let i = 0; i < count; i++) {
-                    const thread = findulator.find.locator.nth(i);
-                    const { id, content, screenshot } = await this.raw(thread, false);
-                    if (batches[idx].length >= 10)
-                        batches[++idx] = [];
-                    batches[idx].push({
-                        id,
-                        content,
-                        listing: thread,
-                        attributes: await this.attributes(thread),
+            };
+            if (this.scopeulate().direct(url)) {
+                return await attempter(async () => {
+                    await pre();
+                    return await setup.funco(url);
+                });
+            }
+            else {
+                const { batches } = await (async () => {
+                    const locatorz = await this.navigateIntoPost().catch(async () => {
+                        const scopeulator = this.scopeulate();
+                        const finder = await scopeulator.findulator();
+                        return await finder.find.locator.all();
                     });
-                }
-                const rank = async () => {
+                    await this.scrollabit();
+                    const batches = [[]];
+                    for (let i = 0; i < locatorz.length; i++) {
+                        const idx = batches.length - 1;
+                        if (batches[idx].length >= 10)
+                            batches.push([]);
+                        const listing = locatorz[i];
+                        const locator = listing.locator('xpath=ancestor::article[1]') ?? listing;
+                        if (!await locator.isVisible())
+                            continue;
+                        const { id, content, attributes } = await this.raw(locator, false).catch();
+                        batches[idx].push({ id, content, listing, attributes });
+                    }
+                    return { batches };
+                })();
+                const rank = async (func) => {
                     for (const data of batches) {
                         const promptmise = promptee.ranking({
-                            model: "o4-mini",
-                            task: "reddit_thread_ranking",
-                            decorators: this.opts.ai.decorators,
+                            task: "rank_reddit_threads",
                             generations: {
                                 type: "ranking",
                                 range: { min: 1, max: 1 },
@@ -93,27 +87,87 @@ export class Reddit extends Actor {
                             }
                             return data.map((t) => t.listing);
                         };
-                        try {
-                            return await this.findo(await wait(), async (thread) => {
-                                await pre();
-                                return await setup.funco(url, thread);
-                            });
-                        }
-                        catch (error) {
-                            Logger.warn("Error in findo after ranking", data, error);
-                        }
+                        await func(await wait());
                     }
                 };
-                return await rank();
+                return await rank(async (threads) => {
+                    return await attempter(async () => {
+                        return await this.findo(threads, async (thread) => {
+                            await pre();
+                            return await setup.funco(url, thread);
+                        });
+                    });
+                });
             }
-            Logger.log("Scenario function completed", scopeulation, url);
         });
     }
     scopeulate() {
         const scoped = scopeulation.scoped(this.opts.args.scope);
+        const click = async () => {
+            if (scoped.type)
+                return;
+            const tab = scoped.scope === "Posts"
+                ? this.page.getByRole("button", { name: scoped.scope })
+                : this.page.locator(`#search-results-page-tab-${scoped.scope.toLowerCase()}`);
+            await this.click(tab);
+        };
+        const clickSort = async () => {
+            const scopes = ["Posts", "Comments", "Media"];
+            const sorts = ["Hot", "Top", "New", "Comments"];
+            const skips = scoped.sort || !scopes.includes(scoped.scope) || !sorts.includes(this.opts.args.sort);
+            if (skips)
+                return;
+            const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
+            await this.click(sortLocator);
+            const normalizedText = this.opts.args.scope === "Comments" &&
+                (this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
+                ? "Top"
+                : this.opts.args.sort.trim();
+            const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
+            const sortOption = this.page.locator(`li a span:has-text("${normalizedOption}")`).first();
+            await sortOption.scrollIntoViewIfNeeded();
+            const parentLink = sortOption.locator("xpath=./ancestor::a");
+            await this.click(parentLink);
+            await this.nap();
+        };
+        const clickRange = async () => {
+            const scopes = ["Posts", "Media"];
+            const sorts = ["Relevance", "Top", "Comments"];
+            const filters = ["Year", "Month", "Week", "Today", "Hour"];
+            const skips = scoped.t ||
+                !scopes.includes(scoped.scope) ||
+                !sorts.includes(this.opts.args.sort) ||
+                !filters.includes(this.opts.args.filter);
+            if (skips)
+                return;
+            const sortLocator = this.page.locator(`search-sort-dropdown-menu`);
+            await this.click(sortLocator.nth(1));
+            const optionText = this.opts.args.filter === "Today"
+                ? this.opts.args.filter.trim()
+                : "Past " + this.opts.args.filter.trim().toLowerCase();
+            const exactOption = this.page.locator(`li a span:has-text("${optionText}")`).first();
+            const linkElement = exactOption.locator("xpath=./ancestor::a");
+            await linkElement.scrollIntoViewIfNeeded();
+            await this.click(linkElement);
+            Logger.log(`Clicked on "${optionText}" time range option`);
+        };
+        const homepage = scopeulation.base(this.page.url()) && this.opts.settings.start.search.length === 0;
         const scopeulated = {
             ...scoped,
+            homepage,
+            direct: (url) => {
+                const base = url ? scopeulation.comments(url) || scopeulation.user(url) : homepage;
+                return base || scoped.people || scoped.community;
+            },
             findulator: async () => {
+                try {
+                    await click();
+                    await clickSort();
+                    await clickRange();
+                }
+                catch (e) {
+                    Logger.warn("Error in scopeulator setup", e);
+                }
                 const mapper = {
                     Posts: {
                         ids: ["search-post-unit", "search-post-with-content-preview"],
@@ -127,59 +181,29 @@ export class Reddit extends Actor {
                 const scope = mapper[scoped.scope];
                 return { scope, find: await this.find(scope.ids, scope.strat) };
             },
-            clickSortOptionByText: async () => {
-                const scopes = ["Posts", "Comments", "Media"];
-                const sorts = ["Hot", "Top", "New", "Comments"];
-                const skips = scoped.sort || !scopes.includes(scoped.scope) || !sorts.includes(this.opts.args.sort);
-                if (skips)
-                    return;
-                const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
-                await this.click(sortLocator);
-                const normalizedText = this.opts.args.scope === "Comments" &&
-                    (this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
-                    ? "Top"
-                    : this.opts.args.sort.trim();
-                const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
-                const sortOption = this.page.locator(`li a span:has-text("${normalizedOption}")`).first();
-                await sortOption.scrollIntoViewIfNeeded();
-                const parentLink = sortOption.locator("xpath=./ancestor::a");
-                await this.click(parentLink);
-                await this.nap();
-            },
-            clickTimeRangeByText: async () => {
-                const scopes = ["Posts", "Media"];
-                const sorts = ["Relevance", "Top", "Comments"];
-                const filters = ["Year", "Month", "Week", "Today", "Hour"];
-                const skips = scoped.t ||
-                    !scopes.includes(scoped.scope) ||
-                    !sorts.includes(this.opts.args.sort) ||
-                    !filters.includes(this.opts.args.filter);
-                if (skips)
-                    return;
-                const sortLocator = this.page.locator(`search-sort-dropdown-menu`);
-                await this.click(sortLocator.nth(1));
-                const optionText = this.opts.args.filter === "Today"
-                    ? this.opts.args.filter.trim()
-                    : "Past " + this.opts.args.filter.trim().toLowerCase();
-                const exactOption = this.page.locator(`li a span:has-text("${optionText}")`).first();
-                const linkElement = exactOption.locator("xpath=./ancestor::a");
-                await linkElement.scrollIntoViewIfNeeded();
-                await this.click(linkElement);
-                Logger.log(`Clicked on "${optionText}" time range option`);
-            },
-            click: async () => {
-                if (scoped.type)
-                    return;
-                const tab = scoped.scope === "Posts"
-                    ? this.page.getByRole("button", { name: scoped.scope })
-                    : this.page.locator(`#search-results-page-tab-${scoped.scope.toLowerCase()}`);
-                await this.click(tab);
-            },
+            click,
+            clickSort,
+            clickRange,
         };
         return bang(`scopeulate`, scopeulated, scoped);
     }
+    async backscratcher(url, error) {
+        bang("backscratcher checking listing attempts", !error || this.opts.settings.start.attempts-- > 0, {
+            attempts: this.opts.settings.start.attempts,
+            error,
+        });
+        while (await this.page.evaluate(() => window.history.length > 1)) {
+            if (new URL(this.page.url()).pathname === url.pathname)
+                break;
+            await this.page.goBack();
+            await this.nap();
+        }
+    }
     async raw(locator = this.page.locator("shreddit-post").first(), screenshots = true) {
         await locator.waitFor();
+        const id = crypto.randomUUID();
+        const url = new URL(this.page.url());
+        const attributes = await this.attributes(locator);
         const screenshot = screenshots ? await this.screenshot(locator) : "";
         const content = await locator.evaluate((root) => {
             const relevantAttrPrefixes = [
@@ -230,19 +254,7 @@ export class Reddit extends Actor {
                 media: extractMedia(root),
             };
         });
-        return { id: crypto.randomUUID(), url: this.page.url(), content, screenshot };
-    }
-    async backscratcher(url, error) {
-        bang("backscratcher checking listing attempts", !error || this.opts.settings.start.attempts-- > 0, {
-            attempts: this.opts.settings.start.attempts,
-            error,
-        });
-        while (await this.page.evaluate(() => window.history.length > 1)) {
-            if (new URL(this.page.url()).pathname === url.pathname)
-                break;
-            await this.page.goBack();
-            await this.nap();
-        }
+        return { id, url, attributes, content, screenshot };
     }
     async onWhile(url) {
         const basic = scopeulation.subreddit(url) || url === BASE_URL;
@@ -257,9 +269,9 @@ export class Reddit extends Actor {
             scopeulation.searched.length = 0;
             return await this.onWhile(url);
         }
-        return search > 0 && basic
+        return search && basic
             ? await this.searcho()
-            : visit > 0 && !scopeulation.visited.includes(url)
+            : visit && !scopeulation.visited.includes(url)
                 ? await this.navigato(url)
                 : Logger.trace(`All terms completed.`);
     }
@@ -311,8 +323,10 @@ export class Reddit extends Actor {
         throw er(`Failed to find a thread.`, this.opts.settings.start.attempts);
     }
     async joinConversation() {
+        if (this.scopeulate().direct())
+            return false;
         await this.click('a:has-text("See full discussion")', { timeout: 600 }).catch(() => false);
-        await this.scrollabit(3);
+        await this.scrollabit();
         const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
         const closed = await archived.isVisible().catch(() => false);
         bang(`checking archive`, closed === false, { closed, archived });
@@ -337,8 +351,7 @@ export class Reddit extends Actor {
     }
     async navigateIntoPost() {
         const scopeulator = this.scopeulate();
-        if (!scopeulator.community && !scopeulator.people)
-            return;
+        bang("navigateIntoPost", scopeulator.direct(), { scopeulator });
         await this.scrollabit();
         const locator = this.page.locator(`a[slot='title'], shreddit-profile-comment a.absolute[href][aria-label^='Thread for']`);
         const posts = await locator.all();

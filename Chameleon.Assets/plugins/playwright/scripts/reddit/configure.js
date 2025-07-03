@@ -47,11 +47,10 @@ export async function configure(ctx, opts) {
         args.scope = "Posts";
         args.sort = "Relevance";
         args.filter = "All";
-        search.push("spinach");
-        urls.push(BASE_URL);
+        urls.push("https://www.reddit.com/r/spaceporn/comments/1lqda9p/an_interstellar_object_has_been_detected_hurtling/");
         settings.start.attempts = 12;
         settings.start.new = false;
-        settings.start.rando = { min: 9, max: 9 };
+        settings.start.rando = { min: 17, max: 17 };
         settings.start.iterations = { min: 1, max: 1 };
         settings.start.variations = { min: 1, max: 1 };
         Logger.warn("No search terms or URLs provided, using default values.");
@@ -96,6 +95,7 @@ export class Scopeulation {
     threaded = [];
     visited = [];
     searched = [];
+    base = (url) => new URL(url).href === new URL(BASE_URL).href;
     user = (url) => /\.com\/user\/[^/]+/.test(url);
     subreddit = (url) => /\/r\/[^/]+\/?$/.test(url);
     comments = (url) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
