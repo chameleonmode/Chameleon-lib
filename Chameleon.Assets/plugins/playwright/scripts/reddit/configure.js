@@ -47,7 +47,6 @@ export async function configure(ctx, opts) {
         args.scope = "Posts";
         args.sort = "Relevance";
         args.filter = "All";
-        urls.push("https://www.reddit.com/r/spaceporn/comments/1lqda9p/an_interstellar_object_has_been_detected_hurtling/");
         settings.start.attempts = 12;
         settings.start.new = false;
         settings.start.rando = { min: 17, max: 17 };

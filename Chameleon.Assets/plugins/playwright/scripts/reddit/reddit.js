@@ -46,10 +46,9 @@ export class Reddit extends Actor {
                         if (batches[idx].length >= 10)
                             batches.push([]);
                         const listing = locatorz[i];
-                        const locator = listing.locator('xpath=ancestor::article[1]') ?? listing;
-                        if (!await locator.isVisible())
+                        if (!await listing.isVisible())
                             continue;
-                        const { id, content, attributes } = await this.raw(locator, false).catch();
+                        const { id, content, attributes } = await this.raw(listing, false).catch();
                         batches[idx].push({ id, content, listing, attributes });
                     }
                     return { batches };
@@ -265,10 +264,6 @@ export class Reddit extends Actor {
         const done = scopeulation.visited.length + scopeulation.searched.length;
         const stats = { todo, done, visit, search, searched, basic };
         Logger.log(`Status`, stats, scopeulation);
-        if (searched && scopeulation.subreddit(url) && !scopeulation.visited.includes(url)) {
-            scopeulation.searched.length = 0;
-            return await this.onWhile(url);
-        }
         return search && basic
             ? await this.searcho()
             : visit && !scopeulation.visited.includes(url)
