@@ -9,10 +9,18 @@ using Chameleon.lib.WebBrowser.Services;
 namespace Chameleon.lib.WebBrowser.Browsers;
 
 public class Gecko : Browser {
-	// public override Process Start(ProcessStartInfo startInfo) {
-	// 	startInfo.EnvironmentVariables["MOZ_REMOTE_SETTINGS_DEVTOOLS"] = "1";
-	// 	return base.Start(startInfo);
-	// }
+	public override Process Brocessor(bool headless) {
+		return new Process() {
+			StartInfo = new() {
+				FileName = ExePath,
+				Arguments = GetCommandLineArguments(headless),
+				UseShellExecute = false,
+				CreateNoWindow = true,
+			},
+			EnableRaisingEvents = true,
+		};
+	}
+
 	public override string PrefsFile => Path.Combine(Settings.BrowserCache, "prefs.js");
 	public override string ExeDir { get; } = OperatingSystem.IsMacOS()
 		? Path.Combine(FilePaths.AppDataLocalDir, "gecko", "firefox.app")
@@ -263,8 +271,9 @@ public class Gecko : Browser {
 					var match = regex.Match(line);
 					if (match.Success) {
 						var prefName = match.Groups[1].Value;
-						if (!deprecatedPrefs.Contains(prefName)) filteredLines.Add(line);
-						else Console.WriteLine($"Removed: {prefName}");
+						if (!deprecatedPrefs.Contains(prefName)) {
+							filteredLines.Add(line);
+						}
 					} else {
 						// Keep non-pref lines (like comments)
 						filteredLines.Add(line);
@@ -273,8 +282,8 @@ public class Gecko : Browser {
 
 				// Write the cleaned file
 				File.WriteAllLines(PrefsFile, filteredLines);
-			} catch (Exception ex) {
-				Console.WriteLine($"Error: {ex.Message}");
+			} catch (Exception) {
+				// Unable to process preferences file
 			}
 		}
 
@@ -284,10 +293,7 @@ public class Gecko : Browser {
 		var arguments = new List<string> {
 			"-allow-downgrade",
 			"-no-remote",
-			#if DEBUG
-			//"-devtools",
-			//"-jsconsole",
-			#endif
+			$"--remote-debugging-port={Settings.Port}",
 			$"-profile \"{Settings.BrowserCache}\"",
 			args ? InitUrl : "about:blank",
 			// @TODO Settings.OpenOptions.Headless ? "-headless" : "",
@@ -299,119 +305,178 @@ public class Gecko : Browser {
 	protected override async Task WaitForWinHandle() {
 		if (OperatingSystem.IsWindows()) {
 			if (Brocess == null || Brocess.HasExited) {
-				Close(); // Or handle as appropriate if Brocess is already invalid
-				return;
-			}
-
-			var initialParentProcessId = Brocess.Id;
-			var tcs = new TaskCompletionSource<Process?>();
-
-			_ = Task.Run(async () => {
-				const int maxAttempts = 18; // Approx 1.8 seconds timeout (18 * 100ms)
-				const int delayPerAttemptMs = 100;
-
-				try {
-					for (var attempt = 0; attempt < maxAttempts; attempt++) {
-						if (tcs.Task.IsCompleted) return;
-
-						// Check if the original parent process is still running
-						try {
-							using var parentProcessCheck = Process.GetProcessById(initialParentProcessId);
-							if (parentProcessCheck.HasExited) {
-								tcs.TrySetResult(null);
-								return;
-							}
-						} catch (ArgumentException) // Process with initialParentProcessId not found
-							{
-							tcs.TrySetResult(null);
-							return;
-						} catch (InvalidOperationException) // Process exited after getting but before checking HasExited
-							{
-							tcs.TrySetResult(null);
-							return;
-						}
-						
-						Process[] currentFirefoxProcesses;
-						try {
-							currentFirefoxProcesses = Process.GetProcessesByName("firefox");
-						} catch (Exception ex) // Errors like system shutting down, etc.
-							{
-							Debug.WriteLine($"Error in GetProcessesByName: {ex.Message}");
-							await Task.Delay(delayPerAttemptMs);
+				// Wait for Firefox to fully initialize before searching for processes
+				await Task.Delay(3000);
+				
+				var firefoxProcesses = Process.GetProcessesByName("firefox");
+				Process? mainFirefoxProcess = null;
+				
+				// Find Firefox process for our specific profile
+				foreach (var ffProcess in firefoxProcesses) {
+					try {
+						if (ffProcess.HasExited) {
+							ffProcess.Dispose();
 							continue;
 						}
-
-						Process? foundChildProcess = null;
-						foreach (var ffProcess in currentFirefoxProcesses) {
+						
+						var processId = ffProcess.Id;
+						var commandLine = GetProcessCommandLine(processId);
+						var profilePath = Settings.BrowserCache;
+						var hasProfilePath = !string.IsNullOrEmpty(commandLine) && 
+						                   (commandLine.Contains($"\"{profilePath}\"") || 
+						                   commandLine.Contains($" {profilePath} ") || 
+						                   commandLine.Contains($" {profilePath}"));
+						
+						if (hasProfilePath) {
+							// Validate process is still accessible
 							try {
-								if (ffProcess.HasExited) continue;
-
-								// GetParentProcessId is an extension method; ensure it handles potential exceptions.
-#pragma warning disable CA1416 // Validate platform compatibility
-
-								if (ffProcess.GetParentProcessId() == initialParentProcessId) {
-									var windowHandle = U32til.FindMainWindowHandle(ffProcess.Id);
-									if (U32.IsWindow(windowHandle)) {
-										// Found the target child process. Get a new Process instance for it.
-										foundChildProcess = Process.GetProcessById(ffProcess.Id);
-										tcs.TrySetResult(foundChildProcess);
-										break; // Exit foreach loop
-									}
+								using var testProcess = Process.GetProcessById(processId);
+								if (testProcess.HasExited) {
+									ffProcess.Dispose();
+									continue;
 								}
-#pragma warning restore CA1416 // Validate platform compatibility
-
-							} catch (Exception ex) // Catch errors accessing individual process info
-								{
-								Debug.WriteLine($"Error inspecting Firefox process {ffProcess.Id}: {ex.Message}");
-							} finally {
-								// Dispose the Process object from GetProcessesByName iteration
+							} catch (ArgumentException) {
 								ffProcess.Dispose();
+								continue;
+							}
+							
+							if (OperatingSystem.IsWindows()) {
+								var windowHandle = U32til.FindMainWindowHandle(processId);
+								if (U32.IsWindow(windowHandle)) {
+									mainFirefoxProcess = ffProcess;
+									break;
+								}
+							} else {
+								mainFirefoxProcess = ffProcess;
+								break;
 							}
 						}
-
-						if (foundChildProcess != null) // If found, task is completed, and we can exit the polling task.
-						{
-							// Ensure any remaining processes in currentFirefoxProcesses (those not iterated due to break) are disposed.
-							// This is implicitly handled as ffProcess.Dispose() is in the finally for those iterated.
-							// Non-iterated ones will be GC'd. For Process objects, explicit Dispose is better but complex here.
-							// The current approach disposes iterated ones.
-							return;
-						}
-
-						await Task.Delay(delayPerAttemptMs);
+						
+						ffProcess.Dispose();
+					} catch (InvalidOperationException) {
+						try {
+							ffProcess.Dispose();
+						} catch { }
+						continue;
+					} catch (Exception) {
+						try {
+							ffProcess.Dispose();
+						} catch { }
+						continue;
 					}
-
-					// If loop completes, no suitable process was found (timeout)
-
-					if (!tcs.Task.IsCompleted) tcs.TrySetResult(null);
-				} catch (Exception ex) // Catch-all for unexpected errors in the polling task
-					{
-					Debug.WriteLine($"Critical error in WaitForWinHandle polling task: {ex.Message}");
-					if (!tcs.Task.IsCompleted) tcs.TrySetException(ex);
 				}
-			});
-
-			try {
-				var newMainProcess = await tcs.Task;
-
-				var oldBrocess = Brocess; // Keep current Brocess to dispose if replaced
-
-				if (newMainProcess != null) {
-					Brocess = newMainProcess; // Assign the found child process
-					if (oldBrocess != null && oldBrocess.Id != Brocess.Id) {
-						oldBrocess.Dispose();
+				
+				// Clean up unused processes
+				foreach (var ffProcess in firefoxProcesses) {
+					if (ffProcess != mainFirefoxProcess) {
+						try {
+							if (!ffProcess.HasExited) {
+								ffProcess.Dispose();
+							}
+						} catch (InvalidOperationException) {
+							// Process already invalid, ignore
+						} catch { }
+					}
+				}
+				
+				if (mainFirefoxProcess != null) {
+					// Validate process before assignment
+					try {
+						var processId = mainFirefoxProcess.Id;
+						
+						if (mainFirefoxProcess.HasExited) {
+							mainFirefoxProcess.Dispose();
+							throw new InvalidOperationException("Selected Firefox process exited before initialization could complete");
+						}
+						
+						Brocess = mainFirefoxProcess;
+						
+						// Set up exit event handler
+						try {
+							Brocess.EnableRaisingEvents = true;
+							Brocess.Exited += (s, e) => Close();
+						} catch (InvalidOperationException) {
+							// Continue without event handlers if process is otherwise valid
+						}
+					} catch (InvalidOperationException) {
+						try {
+							mainFirefoxProcess.Dispose();
+						} catch { }
+						throw new InvalidOperationException("Could not establish a stable connection to Firefox process for this profile");
 					}
 				} else {
-					// Timeout, original parent died, or no suitable child found.
-					Close();
+					throw new InvalidOperationException("Could not find Firefox process for this profile");
 				}
-			} catch (Exception ex) // Catches exceptions from tcs.Task (e.g., if TrySetException was called)
-				{
-				Debug.WriteLine($"Failed to get window handle for Firefox: {ex.Message}");
-				Close();
+			} else {
+				// Set up event handler for original process
+				try {
+					var processId = Brocess.Id;
+					if (!Brocess.HasExited) {
+						Brocess.EnableRaisingEvents = true;
+						Brocess.Exited += (s, e) => Close();
+					} else {
+						throw new InvalidOperationException("Original process has exited");
+					}
+				} catch (InvalidOperationException) {
+					throw new InvalidOperationException("Original Firefox process became invalid");
+				}
 			}
-		} else if (OperatingSystem.IsMacOS()) {
+		} else {
+			// Non-Windows platforms use base implementation
 			await base.WaitForWinHandle();
 		}
+	}
+
+	/// <summary>
+	/// Gets the command line arguments of a process by its ID
+	/// </summary>
+	/// <param name="processId">The process ID</param>
+	/// <returns>Command line string or null if not accessible</returns>
+	private static string? GetProcessCommandLine(int processId) {
+		try {
+			// Verify process exists and is accessible
+			using var testProcess = Process.GetProcessById(processId);
+			if (testProcess.HasExited) {
+				return null;
+			}
+			
+			if (OperatingSystem.IsWindows()) {
+#pragma warning disable CA1416 // Validate platform compatibility
+				using var searcher = new global::System.Management.ManagementObjectSearcher(
+					$"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {processId}");
+				using var objects = searcher.Get();
+				foreach (var obj in objects) {
+					return obj["CommandLine"]?.ToString();
+				}
+#pragma warning restore CA1416 // Validate platform compatibility
+			} else if (OperatingSystem.IsLinux()) {
+				var cmdPath = $"/proc/{processId}/cmdline";
+				if (File.Exists(cmdPath)) {
+					var raw = File.ReadAllText(cmdPath);
+					return raw.Replace('\0', ' ').Trim();
+				}
+			} else if (OperatingSystem.IsMacOS()) {
+				var startInfo = new ProcessStartInfo {
+					FileName = "/bin/ps",
+					Arguments = $"-p {processId} -o command=",
+					RedirectStandardOutput = true,
+					UseShellExecute = false,
+					CreateNoWindow = true
+				};
+				using var psProc = Process.Start(startInfo);
+				if (psProc != null) {
+					var output = psProc.StandardOutput.ReadToEnd();
+					psProc.WaitForExit();
+					return output.Trim();
+				}
+			}
+		} catch (ArgumentException) {
+			// Process doesn't exist
+		} catch (InvalidOperationException) {
+			// Process is not accessible
+		} catch {
+			// Other errors
+		}
+		return null;
 	}
 }
