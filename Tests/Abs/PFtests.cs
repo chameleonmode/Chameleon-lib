@@ -80,29 +80,41 @@ public record Personesee : EE {
 public record Profilee : EE {
   public Proxzy Proxy { get; set; } = new();
 }
+public class Jzon<T> {
+  private string? json;
+  private T? collection;
+  
+  internal string? Jzons {
+    get => json;
+    set {
+      json = value;
+      collection = default; // Clear cache when JSON changes
+    }
+  }
+  
+  internal T? Collection {
+    get => collection ??= JSON.Parse<T>(json);
+    set {
+      collection = value;
+      json = JSON.Stringify(value);
+    }
+  }
+}
+
 public record Profile : DT<Profilee> {
   public int? FolderId { get; init; } = null;
-  public string? Addressez { get; set; }
-  public List<Addressesee> Addresses {
-    get => JSON.Parse<List<Addressesee>>(Addressez);
-    set => Addressez = JSON.Stringify(value);
-  }
 
-  public string? Businessez { get; set; }
-  public List<Businessesee> Businesses {
-    get => JSON.Parse<List<Businessesee>>(Businessez);
-    set => Businessez = JSON.Stringify(value);
-  }
-  public string? Loginz { get; set; }
-  public List<Loginsee> Logins {
-    get => JSON.Parse<List<Loginsee>>(Loginz);
-    set => Loginz = JSON.Stringify(value);
-  }
-  public string? Personz { get; set; }
-  public List<Personesee> Persons {
-    get => JSON.Parse<List<Personesee>>(Personz);
-    set => Personz = JSON.Stringify(value);
-  }
+  public Jzon<List<Addressesee>> Addresses { get; set; } = new();
+  public string? Addressez { get => Addresses.Jzons; set => Addresses.Jzons = value; }
+
+  public Jzon<List<Businessesee>> Businesses { get; set; } = new();
+  public string? Businessez { get => Businesses.Jzons; set => Businesses.Jzons = value; }
+
+  public Jzon<List<Loginsee>> Logins { get; set; } = new();
+  public string? Loginz { get => Logins.Jzons; set => Logins.Jzons = value; }
+
+  public Jzon<List<Personesee>> Persons { get; set; } = new();
+  public string? Personz { get => Persons.Jzons; set => Persons.Jzons = value; }
 }
 #endregion
 
@@ -247,23 +259,31 @@ public class Tests : TestSetup {
     Assert.NotNull(get);
 
     var result = await PF.I.Profiles.Update(get with {
-      Addresses = [
+      Addresses = new() {
+        Collection = [
         new() { Title = "Test Address 1", AddressLine1 = "123 Main St", City = "Test City", State = "TS", Zip = "12345" },
         new() { Title = "Test Address 2", AddressLine1 = "456 Elm St", City = "Another City", State = "AS", Zip = "67890" }
-      ],
-      Businesses = [
+      ]
+      },
+      Businesses = new() {
+        Collection = [
           new() { Title = "Test Business 1", CompanyName = "Test Company", PhoneNumber = "123-456-7890", WebSite = "https://testcompany.com" },
           new() { Title = "Test Business 2", CompanyName = "Another Company", PhoneNumber = "987-654-3210", WebSite = "https://anothercompany.com" }
-        ],
-      Persons = [
+        ]
+      },
+      Persons = new() {
+        Collection = [
           new() { Title = "Test Person 1", FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" },
           new() { Title = "Test Person 2", FirstName = "Jane", LastName = "Smith", Email = "jane.smith@example.com" }
-        ],
-      Logins = [
-          .. get.Logins, // Keep existing logins
+        ]
+      },
+      Logins = new() {
+        Collection = [
+          .. get.Logins.Collection ?? [], // Keep existing logins
           new() { Title = "Test Login 1", WebSite = "https://testlogin1.com", UserName = "user1", Password = "pass1" },
           new() { Title = "Test Login 2", WebSite = "https://testlogin2.com", UserName = "user2", Password = "pass2" }
         ]
+      }
     });
 
     Assert.NotNull(result);
@@ -278,13 +298,15 @@ public class Tests : TestSetup {
     Assert.NotNull(get);
     var result = await PF.I.Profiles.Update(
       get with {
-        Addresses = []
+        Addresses = new() {
+          Collection = [] // Empty collection
+        },
       }
     );
 
     Assert.NotNull(result);
     Assert.NotNull(result.Businessez);
-    Assert.Empty(result.Addresses);
+    Assert.Empty(result.Addresses.Collection); // TODO
   }
 
   // [Fact]
