@@ -1,9 +1,16 @@
 using System.Diagnostics;
 using Chameleon.lib;
 using Chameleon.lib.Abs;
-using Chameleon.lib.Util;
 namespace Tests.Abs;
 
+public class J2on<T> {
+	internal string? Jzon { get; set; }
+
+	internal List<T> O {
+    get => JSON.Parse<List<T>>(Jzon);
+    set => Jzon = JSON.Stringify(value);
+  }
+}
 public record Proxzy(string? Host = null, int Port = 0, string? UserName = null, string? Password = null);
 # region dtos
 public interface IID {
@@ -80,41 +87,21 @@ public record Personesee : EE {
 public record Profilee : EE {
   public Proxzy Proxy { get; set; } = new();
 }
-public class Jzon<T> {
-  private string? json;
-  private T? collection;
-  
-  internal string? Jzons {
-    get => json;
-    set {
-      json = value;
-      collection = default; // Clear cache when JSON changes
-    }
-  }
-  
-  internal T? Collection {
-    get => collection ??= JSON.Parse<T>(json);
-    set {
-      collection = value;
-      json = JSON.Stringify(value);
-    }
-  }
-}
 
 public record Profile : DT<Profilee> {
   public int? FolderId { get; init; } = null;
 
-  public Jzon<List<Addressesee>> Addresses { get; set; } = new();
-  public string? Addressez { get => Addresses.Jzons; set => Addresses.Jzons = value; }
+  public J2on<Addressesee> Addresses { get; set; } = new();
+  public string? Addressez { get => Addresses.Jzon; set => Addresses.Jzon = value; }
 
-  public Jzon<List<Businessesee>> Businesses { get; set; } = new();
-  public string? Businessez { get => Businesses.Jzons; set => Businesses.Jzons = value; }
+  public J2on<Businessesee> Businesses { get; set; } = new();
+  public string? Businessez { get => Businesses.Jzon; set => Businesses.Jzon = value; }
 
-  public Jzon<List<Loginsee>> Logins { get; set; } = new();
-  public string? Loginz { get => Logins.Jzons; set => Logins.Jzons = value; }
+  public J2on<Loginsee> Logins { get; set; } = new();
+  public string? Loginz { get => Logins.Jzon; set => Logins.Jzon = value; }
 
-  public Jzon<List<Personesee>> Persons { get; set; } = new();
-  public string? Personz { get => Persons.Jzons; set => Persons.Jzons = value; }
+  public J2on<Personesee> Persons { get; set; } = new();
+  public string? Personz { get => Persons.Jzon; set => Persons.Jzon = value; }
 }
 #endregion
 
@@ -260,26 +247,26 @@ public class Tests : TestSetup {
 
     var result = await PF.I.Profiles.Update(get with {
       Addresses = new() {
-        Collection = [
+        O = [
         new() { Title = "Test Address 1", AddressLine1 = "123 Main St", City = "Test City", State = "TS", Zip = "12345" },
         new() { Title = "Test Address 2", AddressLine1 = "456 Elm St", City = "Another City", State = "AS", Zip = "67890" }
       ]
       },
       Businesses = new() {
-        Collection = [
+        O = [
           new() { Title = "Test Business 1", CompanyName = "Test Company", PhoneNumber = "123-456-7890", WebSite = "https://testcompany.com" },
           new() { Title = "Test Business 2", CompanyName = "Another Company", PhoneNumber = "987-654-3210", WebSite = "https://anothercompany.com" }
         ]
       },
       Persons = new() {
-        Collection = [
+        O = [
           new() { Title = "Test Person 1", FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" },
           new() { Title = "Test Person 2", FirstName = "Jane", LastName = "Smith", Email = "jane.smith@example.com" }
         ]
       },
       Logins = new() {
-        Collection = [
-          .. get.Logins.Collection ?? [], // Keep existing logins
+        O = [
+          .. get.Logins.O ?? [], // Keep existing logins
           new() { Title = "Test Login 1", WebSite = "https://testlogin1.com", UserName = "user1", Password = "pass1" },
           new() { Title = "Test Login 2", WebSite = "https://testlogin2.com", UserName = "user2", Password = "pass2" }
         ]
@@ -298,15 +285,13 @@ public class Tests : TestSetup {
     Assert.NotNull(get);
     var result = await PF.I.Profiles.Update(
       get with {
-        Addresses = new() {
-          Collection = [] // Empty collection
-        },
+        Addressez = null
       }
     );
 
     Assert.NotNull(result);
     Assert.NotNull(result.Businessez);
-    Assert.Empty(result.Addresses.Collection); // TODO
+    Assert.Empty(result.Addresses.O); // TODO
   }
 
   // [Fact]
