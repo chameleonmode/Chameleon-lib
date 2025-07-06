@@ -14,41 +14,40 @@ public class DB : Web {
 		public static class License {
 			public const string prefix = "/license";
 			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
-			public static Task<User?> Update => Post<User>($"{prefix}/update",
-				new(Body: new {
+			public static Task<User?> Update => Post<User>(new($"{prefix}/update",
+				Body: new {
 					license_key = Session.Instance.Login!.LicenseKey,
 					email = Session.Instance.Login!.LoginName
 				})
 			);
 
 			public record Data(string License_key, string Purchase_id, int Product_id, int Status, object Guid);
-			public static Task<Data?> KickLicenseData => Post<Data>($"{prefix}/data",
-				new(Body: LicenseBody)
+			public static Task<Data?> KickLicenseData => Post<Data>(
+				new($"{prefix}/data", Body: LicenseBody)
 			);
 
 			public record Status(int Valid, int Active, object Guid);
-			public static Task<Status?> KickLicenseStatus => Post<Status>($"{prefix}/status",
-				new(Body: LicenseBody)
+			public static Task<Status?> KickLicenseStatus => Post<Status>(
+				new($"{prefix}/status", Body: LicenseBody)
 			);
 
 			public record Customer(bool Status, string Secret);
-			public static Task<Customer?> KickCustomer => Post<Customer>($"{prefix}/customer",
-				new(Body: new { email = Session.Instance.Login!.LoginName })
+			public static Task<Customer?> KickCustomer => Post<Customer>(new($"{prefix}/customer",
+				Body: new { email = Session.Instance.Login!.LoginName })
 			);
 		}
 
 		public static class Uzer {
 			public const string prefix = "/db/user";
-			public static Task<User?> GetDBuser => Get<User>($"{prefix}/", new(EnsureSuccess: false));
-			public static Task<IEnumerable<User>?> GetDBusers => Get<IEnumerable<User>>($"{prefix}/all");
-			public static Task<User?> GetAnyDBuser(string email) => Get<User>($"{prefix}/any",
-				new(
+			public static Task<User?> GetDBuser => Get<User>(new($"{prefix}/", EnsureSuccess: false));
+			public static Task<IEnumerable<User>?> GetDBusers => Get<IEnumerable<User>>(new($"{prefix}/all"));
+			public static Task<User?> GetAnyDBuser(string email) => Get<User>(new($"{prefix}/any",
 					Q: $"?email={Uri.EscapeDataString(email)}",
 					EnsureSuccess: false
 				)
 			);
 			public static Task<IEnumerable<User>?> CreateUser(string email) {
-				return Post<IEnumerable<User>>($"{prefix}/", new(Q: $"?email={Uri.EscapeDataString(email)}"));
+				return Post<IEnumerable<User>>(new($"{prefix}/", Q: $"?email={Uri.EscapeDataString(email)}"));
 			}
 		}
 
@@ -57,17 +56,13 @@ public class DB : Web {
 			public const string DataType = "cooky";
 			public record CookyPayload<T>(string ProfileId, T[] CookiesJs);
 			public static async Task<IEnumerable<CookyPayload<T>>?> GetCookies<T>() =>
-			 (await Get<IEnumerable<DataInteraction>?>(prefix + "/"))?
+			 (await Get<IEnumerable<DataInteraction>?>(new(prefix + "/")))?
 			 		.Select(i => JSON.Deserialize<CookyPayload<T>>(i.DataPayload))
 			 		.Where(x => x != null)!;
 
-			public static async Task<DataInteraction?> SendCookies<T>(
-				string email,
-				string profileId,
-				IReadOnlyList<T> cookiesJs
-			) {
-				var res = await Post<DataInteraction>($"{prefix}/",
-					new(Body: new { email, payload = new { profileId, cookiesJs } })
+			public static async Task<DataInteraction?> SendCookies<T>(string email, string profileId, IReadOnlyList<T> cookiesJs) {
+				var res = await Post<DataInteraction>(
+					new($"{prefix}/", Body: new { email, payload = new { profileId, cookiesJs } })
 				);
 				if(!Instance.DBusers!.Any(u => u.Email == email))
 					Instance.DBusers = await Uzer.GetDBusers;
@@ -112,7 +107,7 @@ public class DB : Web {
 		var id = DBusers?.FirstOrDefault(u => u.Email == email)?.Id;
 		if (id == null) return null;
 
-		var user = await Delete<User>($"{Routes.users}/{id}");
+		var user = await Delete<User>(new($"{Routes.users}/{id}"));
 		DBusers = await Routes.Uzer.GetDBusers;
 		return user;
 	}
@@ -120,14 +115,14 @@ public class DB : Web {
 
 	#region DataInteraction's
 	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions() {
-		return await Get<IEnumerable<DataInteraction>>(Routes.dataInteractions + "/");
+		return await Get<IEnumerable<DataInteraction>>(new(Routes.dataInteractions + "/"));
 	}
 	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions(string dataType) {
 		return (await GetDataInteractions())?.Where(i => i.DataType == dataType); ;
 	}
 	public record PostDataInteractionRequest(string ReceiverId, string DataType, object DataPayload);
 	public async Task<DataInteraction?> PostDataInteraction(PostDataInteractionRequest request) {
-		return await Post<DataInteraction>(Routes.dataInteractions + "/", new(
+		return await Post<DataInteraction>(new(Routes.dataInteractions + "/",
 			Body: new {
 				interactionId = Guid.NewGuid().ToString(),
 				tenantId = DBuser!.TenantId,
@@ -146,7 +141,7 @@ public class DB : Web {
 		: interactions.Where(i => i.DataType == dataType);
 
 		foreach (var interaction in interactions) {
-			_ = await Delete<object>($"{Routes.dataInteractions}/{interaction.Id}");
+			_ = await Delete<object>(new($"{Routes.dataInteractions}/{interaction.Id}"));
 		}
 	}
 	#endregion
@@ -155,8 +150,8 @@ public class DB : Web {
 	public async Task<IEnumerable<Tag>?> GetTags() {
 		var tags = new List<Tag>();
 		do {
-			var tag = await Get<IEnumerable<Tag>>($"{Routes.tags}/",
-				new(Q: $"?offset={tags.Count}&limit=100")
+			var tag = await Get<IEnumerable<Tag>>(
+				new($"{Routes.tags}/", Q: $"?offset={tags.Count}&limit=100")
 			);
 			if (tag == null || !tag.Any()) break;
 			tags.AddRange(tag);	
@@ -165,7 +160,7 @@ public class DB : Web {
 	}
 
 	public async Task<Tag?> CreateTag(string name, Dictionary<string, List<string>> items) {
-		return await Post<Tag>($"{Routes.tags}/", new(
+		return await Post<Tag>(new($"{Routes.tags}/", 
 				Body: new {
 					name,
 					items = JSON.Serialize(items),
@@ -175,7 +170,7 @@ public class DB : Web {
 	}
 
 	public async Task<Tag?> UpdateTag(int id, string name, Dictionary<string, List<string>> items) {
-		return await Put<Tag>($"{Routes.tags}/{id}", new(
+		return await Put<Tag>(new($"{Routes.tags}/{id}",
 				Body: new {
 					name,
 					items = JSON.Serialize(items),
@@ -185,27 +180,25 @@ public class DB : Web {
 	}
 
 	public async Task<Tag?> GetTag(int id) {
-		return await Get<Tag>($"{Routes.tags}/{id}", 
-			new(EnsureSuccess: false)
-		);
+		return await Get<Tag>(new($"{Routes.tags}/{id}", EnsureSuccess: false));
 	}
 
 	public async Task<Tag?> GetTagBy(string name) {
-		var tags =  await Get<IEnumerable<Tag>>($"{Routes.tags}/", new(
+		var tags =  await Get<IEnumerable<Tag>>( new($"{Routes.tags}/",
 				Q: $"?where.name.eq={Uri.EscapeDataString($"{name}")}"
 		));
 		return tags?.FirstOrDefault();
 	}
 
 	public async Task DeleteTag(int id) {
-		_ = await Delete<object>($"{Routes.tags}/{id}");
+		_ = await Delete<object>(new($"{Routes.tags}/{id}"));
 	}
 
 	public async Task<IEnumerable<Tag>?> SearchTags(string pattern) {
 		var tags = new List<Tag>();
 		do {
-			var tag = await Get<IEnumerable<Tag>>($"{Routes.tags}/",
-				new(Q: $"?where.name.like={Uri.EscapeDataString($"%{pattern}%")}&offset={tags.Count}&limit=100")
+			var tag = await Get<IEnumerable<Tag>>(new($"{Routes.tags}/",
+				Q: $"?where.name.like={Uri.EscapeDataString($"%{pattern}%")}&offset={tags.Count}&limit=100")
 			);
 			if (tag == null || !tag.Any()) break;
 			tags.AddRange(tag);
@@ -214,7 +207,7 @@ public class DB : Web {
 	}
 
 	public async Task<IEnumerable<ItemTag>?> GetItemTagsForTag(int id) {
-		return await Get<IEnumerable<ItemTag>>($"{Routes.tags}/{id}/itemTagTagName?limit=100");
+		return await Get<IEnumerable<ItemTag>>(new($"{Routes.tags}/{id}/itemTagTagName?limit=100"));
 	}
 	#endregion
 
@@ -222,8 +215,8 @@ public class DB : Web {
 	public async Task<IEnumerable<ItemTag>?> GetItemTags() {
 		var tags = new List<ItemTag>();
 		do {
-			var tag = await Get<IEnumerable<ItemTag>>($"{Routes.itemTags}/",
-				new(Q: $"?offset={tags.Count}&limit=100")
+			var tag = await Get<IEnumerable<ItemTag>>(
+				new($"{Routes.itemTags}/",Q: $"?offset={tags.Count}&limit=100")
 			);
 			if (tag == null || !tag.Any()) break;
 			tags.AddRange(tag);
@@ -232,7 +225,7 @@ public class DB : Web {
 	}
 
 	public async Task<ItemTag?> CreateItemTag(string tagItemType, string tagItemId, string tagName) {
-		return await Post<ItemTag>($"{Routes.itemTags}/", new(
+		return await Post<ItemTag>( new($"{Routes.itemTags}/",
 				Body: new {
 					tagItemType,
 					tagItemId,
@@ -243,7 +236,7 @@ public class DB : Web {
 	}
 
 	public async Task<ItemTag?> UpdateItemTag(string tagItemType, string tagItemId, string tagName) {
-		return await Put<ItemTag>($"{Routes.itemTags}/", new(
+		return await Put<ItemTag>( new($"{Routes.itemTags}/",
 				Body: new {
 					tagItemType,
 					tagItemId,
@@ -254,13 +247,13 @@ public class DB : Web {
 	}
 
 	public async Task<ItemTag?> GetItemTagBy(string tagItemType, string tagItemId, string tagName) {
-		return await Get<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", 
-			new(EnsureSuccess: false)
+		return await Get<ItemTag>(new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", 
+			EnsureSuccess: false)
 		);
 	}
 
 	public async Task<ItemTag?> CreateItemTagBy(string tagItemType, string tagItemId, string tagName) {
-		return await Post<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", new(
+		return await Post<ItemTag>(new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", 
 				Body: new {
 					tagItemType,
 					tagItemId,
@@ -271,7 +264,7 @@ public class DB : Web {
 	}
 
 	public async Task<ItemTag?> UpdateItemTagBy(string tagItemType, string tagItemId, string tagName) {
-		return await Put<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", new(
+		return await Put<ItemTag>( new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}",
 				Body: new {
 					tagItemType,
 					tagItemId,
@@ -282,11 +275,11 @@ public class DB : Web {
 	}
 
 	public async Task<ItemTag?> DeleteItemTagBy(string tagItemType, string tagItemId, string tagName) {
-		return await Delete<ItemTag>($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}");
+		return await Delete<ItemTag>(new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}"));
 	}
 
 	public async Task<IEnumerable<ItemTag>?> GetItemTagsForItem(string tagItemType, string tagItemId) {
-		return await Get<IEnumerable<ItemTag>>($"{Routes.itemTags}/", new(
+		return await Get<IEnumerable<ItemTag>>(new($"{Routes.itemTags}/",
 				Q: $"?where.tagItemType.eq={Uri.EscapeDataString(tagItemType)}&where.tagItemId.eq={Uri.EscapeDataString(tagItemId)}"
 		));
 	}

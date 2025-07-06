@@ -8,8 +8,8 @@ public class Service : Web {
     public class App() : Root("app") {
       public static App Instance { get; } = new();
       public record AppClientInfo(string Latest);
-      public static Task<AppClientInfo?> GetLatestVersion => Get<AppClientInfo>($"{Instance.Prefix}/latest",
-        new(Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authenticate: false)
+      public static Task<AppClientInfo?> GetLatestVersion => Get<AppClientInfo>(
+        new($"{Instance.Prefix}/latest", Q: $"?os={(OperatingSystem.IsMacOS() ? "mac" : "win")}", Authenticate: false)
       );
       public static async Task<bool> DownloadLatest(Action<string> onProgress) {
         // Local path where the downloaded file will be saved
@@ -60,31 +60,14 @@ public class Service : Web {
       }
     }
 
-    public class Air() : Root("air") {
-      public static Air Instance { get; } = new();
-      public record Response<T>(T Payload);
-      public static readonly string[] backgrounds = ["sarcastic", "informative", "relatable", "straightforward"];
-
-      public record AskRequest(string Feature, object Scenario, string? Background = null);
-      public record AskResponse(string Response);
-      public static Task<Response<AskResponse>?> Ask(AskRequest request) {
-        return Post<Response<AskResponse>>($"{Instance.Prefix}/ask/gpt", new(
-          Q: $"?feature={Uri.EscapeDataString(request.Feature)}",
-          Body: new {
-            background = request.Background ?? backgrounds[new Random().Next(0, backgrounds.Length)],
-            scenario = request.Scenario
-          }
-        ));
-      }
-    }
-
     public class Promptee() : Root("robo") {
       public static Promptee Instance { get; } = new();
       public record Rep<T>(T Reply);
       public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
       public record GenorateResponse(string Type, string[] Data, object? Id, object? Reason);
       public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
-        return Post<Rep<IEnumerable<GenorateResponse>>>($"{Instance.Prefix}/terms", new(
+        return Post<Rep<IEnumerable<GenorateResponse>>>(new(
+          $"{Instance.Prefix}/terms",
           Headers: new() { { "ai", "origato" }, { "model", "o4-mini" } },
           Authenticate: false,
           Body: new {

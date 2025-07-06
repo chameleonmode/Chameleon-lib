@@ -14,11 +14,12 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_CheckKey() {
-		var user = await DB.Post<DB.Routes.License.Status>($"{DB.Routes.License.prefix}/update",
-				new(Body: new {
+		var user = await DB.Post<DB.Routes.License.Status>(new(
+			$"{DB.Routes.License.prefix}/update",
+			Body: new {
 					license_key = "",
 					email = ""
-				}));
+			}));
 		Assert.NotNull(user);
 	}
 
@@ -191,38 +192,6 @@ public class PlatformaticTests : TestSetup {
 		Assert.True(success);
 	}
 
-	[Fact]
-	public async Task Service_Routes_Air() {
-		//test
-		var res = await Service.Routes.Air.Ask(new(
-				"reddit",
-				new {
-					keyword = "mushroom",
-				}
-			)
-		);
-		Assert.NotNull(res!.Payload);
-
-		res = await Service.Routes.Air.Ask(new(
-				Feature: "reddit",
-				Scenario: new {
-					keyword = "barkley",
-				},
-				Background: "sarcastic-ish"
-			)
-		);
-		Assert.NotNull(res!.Payload);
-
-		res = await Service.Routes.Air.Ask(new(
-			Feature: "reddit",
-			Scenario: new {
-				keyword = "soup",
-			},
-			Background: "default"
-			)
-		);
-		Assert.NotNull(res!.Payload);
-	}
 	[Fact]
 	public async Task Service_Routes_Promptee() {
 		var res = await Service.Routes.Promptee.Genorate(new(

@@ -44,12 +44,14 @@ public static class JSON {
 	public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null) {
 			return EX.Catch(()=> JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions));
 	}
-	public static T Deserializer<T>(string json, JsonSerializerOptions? options = null) where T : new() {
-			return Deserialize<T>(json,options) ?? new();
+	public static T Parse<T>(string? json, JsonSerializerOptions? options = null) {
+		return Deserialize<T>(json ?? "", options) ?? Activator.CreateInstance<T>();
 	}
 
 	public static string Serialize(object o, JsonSerializerOptions? options = null) =>
 	 JsonSerializer.Serialize(o, options ?? InsensitiveCamelCaseOptions);
+	public static string? Stringify(object? o, JsonSerializerOptions? options = null) =>
+	 o != null ? Serialize(o, options) : null;
 
 	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
 		public override T2? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {

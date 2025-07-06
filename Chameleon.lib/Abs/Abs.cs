@@ -30,7 +30,7 @@ public record DataInteraction(
 public record Tag(int Id, string Name, string Items, string TenantId);
 public record ItemTag(string TagItemType, string TagItemId, string TagName, string TenantId);
 public record Errorer(string Error, string Message);
-public record Request(
+public record Request(string? Path = null,
   string? Q = null,
   object? Body = null,
   bool EnsureSuccess = true,
@@ -38,18 +38,19 @@ public record Request(
   HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead,
   Dictionary<string, string>? Headers = null
 ) {
+  public string Uri => $"{Path}{Q ?? ""}";
   public HttpContent? Content => Body == null ? null : JsonContent.Create(Body, mediaType: null, JSON.InsensitiveCamelCaseOptions);
 }
+
 public abstract class Root(string prefix) {
   public string Prefix { get; } = '/' + prefix;
 }
-
 public abstract class Web {
-  static Task<T?> Sender<T>(HttpMethod method, string path, Request? request = null) => Abs.Send<T>(method, path, request ?? new());
-  public static Task<T?> Put<T>(string path, Request request) => Sender<T>(HttpMethod.Put, path, request);
-  public static Task<T?> Post<T>(string path, Request request) => Sender<T>(HttpMethod.Post, path, request);
-  public static Task<T?> Get<T>(string path, Request? request = null) => Sender<T>(HttpMethod.Get, path, request);
-  public static Task<T?> Delete<T>(string path, Request? request = null) => Sender<T>(HttpMethod.Delete, path, request);
+  static Task<T?> Sender<T>(HttpMethod method, Request request) => Abs.Send<T>(method, request);
+  public static Task<T?> Put<T>(Request request) => Sender<T>(HttpMethod.Put, request);
+  public static Task<T?> Post<T>(Request request) => Sender<T>(HttpMethod.Post, request);
+  public static Task<T?> Get<T>(Request request) => Sender<T>(HttpMethod.Get, request);
+  public static Task<T?> Delete<T>(Request request) => Sender<T>(HttpMethod.Delete, request);
 }
 #endregion
 
@@ -72,7 +73,7 @@ public static class Abs {
     ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
   }) { BaseAddress = new Uri(await TESTING ? "http://127.0.0.1:3042" : "https://chameleon-ws.onrender.com") };
 
-  public static async Task<T?> Send<T>(HttpMethod method, string path, Request req) {
+  public static async Task<T?> Send<T>(HttpMethod method, Request req) {
     using var client = await HttpClient();
     if (req.Authenticate) {
       var (auth0client, authentication) = await Session.Instance.Authenticate();
@@ -81,10 +82,7 @@ public static class Abs {
     }
     foreach (var header in req.Headers ?? []) client.DefaultRequestHeaders.Add(header.Key, header.Value);
 
-    var requestUri = $"{path}{req.Q ?? ""}";
-    using var response = await client.SendAsync(new HttpRequestMessage(method, requestUri) {
-      Content = req.Content
-    }, req.CompletionOption);
+    using var response = await client.SendAsync(new(method, req.Uri) { Content = req.Content }, req.CompletionOption);
 
     if (req.CompletionOption == HttpCompletionOption.ResponseHeadersRead) {
       _ = response.EnsureSuccessStatusCode();
@@ -93,7 +91,7 @@ public static class Abs {
 
     var content = await response.Content.ReadAsStringAsync();
     return response.IsSuccessStatusCode || !req.EnsureSuccess ? JSON.Deserialize<T>(content) : throw new HttpRequestException(
-      $"{requestUri}:\n{response.StatusCode}\n{(JSON.Deserialize<Errorer>(content) is Errorer err ? $"{err.Error}\n{err.Message}" : content)}");
+      $"{req.Uri}:\n{response.StatusCode}\n{(JSON.Deserialize<Errorer>(content) is Errorer err ? $"{err.Error}\n{err.Message}" : content)}");
   }
 
 }

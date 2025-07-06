@@ -7,7 +7,7 @@ namespace Tests;
 
 public abstract class TestSetup : IAsyncLifetime {
 	public readonly TaskCompletionSource<bool> _tcs = new();
-	public TestSetup(int dictionary = 1) {
+	public TestSetup(int dictionary = 0) {
 		IoC.Instance.StartUps.Add(AddonsServer.Instance);
 		IoC.Instance.Configure(() => {
 			return new WritableConfiguration(new ConfigurationBuilder()
