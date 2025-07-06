@@ -293,7 +293,6 @@ public class Gecko : Browser {
 		var arguments = new List<string> {
 			"-allow-downgrade",
 			"-no-remote",
-			$"--remote-debugging-port={Settings.Port}",
 			$"-profile \"{Settings.BrowserCache}\"",
 			args ? InitUrl : "about:blank",
 			// @TODO Settings.OpenOptions.Headless ? "-headless" : "",
