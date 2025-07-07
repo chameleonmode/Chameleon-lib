@@ -43,9 +43,9 @@ public class DB_User_Tests : TestSetup {
 	public DB_User_Tests() : base(0) { }
 	[Fact]
 	public async Task DB_EnsureUser() {
-		await DB.Instance.EnsureUser();
-		Assert.NotNull(DB.Instance.Uzer.User);
-		Assert.NotNull(DB.Instance.Uzer.Users);
+		await DB.I.EnsureUser();
+		Assert.NotNull(DB.I.Userz.Current);
+		Assert.NotNull(DB.I.Userz.Users);
 	}
 	[Fact]
 	public async Task Create_Access() {

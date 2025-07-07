@@ -14,7 +14,7 @@ public class TagsRepo {
 		List<TagDto> list = [new TagDto("Favourites", [])];
 
 		list.AddRange(
-			(await DB.Instance.GetTags())?
+			(await DB.I.GetTags())?
 				.Select(t => new TagDto(t.Name, JSON.Deserialize<Dictionary<string, List<string>>>(t.Items) ?? [])) ?? []
 		);
 		cache.Edit(updater => {
@@ -24,29 +24,29 @@ public class TagsRepo {
 	}
 
 	public async Task<TagDto?> FindTagAsync(string tagName) {
-		var tag = await DB.Instance.GetTagBy(tagName);
+		var tag = await DB.I.GetTagBy(tagName);
 		return tag == null ? null
 			: new TagDto(tag.Name, JSON.Deserialize<Dictionary<string, List<string>>>(tag.Items) ?? []);
 	}
 
 	public async Task<IEnumerable<string>> SetTagsAsync(string tagItemType, string tagItemId, IEnumerable<string> tags) {
 		foreach (var tagName in tags) {
-			_ = await DB.Instance.GetItemTagBy(tagItemType, tagItemId, tagName) is null
-				? await DB.Instance.CreateItemTag(tagItemType, tagItemId, tagName)
-				: await DB.Instance.UpdateItemTagBy(tagItemType, tagItemId, tagName);
+			_ = await DB.I.GetItemTagBy(tagItemType, tagItemId, tagName) is null
+				? await DB.I.CreateItemTag(tagItemType, tagItemId, tagName)
+				: await DB.I.UpdateItemTagBy(tagItemType, tagItemId, tagName);
 		}
 		return tags;
 	}
 
 	public async Task<IEnumerable<string>> GetTagsAsync(string tagItemType, string tagItemId) {
-		return (await DB.Instance.GetItemTagsForItem(tagItemType, tagItemId))?.Select(it => it.TagName) ?? [];
+		return (await DB.I.GetItemTagsForItem(tagItemType, tagItemId))?.Select(it => it.TagName) ?? [];
 	}
 
 	public async Task<TagDto> SaveAsync(TagDto tag) {
-		var existing = await DB.Instance.GetTagBy(tag.Name);
+		var existing = await DB.I.GetTagBy(tag.Name);
 		var current = existing == null
-			? await DB.Instance.CreateTag(tag.Name, tag.Items)
-			: await DB.Instance.UpdateTag(existing.Id, tag.Name, tag.Items);
+			? await DB.I.CreateTag(tag.Name, tag.Items)
+			: await DB.I.UpdateTag(existing.Id, tag.Name, tag.Items);
 		cache.Edit(updater => updater.AddOrUpdate(tag));
 		return cache.Lookup(tag.Name).Value;
 	}
@@ -100,8 +100,8 @@ public class TagsRepo {
 		foreach (var tagName in removedTags) {
 			var tag = await FindTagAsync(tagName);
 			if (tag is not null && tag.Items.All(x => x.Value.Count == 0)) {
-				var tagEntity = await DB.Instance.GetTagBy(tag.Name);
-				await DB.Instance.DeleteTag(tagEntity!.Id);
+				var tagEntity = await DB.I.GetTagBy(tag.Name);
+				await DB.I.DeleteTag(tagEntity!.Id);
 				cache.Edit(updater => updater.RemoveKey(tagEntity.Name));
 			}
 		}
@@ -110,7 +110,7 @@ public class TagsRepo {
 	}
 
 	private static async Task RemoveTagFromItemAsync(string tagItemType, string tagItemId, string tagName) {
-		_ = await DB.Instance.DeleteItemTagBy(tagItemType, tagItemId, tagName);
+		_ = await DB.I.DeleteItemTagBy(tagItemType, tagItemId, tagName);
 	}
 
 	public async Task RemoveItemFromTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {

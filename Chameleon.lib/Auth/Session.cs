@@ -1,15 +1,19 @@
 ﻿using Chameleon.lib.Auth.Oidc;
+using Chameleon.lib.Util;
 using System.Net.Http.Headers;
 
 namespace Chameleon.lib.Auth;
 
 public class Session {
+	public string LoginName => Login!.LoginName;
+	public string LicenseKey => Login!.LicenseKey;
 	Session() { }
 
 	public Client Auth0Client { get; } = new();
 	public LoginSettings? Login { get; private set; }
 
-	public void SetLogin(LoginSettings login) {
+	public async Task Logineer(LoginSettings login) {
+		_ = await Authenticate();
 		Login = login;
 		IoC.SetJsonValue(login, nameof(LoginSettings));
 	}
@@ -19,20 +23,17 @@ public class Session {
 	}
 
 	public async Task Logout() {
-		try {
+		await EX.Try(async () => {
 			await Auth0Client.Logout();
 			Auth0Client.Authorization = null;
 			IoC.ClearValue(nameof(TokenResponse));
-		} catch (Exception) {
-			// ignore for now
-		} finally {
-			if (Login != null)
-				IoC.SetJsonValue(new LoginSettings(Login.LoginName, Login.LicenseKey, false), nameof(LoginSettings));
-		}
+		});
+		if (Login == null) return;
+		IoC.SetJsonValue(new LoginSettings(Login.LoginName, Login.LicenseKey, false), nameof(LoginSettings));
 	}
 
 	// singleton	
-	public static Session Instance { get; } = new();
+	public static Session I { get; } = new();
 }
 
 public record LoginSettings(string LoginName, string LicenseKey, bool AutoLogin = true);

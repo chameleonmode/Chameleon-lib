@@ -1,16 +1,20 @@
 ﻿using Chameleon.lib.Auth;
+using Chameleon.lib.Helpers;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
 
+public record User(object? Id, string UserId, string Email, string? LicenseKey, string TenantId, string Provider, string? ProviderId, DateTime CreatedAt, DateTime UpdatedAt);
+public record DataInteraction(object? Id, string InteractionId, string TenantId, string SenderId, string ReceiverId, string DataType, string DataPayload, DateTime CreatedAt);
 public class DB : Web {
 	public Routes.License License { get; } = new();
-	public Routes.Uzer Uzer { get; } = new();
+	public Routes.Uzer Userz { get; } = new();
+	public Routes.Interactions Interactions { get; } = new();
+	public Routes.Cooky Cooky { get; } = new();
 	DB() { }
 
 	#region  Routes
-	public static class Routes {
-		public const string users = "/users";
-		public const string dataInteractions = "/dataInteractions";
+	public class Routes {
 		public const string tags = "/tags";
 		public const string itemTags = "/itemTags";
 
@@ -20,78 +24,110 @@ public class DB : Web {
 				public record Status(int Valid, int Active, object Guid);
 				public record Customer(bool Status, string Secret);
 			}
-			public Task<User?> Update => Post<User>(new($"{Prefix}/update",
-				Body: new {
-					license_key = Session.Instance.Login!.LicenseKey,
-					email = Session.Instance.Login.LoginName
-				})
-			);
-			public async Task Register() {
-				var user = await Post<User>(new($"{Prefix}/register",
-					Body: new {
-						license_key = Session.Instance.Login!.LicenseKey,
-						email = Session.Instance.Login.LoginName
-					})
-				) ?? throw new Exception("Failed to register user with license key.");
-				await KickLicenseStatus();
-				await KickLicenseData();
-				Instance.Uzer.User = user;
-			}
-
-			public Replies.Data? Data { get; private set; }
-			public async Task KickLicenseData() => Data ??= await Post<Replies.Data>(
-				new($"{Prefix}/data", Body: LicenseBody)
-			);
-
-			public Replies.Status? Status { get; private set; }
-			public async Task KickLicenseStatus() => Status ??= await Post<Replies.Status>(
-				new($"{Prefix}/status", Body: LicenseBody)
-			);
-
 			public Replies.Customer? Customer { get; private set; }
-			public async Task KickCustomer() {
-				if (Instance.Uzer.User?.LicenseKey != null) return;
-				Customer ??= await Post<Replies.Customer>(new($"{Prefix}/customer",
-					Body: new { email = Session.Instance.Login!.LoginName })
-				);
-				
-		if (Customer?.Status == true) await Register();
+			public Replies.Data? Data { get; private set; }
+			public Replies.Status? Status { get; private set; }
+			public User? Registered { get; internal set; }
+			public async Task<User> Register() {
+				Customer ??= await Post<Replies.Customer>(new($"{Prefix}/customer", Body: Body))
+				?? throw new Exception($"Failed to find customer using {Body}.");
+				if (!Customer.Status) return I.Userz.Current ?? throw new Exception("Customer status is not valid.");
+
+				Data ??= await Post<Replies.Data>(new($"{Prefix}/data", Body: Body))
+				?? throw new Exception($"Failed to get license data using {Body}.");
+
+				Status ??= await Post<Replies.Status>(new($"{Prefix}/status", Body: Body))
+				?? throw new Exception($"Failed to get license status using {Body}.");
+
+				return Registered ??= await Post<User>(new($"{Prefix}/register", Body: Body))
+				?? throw new Exception($"Failed to register user using {Body}.");
 			}
-			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
+			static readonly object Body = new {
+				license_key = Session.I.LicenseKey,
+				email = Session.I.LoginName
+			};
 		}
 
-		public class Uzer() : Root("db/user") {
-			public User? User { get; internal set; }
-			public async Task GetUser() => User ??= await Get<User>(new($"{Prefix}/", EnsureSuccess: false));
-
+		public class Uzer() : Root("db/uzer") {
+			public User? Current { get; internal set; }
 			public IEnumerable<User>? Users { get; internal set; }
-			public async Task GetDBusers() => Users ??= await Get<IEnumerable<User>>(new($"{Prefix}/all"));
-			public Task<User?> GetAnyDBuser(string email) => Get<User>(new($"{Prefix}/any",
-					Q: $"?email={Uri.EscapeDataString(email)}",
-					EnsureSuccess: false
-				)
-			);
-			public Task<IEnumerable<User>?> CreateUser(string email) {
-				return Post<IEnumerable<User>>(new($"{Prefix}/", Q: $"?email={Uri.EscapeDataString(email)}"));
+			public async Task Load() {
+				Current ??= await Get<User>(new($"{Prefix}/", EnsureSuccess: false));
+				if (Current == null || Current.LicenseKey == null) Current = await I.License.Register();
+				Users ??= await Get<IEnumerable<User>>(new($"{Prefix}/all", Body: new { email = Session.I.LoginName }));
+			}
+			public Task<IEnumerable<User>?> Create(string email) {
+				return Post<IEnumerable<User>>(new($"{Prefix}/", Body: new { email }));
+			}
+			public async Task<bool> Activate(string email) {
+				var res = await Create(email);
+				await Load();
+				return Users?.Any((u) => u.Email == email) ?? throw new Exception("Failed to activate user.");
+			}
+			public async Task<bool> Delete(string email) {
+				var user = Users?.FirstOrDefault(u => u.Email == email);
+				if (user?.Id == null) throw new Exception($"User with email {email} not found.");
+
+				var rep = await Delete<User>(new($"/users/{user.Id}"));
+				await Load();
+				return !Users?.Any(u => u.Email == email) ?? true;
 			}
 		}
 
-		public static class Cooky {
-			public const string prefix = "/db/cooky";
-			public const string DataType = "cooky";
+		public class Cooky() : Root("db/cooky") {
+			public static class Replies {
 			public record CookyPayload<T>(string ProfileId, T[] CookiesJs);
-			public static async Task<IEnumerable<CookyPayload<T>>?> GetCookies<T>() =>
-			 (await Get<IEnumerable<DataInteraction>?>(new(prefix + "/")))?
-			 		.Select(i => JSON.Deserialize<CookyPayload<T>>(i.DataPayload))
-			 		.Where(x => x != null)!;
+			}
+			public List<DataInteraction> Actions { get; } = [];
+			public async Task<IEnumerable<Replies.CookyPayload<T>>?> GetCookies<T>() {
+				var cookies = await Get<IEnumerable<DataInteraction>?>(new($"{Prefix}/"))
+				?? throw new Exception("Failed to get cookies from server.");
+				return cookies.Select(i => JSON.Deserialize<Replies.CookyPayload<T>>(i.DataPayload)).OfType<Replies.CookyPayload<T>>();
+			}
 
-			public static async Task<DataInteraction?> SendCookies<T>(string email, string profileId, IReadOnlyList<T> cookiesJs) {
-				var res = await Post<DataInteraction>(
-					new($"{prefix}/", Body: new { email, payload = new { profileId, cookiesJs } })
-				);
-				await Instance.Uzer.GetDBusers();
+			public async Task SendCookies<T>(int profileId, string email, IReadOnlyList<T> cookiesJs) {
+				var rep = await Post<DataInteraction>(
+					new($"{Prefix}/", Body: new { email, payload = new { profileId = profileId.ToString(), cookiesJs } })
+				) ?? throw new Exception("Failed to send cookies to server.");
+				Actions.Add(rep);
+				Toaster.Success($"Cookies sent successfully ({cookiesJs.Count} cookies)");
+			}
 
-				return res;
+			public async Task Delete() {
+				await I.Interactions.DeleteDataInteractions(Interactions.Types.cooky);
+				Actions.Clear();
+				Toaster.Success("Cookies cleared");
+			}
+		}
+
+		public class Interactions() : Root("dataInteractions") {
+			public enum Types { cooky }
+			public async Task<IEnumerable<DataInteraction>> GetDataInteractions() {
+				return await Get<IEnumerable<DataInteraction>>(new($"{Prefix}/")) ?? [];
+			}
+			public async Task<IEnumerable<DataInteraction>> GetDataInteractions(Types type) {
+				return (await GetDataInteractions())?.Where(i => i.DataType == type.ToString()) ?? [];
+			}
+			public record PostDataInteractionRequest(string ReceiverId, string DataType, object DataPayload);
+			public async Task<DataInteraction?> PostDataInteraction(PostDataInteractionRequest request) {
+				return await Post<DataInteraction>(new($"{Prefix}/",
+					Body: new {
+						interactionId = Guid.NewGuid().ToString(),
+						tenantId = I.Userz.Current!.TenantId,
+						senderId = I.Userz.Current.UserId,
+						receiverId = request.ReceiverId,
+						dataType = request.DataType,
+						dataPayload = JSON.Serialize(request.DataPayload)
+					}
+				));
+			}
+			public async Task DeleteDataInteractions(Types? type = null) {
+				var interactions = await GetDataInteractions();
+				if (interactions == null) return;
+				await interactions.ForEach(async i => {
+					if (type?.ToString() is { } dt && i.DataType != dt) return;
+					_ = await Delete<object>(new($"{Prefix}/{i.Id}"));
+				});
 			}
 		}
 	}
@@ -99,56 +135,7 @@ public class DB : Web {
 
 	#region User's
 	public async Task EnsureUser() {
-		if (Uzer.User != null) return;
-		await Uzer.GetUser();
-		await License.KickCustomer();
-		await Uzer.GetDBusers();
-	}
-	public async Task<User?> CreateUser(string email) {
-		var res = await Uzer.CreateUser(email);
-		await Uzer.GetDBusers();
-		return Uzer.Users?.FirstOrDefault((u) => u.Email == email);
-	}
-	public async Task<User?> DeleteUser(string email) {
-		var id = Uzer.Users?.FirstOrDefault(u => u.Email == email)?.Id;
-		if (id == null) return null;
-
-		var user = await Delete<User>(new($"{Routes.users}/{id}"));
-		await Uzer.GetDBusers();
-		return user;
-	}
-	#endregion
-
-	#region DataInteraction's
-	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions() {
-		return await Get<IEnumerable<DataInteraction>>(new(Routes.dataInteractions + "/"));
-	}
-	public async Task<IEnumerable<DataInteraction>?> GetDataInteractions(string dataType) {
-		return (await GetDataInteractions())?.Where(i => i.DataType == dataType); ;
-	}
-	public record PostDataInteractionRequest(string ReceiverId, string DataType, object DataPayload);
-	public async Task<DataInteraction?> PostDataInteraction(PostDataInteractionRequest request) {
-		return await Post<DataInteraction>(new(Routes.dataInteractions + "/",
-			Body: new {
-				interactionId = Guid.NewGuid().ToString(),
-				tenantId = Uzer.User!.TenantId,
-				senderId = Uzer.User.UserId,
-				receiverId = request.ReceiverId,
-				dataType = request.DataType,
-				dataPayload = JSON.Serialize(request.DataPayload)
-			}
-		));
-	}
-	public async Task DeleteDataInteractions(string? dataType = null) {
-		var interactions = await GetDataInteractions();
-		if (interactions == null) return;
-
-		interactions = dataType == null ? interactions
-		: interactions.Where(i => i.DataType == dataType);
-
-		foreach (var interaction in interactions) {
-			_ = await Delete<object>(new($"{Routes.dataInteractions}/{interaction.Id}"));
-		}
+		await Userz.Load();
 	}
 	#endregion
 
@@ -170,7 +157,7 @@ public class DB : Web {
 				Body: new {
 					name,
 					items = JSON.Serialize(items),
-					tenantId = Uzer.User!.TenantId
+					tenantId = Userz.Current!.TenantId
 				}
 		));
 	}
@@ -180,7 +167,7 @@ public class DB : Web {
 				Body: new {
 					name,
 					items = JSON.Serialize(items),
-					tenantId = Uzer.User!.TenantId
+					tenantId = Userz.Current!.TenantId
 				}
 		));
 	}
@@ -236,7 +223,7 @@ public class DB : Web {
 					tagItemType,
 					tagItemId,
 					tagName,
-					tenantId = Uzer.User!.TenantId
+					tenantId = Userz.Current!.TenantId
 				}
 		));
 	}
@@ -247,7 +234,7 @@ public class DB : Web {
 					tagItemType,
 					tagItemId,
 					tagName,
-					tenantId = Uzer.User!.TenantId
+					tenantId = Userz.Current!.TenantId
 				}
 		));
 	}
@@ -264,7 +251,7 @@ public class DB : Web {
 					tagItemType,
 					tagItemId,
 					tagName,
-					tenantId = Uzer.User!.TenantId
+					tenantId = Userz.Current!.TenantId
 				}
 		));
 	}
@@ -275,7 +262,7 @@ public class DB : Web {
 					tagItemType,
 					tagItemId,
 					tagName,
-					tenantId = Uzer.User!.TenantId
+					tenantId = Userz.Current!.TenantId
 				}
 		));
 	}
@@ -291,5 +278,5 @@ public class DB : Web {
 	}
 	#endregion
 
-	public static DB Instance { get; } = new();
+	public static DB I { get; } = new();
 }

@@ -12,27 +12,6 @@ public interface IID {
 public interface IDT : IID {
   public string TenantId { get; init; }
 }
-public record User(
-  object Id,
-  string UserId,
-  string Email,
-  string? LicenseKey,
-  string TenantId,
-  string Provider,
-  string? ProviderId,
-  DateTime CreatedAt,
-  DateTime UpdatedAt
-);
-public record DataInteraction(
-  object Id,
-  string InteractionId,
-  string TenantId,
-  string SenderId,
-  string ReceiverId,
-  string DataType,
-  string DataPayload,
-  DateTime CreatedAt
-);
 public record Tag(int Id, string Name, string Items, string TenantId);
 public record ItemTag(string TagItemType, string TagItemId, string TagName, string TenantId);
 
@@ -104,7 +83,7 @@ public static class Abs {
   public static async Task<T?> Send<T>(HttpMethod method, Request req) {
     using var client = await HttpClient();
     if (req.Authenticate) {
-      var (auth0client, authentication) = await Session.Instance.Authenticate();
+      var (auth0client, authentication) = await Session.I.Authenticate();
       client.DefaultRequestHeaders.Authorization = authentication;
       client.DefaultRequestHeaders.Add("x-auth0-identity", $"identity {auth0client.Token?.id_token}");
     }

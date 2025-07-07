@@ -543,13 +543,26 @@ public class MessageBox {
 	public static async Task<bool> Show(string title, string content,
 		MBoxButtons btns = MBoxButtons.YesNo, string? icon = null, MboxResult retVal = MboxResult.Primary)
 	=> await Instance.MboxService.Show(title, content, btns, icon ?? "Info") == retVal;
-	
-	public static Task<bool> ShowErrorAsync(string title, string content)
-	=> Show(title, content, MBoxButtons.Ok, "Error");
-	
+
+	public static Task Error(string title, string content, Exception? ex = null) =>
+		Show(title, content + (ex != null ? $"\n{(ex.Message.Contains('\n') ? ex.Message[ex.Message.LastIndexOf('\n')..] : ex.Message)}" : ""), MBoxButtons.Ok, "Error");
 
 	public record Options<TViewModel>(Func<TViewModel> Initialize, string Header,
-		string? SubHeader = null, string Title = Const.AppName, object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo);
+		 string? SubHeader = null, string Title = Const.AppName, object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo
+	);
+	public static async Task<bool> Show<TView, TViewModel>(Options<TViewModel> parameters) where TView : new() {
+		var result = await Instance.MboxService.ShowTaskDialog(
+			 parameters.Initialize,
+			 new TView(),
+			 parameters.Header,
+			 parameters.SubHeader,
+			 parameters.Title,
+			 parameters.Footer,
+			 parameters.Symbas,
+			 MBoxButtons.OkCancel);
+		return result is TaskDialogResult.OK or TaskDialogResult.Yes;
+	}
+	
 
 	public static Task<TaskDialogResult> ShowTaskDialog<TView, TViewModel>(Options<TViewModel> parameters) where TView : new() {
 		return Instance.MboxService.ShowTaskDialog(parameters.Initialize, new TView(), parameters.Header, parameters.SubHeader, parameters.Title, parameters.Footer, parameters.Symbas, parameters.Btns);

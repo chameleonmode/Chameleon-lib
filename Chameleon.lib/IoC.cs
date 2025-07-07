@@ -177,7 +177,6 @@ public class IoC {
 		if (Instance.Config is Chonfigurationer config) {
 			_ = config._overrides.TryRemove(key, out _);
 			SetValue("null", keys);
-			Toaster.Success("Setting cleared");
 		}
 	}
 

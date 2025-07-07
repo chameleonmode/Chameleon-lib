@@ -19,7 +19,7 @@ public record Options(SysBrowserOpenOptions Browser, int? Port) {
 }
 
 public sealed class PlaywrightCookiesSyncService {
-	readonly List<DB.Routes.Cooky.CookyPayload<BrowserContextCookiesResult>> cookyPayloads = [];
+	readonly List<DB.Routes.Cooky.Replies.CookyPayload<BrowserContextCookiesResult>> cookyPayloads = [];
 	#region Constructor
 	private PlaywrightCookiesSyncService() { }
 	// Thread-safe singleton implementation
@@ -30,7 +30,7 @@ public sealed class PlaywrightCookiesSyncService {
 
 	public async Task<bool> HasCookies() {
 		cookyPayloads.Clear();
-		var cookiesSearch = await DB.Routes.Cooky.GetCookies<BrowserContextCookiesResult>();
+		var cookiesSearch = await DB.I.Cooky.GetCookies<BrowserContextCookiesResult>();
 		if (cookiesSearch != null) {
 			cookyPayloads.AddRange(cookiesSearch);
 		}
