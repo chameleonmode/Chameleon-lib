@@ -6,6 +6,12 @@ using Chameleon.lib.Auth;
 namespace Chameleon.lib.Abs;
 
 #region Models / Dto's
+public interface IID {
+  int? Id { get; init; }
+}
+public interface IDT : IID {
+  public string TenantId { get; init; }
+}
 public record User(
   object Id,
   string UserId,
@@ -29,6 +35,14 @@ public record DataInteraction(
 );
 public record Tag(int Id, string Name, string Items, string TenantId);
 public record ItemTag(string TagItemType, string TagItemId, string TagName, string TenantId);
+
+public record ID : IID {
+  public int? Id { get; init; }
+}
+public record Tenant(string TenantId) : ID;
+public record Permission(string Name, string Description) : ID;
+
+/// Platformatic
 public record Errorer(string Error, string Message);
 public record Request(string? Path = null,
   string? Q = null,
@@ -51,6 +65,20 @@ public abstract class Web {
   public static Task<T?> Post<T>(Request request) => Sender<T>(HttpMethod.Post, request);
   public static Task<T?> Get<T>(Request request) => Sender<T>(HttpMethod.Get, request);
   public static Task<T?> Delete<T>(Request request) => Sender<T>(HttpMethod.Delete, request);
+}
+public abstract class DTO<T>(string prefix) : Web where T : IDT {
+  public Request Req { get; } = new(prefix + '/', Authenticate: !Debugger.IsAttached);
+  
+  public async Task<T?> Get(int? id) => await Get<T>(Req with { Path = $"{Req.Path}{id}" });
+  public async Task<IEnumerable<T>?> Get() => await Get<IEnumerable<T>>(Req);
+  public async Task<IEnumerable<T>?> Get(string q) => await Get<IEnumerable<T>>(Req with { Q = q });
+
+  public Task<T?> Create(T dt) => Post<T>(Req with { Body = dt });
+
+  public async Task<T?> Update(T dt) => await Put<T>(Req with { Path = $"{Req.Path}{dt.Id}", Body = dt });
+
+  public async Task<T?> Delete(int? id) => await Delete<T>(Req with { Path = $"{Req.Path}{id}" });
+  public async Task<T?> Delete(T dt) => await Delete<T>(Req with { Path = $"{Req.Path}{dt.Id}" });
 }
 #endregion
 
@@ -93,6 +121,12 @@ public static class Abs {
     return response.IsSuccessStatusCode || !req.EnsureSuccess ? JSON.Deserialize<T>(content) : throw new HttpRequestException(
       $"{req.Uri}:\n{response.StatusCode}\n{(JSON.Deserialize<Errorer>(content) is Errorer err ? $"{err.Error}\n{err.Message}" : content)}");
   }
+}
 
+public class Plt {
+  public Tenant Tenant { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }//new("b6633ec1-138f-4ec6-b9d0-71b0660c0a44");
+
+  public Plt() { }
+  public static Plt I { get; } = new();
 }
 

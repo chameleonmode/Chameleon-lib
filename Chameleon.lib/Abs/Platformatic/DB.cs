@@ -1,7 +1,10 @@
 ﻿using Chameleon.lib.Auth;
 
 namespace Chameleon.lib.Abs.Platformatic;
+
 public class DB : Web {
+	public Routes.License License { get; } = new();
+	public Routes.Uzer Uzer { get; } = new();
 	DB() { }
 
 	#region  Routes
@@ -11,43 +14,65 @@ public class DB : Web {
 		public const string tags = "/tags";
 		public const string itemTags = "/itemTags";
 
-		public static class License {
-			public const string prefix = "/license";
-			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
-			public static Task<User?> Update => Post<User>(new($"{prefix}/update",
+		public class License() : Root("license") {
+			public static class Replies {
+				public record Data(string License_key, string Purchase_id, int Product_id, int Status, object Guid);
+				public record Status(int Valid, int Active, object Guid);
+				public record Customer(bool Status, string Secret);
+			}
+			public Task<User?> Update => Post<User>(new($"{Prefix}/update",
 				Body: new {
 					license_key = Session.Instance.Login!.LicenseKey,
-					email = Session.Instance.Login!.LoginName
+					email = Session.Instance.Login.LoginName
 				})
 			);
+			public async Task Register() {
+				var user = await Post<User>(new($"{Prefix}/register",
+					Body: new {
+						license_key = Session.Instance.Login!.LicenseKey,
+						email = Session.Instance.Login.LoginName
+					})
+				) ?? throw new Exception("Failed to register user with license key.");
+				await KickLicenseStatus();
+				await KickLicenseData();
+				Instance.Uzer.User = user;
+			}
 
-			public record Data(string License_key, string Purchase_id, int Product_id, int Status, object Guid);
-			public static Task<Data?> KickLicenseData => Post<Data>(
-				new($"{prefix}/data", Body: LicenseBody)
+			public Replies.Data? Data { get; private set; }
+			public async Task KickLicenseData() => Data ??= await Post<Replies.Data>(
+				new($"{Prefix}/data", Body: LicenseBody)
 			);
 
-			public record Status(int Valid, int Active, object Guid);
-			public static Task<Status?> KickLicenseStatus => Post<Status>(
-				new($"{prefix}/status", Body: LicenseBody)
+			public Replies.Status? Status { get; private set; }
+			public async Task KickLicenseStatus() => Status ??= await Post<Replies.Status>(
+				new($"{Prefix}/status", Body: LicenseBody)
 			);
 
-			public record Customer(bool Status, string Secret);
-			public static Task<Customer?> KickCustomer => Post<Customer>(new($"{prefix}/customer",
-				Body: new { email = Session.Instance.Login!.LoginName })
-			);
+			public Replies.Customer? Customer { get; private set; }
+			public async Task KickCustomer() {
+				if (Instance.Uzer.User?.LicenseKey != null) return;
+				Customer ??= await Post<Replies.Customer>(new($"{Prefix}/customer",
+					Body: new { email = Session.Instance.Login!.LoginName })
+				);
+				
+		if (Customer?.Status == true) await Register();
+			}
+			static object LicenseBody => new { license_key = Session.Instance.Login!.LicenseKey };
 		}
 
-		public static class Uzer {
-			public const string prefix = "/db/user";
-			public static Task<User?> GetDBuser => Get<User>(new($"{prefix}/", EnsureSuccess: false));
-			public static Task<IEnumerable<User>?> GetDBusers => Get<IEnumerable<User>>(new($"{prefix}/all"));
-			public static Task<User?> GetAnyDBuser(string email) => Get<User>(new($"{prefix}/any",
+		public class Uzer() : Root("db/user") {
+			public User? User { get; internal set; }
+			public async Task GetUser() => User ??= await Get<User>(new($"{Prefix}/", EnsureSuccess: false));
+
+			public IEnumerable<User>? Users { get; internal set; }
+			public async Task GetDBusers() => Users ??= await Get<IEnumerable<User>>(new($"{Prefix}/all"));
+			public Task<User?> GetAnyDBuser(string email) => Get<User>(new($"{Prefix}/any",
 					Q: $"?email={Uri.EscapeDataString(email)}",
 					EnsureSuccess: false
 				)
 			);
-			public static Task<IEnumerable<User>?> CreateUser(string email) {
-				return Post<IEnumerable<User>>(new($"{prefix}/", Q: $"?email={Uri.EscapeDataString(email)}"));
+			public Task<IEnumerable<User>?> CreateUser(string email) {
+				return Post<IEnumerable<User>>(new($"{Prefix}/", Q: $"?email={Uri.EscapeDataString(email)}"));
 			}
 		}
 
@@ -64,51 +89,32 @@ public class DB : Web {
 				var res = await Post<DataInteraction>(
 					new($"{prefix}/", Body: new { email, payload = new { profileId, cookiesJs } })
 				);
-				if(!Instance.DBusers!.Any(u => u.Email == email))
-					Instance.DBusers = await Uzer.GetDBusers;
-					
+				await Instance.Uzer.GetDBusers();
+
 				return res;
 			}
 		}
 	}
 	#endregion
 
-	#region Props
-	public User? DBuser { get; set; }
-	public IEnumerable<User>? DBusers { get; private set; }
-	public Routes.License.Status? KickLickenseStatus { get; private set; }
-	public Routes.License.Customer? KickCustomer { get; private set; }
-	public Routes.License.Data? KickLicenseData { get; private set; }
-	#endregion
-
 	#region User's
 	public async Task EnsureUser() {
-		if (DBuser != null) return;
-		DBuser ??= await Routes.Uzer.GetDBuser ?? await Routes.License.Update;
-		KickCustomer ??= await Routes.License.KickCustomer;
-
-		if (DBuser!.LicenseKey == null && KickCustomer?.Status == true) {
-			DBuser = await Routes.License.Update ?? DBuser;
-		}
-
-		if (DBuser.LicenseKey != null) {
-			KickLickenseStatus ??= await Routes.License.KickLicenseStatus;
-			KickLicenseData ??= await Routes.License.KickLicenseData;
-		}
-
-		DBusers ??= await Routes.Uzer.GetDBusers;
+		if (Uzer.User != null) return;
+		await Uzer.GetUser();
+		await License.KickCustomer();
+		await Uzer.GetDBusers();
 	}
 	public async Task<User?> CreateUser(string email) {
-		var res = await Routes.Uzer.CreateUser(email);
-		DBusers = await Routes.Uzer.GetDBusers;
-		return DBusers?.FirstOrDefault((u) => u.Email == email);
+		var res = await Uzer.CreateUser(email);
+		await Uzer.GetDBusers();
+		return Uzer.Users?.FirstOrDefault((u) => u.Email == email);
 	}
 	public async Task<User?> DeleteUser(string email) {
-		var id = DBusers?.FirstOrDefault(u => u.Email == email)?.Id;
+		var id = Uzer.Users?.FirstOrDefault(u => u.Email == email)?.Id;
 		if (id == null) return null;
 
 		var user = await Delete<User>(new($"{Routes.users}/{id}"));
-		DBusers = await Routes.Uzer.GetDBusers;
+		await Uzer.GetDBusers();
 		return user;
 	}
 	#endregion
@@ -125,8 +131,8 @@ public class DB : Web {
 		return await Post<DataInteraction>(new(Routes.dataInteractions + "/",
 			Body: new {
 				interactionId = Guid.NewGuid().ToString(),
-				tenantId = DBuser!.TenantId,
-				senderId = DBuser.UserId,
+				tenantId = Uzer.User!.TenantId,
+				senderId = Uzer.User.UserId,
 				receiverId = request.ReceiverId,
 				dataType = request.DataType,
 				dataPayload = JSON.Serialize(request.DataPayload)
@@ -154,17 +160,17 @@ public class DB : Web {
 				new($"{Routes.tags}/", Q: $"?offset={tags.Count}&limit=100")
 			);
 			if (tag == null || !tag.Any()) break;
-			tags.AddRange(tag);	
+			tags.AddRange(tag);
 		} while (true);
 		return tags;
 	}
 
 	public async Task<Tag?> CreateTag(string name, Dictionary<string, List<string>> items) {
-		return await Post<Tag>(new($"{Routes.tags}/", 
+		return await Post<Tag>(new($"{Routes.tags}/",
 				Body: new {
 					name,
 					items = JSON.Serialize(items),
-					tenantId = DBuser!.TenantId
+					tenantId = Uzer.User!.TenantId
 				}
 		));
 	}
@@ -174,7 +180,7 @@ public class DB : Web {
 				Body: new {
 					name,
 					items = JSON.Serialize(items),
-					tenantId = DBuser!.TenantId
+					tenantId = Uzer.User!.TenantId
 				}
 		));
 	}
@@ -184,7 +190,7 @@ public class DB : Web {
 	}
 
 	public async Task<Tag?> GetTagBy(string name) {
-		var tags =  await Get<IEnumerable<Tag>>( new($"{Routes.tags}/",
+		var tags = await Get<IEnumerable<Tag>>(new($"{Routes.tags}/",
 				Q: $"?where.name.eq={Uri.EscapeDataString($"{name}")}"
 		));
 		return tags?.FirstOrDefault();
@@ -216,7 +222,7 @@ public class DB : Web {
 		var tags = new List<ItemTag>();
 		do {
 			var tag = await Get<IEnumerable<ItemTag>>(
-				new($"{Routes.itemTags}/",Q: $"?offset={tags.Count}&limit=100")
+				new($"{Routes.itemTags}/", Q: $"?offset={tags.Count}&limit=100")
 			);
 			if (tag == null || !tag.Any()) break;
 			tags.AddRange(tag);
@@ -225,51 +231,51 @@ public class DB : Web {
 	}
 
 	public async Task<ItemTag?> CreateItemTag(string tagItemType, string tagItemId, string tagName) {
-		return await Post<ItemTag>( new($"{Routes.itemTags}/",
+		return await Post<ItemTag>(new($"{Routes.itemTags}/",
 				Body: new {
 					tagItemType,
 					tagItemId,
 					tagName,
-					tenantId = DBuser!.TenantId
+					tenantId = Uzer.User!.TenantId
 				}
 		));
 	}
 
 	public async Task<ItemTag?> UpdateItemTag(string tagItemType, string tagItemId, string tagName) {
-		return await Put<ItemTag>( new($"{Routes.itemTags}/",
+		return await Put<ItemTag>(new($"{Routes.itemTags}/",
 				Body: new {
 					tagItemType,
 					tagItemId,
 					tagName,
-					tenantId = DBuser!.TenantId
+					tenantId = Uzer.User!.TenantId
 				}
 		));
 	}
 
 	public async Task<ItemTag?> GetItemTagBy(string tagItemType, string tagItemId, string tagName) {
-		return await Get<ItemTag>(new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", 
+		return await Get<ItemTag>(new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}",
 			EnsureSuccess: false)
 		);
 	}
 
 	public async Task<ItemTag?> CreateItemTagBy(string tagItemType, string tagItemId, string tagName) {
-		return await Post<ItemTag>(new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}", 
+		return await Post<ItemTag>(new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}",
 				Body: new {
 					tagItemType,
 					tagItemId,
 					tagName,
-					tenantId = DBuser!.TenantId
+					tenantId = Uzer.User!.TenantId
 				}
 		));
 	}
 
 	public async Task<ItemTag?> UpdateItemTagBy(string tagItemType, string tagItemId, string tagName) {
-		return await Put<ItemTag>( new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}",
+		return await Put<ItemTag>(new($"{Routes.itemTags}/tagItemType/{tagItemType}/tagItemId/{tagItemId}/tag/{tagName}",
 				Body: new {
 					tagItemType,
 					tagItemId,
 					tagName,
-					tenantId = DBuser!.TenantId
+					tenantId = Uzer.User!.TenantId
 				}
 		));
 	}

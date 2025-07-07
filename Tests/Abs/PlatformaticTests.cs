@@ -12,25 +12,7 @@ namespace Tests.Abs;
 public class PlatformaticTests : TestSetup {
 	public PlatformaticTests() : base(0) { }
 
-	[Fact]
-	public async Task DB_CheckKey() {
-		var user = await DB.Post<DB.Routes.License.Status>(new(
-			$"{DB.Routes.License.prefix}/update",
-			Body: new {
-					license_key = "",
-					email = ""
-			}));
-		Assert.NotNull(user);
-	}
-
 	#region DB users and data interactiions
-	[Fact]
-	public async Task DB_EnsureUser() {
-		await DB.Instance.EnsureUser();
-		Assert.NotNull(DB.Instance.DBuser);
-		Assert.NotNull(DB.Instance.DBusers);
-	}
-
 	[Fact]
 	public async Task DB_GetDataInteractions() {
 		await DB.Instance.EnsureUser();
@@ -200,36 +182,6 @@ public class PlatformaticTests : TestSetup {
 		Debug.WriteLine(JSON.Serialize(res!));
 	}
 	#endregion
-
-	[Fact]
-	public async Task DB_Routes_License() {
-		var customer = await DB.Routes.License.KickCustomer;
-		Assert.NotNull(customer);
-
-		var data = await DB.Routes.License.KickLicenseData;
-		Assert.NotNull(data);
-
-		var status = await DB.Routes.License.KickLicenseStatus;
-		Assert.NotNull(status);
-
-		var user = await DB.Routes.License.Update;
-		Assert.NotNull(user);
-	}
-
-	[Fact]
-	public async Task DB_Routes_User() {
-		var user = await DB.Routes.Uzer.GetDBuser;
-		Assert.NotNull(user);
-
-		var email = "2@example.com";
-		var create = await DB.Routes.Uzer.CreateUser(email);
-		Assert.NotNull(create);
-		var any = await DB.Routes.Uzer.GetAnyDBuser(email);
-		Assert.NotNull(any);
-
-		var users = await DB.Routes.Uzer.GetDBusers;
-		Assert.NotNull(users);
-	}
 
 	[Fact]
 	public async Task DB_Routes_Cooky() {

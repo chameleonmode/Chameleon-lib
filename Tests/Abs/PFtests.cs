@@ -2,11 +2,9 @@ using System.Diagnostics;
 using Chameleon.lib;
 using Chameleon.lib.Abs;
 using Chameleon.lib.Abs.Platformatic;
+using S = Chameleon.lib.Abs.Abs;
 namespace Tests.Abs;
 
-public interface IID {
-  int? Id { get; init; }
-}
 public record J2on<T> {
   public string Jzon { get; set; } = string.Empty;
   public T O {
@@ -61,13 +59,8 @@ public record Personesee : EE {
 }
 
 # region dtos
-public record ID : IID {
-  public int? Id { get; init; }
-}
-public record Tenant(string TenantId) : ID;
-public record Permission(string Name, string Description) : ID;
 
-public record DT<T> : J2on<T>, IID {
+public record DT<T> : J2on<T>, IDT {
   public int? Id { get; init; }
   public required string TenantId { get; init; }
 }
@@ -85,25 +78,11 @@ public record Personz : Identity<Personesee>;
 public record Loginz : Identity<Loginsee>;
 #endregion
 
-public class Table<T, TT>(string prefix) : Web where T : DT<TT> {
-  public Request Req { get; } = new(prefix + '/', Authenticate: !Debugger.IsAttached);
-
-  public virtual DT<TT> DTO => new() { TenantId = PF.I.Tenant.TenantId };
-
-  public async Task<T?> Get(int? id) => await Get<T>(Req with { Path = $"{Req.Path}{id}" });
-  public async Task<IEnumerable<T>?> Get() => await Get<IEnumerable<T>>(Req);
-  public async Task<IEnumerable<T>?> Get(string q) => await Get<IEnumerable<T>>(Req with { Q = q });
-
-  public Task<T?> Create(T dt) => Post<T>(Req with { Body = dt });
-  public Task<T?> Create(TT entitee) => Post<T>(Req with { Body = DTO with { O = entitee } });
-
-  public async Task<T?> Update(T dt) => await Put<T>(Req with { Path = $"{Req.Path}{dt.Id}", Body = dt });
-
-  public async Task<T?> Delete(int? id) => await Delete<T>(Req with { Path = $"{Req.Path}{id}" });
-  public async Task<T?> Delete(T dt) => await Delete<T>(Req with { Path = $"{Req.Path}{dt.Id}" });
-}
 public class PF {
-  public Tenant Tenant { get; set; } = new(DB.Instance.DBuser?.TenantId ?? "b6633ec1-138f-4ec6-b9d0-71b0660c0a44");
+  public class Table<T, TT>(string prefix) : DTO<T>(prefix) where T : IDT {
+    public virtual DT<TT> DTO => new() { TenantId = Plt.I.Tenant.TenantId };
+    public Task<T?> Create(TT entitee) => Post<T>(Req with { Body = DTO with { O = entitee } });
+  }
   public Table<Folder, Folderee> Folders { get; } = new("folders");
   public Table<Profile, Profilee> Profiles { get; } = new("profiles");
   public Table<Addressez, List<Addressesee>> Addressez { get; } = new("addressez");
@@ -122,7 +101,7 @@ public class Tests : TestSetup {
     var result = await PF.I.Folders.Create(new Folderee() { Title = "Folder" });
 
     Assert.NotNull(result);
-    Assert.Equal(PF.I.Tenant.TenantId, result.TenantId);
+    Assert.Equal(Plt.I.Tenant.TenantId, result.TenantId);
     Assert.NotNull(result.O);
     Assert.Equal("Folder", result.O.Title);
   }
@@ -138,7 +117,7 @@ public class Tests : TestSetup {
   public async Task UpdateFolder_ShouldReturnUpdatedFolder() {
     var folder = new Folder {
       Id = 0,
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
       O = new Folderee { Title = "Updated Folder", IsFavourite = true }
     };
 
@@ -158,7 +137,7 @@ public class Tests : TestSetup {
   public void Folder_JsonSerialization_ShouldWorkCorrectly() {
     var folderData = new Folderee { Title = "Test", IsFavourite = true };
     var folder = new Folder {
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
       O = folderData
     };
 
@@ -170,7 +149,7 @@ public class Tests : TestSetup {
   [Fact]
   public void Folder_EmptyJson_ShouldReturnDefault() {
     var folder = new Folder {
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
     };
 
     Assert.Null(folder.O);
@@ -186,14 +165,14 @@ public class Tests : TestSetup {
   public async Task CreateProfile_ShouldReturnValidProfile() {
     var profilee = new Profilee { Title = "Test Profile" };
     var profile = new Profile {
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
       FolderId = null,
       O = profilee,
     };
     var result = await PF.I.Profiles.Create(profilee);
 
     Assert.NotNull(result);
-    Assert.Equal(PF.I.Tenant.TenantId, result.TenantId);
+    Assert.Equal(Plt.I.Tenant.TenantId, result.TenantId);
     Assert.NotNull(result.O);
     Assert.Equal(profilee.Title, result.O.Title);
     Assert.Equal(profile.FolderId, result.FolderId);
@@ -210,7 +189,7 @@ public class Tests : TestSetup {
   public async Task UpdateProfile_ShouldReturnUpdatedProfile() {
     var profile = new Profile {
       Id = 1,
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
       O = new Profilee { Title = "Updated Profile" }
     };
 
@@ -229,7 +208,7 @@ public class Tests : TestSetup {
   [Fact]
   public async Task CreateAddressez_ShouldReturnValidAddressez() {
     var created = await PF.I.Addressez.Create(new Addressez {
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
       ProfileId = 1,
       O = [new Addressesee { Title = "Test Address", AddressLine1 = "123 Main St", City = "Test City", State = "TS", Zip = "12345" }]
     });
@@ -242,7 +221,7 @@ public class Tests : TestSetup {
   [Fact]
   public async Task CreateBusinessez_ShouldReturnValidBusinessez() {
     var b = await PF.I.Businessez.Create(new Businessez {
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
       ProfileId = 1,
       O = [new Businessesee { Title = "Test Business", CompanyName = "Test Company", PhoneNumber = "123-456-7890", WebSite = "https://testcompany.com" }]
     });
@@ -252,7 +231,7 @@ public class Tests : TestSetup {
   [Fact]
   public async Task CreatePersonz_ShouldReturnValidPersonz() {
     var p = await PF.I.Personz.Create(new Personz {
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
       ProfileId = 1,
       O = [new Personesee { Title = "Test Person", FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" }]
     });
@@ -262,7 +241,7 @@ public class Tests : TestSetup {
   [Fact]
   public async Task CreateLoginz_ShouldReturnValidLoginz() {
     var l = await PF.I.Loginz.Create(new Loginz {
-      TenantId = PF.I.Tenant.TenantId,
+      TenantId = Plt.I.Tenant.TenantId,
       ProfileId = 1,
       O = [new Loginsee { Title = "Test Login", WebSite = "https://testlogin.com", UserName = "user", Password = "pass" }]
     });
