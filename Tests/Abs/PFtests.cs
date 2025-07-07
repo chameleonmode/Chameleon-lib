@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Chameleon.lib;
 using Chameleon.lib.Abs;
+using Chameleon.lib.Abs.Platformatic;
 namespace Tests.Abs;
 
 public interface IID {
@@ -89,9 +90,9 @@ public class Table<T, TT>(string prefix) : Web where T : DT<TT> {
 
   public virtual DT<TT> DTO => new() { TenantId = PF.I.Tenant.TenantId };
 
+  public async Task<T?> Get(int? id) => await Get<T>(Req with { Path = $"{Req.Path}{id}" });
   public async Task<IEnumerable<T>?> Get() => await Get<IEnumerable<T>>(Req);
   public async Task<IEnumerable<T>?> Get(string q) => await Get<IEnumerable<T>>(Req with { Q = q });
-  public async Task<T?> Get(int? id) => await Get<T>(Req with { Path = $"{Req.Path}{id}" });
 
   public Task<T?> Create(T dt) => Post<T>(Req with { Body = dt });
   public Task<T?> Create(TT entitee) => Post<T>(Req with { Body = DTO with { O = entitee } });
@@ -99,15 +100,16 @@ public class Table<T, TT>(string prefix) : Web where T : DT<TT> {
   public async Task<T?> Update(T dt) => await Put<T>(Req with { Path = $"{Req.Path}{dt.Id}", Body = dt });
 
   public async Task<T?> Delete(int? id) => await Delete<T>(Req with { Path = $"{Req.Path}{id}" });
+  public async Task<T?> Delete(T dt) => await Delete<T>(Req with { Path = $"{Req.Path}{dt.Id}" });
 }
 public class PF {
-  public Tenant Tenant { get; set; } = new("b6633ec1-138f-4ec6-b9d0-71b0660c0a44");
+  public Tenant Tenant { get; set; } = new(DB.Instance.DBuser?.TenantId ?? "b6633ec1-138f-4ec6-b9d0-71b0660c0a44");
   public Table<Folder, Folderee> Folders { get; } = new("folders");
   public Table<Profile, Profilee> Profiles { get; } = new("profiles");
   public Table<Addressez, List<Addressesee>> Addressez { get; } = new("addressez");
   public Table<Businessez, List<Businessesee>> Businessez { get; } = new("businessez");
   public Table<Personz, List<Personesee>> Personz { get; } = new("personz");
-  public Table<Loginz, List<Loginsee>> Loginz { get; } = new("loginsz");
+  public Table<Loginz, List<Loginsee>> Loginz { get; } = new("loginz");
 
   PF() { }
   public static PF I { get; } = new();
@@ -225,7 +227,7 @@ public class Tests : TestSetup {
   }
 
   [Fact]
-  public async Task Identitiez_Create() {
+  public async Task CreateAddressez_ShouldReturnValidAddressez() {
     var created = await PF.I.Addressez.Create(new Addressez {
       TenantId = PF.I.Tenant.TenantId,
       ProfileId = 1,
@@ -235,67 +237,35 @@ public class Tests : TestSetup {
 
     var get = await PF.I.Addressez.Get(created.Id);
     Assert.NotNull(get);
-
-
-    // var result = await PF.I.Addressez.Update(get with {
-    //   Addresses = new() {
-    //     O = [
-    //     new() { Title = "Test Address 1", AddressLine1 = "123 Main St", City = "Test City", State = "TS", Zip = "12345" },
-    //     new() { Title = "Test Address 2", AddressLine1 = "456 Elm St", City = "Another City", State = "AS", Zip = "67890" }
-    //   ]
-    //   },
-    //   Businesses = new() {
-    //     O = [
-    //       new() { Title = "Test Business 1", CompanyName = "Test Company", PhoneNumber = "123-456-7890", WebSite = "https://testcompany.com" },
-    //       new() { Title = "Test Business 2", CompanyName = "Another Company", PhoneNumber = "987-654-3210", WebSite = "https://anothercompany.com" }
-    //     ]
-    //   },
-    //   Persons = new() {
-    //     O = [
-    //       new() { Title = "Test Person 1", FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" },
-    //       new() { Title = "Test Person 2", FirstName = "Jane", LastName = "Smith", Email = "jane.smith@example.com" }
-    //     ]
-    //   },
-    //   Logins = new() {
-    //     O = [
-    //       .. get.Logins.O ?? [], // Keep existing logins
-    //       new() { Title = "Test Login 1", WebSite = "https://testlogin1.com", UserName = "user1", Password = "pass1" },
-    //       new() { Title = "Test Login 2", WebSite = "https://testlogin2.com", UserName = "user2", Password = "pass2" }
-    //     ]
-    //   }
-    // });
-
-    // Assert.NotNull(result);
-    // Assert.NotNull(result.Addressez);
-    // Assert.NotNull(result.Businessez);
-    // Assert.NotNull(result.Personz);
-    // Assert.NotNull(result.Loginz);
   }
+
   [Fact]
-  public async Task GetProfilesAddresses_ShouldReturnEmptyAddressCollection() {
-    var result = await PF.I.Addressez.Get();
-
-    Assert.NotNull(result);
+  public async Task CreateBusinessez_ShouldReturnValidBusinessez() {
+    var b = await PF.I.Businessez.Create(new Businessez {
+      TenantId = PF.I.Tenant.TenantId,
+      ProfileId = 1,
+      O = [new Businessesee { Title = "Test Business", CompanyName = "Test Company", PhoneNumber = "123-456-7890", WebSite = "https://testcompany.com" }]
+    });
+    Assert.NotNull(b);
   }
 
-  // [Fact]
-  // public async Task GetProfilesBusinesses_ShouldReturnCollection() {
-  //   var result = await PF.I.Profiles.DTO.Businesses.Get();
+  [Fact]
+  public async Task CreatePersonz_ShouldReturnValidPersonz() {
+    var p = await PF.I.Personz.Create(new Personz {
+      TenantId = PF.I.Tenant.TenantId,
+      ProfileId = 1,
+      O = [new Personesee { Title = "Test Person", FirstName = "John", LastName = "Doe", Email = "john.doe@example.com" }]
+    });
+    Assert.NotNull(p);
+  }
 
-  //   Assert.NotNull(result);
-  // }
-
-  // [Fact]
-  // public async Task GetProfilesAddresses_ShouldReturnCollection() {
-  //   var result = await PF.I.Profiles.DTO.Addresses.Get();
-
-  //   Assert.NotNull(result);
-  // }
-
-  // [Fact]
-  // public async Task GetProfilesLogins_ShouldReturnCollection() {
-  //   var result = await PF.I.Profiles.DTO.Logins.Get();
-
-  //   Assert.NotNull(result);
-  // }
+  [Fact]
+  public async Task CreateLoginz_ShouldReturnValidLoginz() {
+    var l = await PF.I.Loginz.Create(new Loginz {
+      TenantId = PF.I.Tenant.TenantId,
+      ProfileId = 1,
+      O = [new Loginsee { Title = "Test Login", WebSite = "https://testlogin.com", UserName = "user", Password = "pass" }]
+    });
+    Assert.NotNull(l);
+  }
 }
