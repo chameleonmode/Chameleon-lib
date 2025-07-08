@@ -3,7 +3,7 @@ using Microsoft.Win32;
 
 namespace Chameleon.lib.WebBrowser.Services;
 
-public static class SysBrowserInfoUtil {
+public static class BrowserInfo {
 
    [SupportedOSPlatform("windows")]
    private static (bool Installed, string FilePath) CheckApplication(string executable) {

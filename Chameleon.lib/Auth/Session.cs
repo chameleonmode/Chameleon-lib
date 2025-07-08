@@ -5,14 +5,10 @@ using System.Net.Http.Headers;
 namespace Chameleon.lib.Auth;
 
 public class Session {
-	public Client Auth0Client { get; }
-
-	public Func<string, Task> OpenBrowser { get; set; } = url => Task.Run(() => ProcessUtil.OpenBrowser(url));
+	public Client Auth0Client { get; } = new Client();
 	public LoginSettings Settings { get; set; } = IoC.GetJsonValue<LoginSettings>(nameof(LoginSettings)) ?? new("", "", false);
-	
-	Session() {
-		Auth0Client = new Client(async Url => await OpenBrowser(Url));
-	}
+
+	Session() { }
 
 	public void Save(LoginSettings settings) {
 		IoC.SetJsonValue(settings, nameof(LoginSettings));

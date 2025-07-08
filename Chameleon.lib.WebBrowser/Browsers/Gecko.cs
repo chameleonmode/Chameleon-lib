@@ -29,7 +29,7 @@ public class Gecko : Browser {
 
 		var system = OperatingSystem.IsMacOS()
 			? "/Applications/firefox.app"
-			: SysBrowserInfoUtil.Find(SystemBrowserType.Firefox).Path;
+			: BrowserInfo.Find(SystemBrowserType.Firefox).Path;
 
 		var needsUpdate = !Path.Exists(ExePath) || (OperatingSystem.IsMacOS()
 				? UMacFileVersionInfo.GetVersionInfo(ExeDir).ProductVersion != UMacFileVersionInfo.GetVersionInfo(system).ProductVersion

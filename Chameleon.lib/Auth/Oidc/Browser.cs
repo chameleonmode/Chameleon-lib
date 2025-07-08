@@ -1,17 +1,19 @@
 ﻿using System.Net;
 
-using Chameleon.lib.Util;
 using System.Text;
 using System.Web;
+using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Auth.Oidc;
-public class Browser(Client oidcClient, Func<string, Task> openBrowser) {
+public class Browser(Client oidcClient) {
+	public Func<string, Task> Open { get; set; } = url => Task.Run(() => ProcessUtil.OpenBrowser(url));
+	public TaskCompletionSource? TaskCompletion { get; private set; }
 	const string authResponseHtml = @"
 		<!DOCTYPE html>
 		<html>
 		<head>
 		    <meta charset='utf-8'/>
-		    <title>Authentication Complete</title>
+		    <title>Chameleon</title>
 		    <style>
 		        body { 
 		            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -65,7 +67,7 @@ public class Browser(Client oidcClient, Func<string, Task> openBrowser) {
         <html>
         <head>
             <meta charset='utf-8'/>
-            <title>Logout Complete</title>
+            <title>Chameleon</title>
             <style>
                 body { 
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -119,12 +121,13 @@ public class Browser(Client oidcClient, Func<string, Task> openBrowser) {
 	public Task Logout() => HandleCallback(oidcClient.LogoutUrl, logoutResponseHtml);
 
 	private async Task<string> HandleCallback(string url, string htmlResponse, string? expectedParam = null) {
+		TaskCompletion = new TaskCompletionSource();
 		using var listener = new HttpListener();
 		listener.Prefixes.Add(oidcClient.RedirectUri + "/");
 		listener.Start();
 
 		//
-		await openBrowser(url);
+		await Open(url);
 
 		var context = await listener.GetContextAsync();
 
@@ -134,6 +137,8 @@ public class Browser(Client oidcClient, Func<string, Task> openBrowser) {
 		response.ContentLength64 = buffer.Length;
 		response.ContentType = "text/html";
 		await response.OutputStream.WriteAsync(buffer);
+
+		_ = TaskCompletion.TrySetResult();
 
 		return context.Request.Url?.Query is { } query && HttpUtility.ParseQueryString(query)[expectedParam] is { } value
 			? value

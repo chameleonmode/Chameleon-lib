@@ -12,7 +12,7 @@ public class Chromium : Browser {
 		"Preferences"
 	);
 
-	public override string ExePath => SysBrowserInfoUtil.Find(Settings.BrowserType).Path;
+	public override string ExePath => BrowserInfo.Find(Settings.BrowserType).Path;
 
 	// ...
 	protected override string GetCommandLineArguments(bool args) {

@@ -82,17 +82,18 @@ public record class BrowserRecord(string Name, string Path) {
   public override string ToString() {
     return Name ?? Path;
   }
+  public bool Exists => !string.IsNullOrEmpty(Path) && File.Exists(Path);
 }
 public static class Factorially {
   public static SysBrowserSettings Chrome(BrowserProfile profile) {
     return new SysBrowserSettings(new(SystemBrowserType.Chrome, profile));
   }
-  public static SysBrowserSettings Chrome(string url, int? port = null, bool extensions = false, EmulationOptions? emulations = null) {
+  public static SysBrowserSettings Chrome(string url) {
     return Chrome(new BrowserProfile {
       StartUrl = url,
-      Extensions = extensions,
-      Emulations = emulations ?? new(),
-      Port = port ?? TcpUtil.NextFreePort(9613)
+      Extensions = false,
+      Emulations = new(),
+      Port = TcpUtil.NextFreePort(9613)
     });
   }
 }

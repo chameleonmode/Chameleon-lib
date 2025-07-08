@@ -67,7 +67,6 @@ public static class Abs {
     try {
       using var client = new HttpClient();
       client.Timeout = TimeSpan.FromMilliseconds(300);
-
       _ = await client.GetAsync("http://127.0.0.1:3042");
       return true && Debugger.IsAttached; // Local server is available
     } catch {
@@ -78,7 +77,11 @@ public static class Abs {
   public static async Task<HttpClient> HttpClient() => new HttpClient(new HttpClientHandler {
     AutomaticDecompression = DecompressionMethods.GZip,
     ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-  }) { BaseAddress = new Uri(await TESTING ? "http://127.0.0.1:3042" : "https://chameleon-ws.onrender.com") };
+  }) { BaseAddress = new Uri(
+    await TESTING
+       ? "http://127.0.0.1:3042" 
+       : "https://chameleon-ws.onrender.com"
+  )};
 
   public static async Task<T?> Send<T>(HttpMethod method, Request req) {
     using var client = await HttpClient();
