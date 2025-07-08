@@ -24,14 +24,18 @@ public class DB : Web {
 				public record Status(int Valid, int Active, object Guid);
 				public record Customer(bool Status, string Secret);
 			}
+			public static object Body => new {
+				license_key = Session.I.LicenseKey,
+				email = Session.I.LoginName
+			};
 			public Replies.Customer? Customer { get; private set; }
 			public Replies.Data? Data { get; private set; }
 			public Replies.Status? Status { get; private set; }
 			public User? Registered { get; internal set; }
-			public async Task<User> Register() {
+			public async Task Register() {
 				Customer ??= await Post<Replies.Customer>(new($"{Prefix}/customer", Body: Body))
 				?? throw new Exception($"Failed to find customer using {Body}.");
-				if (!Customer.Status) return I.Userz.Current ?? throw new Exception("Customer status is not valid.");
+				if (!Customer.Status) return;
 
 				Data ??= await Post<Replies.Data>(new($"{Prefix}/data", Body: Body))
 				?? throw new Exception($"Failed to get license data using {Body}.");
@@ -39,22 +43,26 @@ public class DB : Web {
 				Status ??= await Post<Replies.Status>(new($"{Prefix}/status", Body: Body))
 				?? throw new Exception($"Failed to get license status using {Body}.");
 
-				return Registered ??= await Post<User>(new($"{Prefix}/register", Body: Body))
+				I.Userz.Current = Registered ??= await Post<User>(new($"{Prefix}/register", Body: Body))
 				?? throw new Exception($"Failed to register user using {Body}.");
 			}
-			static readonly object Body = new {
-				license_key = Session.I.LicenseKey,
-				email = Session.I.LoginName
-			};
 		}
 
 		public class Uzer() : Root("db/uzer") {
+			public static class Requests {
+				public static object Users => new {
+					email = Session.I.LoginName
+				};
+			}
+			public static class Replies {
+				public record Got(User Current, IEnumerable<User>? Users);
+			}
 			public User? Current { get; internal set; }
 			public IEnumerable<User>? Users { get; internal set; }
 			public async Task Load() {
-				Current ??= await Get<User>(new($"{Prefix}/", EnsureSuccess: false));
-				if (Current == null || Current.LicenseKey == null) Current = await I.License.Register();
-				Users ??= await Get<IEnumerable<User>>(new($"{Prefix}/all", Body: new { email = Session.I.LoginName }));
+				await I.License.Register();
+				Current ??= await Get<User>(new($"{Prefix}/"));
+				Users ??= await Get<IEnumerable<User>>(new($"{Prefix}/users", Body: Requests.Users));
 			}
 			public Task<IEnumerable<User>?> Create(string email) {
 				return Post<IEnumerable<User>>(new($"{Prefix}/", Body: new { email }));

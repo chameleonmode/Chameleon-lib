@@ -32,27 +32,12 @@ public class BrowserLauncherTests : TestSetup {
 	// N2Vb4Jvy
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
-		var bi = await SystemBrowserService.Instance.Open(
-			new SysBrowserOpenOptions(SystemBrowserType.Chrome,
-				new BrowserProfile() {
-					Id = 10,
-					Proxy = new BrowserProxy() {
-						Host = "proxy.chameleonmode.com",
-						Port = 31112,
-						UserName = "elimdadia_gmail_com",
-						Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-CYpEvUqY"
-					},
-					Emulations = new() {
-						AutoTimezone = true,
-						SpoofGeoLocation = true,
-						SpoofWebGLFingerprint = true,
-						SpoofCanvasFingerprint = true,
-						SpoofFontFingerprint = true,
-						SpoofAudio = true,
-						SpoofClientRects = true
-					},
-					StartUrl = "https://example.com",
-				})
+		var bi = await SystemBrowser.Instance.Open(new(SystemBrowserType.Chrome,
+			new() {
+				Id = 10,
+				StartUrl = "https://example.com",
+				Emulations = new(),
+			})
 		);
 		Assert.NotNull(bi);
 		KeepAlive(bi);
@@ -60,7 +45,7 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Brave() {
-		var bi = await SystemBrowserService.Instance.Open(
+		var bi = await SystemBrowser.Instance.Open(
 			new SysBrowserOpenOptions(SystemBrowserType.Brave,
 				new BrowserProfile() {
 					Id = 99,
@@ -88,7 +73,7 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
-		var bi = await SystemBrowserService.Instance.Open(new(SystemBrowserType.Firefox, new() {
+		var bi = await SystemBrowser.Instance.Open(new(SystemBrowserType.Firefox, new() {
 			Id = 22,
 			Proxy = new BrowserProxy() {
 				Host = "proxy.chameleonmode.com",

@@ -9,8 +9,8 @@ using Chameleon.lib.WebBrowser.System.Firefox;
 
 namespace Chameleon.lib.WebBrowser.Services;
 
-public class SystemBrowserService {
-	SystemBrowserService() {
+public class SystemBrowser {
+	SystemBrowser() {
 		if (OperatingSystem.IsWindows()) {
 			windowEventHandler = new WindowEventHandler();
 			// windowEventHandler.OnForeground += U32til_OnForeground;
@@ -121,41 +121,24 @@ public class SystemBrowserService {
         Port = TcpUtil.NextFreePort(9613)
       };
       try {
-				browser = await OpenWithSettings(settings);
+				return browser = await OpenWithSettings(settings);
 			} catch (Exception e) {
+				Toaster.Error(e.Message);
 				if (browser != null) browser.InvokeEvent(SysBrowserEventType.Error);
 				else if (Observers.TryGetValue(settings.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, SysBrowserEventType.Error)));
 				
-				Toaster.Error(e.Message);
 				if (e is InvalidDataException or TimeoutException) {
 					_ = Instances.TryRemove(options, out _);
 					_ = (browser?.LoadedTCS.TrySetResult(false));
 				}
-				return null;
 			}
-		} else {
-			if (browser.Brocess?.HasExited == true) {
+		} else if (browser.Brocess?.HasExited == true) {
 				browser.Close();
 				await Task.Delay(256);
-				_ = Open(options);
-			} else {
-				if (!options.Headless && browser.Settings.OpenOptions.Headless) {
-					browser.Close();
-					await Task.Delay(256);
-					var settings = new SysBrowserSettings(options, TcpUtil.NextFreePort(9613));
-					try {
-						browser = await OpenWithSettings(settings);
-						Instances[options] = browser;
-						ArgumentNullException.ThrowIfNull(browser, nameof(browser));
-					} catch (Exception e) {
-						Toaster.Error(e.Message);
-					}
-				}
-				else {
-					browser.InvokeEvent(SysBrowserEventType.Foreground);
-				}
+				return await Open(options);
+		} else {
+				browser.InvokeEvent(SysBrowserEventType.Foreground);
 			}
-		}
 		return browser;
 	}
 
@@ -169,5 +152,5 @@ public class SystemBrowserService {
 	}
 
 	// Singleton
-	public static SystemBrowserService Instance { get; } = new();
+	public static SystemBrowser Instance { get; } = new();
 }
