@@ -62,7 +62,7 @@ public class BrowserProxy {
 public class BrowserProfile {
   public int Id { get; init; } = -1; // -1 is a special value for the default profile
   public bool Extensions { get; init; } = true;
-  public int Port { get; set; }
+  public int Port { get; set; } = 0;
   public BrowserProxy Proxy { get; set; } = new();
   public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 

@@ -38,7 +38,8 @@ public class SystemBrowser {
 		// await NodeServerLauncher.Instance.StartServer();
 		// TODO: move to app startup or possibly add a lib startup module
 		// await AddonsServer.Instance.Start();
-		var browser = Instances[settings.OpenOptions] = settings.BrowserType switch {
+		settings.Profile.Port = settings.Profile.Port == 0 ? TcpUtil.NextFreePort(9613) : settings.Profile.Port;
+		IBrowserInstance browser = settings.BrowserType switch {
 			SystemBrowserType.Brave => new Brave() { Settings = settings },
 			SystemBrowserType.Chrome => new Chrome() { Settings = settings },
 			SystemBrowserType.Firefox => new Firefox() { Settings = settings },
@@ -48,7 +49,7 @@ public class SystemBrowser {
 			!Instances.ContainsKey(settings.OpenOptions) &&
 			!Instances.TryAdd(settings.OpenOptions, browser) && !settings.Profile.Extensions
 		) throw new Exception("Browser instance already exists. Please close the browser before opening a new one."); 
-		
+
 		browser.OnEvent += async (sender, args) => {
 			if (args.EventType == BrowserEventType.Closed) {
 				_ = await browser.LoadedTCS.Task;
@@ -57,7 +58,7 @@ public class SystemBrowser {
 			//if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
 			if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
 		};
-		_ = browser.InitializeAsync();
+		_ = browser.Initialize();
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6))) browser.InvokeEvent(BrowserEventType.Opened);
 		else if(!settings.Profile.Extensions) throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
 		return Instances[settings.OpenOptions];
@@ -65,7 +66,6 @@ public class SystemBrowser {
 	public async Task<IBrowserInstance?> Open(LaunchOptions options) {
 		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
 		if (browser == null) {
-			options.Profile.Port = options.Profile.Port == 0 ? TcpUtil.NextFreePort(9613) : options.Profile.Port;
 			var settings = new BrowserSettings(options);
       try {
 				return browser = await Open(settings);

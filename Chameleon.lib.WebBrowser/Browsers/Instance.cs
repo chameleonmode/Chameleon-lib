@@ -23,7 +23,7 @@ public interface IBrowserInstance {
 	Task Ensure();
 	Process Brocessor(bool args);
 	TaskCompletionSource<bool> LoadedTCS { get; }
-	Task InitializeAsync(object? param = null);
+	Task Initialize(object? param = null);
 }
 public abstract class Browser : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
@@ -57,7 +57,7 @@ public abstract class Browser : IBrowserInstance {
 		InvokeEvent(BrowserEventType.Closed);
 	}
 
-	public async Task InitializeAsync(object? param = null) {
+	public async Task Initialize(object? param = null) {
 		if (Brocess is not null) return;
 		await Ensure();
 		await InitializeExtensions();
