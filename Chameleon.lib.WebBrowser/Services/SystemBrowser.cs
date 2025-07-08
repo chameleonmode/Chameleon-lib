@@ -53,7 +53,7 @@ public class SystemBrowser {
 			if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
 		};
 		_ = browser.InitializeAsync();
-		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) browser.InvokeEvent(SysBrowserEventType.Opened);
+		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6))) browser.InvokeEvent(SysBrowserEventType.Opened);
 		else if(!settings.Profile.Extensions) throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
 		return Instances[settings.OpenOptions];
 	}
