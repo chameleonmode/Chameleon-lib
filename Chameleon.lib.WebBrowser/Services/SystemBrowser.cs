@@ -12,8 +12,8 @@ namespace Chameleon.lib.WebBrowser.Services;
 public class SystemBrowser {
 	private readonly WindowEventHandler? windowEventHandler;
 	public int TimeOut { get; } = 14;
-	public ConcurrentDictionary<SysBrowserOpenOptions, IBrowserInstance> Instances { get; } = [];
-	public ConcurrentDictionary<int, List<Delegatorz.Event<SysBrowserEvent>>> Observers { get; } = [];
+	public ConcurrentDictionary<LaunchOptions, IBrowserInstance> Instances { get; } = [];
+	public ConcurrentDictionary<int, List<Delegatorz.Event<BrowserEvent>>> Observers { get; } = [];
 	SystemBrowser() {
 		if (OperatingSystem.IsWindows()) {
 			windowEventHandler = new WindowEventHandler();
@@ -32,7 +32,7 @@ public class SystemBrowser {
 		}
 	}
 
-	public async Task<IBrowserInstance> Open(SysBrowserSettings settings) {
+	public async Task<IBrowserInstance> Open(BrowserSettings settings) {
 		if (settings.Profile.Extensions) _ = await Project.Initialized.Task;
 		// TODO: test node console standard server launcher vs tcp server 
 		// await NodeServerLauncher.Instance.StartServer();
@@ -44,8 +44,13 @@ public class SystemBrowser {
 			SystemBrowserType.Firefox => new Firefox() { Settings = settings },
 			_ => throw new NotImplementedException(),
 		};
+		if(
+			!Instances.ContainsKey(settings.OpenOptions) &&
+			!Instances.TryAdd(settings.OpenOptions, browser) && !settings.Profile.Extensions
+		) throw new Exception("Browser instance already exists. Please close the browser before opening a new one."); 
+		
 		browser.OnEvent += async (sender, args) => {
-			if (args.EventType == SysBrowserEventType.Closed) {
+			if (args.EventType == BrowserEventType.Closed) {
 				_ = await browser.LoadedTCS.Task;
 				_ = Instances.TryRemove(settings.OpenOptions, out _);
 			}
@@ -53,38 +58,36 @@ public class SystemBrowser {
 			if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
 		};
 		_ = browser.InitializeAsync();
-		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6))) browser.InvokeEvent(SysBrowserEventType.Opened);
+		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6))) browser.InvokeEvent(BrowserEventType.Opened);
 		else if(!settings.Profile.Extensions) throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
 		return Instances[settings.OpenOptions];
 	}
-	public async Task<IBrowserInstance?> Open(SysBrowserOpenOptions options) {
+	public async Task<IBrowserInstance?> Open(LaunchOptions options) {
 		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
 		if (browser == null) {
 			options.Profile.Port = options.Profile.Port == 0 ? TcpUtil.NextFreePort(9613) : options.Profile.Port;
-			var settings = new SysBrowserSettings(options);
+			var settings = new BrowserSettings(options);
       try {
 				return browser = await Open(settings);
 			} catch (Exception e) {
 				Toaster.Error(e.Message);
-				if (browser != null) browser.InvokeEvent(SysBrowserEventType.Error);
-				else if (Observers.TryGetValue(settings.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, SysBrowserEventType.Error)));
+				if (browser != null) browser.InvokeEvent(BrowserEventType.Error);
+				else if (Observers.TryGetValue(settings.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, BrowserEventType.Error)));
 				
-				if (e is InvalidDataException or TimeoutException) {
-					_ = Instances.TryRemove(options, out _);
-					_ = (browser?.LoadedTCS.TrySetResult(false));
-				}
+				if (e is InvalidDataException or TimeoutException && Instances.ContainsKey(options)) _ = Instances.TryRemove(options, out _);
+				_ = browser?.LoadedTCS.TrySetResult(false);
 			}
 		} else if (browser.Brocess?.HasExited == true) {
 				browser.Close();
 				await Task.Delay(256);
 				return await Open(options);
 		} else {
-				browser.InvokeEvent(SysBrowserEventType.Foreground);
-			}
+				browser.InvokeEvent(BrowserEventType.Foreground);
+		}
 		return browser;
 	}
 
-	public IEnumerable<SystemBrowserType> HasInstanceOf(int id, Delegatorz.Event<SysBrowserEvent> action) {
+	public IEnumerable<SystemBrowserType> HasInstanceOf(int id, Delegatorz.Event<BrowserEvent> action) {
 		if (Observers.TryGetValue(id, out var value)) value.Add(action);
 		else Observers[id] = [action];
 

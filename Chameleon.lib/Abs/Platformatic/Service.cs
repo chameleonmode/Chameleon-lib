@@ -72,7 +72,7 @@ public class Service : Web {
           Authenticate: false,
           Body: new {
             decorators = request.Decorators,
-            task = "research and suggest search term variations",
+            task = $"research and suggest search term variations the data must always be an array of  {request.Variations} leng",
             generations = new {
               type = "term",
               range = new { min = request.Search.Count(), max = request.Search.Count() },

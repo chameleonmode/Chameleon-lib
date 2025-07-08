@@ -9,15 +9,15 @@ using System.Diagnostics;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
 
-public enum SysBrowserEventType { Unknown, Error, Closed, Opened, Foreground, Background }
-public record SysBrowserEvent(SysBrowserOpenOptions OpenOptions, SysBrowserEventType EventType);
+public enum BrowserEventType { Unknown, Error, Closed, Opened, Foreground, Background }
+public record BrowserEvent(LaunchOptions OpenOptions, BrowserEventType EventType);
 
 public interface IBrowserInstance {
-	event Delegatorz.Event<SysBrowserEvent>? OnEvent;
+	event Delegatorz.Event<BrowserEvent>? OnEvent;
 	Process? Brocess { get; set; }
-	SysBrowserSettings Settings { get; init; }
+	BrowserSettings Settings { get; init; }
 	string SessionId { get; }
-	void InvokeEvent(SysBrowserEventType eventType);
+	void InvokeEvent(BrowserEventType eventType);
 	void Close();
 	Task Closee();
 	Task Ensure();
@@ -27,16 +27,16 @@ public interface IBrowserInstance {
 }
 public abstract class Browser : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
-	public event Delegatorz.Event<SysBrowserEvent>? OnEvent;
+	public event Delegatorz.Event<BrowserEvent>? OnEvent;
 	public Process? Brocess { get; set; }
-	public required SysBrowserSettings Settings { get; init; }
+	public required BrowserSettings Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 
 	public string InitUrl =>
 		$"http://127.0.0.1:{AddonsServer.Instance.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
 
-	public void InvokeEvent(SysBrowserEventType eventType) {
-		if (eventType == SysBrowserEventType.Foreground && Brocess is not null) {
+	public void InvokeEvent(BrowserEventType eventType) {
+		if (eventType == BrowserEventType.Foreground && Brocess is not null) {
 			if (OperatingSystem.IsWindows() && Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
 				_ = U32til.BringWindowToForeground(handle);
 			} else if (OperatingSystem.IsMacOS()) {
@@ -54,7 +54,7 @@ public abstract class Browser : IBrowserInstance {
 		_ = LoadedTCS.TrySetResult(false);
 		Brocess?.Dispose();
 		Brocess = null;
-		InvokeEvent(SysBrowserEventType.Closed);
+		InvokeEvent(BrowserEventType.Closed);
 	}
 
 	public async Task InitializeAsync(object? param = null) {

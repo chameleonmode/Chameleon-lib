@@ -85,10 +85,10 @@ public record class BrowserRecord(string Name, string Path) {
   public bool Exists => !string.IsNullOrEmpty(Path) && File.Exists(Path);
 }
 public static class Factorially {
-  public static SysBrowserSettings Chrome(BrowserProfile profile) {
-    return new SysBrowserSettings(new(SystemBrowserType.Chrome, profile));
+  public static BrowserSettings Chrome(BrowserProfile profile) {
+    return new BrowserSettings(new(SystemBrowserType.Chrome, profile));
   }
-  public static SysBrowserSettings Chrome(string url) {
+  public static BrowserSettings Chrome(string url) {
     return Chrome(new BrowserProfile {
       StartUrl = url,
       Extensions = false,
@@ -97,8 +97,8 @@ public static class Factorially {
     });
   }
 }
-public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile);
-public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions) {
+public record LaunchOptions(SystemBrowserType BrowserType, BrowserProfile Profile);
+public record BrowserSettings(LaunchOptions OpenOptions) {
   public SystemBrowserType BrowserType => OpenOptions.BrowserType;
   public BrowserProfile Profile => OpenOptions.Profile;
   public string BrowserCache => Resources.Assert(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString());

@@ -21,7 +21,7 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	async Task<int> OpenBrowser(SystemBrowserType bt = SystemBrowserType.Chrome, int id = 28296) {
 		var port = TcpUtil.NextFreePort(9613);
-		var browser = await browserService.Open((SysBrowserSettings)new(
+		var browser = await browserService.Open((BrowserSettings)new(
 				new(bt, new() { Id = id})
 			)
 		);

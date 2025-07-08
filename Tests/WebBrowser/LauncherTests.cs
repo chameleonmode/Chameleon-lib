@@ -42,7 +42,7 @@ public class BrowserLauncherTests : TestSetup {
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Brave() {
 		var bi = await SystemBrowser.I.Open(
-			new SysBrowserOpenOptions(SystemBrowserType.Brave,
+			new LaunchOptions(SystemBrowserType.Brave,
 				new BrowserProfile() {
 					Id = 99,
 					Proxy = new BrowserProxy() {
@@ -69,7 +69,7 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
-		var bi = await SystemBrowser.I.Open(new SysBrowserOpenOptions(SystemBrowserType.Firefox, new() {
+		var bi = await SystemBrowser.I.Open(new LaunchOptions(SystemBrowserType.Firefox, new() {
 			Id = 22,
 			Proxy = new BrowserProxy() {
 				Host = "proxy.chameleonmode.com",

@@ -7,7 +7,7 @@ using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Services;
 
-public record Options(SysBrowserOpenOptions Browser, int? Port) {
+public record Options(LaunchOptions Browser, int? Port) {
 	public Proxy? Proxy => Browser.Profile.Proxy.Server == null ? null
 	 : new() {
 		 Server = Browser.Profile.Proxy.Server,
