@@ -47,8 +47,9 @@ public class SystemBrowser {
 		};
 		if(
 			!Instances.ContainsKey(settings.OpenOptions) &&
-			!Instances.TryAdd(settings.OpenOptions, browser) && !settings.Profile.Extensions
-		) throw new Exception("Browser instance already exists. Please close the browser before opening a new one."); 
+			!Instances.TryAdd(settings.OpenOptions, browser) &&
+			!settings.Profile.Extensions
+		) throw new Exception("Browser linkage failed. Try closing all running profiles and restarting the application.");
 
 		browser.OnEvent += async (sender, args) => {
 			if (args.EventType == BrowserEventType.Closed) {
