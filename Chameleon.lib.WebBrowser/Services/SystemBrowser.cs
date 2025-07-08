@@ -10,75 +10,30 @@ using Chameleon.lib.WebBrowser.System.Firefox;
 namespace Chameleon.lib.WebBrowser.Services;
 
 public class SystemBrowser {
+	private readonly WindowEventHandler? windowEventHandler;
+	public int TimeOut { get; } = 14;
+	public ConcurrentDictionary<SysBrowserOpenOptions, IBrowserInstance> Instances { get; } = [];
+	public ConcurrentDictionary<int, List<Delegatorz.Event<SysBrowserEvent>>> Observers { get; } = [];
 	SystemBrowser() {
 		if (OperatingSystem.IsWindows()) {
 			windowEventHandler = new WindowEventHandler();
-			// windowEventHandler.OnForeground += U32til_OnForeground;
-			// private async void U32til_OnForeground(nint obj) {
-			// 	try {
-			// 		for (var i = Instances.Count - 1; i >= 0; i--) {
-			// 			var uid = Instances.Keys.ElementAt(i);
-			// 			if (Instances.TryGetValue(uid, out var browser) && browser != null) {
-			// 				var loaded = await browser.LoadedTCS.Task;
-
-			// 				if (loaded && browser.Brocess?.HasExited == false && browser.Brocess?.MainWindowHandle == obj) {
-			// 					browser.InvokeEvent(SysBrowserEventType.Foreground);
-			// 					continue;
-			// 				}
-
-			// 				browser.InvokeEvent(SysBrowserEventType.Background);
-			// 			}
-			// 		}
-			// 	} catch {
-			// 		//Toaster.ShowErr(e.Message);
-			// 	}
-			// }
 			windowEventHandler.OnDestroy += (obj) => {
-				try {
+				EX.Try(() => {
 					for (var i = Instances.Count - 1; i >= 0; i--) {
-						var uid = Instances.Keys.ElementAt(i);
-						if (Instances.TryGetValue(uid, out var browser) && browser != null && browser.Brocess?.MainWindowHandle != IntPtr.Zero && browser.Brocess?.HasExited == true) {
-							browser.Close();
-						}
+						if (!Instances.TryGetValue(Instances.Keys.ElementAt(i), out var browser) ||
+								browser == null ||
+								browser.Brocess?.MainWindowHandle != IntPtr.Zero ||
+								browser.Brocess?.HasExited == true
+						) { continue; } else { browser.Close(); }
 					}
-				} catch {
-					//Toaster.ShowErr(e.Message);
-				}
+				});
 			};
 			windowEventHandler.StartListening();
-		} else {
-			// MacOSWindowListener.Instance.WindowForegroundChanged += MacOS_WindowForegroundChanged;
-			// private async void MacOS_WindowForegroundChanged(int obj) {
-			// 	for (var i = Instances.Count - 1; i >= 0; i--) {
-			// 		var uid = Instances.Keys.ElementAt(i);
-			// 		if (Instances.TryGetValue(uid, out var browser) && browser != null) {
-			// 			_ = await browser.LoadedTCS.Task;
-
-			// 			if (browser.Brocess?.HasExited != true && browser.Settings.Profile.Id == obj) {
-			// 				browser.InvokeEvent(SysBrowserEventType.Foreground);
-			// 				continue;
-			// 			}
-
-			// 			if (browser.Brocess?.HasExited != true)
-			// 				browser.InvokeEvent(SysBrowserEventType.Background);
-			// 		}
-			// 	}
-			// }
 		}
 	}
-	public int TimeOut { get; } = 14;
 
-	private readonly WindowEventHandler? windowEventHandler;
-	// TODO:
-	// public ConcurrentDictionary<int, Dictionary<SystemBrowserType, IBrowserInstance?>> Instances { get; } = [];
-	public ConcurrentDictionary<SysBrowserOpenOptions, IBrowserInstance> Instances { get; } = [];
-	public ConcurrentDictionary<int, List<Delegatorz.Event<SysBrowserEvent>>> Observers { get; } = [];
-
-	#region Hwnd
-	#endregion
-
-	public async Task<IBrowserInstance> OpenWithSettings(SysBrowserSettings settings) {
-		_ = await Project.Initialized.Task;
+	public async Task<IBrowserInstance> Open(SysBrowserSettings settings) {
+		if (settings.Profile.Extensions) _ = await Project.Initialized.Task;
 		// TODO: test node console standard server launcher vs tcp server 
 		// await NodeServerLauncher.Instance.StartServer();
 		// TODO: move to app startup or possibly add a lib startup module
@@ -98,30 +53,17 @@ public class SystemBrowser {
 			if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
 		};
 		_ = browser.InitializeAsync();
-		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) {
-			browser.InvokeEvent(SysBrowserEventType.Opened);
-			// if (settings.OpenOptions.Foreground)
-			// {
-			//     browser.InvokeEvent(SysBrowserEventType.Foreground);
-			// }
-			// else
-			// {
-			//     browser.InvokeEvent(SysBrowserEventType.Background);
-			// }
-			// TODO: ?  await AddonsServer.Instance.WaitListener();
-		} else {
-			throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
-		}
+		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(TimeOut))) browser.InvokeEvent(SysBrowserEventType.Opened);
+		else if(!settings.Profile.Extensions) throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
 		return Instances[settings.OpenOptions];
 	}
 	public async Task<IBrowserInstance?> Open(SysBrowserOpenOptions options) {
 		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
 		if (browser == null) {
-      var settings = new SysBrowserSettings(options) {
-        Port = TcpUtil.NextFreePort(9613)
-      };
+			options.Profile.Port = options.Profile.Port == 0 ? TcpUtil.NextFreePort(9613) : options.Profile.Port;
+			var settings = new SysBrowserSettings(options);
       try {
-				return browser = await OpenWithSettings(settings);
+				return browser = await Open(settings);
 			} catch (Exception e) {
 				Toaster.Error(e.Message);
 				if (browser != null) browser.InvokeEvent(SysBrowserEventType.Error);
@@ -152,5 +94,5 @@ public class SystemBrowser {
 	}
 
 	// Singleton
-	public static SystemBrowser Instance { get; } = new();
+	public static SystemBrowser I { get; } = new();
 }

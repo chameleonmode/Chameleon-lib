@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { rando, er, sleepo, tryForEach, bang } from "../lib/utils.js";
+import { rando, er, sleepo, tryForEach, bang, delay } from "../lib/utils.js";
 import { Logger } from "../lib/logger.js";
 import { Player } from "./player.js";
 import { promptee } from "../lib/requests.js";
@@ -109,19 +109,34 @@ export class Actor {
         await this.nap();
         const things = typeof thang === "string" ? this.page.locator(thang) : thang;
         const count = await things.count();
-        const locator = count > 1 ? await (async () => {
-            let nth = -1;
-            while (++nth < count) {
-                const locator = things.nth(nth);
-                if (await locator.isVisible({ timeout }))
-                    return locator;
-            }
-        })() : things;
+        const locator = count > 1
+            ? await (async () => {
+                let nth = -1;
+                while (++nth < count) {
+                    const locator = things.nth(nth);
+                    if (await locator.isVisible({ timeout }))
+                        return locator;
+                }
+            })()
+            : things;
         const locatoree = bang("checking element count", locator, { locator, count });
         await this.assert(locatoree, { timeout });
         await locatoree.click({ timeout, force: true });
         await this.nap();
         return bang(`clicked locator`, locator, { locator });
+    }
+    async waitabit(promise) {
+        await this.scrollabit();
+        let racer = await Promise.race([promise, delay(100)]);
+        if (typeof racer === "number")
+            await this.scrollabit(6);
+        racer = await Promise.race([promise, delay(100)]);
+        if (typeof racer === "number")
+            await this.scrollabit(3);
+        racer = await Promise.race([promise, delay(100)]);
+        if (typeof racer === "number")
+            await this.scrollabit();
+        return await promise;
     }
     async scrollabit(times = rando(3, 6)) {
         for (let i = 0; i < times; i++) {
@@ -134,7 +149,7 @@ export class Actor {
                         scrollHeight: document.body.scrollHeight,
                     };
                 });
-                const direction = i > 0 && Math.random() > 0.875 || scrollTop + clientHeight >= scrollHeight ? -1 : 1;
+                const direction = (i > 0 && Math.random() > 0.875) || scrollTop + clientHeight >= scrollHeight ? -1 : 1;
                 const y = direction * rando(clientHeight / 2, clientHeight);
                 bang(`Scroll attempt ${i + 1}/${times}: ${y} (direction: ${direction})`, y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight, { y, scrollTop, clientHeight, scrollHeight });
                 if (rando())

@@ -21,8 +21,8 @@ public record ID : IID {
 public record Tenant(string TenantId) : ID;
 public record Permission(string Name, string Description) : ID;
 
-/// Platformatic
-public record Errorer(string Error, string Message);
+/// Platformatic {\"statusCode\":400,\"code\":\"DB_USER\",\"error\":\"Bad Request\",\"message\":\"user exists\"}
+public record Errorer(int? StatusCode, string? Code, string? Error, string? Message);
 public record Request(string? Path = null,
   string? Q = null,
   object? Body = null,
@@ -97,8 +97,9 @@ public static class Abs {
     }
 
     var content = await response.Content.ReadAsStringAsync();
-    return response.IsSuccessStatusCode || !req.EnsureSuccess ? JSON.Deserialize<T>(content) : throw new HttpRequestException(
-      $"{req.Uri}:\n{response.StatusCode}\n{(JSON.Deserialize<Errorer>(content) is Errorer err ? $"{err.Error}\n{err.Message}" : content)}");
+    return response.IsSuccessStatusCode || !req.EnsureSuccess ? JSON.Deserialize<T>(content) 
+    : JSON.Deserialize<Errorer>(content) is Errorer err ? throw new Exception($"{req.Uri}: {err.Error} {err.Message}") 
+      : throw new HttpRequestException($"{req.Uri}: {response.StatusCode} {content}");
   }
 }
 

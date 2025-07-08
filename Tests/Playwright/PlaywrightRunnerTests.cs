@@ -16,14 +16,13 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	public PlaywrightRunnerTests() {
 		repo = BundledScriptsService.Instance;
-		browserService = SystemBrowser.Instance;
+		browserService = SystemBrowser.I;
 	}
 
 	async Task<int> OpenBrowser(SystemBrowserType bt = SystemBrowserType.Chrome, int id = 28296) {
 		var port = TcpUtil.NextFreePort(9613);
-		var browser = await browserService.OpenWithSettings(new(
-				new(bt, new() {Id = id}),
-				port
+		var browser = await browserService.Open((SysBrowserSettings)new(
+				new(bt, new() { Id = id})
 			)
 		);
 		Assert.NotNull(browser);

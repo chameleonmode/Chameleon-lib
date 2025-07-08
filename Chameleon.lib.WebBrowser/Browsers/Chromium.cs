@@ -13,14 +13,10 @@ public class Chromium : Browser {
 	);
 
 	public override string ExePath => SysBrowserInfoUtil.Find(Settings.BrowserType).Path;
-	// string ExtUrl => $"chrome-extension://bpckcldgiohofdmcepkndffkofgimbcm/data/web/register.html?" +
-	// 	$"instanceId={Settings.Profile.Id}" +
-	// 	$"&sessionId=";
-	// override string ExtDir => FilePaths.EnsureDirectoryExists(FilePaths.AppDataLocalDir, "extensions", "chrome");
 
 	// ...
 	protected override string GetCommandLineArguments(bool args) {
-		var arguments = new List<string> {
+		return string.Join(" ", new string?[] {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
 				//"NetworkQualityEstimatorWebHoldback",
@@ -121,26 +117,17 @@ public class Chromium : Browser {
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
 			// "--restore-last-session",
-			$"--remote-debugging-port={Settings.Port}",
+			$"--remote-debugging-port={Settings.OpenOptions.Profile.Port}",
 			$"--user-data-dir=\"{Settings.BrowserCache}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
-			$"--load-extension=\"{Project.Extensions.Chromeleon}\"",
-			Settings.OpenOptions.Headless ? "--headless=new" : "",
-			args ? InitUrl : "about:blank"
-		};
-
-		return string.Join(" ", arguments.Where(x => x != null));
+			Settings.Profile.Extensions ? $"--load-extension=\"{Project.Extensions.Chromeleon}\"" : null,
+			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
+			args ? Settings.Profile.Extensions ? InitUrl : Settings.Profile.StartUrl : "about:blank"
+		}.Where(x => x != null));
 	}
 
 	// ...
-	protected override async Task InitializeExtensionPath() {
-		_ = await Project.Initialized.Task;
-		// return;
-		// await IOtil.DirectoryDelete(Path.Combine(FilePaths.AppDataLocalDir, "extensions", "chrome"));
-		// _ = await Resources.LoadExtension(ExtensionType.chromeleon, Settings.DestExtentionsDir);
-	}
-
 	protected override async Task WaitForWinHandle() {
 		if (OperatingSystem.IsWindows()) _ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != nint.Zero, 18);
 		else if (OperatingSystem.IsMacOS()) await base.WaitForWinHandle();

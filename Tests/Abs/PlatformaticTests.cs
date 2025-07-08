@@ -15,14 +15,14 @@ public class PlatformaticTests : TestSetup {
 	#region DB users and data interactiions
 	[Fact]
 	public async Task DB_GetDataInteractions() {
-		await DB.I.EnsureUser();
+		await DB.I.Userz.Load();
 		var datas = await DB.I.Interactions.GetDataInteractions();
 		Assert.NotNull(datas);
 	}
 
 	[Fact]
 	public async Task DB_PostDataInteraction() {
-		await DB.I.EnsureUser();
+		await DB.I.Userz.Load();
 		var datas = await DB.I.Interactions.PostDataInteraction(new(
 			ReceiverId: "ef61cf83-13e7-486a-ac37-84ec78841b4f",
 			DataType: "poop",
@@ -33,7 +33,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_DeleteDataInteractions() {
-		await DB.I.EnsureUser();
+		await DB.I.Userz.Load();
 		await DB.I.Interactions.DeleteDataInteractions(DB.Routes.Interactions.Types.cooky);
 		var data = await DB.I.Interactions.GetDataInteractions(DB.Routes.Interactions.Types.cooky);
 		Assert.Empty(data);
@@ -46,7 +46,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_Tags() {
-		await DB.I.EnsureUser();
+		await DB.I.Userz.Load();
 		// Create a tag
 		var name = "tester8";
 		var create = await DB.I.CreateTag(name, []);
@@ -101,7 +101,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_ItemTags() {
-		await DB.I.EnsureUser();
+		await DB.I.Userz.Load();
 
 		var name = "testTagingz5";
 		// Create a tag first

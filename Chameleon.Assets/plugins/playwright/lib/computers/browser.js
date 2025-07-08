@@ -34,11 +34,9 @@ export async function cua(input, display) {
     const headers = { ai: "cua", type: "roo" };
     return await req("/promptee/agent", { body, headers });
 }
-export class Playwrighteer {
+export class Browzer {
     browser;
     ctx;
-    page;
-    funkers = [];
     constructor() { }
     async setup(port) {
         const connect = async () => {
@@ -60,6 +58,13 @@ export class Playwrighteer {
             opts,
             browser: (await this.setup(port ? parseInt(port, 10) : 9613)).browser,
         });
+    }
+}
+export class Playwrighteer extends Browzer {
+    page;
+    funkers = [];
+    constructor() {
+        super();
     }
     async cua(args) {
         const { port = 9613, inputs = [

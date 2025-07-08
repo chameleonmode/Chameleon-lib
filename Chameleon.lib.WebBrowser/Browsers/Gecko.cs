@@ -46,7 +46,7 @@ public class Gecko : Browser {
 		await base.Ensure();
 	}
 
-	protected override async Task InitializeExtensionPath() {
+	protected override async Task InitializeExtensions() {
 		await File.WriteAllTextAsync(
 			Path.Combine(await IOtil.DC(OperatingSystem.IsMacOS()
 			? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
@@ -264,9 +264,7 @@ public class Gecko : Browser {
 					if (match.Success) {
 						var prefName = match.Groups[1].Value;
 						if (!deprecatedPrefs.Contains(prefName)) filteredLines.Add(line);
-						else {
-							Console.WriteLine($"Removed: {prefName}");
-						}
+						else Console.WriteLine($"Removed: {prefName}");
 					} else {
 						// Keep non-pref lines (like comments)
 						filteredLines.Add(line);
@@ -292,7 +290,7 @@ public class Gecko : Browser {
 			#endif
 			$"-profile \"{Settings.BrowserCache}\"",
 			args ? InitUrl : "about:blank",
-			Settings.OpenOptions.Headless ? "-headless" : "",
+			// @TODO Settings.OpenOptions.Headless ? "-headless" : "",
 		};
 
 		return string.Join(" ", arguments.Where(x => !string.IsNullOrWhiteSpace(x)));

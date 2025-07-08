@@ -544,8 +544,8 @@ public class MessageBox {
 		MBoxButtons btns = MBoxButtons.YesNo, string? icon = null, MboxResult retVal = MboxResult.Primary)
 	=> await Instance.MboxService.Show(title, content, btns, icon ?? "Info") == retVal;
 
-	public static Task Error(string title, string content, Exception? ex = null) =>
-		Show(title, content + (ex != null ? $"\n{(ex.Message.Contains('\n') ? ex.Message[ex.Message.LastIndexOf('\n')..] : ex.Message)}" : ""), MBoxButtons.Ok, "Error");
+	public static async Task<bool> Error(string title, string content, Exception? ex = null) =>
+		await Show(title, content + (ex != null ? $"\n{(ex.Message.Contains('\n') ? ex.Message[ex.Message.LastIndexOf('\n')..] : ex.Message)}" : ""), MBoxButtons.OkCancel, "Error");
 
 	public record Options<TViewModel>(Func<TViewModel> Initialize, string Header,
 		 string? SubHeader = null, string Title = Const.AppName, object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo

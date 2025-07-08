@@ -19,6 +19,7 @@ public interface IBrowserInstance {
 	string SessionId { get; }
 	void InvokeEvent(SysBrowserEventType eventType);
 	void Close();
+	Task Closee();
 	Task Ensure();
 	Process Brocessor(bool args);
 	TaskCompletionSource<bool> LoadedTCS { get; }
@@ -47,20 +48,10 @@ public abstract class Browser : IBrowserInstance {
 		OnEvent?.Invoke(this, new(Settings.OpenOptions, eventType));
 	}
 
+	public Task Closee() => ProcessUtil.TryKillProcess(Brocess);
 	public void Close() {
 		if (OperatingSystem.IsMacOS()) MacOSWindowListener.Instance.RemPid(Brocess?.Id);
 		_ = LoadedTCS.TrySetResult(false);
-		// if (Brocess != null) {//no this isd y there was trouble with closing the browser
-		// 	try {
-		// 		if (!Brocess.HasExited) {
-		// 			ProcessUtil.TryKillProcess(Brocess);
-		// 			_ = Task.Delay(TimeSpan.FromSeconds(4));//Wait for exit
-		// 		}
-		// 	} catch(Exception ex) 
-		// 	{
-		// 		Debug.WriteLine($"Failed to close browser instance: {ex.Message}");
-		// 	}
-		// }
 		Brocess?.Dispose();
 		Brocess = null;
 		InvokeEvent(SysBrowserEventType.Closed);
@@ -69,6 +60,41 @@ public abstract class Browser : IBrowserInstance {
 	public async Task InitializeAsync(object? param = null) {
 		if (Brocess is not null) return;
 		await Ensure();
+		await InitializeExtensions();
+		if (LoadedTCS.Task.IsCompleted) return;
+		Debug.WriteLine($"Starting {ExePath} with url: {InitUrl}");
+
+		// StartProcess
+		Brocess = Brocessor(true);
+		Brocess.Start();
+
+		await Task.Delay(1800);
+		await WaitForWinHandle();
+
+		if (!Brocess.HasExited)
+			_ = LoadedTCS.TrySetResult(true);
+		else
+			Close();
+
+	}
+
+	public Process Brocessor(bool args) => new() {
+		StartInfo = new() {
+			FileName = ExePath,
+			Arguments = GetCommandLineArguments(args),
+			UseShellExecute = false,
+			CreateNoWindow = true,
+		},
+		EnableRaisingEvents = true,
+	};
+
+	public virtual Task Ensure() => Task.CompletedTask;
+	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
+	public abstract string PrefsFile { get; }
+	public abstract string ExePath { get; }
+	protected virtual async Task InitializeExtensions() {
+		if(!Settings.Profile.Extensions) return;
+		
 		async Task<Ipapi> Ipapi() {
 			Ipapi? ipapi = null;
 
@@ -76,26 +102,16 @@ public abstract class Browser : IBrowserInstance {
 				Settings.Cached, "geo"
 			);
 			var file = Path.Combine(dir, "ipapi.json");
-			if (File.Exists(file)) {
-				var json = await File.ReadAllTextAsync(file);
-				if (json != null) {
-					ipapi = JSON.Deserialize<Ipapi>(json);
-					if (ipapi?.proxy != null) {
-						var proxy = JSON.Deserialize<BrowserProxy>(ipapi.proxy);
-						if (
-							proxy != null &&
-							proxy.Host == Settings.Profile.Proxy.Host &&
-							proxy.Port == Settings.Profile.Proxy.Port &&
-							proxy.UserName == Settings.Profile.Proxy.UserName &&
-							proxy.Password == Settings.Profile.Proxy.Password
-							) {
-							Toaster.Info($"Using cached timezone/geo data for {Settings.Profile.Proxy.Host}");
-							return ipapi;
-						} else {
-							Toaster.Info($"Cached timezone/geo data for {Settings.Profile.Proxy.Host} is invalid");
-						}
-					}
-				}
+			if (
+				 File.Exists(file) && await File.ReadAllTextAsync(file) is { } json &&
+				 JSON.Parse<BrowserProxy>((ipapi = JSON.Parse<Ipapi>(json)).proxy) is { } proxy &&
+				 proxy.Host == Settings.Profile.Proxy.Host &&
+				 proxy.Port == Settings.Profile.Proxy.Port &&
+				 proxy.UserName == Settings.Profile.Proxy.UserName &&
+				 proxy.Password == Settings.Profile.Proxy.Password
+			) {
+				Toaster.Info($"Using cached timezone/geo data for {Settings.Profile.Proxy.Host}");
+				return ipapi;
 			}
 			Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
 			ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
@@ -156,47 +172,13 @@ public abstract class Browser : IBrowserInstance {
 				enabled = Settings.Profile.Emulations.SpoofNavigator,
 			},
 		};
-		await InitializeExtensionPath();
-		if (LoadedTCS.Task.IsCompleted) return;
-		Debug.WriteLine($"Starting {ExePath} with url: {InitUrl}");
-
-		// StartProcess
-		Brocess = Brocessor(true);
-		Brocess.Start();
-
-		await Task.Delay(1800);
-		await WaitForWinHandle();
-
-		if (!Brocess.HasExited)
-			_ = LoadedTCS.TrySetResult(true);
-		else
-			Close();
-
 	}
-
-	public Process Brocessor(bool args) => new() {
-		StartInfo = new() {
-			FileName = ExePath,
-			Arguments = GetCommandLineArguments(args),
-			UseShellExecute = false,
-			CreateNoWindow = true,
-		},
-		EnableRaisingEvents = true,
-	};
-
-	public virtual Task Ensure() => Task.CompletedTask;
-	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
-	public abstract string PrefsFile { get; }
-	public abstract string ExePath { get; }
-	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments(bool args);
 
 	protected virtual async Task WaitForWinHandle() {
-		// if (OperatingSystem.IsMacOS()) {
 		Brocess!.Exited += (s, e) => { Close(); };
-
-		if (await TaskUtil.AwaitFor(
-				() => Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null,
+		if (await TaskUtil.AwaitFor(() =>
+		Brocess?.HasExited == false && MacOSUtil.FindWindowByPID(Brocess.Id) != null,
 				36,
 				1000
 			)) {

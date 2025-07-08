@@ -5,38 +5,40 @@ using System.Net.Http.Headers;
 namespace Chameleon.lib.Auth;
 
 public class Session {
-	public string LoginName => Login!.LoginName;
-	public string LicenseKey => Login!.LicenseKey;
-	Session() { }
+	public Client Auth0Client { get; }
 
-	public Client Auth0Client { get; } = new();
-	public LoginSettings? Login { get; private set; }
-
-	public async Task Logineer(LoginSettings login) {
-		_ = await Authenticate();
-		Login = login;
-		IoC.SetJsonValue(login, nameof(LoginSettings));
+	public Func<string, Task> OpenBrowser { get; set; } = url => Task.Run(() => ProcessUtil.OpenBrowser(url));
+	public LoginSettings Settings { get; set; } = IoC.GetJsonValue<LoginSettings>(nameof(LoginSettings)) ?? new("", "", false);
+	
+	Session() {
+		Auth0Client = new Client(async Url => await OpenBrowser(Url));
 	}
 
-	public async Task<(Client, AuthenticationHeaderValue)> Authenticate() {
-		return (Auth0Client, await Auth0Client.TryLogIn());
+	public void Save(LoginSettings settings) {
+		IoC.SetJsonValue(settings, nameof(LoginSettings));
+	}
+
+	public async Task Login(LoginSettings login) {
+		_ = await Authenticate();
+		Save(login);
+	}
+
+	public async Task<(Client, AuthenticationHeaderValue)> Authenticate(Client? client = null) {
+		client ??= Auth0Client;
+		return (client, await client.TryLogIn());
 	}
 
 	public async Task Logout() {
-		await EX.Try(async () => {
-			await Auth0Client.Logout();
-			Auth0Client.Authorization = null;
-			IoC.ClearValue(nameof(TokenResponse));
-		});
-		if (Login == null) return;
-		IoC.SetJsonValue(new LoginSettings(Login.LoginName, Login.LicenseKey, false), nameof(LoginSettings));
+		await EX.Try(Auth0Client.Logout);
+		IoC.ClearValue(nameof(TokenResponse));
+		Save(Settings with { AutoLogin = false });
 	}
 
 	// singleton	
 	public static Session I { get; } = new();
 }
 
-public record LoginSettings(string LoginName, string LicenseKey, bool AutoLogin = true);
+public record LoginSettings(string LoginName = "", string LicenseKey = "", bool AutoLogin = true);
 
 #pragma warning disable IDE1006 // Naming Styles
 public record TokenResponse(

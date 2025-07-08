@@ -6,7 +6,7 @@ namespace Tests.WebBrowser;
 public class BrowserLauncherTests : TestSetup {
 	public override async Task InitializeAsync() {
 		await base.InitializeAsync();
-			_ = await Chameleon.lib.WebBrowser.Project.Init();
+		// _ = await Project.Init();
 	}
 
 	readonly ManualResetEventSlim testCompletionEvent = new(false);
@@ -32,20 +32,16 @@ public class BrowserLauncherTests : TestSetup {
 	// N2Vb4Jvy
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
-		var bi = await SystemBrowser.Instance.Open(new(SystemBrowserType.Chrome,
-			new() {
-				Id = 10,
-				StartUrl = "https://example.com",
-				Emulations = new(),
-			})
-		);
+		var bi = await SystemBrowser.I.Open(Factorially.Chrome("https://example.com"));
 		Assert.NotNull(bi);
-		KeepAlive(bi);
+		await Task.Delay(1000 * 3); // Wait for the browser to load
+		await bi.Closee(); // Close the browser instance after testing
+		// KeepAlive(bi);
 	}
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Brave() {
-		var bi = await SystemBrowser.Instance.Open(
+		var bi = await SystemBrowser.I.Open(
 			new SysBrowserOpenOptions(SystemBrowserType.Brave,
 				new BrowserProfile() {
 					Id = 99,
@@ -73,7 +69,7 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
-		var bi = await SystemBrowser.Instance.Open(new(SystemBrowserType.Firefox, new() {
+		var bi = await SystemBrowser.I.Open(new SysBrowserOpenOptions(SystemBrowserType.Firefox, new() {
 			Id = 22,
 			Proxy = new BrowserProxy() {
 				Host = "proxy.chameleonmode.com",

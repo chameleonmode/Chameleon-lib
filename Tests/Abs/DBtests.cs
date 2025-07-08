@@ -43,7 +43,7 @@ public class DB_User_Tests : TestSetup {
 	public DB_User_Tests() : base(0) { }
 	[Fact]
 	public async Task DB_EnsureUser() {
-		await DB.I.EnsureUser();
+		await DB.I.Userz.Load();
 		Assert.NotNull(DB.I.Userz.Current);
 		Assert.NotNull(DB.I.Userz.Users);
 	}

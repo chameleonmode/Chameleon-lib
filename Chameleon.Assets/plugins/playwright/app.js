@@ -1,23 +1,21 @@
 import readline from "node:readline";
-import { Logger } from "./lib/logger.js";
-import { Playwrighteer } from "./lib/computers/browser.js";
-import { sleepo } from "./lib/utils.js";
+import { Browzer, Logger, Playwrighteer, sleepo } from "./lib/index.js";
 async function main() {
     const args = process.argv.slice(2);
     Logger.log("Starting Runner...", args);
-    const play = async ({ file, port, opts }) => {
-        const computer = new Playwrighteer();
-        await computer.runner({ file, port, opts });
+    const play = async (argz) => {
+        const computer = new Browzer();
+        await computer.runner(argz);
     };
-    const commander = async (line) => {
+    const commander = async (line, argz) => {
         const command = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
         switch (command.shift()) {
             case "exit":
                 Logger.log("Exiting...");
                 process.exit(0);
             case "play":
-                const [file, port, opts] = args;
-                await play({ file, port, opts: opts ? JSON.parse(opts) : undefined });
+                if (argz)
+                    await play(argz);
                 break;
             default:
                 Logger.log(`Unknown command ${command}`);
@@ -31,7 +29,7 @@ async function main() {
             const { arg, file, port, opts } = JSON.parse(line);
             switch (arg) {
                 case "run":
-                    await sleepo({ min: 6000, max: 6000, multiplier: 1 });
+                    await sleepo({ min: 3000, max: 6000, multiplier: 1 });
                     play({ file, port, opts });
                     break;
                 case "cua":
@@ -47,8 +45,10 @@ async function main() {
         }
     });
     Logger.log("command ({arg: 'run', file, port, opts}, play, exit):");
-    if (args.length)
-        commander("play");
+    if (args.length) {
+        const [file, port, opts] = args;
+        play({ file, port, opts });
+    }
 }
 main().catch((error) => {
     Logger.log(`Error ${error}`, error);

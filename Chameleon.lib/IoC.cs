@@ -135,22 +135,26 @@ public class IoC {
 	}
 
 	//
-	public static T? GetService<T>() => (T?)Instance.Services?.GetService(typeof(T));
-	public static object? GetService(Type t) => Instance.Services?.GetService(t);
+	public static T? GetService<T>() => (T?)I.Services?.GetService(typeof(T));
+	public static object? GetService(Type t) => I.Services?.GetService(t);
 
 	//
-	public static T? GetValue<T>(string key) where T : class => Instance.Config?.GetValue<T>(key.Replace(' ', '_'));
+	public static T? GetValue<T>(string key) where T : class => I.Config?.GetValue<T>(key.Replace(' ', '_'));
 	public static string? GetValue(params string[] keys) => GetValue<string>(string.Join('_', keys));
+
 	//
+	public static void SetValue(string key, string value) {
+		I.Config?.SetValue(key, value);
+	}
 	public static void SetValue<T>(T value, params string[] keys) {
 		var key = string.Join('_', keys).Replace(' ', '_');
-		var current = Instance.Config!.GetValue<T>(key);
+		var current = I.Config!.GetValue<T>(key);
 		if (EqualityComparer<T>.Default.Equals(current, value)
 			 || (value is Array arr && arr.Length == 0)) {
 			return; // Value is unchanged; no update required.
 		}
 
-		Instance.Config!.SetValue(key, value);
+		I.Config!.SetValue(key, value);
 		Toaster.Success("Settings saved");
 	}
 	//
@@ -160,11 +164,11 @@ public class IoC {
 	}
 	public static void SetJsonVal<T>(T value, string key, string? message = null) {
 		var newValue = JsonSerializer.Serialize(value);
-		var currentValue = Instance.Config!.GetValue<string>(key);
+		var currentValue = I.Config!.GetValue<string>(key);
 		if (string.Equals(newValue, currentValue, StringComparison.Ordinal)) {
 			return; // Serialized JSON is unchanged; no update required.
 		}
-		Instance.Config!.SetValue(key, newValue);
+		I.Config!.SetValue(key, newValue);
 		if (message != null)
 			Toaster.Success(message);
 	}
@@ -174,14 +178,14 @@ public class IoC {
 	//
 	public static void ClearValue(params string[] keys) {
 		var key = string.Join('_', keys).Replace(' ', '_');
-		if (Instance.Config is Chonfigurationer config) {
+		if (I.Config is Chonfigurationer config) {
 			_ = config._overrides.TryRemove(key, out _);
 			SetValue("null", keys);
 		}
 	}
 
 	//Singleton pattern
-	public static IoC Instance { get; } = new();
+	public static IoC I { get; } = new();
 }
 
 public class Chonfigurationer(IConfiguration configuration) {

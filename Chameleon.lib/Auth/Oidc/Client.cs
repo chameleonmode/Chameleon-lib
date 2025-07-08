@@ -35,14 +35,14 @@ public class Client {
 				$"id_token_hint={Uri.EscapeDataString(Token!.id_token)}&" +
 				$"client_id={ClientId}";
 
-	public Client() {
+	public Client(Func<string, Task> open) {
 		// Generate state and PKCE values
 		state = StringsUtil.GenerateRandomString();
 		codeVerifier = StringsUtil.GenerateRandomString();
 		codeChallenge = StringsUtil.GenerateCodeChallenge(codeVerifier);
 
 		RedirectUri = $"http://127.0.0.1:{TcpUtil.NextFreePort(7891, 7896)}/callback";
-		OidcBrowser = new Browser(this);
+		OidcBrowser = new Browser(this, open);
 	}
 
 	private TokenResponse DeserializeToken(string res) {
@@ -88,6 +88,7 @@ public class Client {
 	/// <returns>Task representing the logout operation</returns>
 	public async Task Logout() {
 		await OidcBrowser.Logout();
+		Authorization = null;
 	}
 
 	/// <summary>

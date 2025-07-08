@@ -2,9 +2,10 @@
 
 using Chameleon.lib.Util;
 using System.Text;
+using System.Web;
 
 namespace Chameleon.lib.Auth.Oidc;
-public class Browser(Client oidcClient) {
+public class Browser(Client oidcClient, Func<string, Task> openBrowser) {
 	const string authResponseHtml = @"
 		<!DOCTYPE html>
 		<html>
@@ -122,7 +123,8 @@ public class Browser(Client oidcClient) {
 		listener.Prefixes.Add(oidcClient.RedirectUri + "/");
 		listener.Start();
 
-		ProcessUtil.OpenBrowser(url);
+		//
+		await openBrowser(url);
 
 		var context = await listener.GetContextAsync();
 
@@ -133,15 +135,9 @@ public class Browser(Client oidcClient) {
 		response.ContentType = "text/html";
 		await response.OutputStream.WriteAsync(buffer);
 
-		if (expectedParam != null) {
-			ArgumentNullException.ThrowIfNull(context.Request.Url, "request.Url");
-
-			var queryParams = System.Web.HttpUtility.ParseQueryString(context.Request.Url.Query);
-			return queryParams[expectedParam] 
-				?? throw new Exception($"{expectedParam} not found in response");
-		}
-
-		return null!;
+		return context.Request.Url?.Query is { } query && HttpUtility.ParseQueryString(query)[expectedParam] is { } value
+			? value
+			: throw new Exception($"{expectedParam} not found in response");
 	}
 }
 

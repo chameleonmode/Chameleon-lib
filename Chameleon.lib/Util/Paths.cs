@@ -22,7 +22,7 @@ public static class FilePaths {
 	public static string EnsureDirectoryExists(params string[] paths) {
 		var path = Path.Combine(paths);
 		try {
-			if (!Directory.Exists(path)) 				return Directory.CreateDirectory(path).FullName;
+			if (!Directory.Exists(path)) return Directory.CreateDirectory(path).FullName;
 		} catch (Exception ex) {
 			Toaster.Error($"Error creating directory: {ex.Message}");
 		}

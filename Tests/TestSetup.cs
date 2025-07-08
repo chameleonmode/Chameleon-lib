@@ -8,8 +8,8 @@ namespace Tests;
 public abstract class TestSetup : IAsyncLifetime {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 	public TestSetup(int dictionary = 0) {
-		IoC.Instance.StartUps.Add(AddonsServer.Instance);
-		IoC.Instance.Configure(() => {
+		IoC.I.StartUps.Add(AddonsServer.Instance);
+		IoC.I.Configure(() => {
 			return new WritableConfiguration(new ConfigurationBuilder()
 				.SetBasePath(Directory.GetCurrentDirectory())
 				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -19,7 +19,7 @@ public abstract class TestSetup : IAsyncLifetime {
 			_ = services;
 		});
 
-		IoC.Instance.Init( _ => {
+		IoC.I.Init( _ => {
 			IoC.SetJsonValue(new LoginSettings(
 				Environment.Directory[dictionary].email,
 				Environment.Directory[dictionary].license

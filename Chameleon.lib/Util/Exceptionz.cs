@@ -30,6 +30,14 @@ public static class EX {
 	public static void Try<TT>(Action action, Action<TT>? caught = null) 
 		where TT : Exception => Catch(() => { action(); }, caught);
 
+	public static async Task<T?> Catch<T>(Func<Task<T>> action, Func<Exception, Task<T>> caught) {
+		try {
+			return await action();
+		} catch (Exception e) {
+			PrintException(e);
+			return await caught(e);
+		}
+	}
 	public static async Task<T?> Catch<T>(Func<Task<T>> action, Action<Exception>? caught = null) {
 		try {
 			return await action();

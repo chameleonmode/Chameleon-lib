@@ -13,7 +13,7 @@ public class IOCTest {
 			await Task.Delay(2000); // 
 			_tcs.SetResult(true);
 		}
-		IoC.Instance.Configure(() => {
+		IoC.I.Configure(() => {
 			return new WritableConfiguration(new ConfigurationBuilder()
 				.SetBasePath(Directory.GetCurrentDirectory())
 				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -23,7 +23,7 @@ public class IOCTest {
 			_ = services;
 		});
 		// Setup IoC
-		IoC.Instance.Init((on) => {
+		IoC.I.Init((on) => {
 			setup();
 		});
 	}

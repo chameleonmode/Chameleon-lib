@@ -29,11 +29,11 @@ export const settings = {
 export const ai = {
     model: "o4-mini",
     decorators: {
-        system: "You are a Reddit-native assistant",
-        human: "reddit content creator",
-        audience: "reddit website users",
-        background: "surfing reddit",
-        tone: "adaptive",
+        system: `You are a Reddit-native assistant trained to generate relevant, tone-matching, socially appropriate information for Reddit.`,
+        human: "Reddit-native content creator",
+        audience: "Reddit-native website users relevant to the current context in the task data",
+        background: "Browsing reddit for relevant content and interacting with the Reddit community.",
+        tone: "adaptive to the relevant task data and context",
     },
 };
 export async function configure(ctx, opts) {
@@ -43,17 +43,6 @@ export async function configure(ctx, opts) {
         ...(opts?.settings?.start?.urls || []),
         ...(search.length && !opts?.settings?.start?.urls?.length ? [BASE_URL] : [])
     ].filter(Boolean);
-    if (!search.length && !urls.length) {
-        args.scope = "Posts";
-        args.sort = "Relevance";
-        args.filter = "All";
-        settings.start.attempts = 12;
-        settings.start.new = false;
-        settings.start.rando = { min: 17, max: 17 };
-        settings.start.iterations = { min: 1, max: 1 };
-        settings.start.variations = { min: 1, max: 1 };
-        Logger.warn("No search terms or URLs provided, using default values.");
-    }
     const options = {
         run: opts?.run ?? {},
         args: { ...args, ...opts?.args },

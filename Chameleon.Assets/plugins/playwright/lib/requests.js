@@ -22,7 +22,8 @@ export var promptee;
     promptee.endpoint = endpoint;
     function promptio(ctx) {
         const prompt = {
-            model: "o4-mini",
+            ...ctx,
+            model: ctx.model || "o4-mini",
             task: bang("prompt request task", ctx.task),
             decorators: bang("prompt request decorators", promptee.state.ai?.decorators, promptee.state),
             generations: bang("prompt request generations", ctx.generations),

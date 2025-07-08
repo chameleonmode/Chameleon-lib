@@ -60,7 +60,9 @@ public class BrowserProxy {
   }
 }
 public class BrowserProfile {
-  public int Id { get; set; }
+  public int Id { get; init; } = -1; // -1 is a special value for the default profile
+  public bool Extensions { get; init; } = true;
+  public int Port { get; set; }
   public BrowserProxy Proxy { get; set; } = new();
   public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 
@@ -81,8 +83,21 @@ public record class BrowserRecord(string Name, string Path) {
     return Name ?? Path;
   }
 }
+public static class Factorially {
+  public static SysBrowserSettings Chrome(BrowserProfile profile) {
+    return new SysBrowserSettings(new(SystemBrowserType.Chrome, profile));
+  }
+  public static SysBrowserSettings Chrome(string url, int? port = null, bool extensions = false, EmulationOptions? emulations = null) {
+    return Chrome(new BrowserProfile {
+      StartUrl = url,
+      Extensions = extensions,
+      Emulations = emulations ?? new(),
+      Port = port ?? TcpUtil.NextFreePort(9613)
+    });
+  }
+}
 public record SysBrowserOpenOptions(SystemBrowserType BrowserType, BrowserProfile Profile);
-public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions, int Port = 0) {
+public record SysBrowserSettings(SysBrowserOpenOptions OpenOptions) {
   public SystemBrowserType BrowserType => OpenOptions.BrowserType;
   public BrowserProfile Profile => OpenOptions.Profile;
   public string BrowserCache => Resources.Assert(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString());
@@ -122,13 +137,12 @@ public static class Project {
   public static async Task<bool> Init() {
     await AddonsServer.Instance.Start();
 
-    var version = IoC.GetValue(nameof(Extensions));
-    if (version is not string ver || ver != Const.Assembled) {
-      IoC.Instance.Config?.SetValue(nameof(Extensions), Const.Assembled);
+    if (IoC.GetValue(nameof(Extensions)) is not string ver || ver != Const.Assembled) {
+      IoC.SetValue(nameof(Extensions), Const.Assembled);
       await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
       await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
     }
-    
+
     return Initialized.TrySetResult(true);
   }
 }

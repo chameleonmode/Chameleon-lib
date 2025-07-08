@@ -1,4 +1,4 @@
-import { er, bang, bing, delay, Logger, promptee } from "../../lib/index.js";
+import { er, bang, bing, Logger, promptee } from "../../lib/index.js";
 import { configure, BASE_URL, scopeulation, } from "./configure.js";
 import { Actor } from "../actor.js";
 export class Reddit extends Actor {
@@ -37,16 +37,16 @@ export class Reddit extends Actor {
                     const locatorz = await this.navigateIntoPost().catch(async () => {
                         const scopeulator = this.scopeulate();
                         const finder = await scopeulator.findulator();
+                        await this.scrollabit(6);
                         return await finder.find.locator.all();
                     });
-                    await this.scrollabit();
                     const batches = [[]];
                     for (let i = 0; i < locatorz.length; i++) {
                         const idx = batches.length - 1;
                         if (batches[idx].length >= 10)
                             batches.push([]);
                         const listing = locatorz[i];
-                        if (!await listing.isVisible())
+                        if (!(await listing.isVisible()))
                             continue;
                         const { id, content, attributes } = await this.raw(listing, false).catch();
                         batches[idx].push({ id, content, listing, attributes });
@@ -56,47 +56,30 @@ export class Reddit extends Actor {
                 const rank = async (func) => {
                     for (const data of batches) {
                         const promptmise = promptee.ranking({
-                            task: "rank_reddit_threads",
+                            task: `score these reddit threads by relevance to the users inception. make sure to include a rank number along with the thread ID provided.`,
                             generations: {
                                 type: "ranking",
                                 range: { min: 1, max: 1 },
                                 input: {
                                     data: data,
-                                    user_intent: `Rank all of these threads ${this.opts.settings.start.feature} on from ${this.page.url()}`,
+                                    user_intent: `Rank all of these threads for ${this.opts.settings.start.feature} @${this.page.url()}`,
                                 },
                             },
                         });
-                        const wait = async (count = 0) => {
-                            try {
-                                while (count++ < 10) {
-                                    await this.scrollabit();
-                                    const racer = await Promise.race([promptmise, delay(100)]);
-                                    if (typeof racer === "number")
-                                        continue;
-                                    return racer[0].data
-                                        .sort((a) => a.rank)
-                                        .map((item) => {
-                                        const thread = data.find((t) => t.id === item.id);
-                                        return thread?.listing;
-                                    });
-                                }
-                            }
-                            catch (error) {
-                                Logger.warn("Error in ranking wait", error);
-                            }
-                            return data.map((t) => t.listing);
-                        };
-                        await func(await wait());
+                        const reply = await this.waitabit(promptmise);
+                        const threaded = reply[0].data
+                            .sort((a) => a.rank)
+                            .map((item) => {
+                            const thread = data.find((t) => t.id === item.id);
+                            return thread?.listing;
+                        });
+                        await func(threaded);
                     }
                 };
-                return await rank(async (threads) => {
-                    return await attempter(async () => {
-                        return await this.findo(threads, async (thread) => {
-                            await pre();
-                            return await setup.funco(url, thread);
-                        });
-                    });
-                });
+                return await attempter(async () => await rank(async (threads) => await this.findo(threads, async (thread) => {
+                    await pre();
+                    return await setup.funco(url, thread);
+                })));
             }
         });
     }

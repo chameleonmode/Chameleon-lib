@@ -1,5 +1,5 @@
 import { Logger, promptee } from "../../../../lib/index.js";
-import { bang, delay } from "../../../../lib/utils.js";
+import { bang } from "../../../../lib/utils.js";
 import Reddito from "../../reddit.js";
 export class Subreddit {
     reddit;
@@ -34,17 +34,7 @@ export class Subreddit {
                             },
                         },
                     });
-                    await this.reddit.scrollabit(9);
-                    let racer = await Promise.race([promptmise, delay(100)]);
-                    if (typeof racer === "number")
-                        await this.reddit.scrollabit(6);
-                    racer = await Promise.race([promptmise, delay(100)]);
-                    if (typeof racer === "number")
-                        await this.reddit.scrollabit(3);
-                    racer = await Promise.race([promptmise, delay(100)]);
-                    if (typeof racer === "number")
-                        await this.reddit.scrollabit();
-                    const reply = await promptmise;
+                    const reply = await this.reddit.waitabit(promptmise);
                     const ranked = reply[0].data
                         .sort((a) => a.rank)
                         .map((item) => these.find((c) => c.id === item.id))
@@ -104,8 +94,8 @@ export class Subreddit {
         await this.reddit.click(submitButton);
     }
 }
-export default async function (params, action) {
-    const { reddit } = await Reddito(params, action);
+export default async function (opts, action) {
+    const { reddit } = await Reddito(opts, action);
     const subreddit = new Subreddit(reddit);
     return { reddit, subreddit };
 }

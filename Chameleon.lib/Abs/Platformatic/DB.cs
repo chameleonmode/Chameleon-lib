@@ -9,8 +9,8 @@ public record DataInteraction(object? Id, string InteractionId, string TenantId,
 public class DB : Web {
 	public Routes.License License { get; } = new();
 	public Routes.Uzer Userz { get; } = new();
-	public Routes.Interactions Interactions { get; } = new();
 	public Routes.Cooky Cooky { get; } = new();
+	public Routes.Interactions Interactions { get; } = new();
 	DB() { }
 
 	#region  Routes
@@ -25,8 +25,8 @@ public class DB : Web {
 				public record Customer(bool Status, string Secret);
 			}
 			public static object Body => new {
-				license_key = Session.I.LicenseKey,
-				email = Session.I.LoginName
+				license_key = Session.I.Settings.LicenseKey,
+				email = Session.I.Settings.LoginName
 			};
 			public Replies.Customer? Customer { get; private set; }
 			public Replies.Data? Data { get; private set; }
@@ -51,7 +51,7 @@ public class DB : Web {
 		public class Uzer() : Root("db/uzer") {
 			public static class Requests {
 				public static object Users => new {
-					email = Session.I.LoginName
+					email = Session.I.Settings.LoginName
 				};
 			}
 			public static class Replies {
@@ -64,21 +64,19 @@ public class DB : Web {
 				Current ??= await Get<User>(new($"{Prefix}/"));
 				Users ??= await Get<IEnumerable<User>>(new($"{Prefix}/users", Body: Requests.Users));
 			}
-			public Task<IEnumerable<User>?> Create(string email) {
-				return Post<IEnumerable<User>>(new($"{Prefix}/", Body: new { email }));
+			public async Task<User> Create(string email) {
+				return await Post<User>(new($"{Prefix}/", Body: new { email })) ?? throw new Exception("Failed to create user.");
 			}
 			public async Task<bool> Activate(string email) {
 				var res = await Create(email);
-				await Load();
-				return Users?.Any((u) => u.Email == email) ?? throw new Exception("Failed to activate user.");
+				Users = Users?.Append(res);
+				return Users?.Any(u => u.Email == email) == true;
 			}
 			public async Task<bool> Delete(string email) {
 				var user = Users?.FirstOrDefault(u => u.Email == email);
-				if (user?.Id == null) throw new Exception($"User with email {email} not found.");
-
-				var rep = await Delete<User>(new($"/users/{user.Id}"));
-				await Load();
-				return !Users?.Any(u => u.Email == email) ?? true;
+				var rep = await Delete<User>(new($"/users/{user?.Id}"));
+				Users = Users?.Where(u => u.Email != email).ToList();
+				return Users?.Any(u => u.Email == email) == false; // Return true if user was deleted
 			}
 		}
 
@@ -138,12 +136,6 @@ public class DB : Web {
 				});
 			}
 		}
-	}
-	#endregion
-
-	#region User's
-	public async Task EnsureUser() {
-		await Userz.Load();
 	}
 	#endregion
 
