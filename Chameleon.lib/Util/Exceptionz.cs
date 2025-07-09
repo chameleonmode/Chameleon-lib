@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Util;
 
@@ -10,36 +9,24 @@ public static class EX {
 			try {
 				return operation();
 			} catch (TT e) {
-				caught?.Invoke(e);
-				PrintException(e);
-				return default;
+				return Catcher(e);
 			}
 		}
 
-		public async Task<T?> Execute(Func<Task<T>> operation) {
+    public async Task<T?> Execute(Func<Task<T>> operation) {
 			try {
 				return await operation();
 			} catch (TT e) {
-				caught?.Invoke(e);
-				PrintException(e);
-				return default;
+				return Catcher(e);
 			}
 		}
-	}
 
-	public static T? Catch<T, TT>(Func<T> action, Action<TT>? caught = null) where TT : Exception {
-		var policy = new CatchPolicy<T, TT>(caught);
-		return policy.Execute(action);
+    private T? Catcher(TT e) {
+      caught?.Invoke(e);
+			PrintException(e);
+			return default;
+    }
 	}
-	public static T? Catch<T>(Func<T> action, Action<Exception>? caught = null) {
-		var policy = new CatchPolicy<T, Exception>(caught);
-		return Catch<T, Exception>(action, caught);
-	}
-	public static void Try(Action action, Action<Exception>? caught = null) =>
-		Catch<bool, Exception>(() => {
-			action();
-			return true;
-		}, caught);
 
 	public static async Task<T?> Catch<T, TT>(Func<Task<T>> action, Action<TT>? caught = null) where TT : Exception {
 		var policy = new CatchPolicy<T, TT>(caught);
@@ -51,6 +38,19 @@ public static class EX {
 	public static async Task Try(Func<Task> action, Action<Exception>? caught = null) =>
 		await Catch<bool, Exception>(async () => {
 			await action();
+			return true;
+		}, caught);
+
+	public static T? Catch<T, TT>(Func<T> action, Action<TT>? caught = null) where TT : Exception {
+		var policy = new CatchPolicy<T, TT>(caught);
+		return policy.Execute(action);
+	}
+	public static T? Catch<T>(Func<T> action, Action<Exception>? caught = null) {
+		return Catch<T, Exception>(action, caught);
+	}
+	public static void Try(Action action, Action<Exception>? caught = null) =>
+		Catch<bool, Exception>(() => {
+			action();
 			return true;
 		}, caught);
 
@@ -85,7 +85,6 @@ public static class EX {
 	), "exceptions.log");
 	public static string? LogContent => File.Exists(LogFile) ? File.ReadAllText(LogFile) : null;
 	
-
 	private static async void PrintException(Exception? e) {
 		if (e == null) return;
 		var logMessage = $"Message: {e.Message}\nStackTrace:\n{e.StackTrace}";
