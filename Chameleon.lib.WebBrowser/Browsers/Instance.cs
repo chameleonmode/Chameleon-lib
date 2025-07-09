@@ -226,20 +226,6 @@ public abstract class Browser : IBrowserInstance {
 		}
 	}
 
-	public virtual Process Brocessor(bool args) => new() {
-		StartInfo = new() {
-			FileName = ExePath,
-			Arguments = GetCommandLineArguments(args),
-			UseShellExecute = false,
-			CreateNoWindow = true,
-		},
-		EnableRaisingEvents = true,
-	};
-
-	public virtual Task Ensure() => Task.CompletedTask;
-	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
-	public abstract string PrefsFile { get; }
-	public abstract string ExePath { get; }
 	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments(bool args);
 

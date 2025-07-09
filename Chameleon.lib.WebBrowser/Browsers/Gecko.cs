@@ -9,17 +9,6 @@ using Chameleon.lib.WebBrowser.Services;
 namespace Chameleon.lib.WebBrowser.Browsers;
 
 public class Gecko : Browser {
-	public override Process Brocessor(bool headless) {
-		return new Process() {
-			StartInfo = new() {
-				FileName = ExePath,
-				Arguments = GetCommandLineArguments(headless),
-				UseShellExecute = false,
-				CreateNoWindow = true,
-			},
-			EnableRaisingEvents = true,
-		};
-	}
 
 	public override string PrefsFile => Path.Combine(Settings.BrowserCache, "prefs.js");
 	public override string ExeDir { get; } = OperatingSystem.IsMacOS()
@@ -477,5 +466,9 @@ public class Gecko : Browser {
 			// Other errors
 		}
 		return null;
+	}
+
+	protected override async Task InitializeExtensionPath() {
+		await Task.CompletedTask;
 	}
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Net;
 using chameleon.assets;
 using Chameleon.lib.Util;
@@ -118,11 +119,25 @@ public class EmulationOptions {
 #endregion
 
 public static class Project {
+  public static bool Staging { get; } = true && (Debugger.IsAttached || Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true");
+  
   public static class Extensions {
     public static string Chromium => Resources.Assert(
       FilePaths.AppDataDir, "extensions", "chromium"
     );
-    public static string Chromeleon => Path.Combine(Chromium, ExtensionType.chromeleon.ToString());
+    
+    public static string Chromeleon { 
+      get {
+        var devPath = Path.Combine(GetDevChromePath(), "chromeleon");
+        var prodPath = Path.Combine(Chromium, ExtensionType.chromeleon.ToString());
+        
+        if (Staging && Directory.Exists(devPath)) {
+          return devPath;
+        } else {
+          return prodPath;
+        }
+      }
+    }
 
     public static string Gecko => Resources.Assert(
       FilePaths.AppDataDir, "extensions", "gecko"
@@ -132,6 +147,15 @@ public static class Project {
 	  public static string Defaults => OperatingSystem.IsMacOS()
 			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..Resources/browser/extensions")
 			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources\\browser\\extensions");
+			
+    private static string GetDevChromePath() {
+      if (OperatingSystem.IsMacOS()) {
+        return Path.Combine("/Users/dev/src/chameleon-playwright/dist");
+      } else {
+        // Windows equivalent just as placeholder
+        return Path.Combine(@"C:\Projects\Chameleon\chameleon-playwright\dist");
+      }
+    }
   }
 
   public static TaskCompletionSource<bool> Initialized { get; } = new();

@@ -100,7 +100,17 @@ public class AddonsServer : IStartUp {
       );
 
       app.MapGet("/init", ([FromQuery] string instanceId, [FromQuery] string sessionId) => {
-        return $"{JSON.Serialize(AddonInstances[sessionId])}";
+        if (string.IsNullOrEmpty(sessionId)) {
+          return Results.BadRequest("Missing sessionId parameter");
+        }
+        
+        if (AddonInstances.TryGetValue(sessionId, out var config)) {
+          return Results.Content(JSON.Serialize(config), "application/json");
+        }
+        
+        // Log the missing session for debugging
+        Debug.WriteLine($"Session {sessionId} not found in AddonInstances. Available sessions: {string.Join(", ", AddonInstances.Keys)}");
+        return Results.NotFound($"Session {sessionId} not found");
       });
 
       // Get application state endpoint
@@ -127,7 +137,7 @@ public class AddonsServer : IStartUp {
           Debug.WriteLine($"Received data from instance {instanceId} with session {sessionId}");
 
           return Results.Json(type switch {
-            "init" => new { config = AddonInstances[sessionId!] },
+            "init" => GetInitResponse(sessionId.ToString()),
             "event" => new { status = "ok", message = "Event received" },
             "action" => new { status = "ok", message = "Action received" },
             _ => new { status = "error", message = "Invalid type" }
@@ -171,6 +181,23 @@ public class AddonsServer : IStartUp {
       await app.DisposeAsync();
       app = null;
     }
+  }
+
+  private object GetInitResponse(string sessionId) {
+    if (string.IsNullOrEmpty(sessionId)) {
+      Debug.WriteLine($"GetInitResponse: sessionId is null or empty");
+      return new { config = new { error = "Session ID is null or empty" } };
+    }
+    
+    if (!AddonInstances.TryGetValue(sessionId, out var config)) {
+      Debug.WriteLine($"GetInitResponse: Session {sessionId} not found in AddonInstances.");
+      Debug.WriteLine($"Available sessions: {string.Join(", ", AddonInstances.Keys)}");
+      Debug.WriteLine($"Total sessions: {AddonInstances.Count}");
+      return new { config = new { error = "Session not found", sessionId, availableSessions = AddonInstances.Keys.ToArray() } };
+    }
+    
+    Debug.WriteLine($"GetInitResponse: Found session {sessionId} successfully");
+    return new { config };
   }
 
   public static AddonsServer Instance { get; } = new();

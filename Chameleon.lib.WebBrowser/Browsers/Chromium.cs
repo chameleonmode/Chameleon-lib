@@ -127,6 +127,10 @@ public class Chromium : Browser {
 		}.Where(x => x != null));
 	}
 
+	protected override Task InitializeExtensionPath() {
+		return Task.CompletedTask;
+	}
+
 	// ...
 	protected override async Task WaitForWinHandle() {
 		if (OperatingSystem.IsWindows()) _ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != nint.Zero, 18);
