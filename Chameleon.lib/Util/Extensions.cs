@@ -4,10 +4,12 @@ using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Util;
 
-public static class Extensions {
+public static class Extensions
+{
   public static TResult Let<T, TResult>(this T self, Func<T, TResult> function) => function(self);
 
-  public static bool IsSimpleType(this Type type) {
+  public static bool IsSimpleType(this Type type)
+  {
     return type.IsPrimitive ||
            type == typeof(string) ||
            type == typeof(decimal) ||
@@ -18,15 +20,19 @@ public static class Extensions {
            type == typeof(Guid);
   }
 
-  public static void ForEach<T>(this IEnumerable<T> source, Action<T> action) {
+  public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
+  {
     foreach (var item in source) action(item);
   }
-  public static async Task ForEach<T>(this IEnumerable<T> source, Func<T, Task> action, CancellationToken cts = default) {
+  public static async Task ForEach<T>(this IEnumerable<T> source, Func<T, Task> action, CancellationToken cts = default)
+  {
     foreach (var item in source) await action(item).WaitAsync(cts);
   }
 
-  public static async Task TryEach<T>(this IEnumerable<T> source, Func<T, Task> action, CancellationToken cts = default) {
-    await source.ForEach(async item => {
+  public static async Task TryEach<T>(this IEnumerable<T> source, Func<T, Task> action, CancellationToken cts = default)
+  {
+    await source.ForEach(async item =>
+    {
       await EX.Try(
         async () => { await action(item); },
         e => { Toaster.Error($"Error processing item, Error: {e.Message}"); }
@@ -34,10 +40,18 @@ public static class Extensions {
     }, cts);
   }
 
-  public static async Task Empty<T>(this IList<T> source, Func<T, Task<bool>> predicate) {
+  public static async Task Empty<T>(this ICollection<T> source, Func<T, Task<bool>> predicate) {
     for (var i = source.Count - 1; i >= 0; i--) {
-      if (await predicate(source.ElementAt(i)))
-        source.RemoveAt(i);
+      var element = source.ElementAt(i);
+      if (await predicate(element) == false) continue;
+      else source.Remove(element);
+    }
+  }
+  public static void Empty<T>(this ICollection<T> source, Func<T, bool> predicate) {
+    for (var i = source.Count - 1; i >= 0; i--) {
+      var ele = source.ElementAt(i);
+      if (!predicate(ele)) continue;
+      else source.Remove(ele);
     }
   }
 }
