@@ -43,8 +43,8 @@ public static class Project {
 
 	public static TaskCompletionSource<bool> Initialized { get; } = new();
 	public static async Task<bool> Init() {
-		var version = IoC.GetValue(nameof(Plugins));
-		if (version is not string ver || ver != "0") {
+		var version = IoC.GetValue(nameof(Plugins)); 
+		if (version is not string ver || ver != "0") { // @TODO: change back to IoC.Assembled; at next version update
 			IoC.I.Config?.SetValue(nameof(Plugins), "0");
 			Toaster.Info("Installing updates...");
 			

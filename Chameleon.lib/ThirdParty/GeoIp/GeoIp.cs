@@ -45,17 +45,17 @@ public class Api {
 			},
 			new(e => {
 				timeout *= 2;
-				Toaster.Info($"Retrying with {timeout} second timeout due to - {e.Message}");
+				Toaster.Error($"{e.Message}", $"Retrying with {timeout} second timeout...");
 				return Task.CompletedTask;
 			}, retries: 2)
 		);
 		if (response is null ||
 			JSON.Deserialize<Ipapi>(response) is not { } ipapi
-		) throw new Exception("Failed to retrieve IP data from Ipapi.");
+		) throw new Exception("Failed to retrieve IP data.");
 
 		Toaster.Info(
-			$"Retrieved IP data: {ipapi.query} - {ipapi.country} ({ipapi.countryCode}) {ipapi.regionName} \n" +
-			$"{ipapi.city} - {ipapi.lat}, {ipapi.lon} - {ipapi.timezone}");
+			$"IP {ipapi.query}: {ipapi.city} {ipapi.country} ({ipapi.countryCode})\n" +
+			$"({ipapi.lat}, {ipapi.lon}) - {ipapi.timezone}");
 		return ipapi;
 	}
 }
