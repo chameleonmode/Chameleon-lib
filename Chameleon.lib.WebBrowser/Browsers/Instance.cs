@@ -134,8 +134,7 @@ public abstract class Browser : IBrowserInstance {
 			// ipapi.proxy = JSON.Serialize(Settings.Profile.Proxy);
 			// await File.WriteAllTextAsync(file, JSON.Serialize(ipapi));
 			// return ipapi;
-			Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
-			return await Api.GeoIp(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
+			return await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? new() {
 				timezone = "Pacific/Honolulu",
 				lat = 34.052235,
 				lon = -118.243683,

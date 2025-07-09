@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.ThirdParty.GeoIp;
@@ -30,23 +31,31 @@ public class Ipapi {
 }
 
 public class Api {
-	public static async Task<Ipapi?> GeoIp(WebProxy? proxy, Action<string> onretry) {
-		var timeout = 4;
+	public static async Task<Ipapi?> GeoIp(WebProxy? proxy) {
+		Toaster.Info($"Requesting timezone/geo data for {proxy?.Address?.Host ?? "local"}");
+		var timeout = 3;
 		var response = await EX.Poly(
 			async () => {
 				using var client = new HttpClient(new HttpClientHandler { Proxy = proxy }) {
 					Timeout = TimeSpan.FromSeconds(timeout)
 				};
 				var response = await client.GetAsync("http://ip-api.com/json");
-				onretry(response.EnsureSuccessStatusCode().StatusCode.ToString());
+				response.EnsureSuccessStatusCode();
 				return await response.Content.ReadAsStringAsync();
 			},
 			new(e => {
 				timeout *= 2;
-				onretry($"Retrying with {timeout} second timout due to: {e.Message}");
+				Toaster.Info($"Retrying with {timeout} second timeout due to - {e.Message}");
 				return Task.CompletedTask;
-			})
+			}, retries: 2)
 		);
-		return response is not null ? JSON.Deserialize<Ipapi>(response) : throw new Exception("Failed to retrieve IP data from Ipapi.");
+		if (response is null ||
+			JSON.Deserialize<Ipapi>(response) is not { } ipapi
+		) throw new Exception("Failed to retrieve IP data from Ipapi.");
+
+		Toaster.Info(
+			$"Retrieved IP data: {ipapi.query} - {ipapi.country} ({ipapi.countryCode}) {ipapi.regionName} \n" +
+			$"{ipapi.city} - {ipapi.lat}, {ipapi.lon} - {ipapi.timezone}");
+		return ipapi;
 	}
 }

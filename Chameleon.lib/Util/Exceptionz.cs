@@ -54,7 +54,7 @@ public static class EX {
 			return true;
 		}, caught);
 
-	public class RetryPolicy<T, TT>(Func<TT, Task>? caught = null, int sleep = 2500, int retries = 3) where TT : Exception {
+	public class RetryPolicy<T, TT>(Func<TT, Task>? caught = null, int sleep = 2000, int retries = 3) where TT : Exception {
 		private readonly Func<TT, Task>? caught = caught;
 		private int sleep = sleep;
 		private int retries = retries;
