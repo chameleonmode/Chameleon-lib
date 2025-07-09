@@ -123,47 +123,22 @@ public static class EX {
 		await operation();
 	}, caught, sleep, retries);
 
-	public static string GetLogFilePath() {
-		return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "exceptions.log");
-	}
+	public static string LogFile => Path.Combine(FilePaths.EnsureDirectoryExists(
+		FilePaths.AppDataDir, "logz"
+	), "exceptions.log");
+	public static string? LogContent => File.Exists(LogFile) ? File.ReadAllText(LogFile) : null;
 	
-	public static string? GetLogContent() {
-		try {
-			var logPath = GetLogFilePath();
-			return File.Exists(logPath) ? File.ReadAllText(logPath) : null;
-		} catch {
-			return null;
-		}
-	}
-	
-	public static bool CopyLogToFile(string destinationPath) {
-		try {
-			var sourcePath = GetLogFilePath();
-			if (File.Exists(sourcePath)) {
-				File.Copy(sourcePath, destinationPath, true);
-				return true;
-			}
-			return false;
-		} catch {
-			return false;
-		}
-	}
 
-	private static void PrintException(Exception? e) {
+	private static async void PrintException(Exception? e) {
 		if (e == null) return;
 		var logMessage = $"Message: {e.Message}\nStackTrace:\n{e.StackTrace}";
-		Debug.WriteLine(logMessage);
-		LogToFile(logMessage);
-		PrintException(e.InnerException);
-	}
-
-	private static void LogToFile(string message) {
+		var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {logMessage}{Environment.NewLine}";
+		Debug.WriteLine(logEntry);
 		try {
-			var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "exceptions.log");
-			var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
-			File.AppendAllText(logPath, logEntry);
+			await File.AppendAllTextAsync(LogFile, logEntry);
 		} catch {
 			Debug.WriteLine("Failed to log exception to file");
 		}
+		PrintException(e.InnerException);
 	}
 }
