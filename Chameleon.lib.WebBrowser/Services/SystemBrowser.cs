@@ -74,8 +74,7 @@ public class SystemBrowser {
 
 				if (e is InvalidDataException or TimeoutException && Instances.ContainsKey(options)) _ = Instances.TryRemove(options, out _);
 				_ = browser?.LoadedTCS.TrySetResult(false);
-			}
-			);
+			});
 		} else if (browser.Brocess is null || browser.Brocess.HasExited) {
 			await browser.Closee();
 			browser.Close();
