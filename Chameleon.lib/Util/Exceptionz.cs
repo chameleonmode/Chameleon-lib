@@ -80,9 +80,22 @@ public static class EX {
 		return await Poly<T, Exception>(operation, policy);
 	}
 
-	private static void PrintException(Exception? e) {
+	public static string LogFile => Path.Combine(FilePaths.EnsureDirectoryExists(
+		FilePaths.AppDataDir, "logz"
+	), "exceptions.log");
+	public static string? LogContent => File.Exists(LogFile) ? File.ReadAllText(LogFile) : null;
+	
+
+	private static async void PrintException(Exception? e) {
 		if (e == null) return;
-		Debug.WriteLine($"Message: {e.Message}\nStackTrace:\n{e.StackTrace}");
+		var logMessage = $"Message: {e.Message}\nStackTrace:\n{e.StackTrace}";
+		var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {logMessage}{Environment.NewLine}";
+		Debug.WriteLine(logEntry);
+		try {
+			await File.AppendAllTextAsync(LogFile, logEntry);
+		} catch {
+			Debug.WriteLine("Failed to log exception to file");
+		}
 		PrintException(e.InnerException);
 	}
 }
