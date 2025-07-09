@@ -49,22 +49,13 @@ public abstract class Browser : IBrowserInstance {
 
 	public Task Closee() => ProcessUtil.TryKillProcess(Brocess);
 	public void Close() {
-		if (Brocess == null) return;
-		
-		if (OperatingSystem.IsMacOS()) MacOSWindowListener.Instance.RemPid(Brocess?.Id);
-		
-		try {
-			if (!LoadedTCS.Task.IsCompleted) {
-				_ = LoadedTCS.TrySetResult(false);
-			}
-		} catch { }
-		
-		try {
-			Brocess?.Dispose();
-		} catch { }
-		
-		Brocess = null;
 		InvokeEvent(BrowserEventType.Closed);
+		if (Brocess == null) return;
+		_ = LoadedTCS.TrySetResult(false);
+		
+		MacOSWindowListener.Instance.RemPid(Brocess?.Id);
+    Brocess?.Dispose();
+		Brocess = null;
 	}
 
 	public async Task Initialize(object? param = null) {
@@ -82,11 +73,8 @@ public abstract class Browser : IBrowserInstance {
 		await Task.Delay(1800);
 		await WaitForWinHandle();
 
-		if (!Brocess.HasExited)
-			_ = LoadedTCS.TrySetResult(true);
-		else
-			Close();
-
+		if (!Brocess.HasExited) _ = LoadedTCS.TrySetResult(true);
+		else Close();
 	}
 
 	public Process Brocessor(bool args) => new() {

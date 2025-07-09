@@ -27,6 +27,7 @@ public class MacOSWindowListener {
 	}
 
 	public void RemPid(int? pid) {
+		if (!OperatingSystem.IsMacOS()) return;
 		if (pid is int id) _ = targetPids.Remove(id);
 		if (targetPids.Count == 0) pollingTimer.Stop();
 	}

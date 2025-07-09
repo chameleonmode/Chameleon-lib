@@ -20,11 +20,10 @@ public class SystemBrowser {
 			windowEventHandler.OnDestroy += (obj) => {
 				EX.Try(() => {
 					for (var i = Instances.Count - 1; i >= 0; i--) {
-						if (!Instances.TryGetValue(Instances.Keys.ElementAt(i), out var browser) ||
-								browser == null ||
-								browser.Brocess?.MainWindowHandle != IntPtr.Zero ||
-								browser.Brocess?.HasExited == true
-						) { continue; } else { browser.Close(); }
+						if (!Instances.TryGetValue(Instances.Keys.ElementAt(i), out var browser) || browser == null) {
+							_ = Instances.TryRemove(Instances.Keys.ElementAt(i), out _);
+							continue;
+						} else browser.Close();
 					}
 				});
 			};
@@ -68,23 +67,20 @@ public class SystemBrowser {
 	public async Task<IBrowserInstance?> Open(LaunchOptions options) {
 		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
 		if (browser == null) {
-			var settings = new BrowserSettings(options);
-      try {
-				return browser = await Open(settings);
-			} catch (Exception e) {
+			return await EX.Catch(async () => browser = await Open(new BrowserSettings(options)), e => {
 				Toaster.Error(e.Message);
-				if (browser != null) browser.InvokeEvent(BrowserEventType.Error);
-				else if (Observers.TryGetValue(settings.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, BrowserEventType.Error)));
-				
+				if (browser != null) browser.InvokeEvent(BrowserEventType.Closed);
+				else if (Observers.TryGetValue(options.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, BrowserEventType.Closed)));
+
 				if (e is InvalidDataException or TimeoutException && Instances.ContainsKey(options)) _ = Instances.TryRemove(options, out _);
 				_ = browser?.LoadedTCS.TrySetResult(false);
 			}
-		} else if (browser.Brocess?.HasExited == true) {
-				browser.Close();
-				await Task.Delay(256);
-				return await Open(options);
-		} else {
-				browser.InvokeEvent(BrowserEventType.Foreground);
+			);
+		} else if (browser.Brocess is null || browser.Brocess.HasExited) {
+			await browser.Closee();
+			browser.Close();
+			await Task.Delay(256);
+			return await Open(options);
 		}
 		return browser;
 	}
