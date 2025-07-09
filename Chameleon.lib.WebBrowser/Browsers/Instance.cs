@@ -40,7 +40,6 @@ public abstract class Browser : IBrowserInstance {
 			if (OperatingSystem.IsWindows() && Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
 				_ = U32til.BringWindowToForeground(handle);
 			} else if (OperatingSystem.IsMacOS()) {
-				//if (MacOSUtil.SetForegroundWindow(Brocess.Id)) Brocess.Refresh();
 				Brocessor(false).Start();
 			}
 		}
@@ -50,15 +49,27 @@ public abstract class Browser : IBrowserInstance {
 
 	public Task Closee() => ProcessUtil.TryKillProcess(Brocess);
 	public void Close() {
+		if (Brocess == null) return;
+		
 		if (OperatingSystem.IsMacOS()) MacOSWindowListener.Instance.RemPid(Brocess?.Id);
-		_ = LoadedTCS.TrySetResult(false);
-		Brocess?.Dispose();
+		
+		try {
+			if (!LoadedTCS.Task.IsCompleted) {
+				_ = LoadedTCS.TrySetResult(false);
+			}
+		} catch { }
+		
+		try {
+			Brocess?.Dispose();
+		} catch { }
+		
 		Brocess = null;
 		InvokeEvent(BrowserEventType.Closed);
 	}
 
 	public async Task Initialize(object? param = null) {
 		if (Brocess is not null) return;
+		
 		await Ensure();
 		await InitializeExtensions();
 		if (LoadedTCS.Task.IsCompleted) return;
@@ -132,7 +143,6 @@ public abstract class Browser : IBrowserInstance {
 			};
 		}
 		var ipapi = await Ipapi();
-		Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");
 
 		// set the extension settings
 		AddonsServer.Instance.AddonInstances[SessionId] = new {
@@ -178,8 +188,52 @@ public abstract class Browser : IBrowserInstance {
 			navi = new {
 				enabled = Settings.Profile.Emulations.SpoofNavigator,
 			},
-		};
+			};
+		
+		await InitializeExtensionPath();
+		if (LoadedTCS.Task.IsCompleted) return;
+
+		Brocess = Brocessor(true);
+		var started = Brocess.Start();
+
+		await Task.Delay(1800);
+		await WaitForWinHandle();
+
+		if (Brocess != null) {
+			try {
+				var processId = Brocess.Id;
+				await Task.Delay(2000);
+				
+				try {
+					using var testProcess = Process.GetProcessById(processId);
+					if (testProcess.HasExited) {
+						Close();
+						return;
+					}
+				} catch (ArgumentException) {
+					Close();
+					return;
+				}
+				
+				try {
+					var hasExited = Brocess.HasExited;
+					if (!hasExited && !LoadedTCS.Task.IsCompleted) {
+						_ = LoadedTCS.TrySetResult(true);
+					} else {
+						Close();
+					}
+				} catch (InvalidOperationException) {
+					Close();
+				}
+			} catch (Exception) {
+				Close();
+			}
+		} else {
+			Close();
+		}
 	}
+
+	protected abstract Task InitializeExtensionPath();
 	protected abstract string GetCommandLineArguments(bool args);
 
 	protected virtual async Task WaitForWinHandle() {
