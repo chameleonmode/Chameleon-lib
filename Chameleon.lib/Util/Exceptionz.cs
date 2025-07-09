@@ -123,9 +123,47 @@ public static class EX {
 		await operation();
 	}, caught, sleep, retries);
 
+	public static string GetLogFilePath() {
+		return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "exceptions.log");
+	}
+	
+	public static string? GetLogContent() {
+		try {
+			var logPath = GetLogFilePath();
+			return File.Exists(logPath) ? File.ReadAllText(logPath) : null;
+		} catch {
+			return null;
+		}
+	}
+	
+	public static bool CopyLogToFile(string destinationPath) {
+		try {
+			var sourcePath = GetLogFilePath();
+			if (File.Exists(sourcePath)) {
+				File.Copy(sourcePath, destinationPath, true);
+				return true;
+			}
+			return false;
+		} catch {
+			return false;
+		}
+	}
+
 	private static void PrintException(Exception? e) {
 		if (e == null) return;
-		Debug.WriteLine($"Message: {e.Message}\nStackTrace:\n{e.StackTrace}");
+		var logMessage = $"Message: {e.Message}\nStackTrace:\n{e.StackTrace}";
+		Debug.WriteLine(logMessage);
+		LogToFile(logMessage);
 		PrintException(e.InnerException);
+	}
+
+	private static void LogToFile(string message) {
+		try {
+			var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "exceptions.log");
+			var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
+			File.AppendAllText(logPath, logEntry);
+		} catch {
+			Debug.WriteLine("Failed to log exception to file");
+		}
 	}
 }
