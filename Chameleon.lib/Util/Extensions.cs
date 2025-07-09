@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using Chameleon.lib.Helpers;
 
 namespace Chameleon.lib.Util;
 
@@ -21,7 +22,16 @@ public static class Extensions {
     foreach (var item in source) action(item);
   }
   public static async Task ForEach<T>(this IEnumerable<T> source, Func<T, Task> action, CancellationToken cts = default) {
-    foreach (var item in source) await Task.Run(async () => await action(item), cts);
+    foreach (var item in source) await action(item).WaitAsync(cts);
+  }
+
+  public static async Task TryEach<T>(this IEnumerable<T> source, Func<T, Task> action, CancellationToken cts = default) {
+    await source.ForEach(async item => {
+      await EX.Try(
+        async () => { await action(item); },
+        e => { Toaster.Error($"Error processing item, Error: {e.Message}"); }
+      ).WaitAsync(cts);
+    }, cts);
   }
 
   public static async Task Empty<T>(this IList<T> source, Func<T, Task<bool>> predicate) {
@@ -30,32 +40,19 @@ public static class Extensions {
         source.RemoveAt(i);
     }
   }
-
-  public static string GetDescription(this Enum value) {
-    var field = value.GetType().GetField(value.ToString());
-    if (field == null)
-      return value.ToString();
-
-    var attribute = Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) as DescriptionAttribute;
-    return attribute == null ? value.ToString() : attribute.Description;
-  }
 }
 
 public static class TaskExtensions {
-  public static Task RunInBackground<T>(this Task<T> task, CancellationToken cancellationToken = default) {
-    return Task.Run(() => task, cancellationToken);
+  public static Task RunInBackground<T>(this Task<T> task, CancellationToken cts = default) {
+    return Task.Run(() => task, cts);
   }
 
-  public static Task RunInBackground(this Task task, CancellationToken cancellationToken = default) {
-    return Task.Run(() => task, cancellationToken);
+  public static Task RunInBackground(this Task task, CancellationToken cts = default) {
+    return Task.Run(() => task, cts);
   }
 
-  public static async Task<T?> RunInBackgroundWithResult<T>(this Task<T> task, CancellationToken cancellationToken = default) {
-    var result = default(T);
-    await Task.Run(async () => {
-      result = await task;
-    }, cancellationToken);
-    return result;
+  public static async Task<T?> RunInBackgroundWithResult<T>(this Task<T> task, CancellationToken cts = default) {
+    return await Task.Run(async () => await task, cts);
   }
 }
 
@@ -71,9 +68,7 @@ public static class TagsExtensions {
 }
 
 public static class ValidationExtensions {
-
   public static bool IsValidPhoneNumber(this string? value) {
-
     if (string.IsNullOrEmpty(value)) return false;
 
     var pattern = @"^\s*(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\s*$";

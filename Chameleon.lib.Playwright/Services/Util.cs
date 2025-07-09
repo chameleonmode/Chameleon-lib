@@ -23,7 +23,7 @@ public static class Util {
 	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> ExecuteCookieActionAsync(Options options, List<Cookie>? cookiesToSet = null) {
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = options.Browser.BrowserType == SystemBrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+		var playwrightBrowser = options.Browser.BrowserType == WebBrowser.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
 
 		if (options.Port != null) {
 			try {
@@ -83,10 +83,10 @@ public static class Util {
 	}
 
 	private static async Task CopyProfileDataToTempDir(Options options, string userProfileActualDir, string tempDir) {
-		if (options.Browser.BrowserType == SystemBrowserType.Firefox) {
+		if (options.Browser.BrowserType == WebBrowser.BrowserType.Firefox) {
 			var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
 			if (File.Exists(originalCookieFile)) {
-				File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
+        File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
 			}
 		} else {
 			var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
@@ -98,7 +98,7 @@ public static class Util {
 				_ = Directory.CreateDirectory(tempNetworkDir);
 				var originalCookieFile = Path.Combine(userProfileActualDir, "Default", "Network", "Cookies");
 				if (File.Exists(originalCookieFile)) {
-					File.Copy(originalCookieFile, Path.Combine(tempNetworkDir, "Cookies"), true);
+          File.Copy(originalCookieFile, Path.Combine(tempNetworkDir, "Cookies"), true);
 				}
 			}
 		}
@@ -121,8 +121,8 @@ public static class Util {
 		}
 	}
 
-	public static async Task<string> GetBrowseExecutablePath(SystemBrowserType browserType) {
-		return browserType == SystemBrowserType.Firefox
+	public static async Task<string> GetBrowseExecutablePath(WebBrowser.BrowserType browserType) {
+		return browserType == WebBrowser.BrowserType.Firefox
 				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Playwright's Firefox")
 				: BrowserInfo.Find(browserType).Path;
 	}

@@ -1,8 +1,8 @@
 import { expect } from "@playwright/test";
 import { rando, er, sleepo, tryForEach, bang, delay } from "../lib/utils.js";
+import { state } from "../lib/index.js";
 import { Logger } from "../lib/logger.js";
 import { Player } from "./player.js";
-import { promptee } from "../lib/requests.js";
 export class Actor {
     page;
     opts;
@@ -12,7 +12,7 @@ export class Actor {
         this.page = page;
         this.opts = opts;
         this.scenario = scenario;
-        promptee.state.ai = opts.ai;
+        state.ai = opts.ai;
     }
     async init() {
         this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
@@ -59,7 +59,7 @@ export class Actor {
             }
             const text = await location.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
             if (text)
-                return bang("txtContent: " + selector, text, { location, text }, { print: false });
+                return bang("txtContent " + selector, text, { location, text }, { print: false });
         }
         throw er(`No visible elements found for ${selector}`, locator);
     }
@@ -71,7 +71,7 @@ export class Actor {
             }
             return attrs;
         });
-        return bang("attributes: " + locator, attributes, { locator, attributes }, { print: false });
+        return bang("attributes " + locator, attributes, { locator, attributes }, { print: false });
     }
     async selectAll(locator, clear = false) {
         const modifierKey = process.platform === "win32" ? "Control" : "Meta";
@@ -100,9 +100,9 @@ export class Actor {
             expect(locator).toBeEnabled({ timeout }),
             expect(locator).toBeVisible({ timeout }),
         ]);
-        bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto);
+        bang(`expecto ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto);
         await locator.waitFor({ timeout });
-        return bang(`assert: ${locator}`, locator, { timeout, locator });
+        return bang(`assert ${locator}`, locator, { timeout, locator });
     }
     async click(thang, options = {}) {
         const { timeout = this.opts.settings.timeouts.wait } = options;

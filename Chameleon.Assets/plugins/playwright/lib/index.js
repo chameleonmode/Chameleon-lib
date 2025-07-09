@@ -1,3 +1,4 @@
+export const state = { api: undefined, ai: undefined, testing: false };
 export * from "./types/ai.js";
 export * from "./types/scripts.js";
 export * from "./computers/browser.js";

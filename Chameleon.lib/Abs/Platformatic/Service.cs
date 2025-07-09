@@ -1,9 +1,11 @@
 using Chameleon.lib.AIR.Actors;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Abs.Platformatic;
 
 public class Service : Web {
+  public Routes.Roboto Robo { get; } = new();
   public static class Routes {
     public class App() : Root("app") {
       public static App Instance { get; } = new();
@@ -60,34 +62,45 @@ public class Service : Web {
       }
     }
 
-    public class Promptee() : Root("robo") {
-      public static Promptee Instance { get; } = new();
+    public class Roboto() : Root("robo") {
       public record Rep<T>(T Reply);
       public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
       public record GenorateResponse(string Type, string[] Data, object? Id, object? Reason);
-      public static Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
+      public Task<Rep<IEnumerable<GenorateResponse>>?> Genorate(GenorateRequest request) {
         return Post<Rep<IEnumerable<GenorateResponse>>>(new(
-          $"{Instance.Prefix}/terms",
+          $"{Prefix}/terms",
           Headers: new() { { "ai", "origato" }, { "model", "o4-mini" } },
           Authenticate: false,
           Body: new {
             decorators = request.Decorators,
-            task = $"research and suggest search term variations the data must always be an array of  {request.Variations} leng",
+            task = $"suggest {(
+              request.Variations)} variations of each of the terms in the input data array. the data in each reply should be a string array of {(
+              request.Variations)} length",
             generations = new {
               type = "term",
               range = new { min = request.Search.Count(), max = request.Search.Count() },
               input = new {
                 type = "search",
                 data = request.Search,
-                user_intent = $"consider each of these terms as and respond with {request.Variations} of each as distinct meaning unless otherwise specified",
+                user_intent = $"consider each of these terms as a batch of distinct meanings unless otherwise specified",
               },
             },
           }
         ));
       }
+      public async Task<IEnumerable<string>> Terms(GenorateRequest request, int tries = 3) {
+        Toaster.Info($"Tries left {tries} to generate {request.Variations} variation{(
+            request.Variations > 1 ? "(s)" : "" )} for {request.Search.Count()} term{(
+            request.Search.Count() > 1 ? "(s)" : "")}");
+
+        var response = await Genorate(request);
+        return response is not null
+           ? response.Reply.SelectMany(i => i.Data.Select(t => t.Trim()).Where(t => t.IsNot()))
+           : tries > 0 ? await Terms(request, tries - 1) : [];
+      }
     }
   }
 
   // Singleton
-  public static Service Instance { get; } = new();
+  public static Service I { get; } = new();
 }

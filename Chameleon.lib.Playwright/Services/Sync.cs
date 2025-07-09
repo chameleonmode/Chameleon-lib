@@ -38,7 +38,7 @@ public sealed class PlaywrightCookiesSyncService {
 	}
 
 	// Syncs cookies to browser
-	public async Task SyncCookies(SystemBrowserType browserType) {
+	public async Task SyncCookies(WebBrowser.BrowserType browserType) {
 		// Check latest cookies on server
 		if (!await HasCookies()) {
 			Toaster.Info("No cookies to sync");
@@ -49,7 +49,7 @@ public sealed class PlaywrightCookiesSyncService {
 		var exePath = await Util.GetBrowseExecutablePath(browserType);
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = browserType == SystemBrowserType.Firefox
+		var playwrightBrowser = browserType == WebBrowser.BrowserType.Firefox
 				? playwright.Firefox
 				: playwright.Chromium;
 

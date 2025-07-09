@@ -40,9 +40,9 @@ public class SystemBrowser {
 		// await AddonsServer.Instance.Start();
 		settings.Profile.Port = settings.Profile.Port == 0 ? TcpUtil.NextFreePort(9613) : settings.Profile.Port;
 		IBrowserInstance browser = settings.BrowserType switch {
-			SystemBrowserType.Brave => new Brave() { Settings = settings },
-			SystemBrowserType.Chrome => new Chrome() { Settings = settings },
-			SystemBrowserType.Firefox => new Firefox() { Settings = settings },
+			BrowserType.Brave => new Brave() { Settings = settings },
+			BrowserType.Chrome => new Chrome() { Settings = settings },
+			BrowserType.Firefox => new Firefox() { Settings = settings },
 			_ => throw new NotImplementedException(),
 		};
 		if(
@@ -62,7 +62,8 @@ public class SystemBrowser {
 		_ = browser.Initialize();
 		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6))) browser.InvokeEvent(BrowserEventType.Opened);
 		else if(!settings.Profile.Extensions) throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
-		return Instances[settings.OpenOptions];
+		Instances[settings.OpenOptions] = browser;
+		return browser;
 	}
 	public async Task<IBrowserInstance?> Open(LaunchOptions options) {
 		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
@@ -88,13 +89,13 @@ public class SystemBrowser {
 		return browser;
 	}
 
-	public IEnumerable<SystemBrowserType> HasInstanceOf(int id, Delegatorz.Event<BrowserEvent> action) {
+	public IEnumerable<BrowserType> HasInstanceOf(int id, Delegatorz.Event<BrowserEvent> action) {
 		if (Observers.TryGetValue(id, out var value)) value.Add(action);
 		else Observers[id] = [action];
 
 		return Instances
 			.Where(x => x.Value?.Settings.Profile.Id == id)
-			.Select(b => b.Value?.Settings.BrowserType ?? SystemBrowserType.Unknown);
+			.Select(b => b.Value?.Settings.BrowserType ?? BrowserType.Unknown);
 	}
 
 	// Singleton

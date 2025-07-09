@@ -3,19 +3,16 @@
 namespace Chameleon.lib.Util;
 public static class FilePaths {
 	public static string AppDataDir => EnsureDirectoryExists(
-		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Const.AppName
+		Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), IoC.AppName
 	);
 	public static string AppDataLocalDir => EnsureDirectoryExists(
-		Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Const.AppName
+		Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), IoC.AppName
 	);
 	public static string AppTempDir => EnsureDirectoryExists(
-		Path.GetTempPath(), Const.AppName
+		Path.GetTempPath(), IoC.AppName
 	);
 	public static string AppDownloadDir => EnsureDirectoryExists(
 		AppTempDir, "Downloads"
-	);
-	public static string Roboto => EnsureDirectoryExists(
-		AppDataDir, "Roboto"
 	);
 	
 

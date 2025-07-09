@@ -1,6 +1,40 @@
-import { er, bang, bing, Logger, promptee } from "../../lib/index.js";
-import { configure, BASE_URL, scopeulation, } from "./configure.js";
+import { er, bang, bing, Logger, promptee, state } from "../../lib/index.js";
+import { configure, BASE_URL } from "./configure.js";
 import { Actor } from "../actor.js";
+export class Scopeulation {
+    threaded = [];
+    visited = [];
+    searched = [];
+    base = (url) => new URL(url).href === new URL(BASE_URL).href;
+    user = (url) => /\.com\/user\/[^/]+/.test(url);
+    subreddit = (url) => /\/r\/[^/]+\/?$/.test(url);
+    comments = (url) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
+    search = (url) => /\/r\/[^/]+\/search(?:\/.*)?$/.test(url);
+    iterative = (url) => this.comments(url) || this.search(url) || this.user(url)
+        ? url
+        : url.replace(/\/?(search)?$/, "/search");
+    existing(thread) {
+        if (!this.threaded.some((v) => JSON.stringify(v.listing) === JSON.stringify(thread.listing))) {
+            scopeulation.threaded.push(thread);
+            return thread;
+        }
+    }
+    scoped(current) {
+        const url = this.visited[this.visited.length - 1];
+        const scope = ["People", "Communities"].includes(current) &&
+            (this.subreddit(url) || this.comments(url) || this.search(url))
+            ? "Posts"
+            : current;
+        const Url = new URL(url);
+        const type = Url.searchParams.get("type");
+        const sort = Url.searchParams.get("sort");
+        const t = Url.searchParams.get("t");
+        const community = scope === "Communities" || type === "communities";
+        const people = scope === "People" || type === "people" || this.user(url);
+        return { url, scope, type, sort, t, community, people };
+    }
+}
+export const scopeulation = new Scopeulation();
 export class Reddit extends Actor {
     constructor(setup) {
         super(setup.page, setup.options, async (url) => {
@@ -33,53 +67,65 @@ export class Reddit extends Actor {
                 });
             }
             else {
-                const { batches } = await (async () => {
+                const rank = async (func) => {
                     const locatorz = await this.navigateIntoPost().catch(async () => {
                         const scopeulator = this.scopeulate();
                         const finder = await scopeulator.findulator();
                         await this.scrollabit(6);
                         return await finder.find.locator.all();
                     });
-                    const batches = [[]];
-                    for (let i = 0; i < locatorz.length; i++) {
-                        const idx = batches.length - 1;
-                        if (batches[idx].length >= 10)
-                            batches.push([]);
-                        const listing = locatorz[i];
-                        if (!(await listing.isVisible()))
-                            continue;
-                        const { id, content, attributes } = await this.raw(listing, false).catch();
-                        batches[idx].push({ id, content, listing, attributes });
-                    }
-                    return { batches };
-                })();
-                const rank = async (func) => {
-                    for (const data of batches) {
-                        const promptmise = promptee.ranking({
-                            task: `score these reddit threads by relevance to the users inception. make sure to include a rank number along with the thread ID provided.`,
-                            generations: {
-                                type: "ranking",
-                                range: { min: 1, max: 1 },
-                                input: {
-                                    data: data,
-                                    user_intent: `Rank all of these threads for ${this.opts.settings.start.feature} @${this.page.url()}`,
+                    try {
+                        const batches = [[]];
+                        for (const listing of locatorz) {
+                            const idx = batches.length - 1;
+                            if (batches[idx].length >= 10)
+                                batches.push([]);
+                            if (!(await listing.isVisible()))
+                                continue;
+                            const { id, content, attributes } = await this.raw(listing, false).catch();
+                            batches[idx].push({ id, content, listing, attributes });
+                        }
+                        for (const data of batches) {
+                            const promptmise = promptee.ranking({
+                                task: `Score these reddit threads by relevance to for ${this.opts.settings.start.feature}. Include a rank number along with the thread ID provided.`,
+                                generations: {
+                                    type: "ranking",
+                                    range: { min: 1, max: 1 },
+                                    input: {
+                                        data: data,
+                                        user_intent: `This batch of threads is @${this.page.url()}`,
+                                    },
                                 },
-                            },
-                        });
-                        const reply = await this.waitabit(promptmise);
-                        const threaded = reply[0].data
-                            .sort((a) => a.rank)
-                            .map((item) => {
-                            const thread = data.find((t) => t.id === item.id);
-                            return thread?.listing;
-                        });
-                        await func(threaded);
+                            });
+                            const reply = await this.waitabit(promptmise);
+                            await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing));
+                        }
+                    }
+                    catch (error) {
+                        await func(locatorz);
                     }
                 };
-                return await attempter(async () => await rank(async (threads) => await this.findo(threads, async (thread) => {
-                    await pre();
-                    return await setup.funco(url, thread);
-                })));
+                if (state.testing) {
+                    return await attempter(async () => {
+                        const scopeulator = this.scopeulate();
+                        const finder = await scopeulator.findulator();
+                        await this.scrollabit(1);
+                        return await this.findo(await finder.find.locator.all(), async (thread) => {
+                            await pre();
+                            return await setup.funco(url, thread);
+                        });
+                    });
+                }
+                else {
+                    return await attempter(async () => {
+                        return await rank(async (threads) => {
+                            return await this.findo(threads, async (thread) => {
+                                await pre();
+                                return await setup.funco(url, thread);
+                            });
+                        });
+                    });
+                }
             }
         });
     }
@@ -361,3 +407,4 @@ export default async function (params, funco) {
     await reddit.init();
     return { reddit };
 }
+export * from "./configure.js";

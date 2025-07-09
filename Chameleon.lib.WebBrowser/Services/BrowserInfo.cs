@@ -87,10 +87,10 @@ public static class BrowserInfo {
             $"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
    }
 
-   public static BrowserRecord Find(SystemBrowserType BrowserType) => BrowserType switch {
-      SystemBrowserType.Chrome => FindByName("chrome.exe"),
-      SystemBrowserType.Brave => FindByName("brave.exe"),
-      SystemBrowserType.Firefox => FindByName("firefox.exe"),
+   public static BrowserRecord Find(BrowserType BrowserType) => BrowserType switch {
+      BrowserType.Chrome => FindByName("chrome.exe"),
+      BrowserType.Brave => FindByName("brave.exe"),
+      BrowserType.Firefox => FindByName("firefox.exe"),
       _ => throw new NotSupportedException("Browser type not found."),
    };
 }

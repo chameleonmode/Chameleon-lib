@@ -65,22 +65,9 @@ public static class JSON {
 		}
 	}
 }
-public static class Const {
-	public const string LocalHostUrl = "http://localhost:21021/api";
-	public const string ApiBaseUrl = "https://api.chameleonmode.com/api";
-	public const string NotionProfile = "https://www.notion.so/4-Setting-Up-Your-First-Profile-d2d001b2127e4a0e8e083fc13ad4cf99";
-	public const string NotionUrl = "https://intercom.help/chameleonmode/en";
-	public const string ApiSocialAnimalUrl = "https://api.socialanimal.com/api/v1/search";
-	public const string WebsiteUrl = "https://chameleonmode.com/";
-	public const string SupportUrl = "https://intercom.help/chameleonmode/en";
-	public const string FacebookGroupUrl = "https://www.facebook.com/groups/962349154557466";
-	public const string PricingUrl = "https://chameleonmode.com/pricing/";
-	public const string DefaultHomePage = "https://example.com/";
-	public const string AppName = "Chameleon";
-	public const string AppSettingsFileName = "appsettings.json";
-	public static readonly string Assembled = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0";
-}
 public class IoC {
+	public const string AppName = "Chameleon";
+	public static readonly string Assembled = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0";
 	private bool isInitialized = false;
 
 	/// <summary>
@@ -172,7 +159,7 @@ public class IoC {
 		if (message != null)
 			Toaster.Success(message);
 	}
-	public static T? GetJsonValue<T>(params string[] keys) => GetValue<string>(string.Join('_', keys)) is string val ? JsonSerializer.Deserialize<T>(val) : default;
+	public static T? GetJsonValue<T>(params string[] keys) => GetValue<string>(string.Join('_', keys)) is string val ? JSON.Deserialize<T>(val) : default;
 	public static Task SetValueAsync<T>(T value, params string[] keys) => Task.Run(() => SetValue(value, keys));
 
 	//

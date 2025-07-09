@@ -1,4 +1,5 @@
 import { Logger } from "../../lib/logger.js";
+import { state } from "../../lib/index.js";
 export const BASE_URL = "https://www.reddit.com";
 export const args = {
     scope: "People",
@@ -29,10 +30,10 @@ export const settings = {
 export const ai = {
     model: "o4-mini",
     decorators: {
-        system: `You are a Reddit-native assistant trained to generate relevant, tone-matching, socially appropriate information for Reddit.`,
+        system: `You are a Reddit-native assistant trained to generate relevant, tone-matching, socially appropriate information for Reddit`,
         human: "Reddit-native content creator",
         audience: "Reddit-native website users relevant to the current context in the task data",
-        background: "Browsing reddit for relevant content and interacting with the Reddit community.",
+        background: "Browsing reddit for relevant content and interacting with the Reddit community",
         tone: "adaptive to the relevant task data and context",
     },
 };
@@ -43,6 +44,20 @@ export async function configure(ctx, opts) {
         ...(opts?.settings?.start?.urls || []),
         ...(search.length && !opts?.settings?.start?.urls?.length ? [BASE_URL] : [])
     ].filter(Boolean);
+    if (state.testing) {
+        Logger.debug("Testing mode enabled, using provided URLs and search terms.");
+        args.scope = "Posts";
+        args.sort = "Relevance";
+        args.filter = "All";
+        search.push("joe rogan");
+        urls.push(BASE_URL);
+        settings.start.attempts = 1;
+        settings.start.new = false;
+        settings.start.rando = { min: 19, max: 3 };
+        settings.start.iterations = { min: 1, max: 1 };
+        settings.start.variations = { min: 1, max: 1 };
+        Logger.warn("No search terms or URLs provided, using default values.");
+    }
     const options = {
         run: opts?.run ?? {},
         args: { ...args, ...opts?.args },
@@ -79,37 +94,3 @@ export async function configure(ctx, opts) {
     const page = options.settings.start.new ? await ctx.newPage() : ctx.pages()[ctx.pages().length - 1];
     return { page, options };
 }
-export class Scopeulation {
-    threaded = [];
-    visited = [];
-    searched = [];
-    base = (url) => new URL(url).href === new URL(BASE_URL).href;
-    user = (url) => /\.com\/user\/[^/]+/.test(url);
-    subreddit = (url) => /\/r\/[^/]+\/?$/.test(url);
-    comments = (url) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
-    search = (url) => /\/r\/[^/]+\/search(?:\/.*)?$/.test(url);
-    iterative = (url) => this.comments(url) || this.search(url) || this.user(url)
-        ? url
-        : url.replace(/\/?(search)?$/, "/search");
-    existing(thread) {
-        if (!this.threaded.some((v) => JSON.stringify(v.listing) === JSON.stringify(thread.listing))) {
-            scopeulation.threaded.push(thread);
-            return thread;
-        }
-    }
-    scoped(current) {
-        const url = this.visited[this.visited.length - 1];
-        const scope = ["People", "Communities"].includes(current) &&
-            (this.subreddit(url) || this.comments(url) || this.search(url))
-            ? "Posts"
-            : current;
-        const Url = new URL(url);
-        const type = Url.searchParams.get("type");
-        const sort = Url.searchParams.get("sort");
-        const t = Url.searchParams.get("t");
-        const community = scope === "Communities" || type === "communities";
-        const people = scope === "People" || type === "people" || this.user(url);
-        return { url, scope, type, sort, t, community, people };
-    }
-}
-export const scopeulation = new Scopeulation();

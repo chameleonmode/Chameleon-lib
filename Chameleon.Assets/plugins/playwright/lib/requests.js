@@ -1,11 +1,11 @@
+import { state } from "./index.js";
 import { Logger } from "./logger.js";
 import { bang } from "./utils.js";
 export var promptee;
 (function (promptee) {
-    promptee.state = { api: undefined, ai: undefined };
     promptee.heading = { "Content-Type": "application/json", ai: "origato" };
     async function endpoint(route) {
-        const from = `${(promptee.state.api ||= await (async () => {
+        const from = `${(state.api ||= await (async () => {
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 300);
@@ -25,7 +25,7 @@ export var promptee;
             ...ctx,
             model: ctx.model || "o4-mini",
             task: bang("prompt request task", ctx.task),
-            decorators: bang("prompt request decorators", promptee.state.ai?.decorators, promptee.state),
+            decorators: bang("prompt request decorators", state.ai?.decorators, state),
             generations: bang("prompt request generations", ctx.generations),
         };
         const headers = { ...promptee.heading, model: prompt.model };

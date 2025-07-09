@@ -21,6 +21,6 @@ public record Script(string File, string Title, string Description) : IScript {
 
 public record JSScript(string File, string Title, string Description) : Script(File, Title, Description), IJSScript {
   public virtual Task<IDictionary<string, string>?> GetOptions(IDictionary<string, string>? options = null) {
-    return Task.FromResult(options);
+    throw new NotImplementedException("GetOptions must be implemented in derived classes.");
   }
 }

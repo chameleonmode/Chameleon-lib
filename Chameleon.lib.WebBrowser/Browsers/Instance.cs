@@ -96,33 +96,40 @@ public abstract class Browser : IBrowserInstance {
 		if(!Settings.Profile.Extensions) return;
 		
 		async Task<Ipapi> Ipapi() {
-			Ipapi? ipapi = null;
+			// Ipapi? ipapi = null;
 
-			var dir = Resources.Assert(
-				Settings.Cached, "geo"
-			);
-			var file = Path.Combine(dir, "ipapi.json");
-			if (
-				 File.Exists(file) && await File.ReadAllTextAsync(file) is { } json &&
-				 JSON.Parse<BrowserProxy>((ipapi = JSON.Parse<Ipapi>(json)).proxy) is { } proxy &&
-				 proxy.Host == Settings.Profile.Proxy.Host &&
-				 proxy.Port == Settings.Profile.Proxy.Port &&
-				 proxy.UserName == Settings.Profile.Proxy.UserName &&
-				 proxy.Password == Settings.Profile.Proxy.Password
-			) {
-				Toaster.Info($"Using cached timezone/geo data for {Settings.Profile.Proxy.Host}");
-				return ipapi;
-			}
+			// var dir = Resources.Assert(
+			// 	Settings.Cached, "geo"
+			// );
+			// var file = Path.Combine(dir, "ipapi.json");
+			// if (
+			// 	 File.Exists(file) && await File.ReadAllTextAsync(file) is { } json &&
+			// 	 JSON.Parse<BrowserProxy>((ipapi = JSON.Parse<Ipapi>(json)).proxy) is { } proxy &&
+			// 	 proxy.Host == Settings.Profile.Proxy.Host &&
+			// 	 proxy.Port == Settings.Profile.Proxy.Port &&
+			// 	 proxy.UserName == Settings.Profile.Proxy.UserName &&
+			// 	 proxy.Password == Settings.Profile.Proxy.Password
+			// ) {
+			// 	Toaster.Info($"Using cached timezone/geo data for {Settings.Profile.Proxy.Host}");
+			// 	return ipapi;
+			// }
+			// Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
+			// ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
+			// 	timezone = "Pacific/Honolulu",
+			// 	lat = 34.052235,
+			// 	lon = -118.243683,
+			// 	tzSystem = true
+			// };
+			// ipapi.proxy = JSON.Serialize(Settings.Profile.Proxy);
+			// await File.WriteAllTextAsync(file, JSON.Serialize(ipapi));
+			// return ipapi;
 			Toaster.Info($"Requesting timezone/geo data for {Settings.Profile.Proxy.WebProxy?.Address?.Host ?? "local"}");
-			ipapi = await GeoIpApi.GetIpapi(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
+			return await Api.GeoIp(Settings.Profile.Proxy.WebProxy, e => Toaster.Error(e)) ?? new() {
 				timezone = "Pacific/Honolulu",
 				lat = 34.052235,
 				lon = -118.243683,
 				tzSystem = true
 			};
-			ipapi.proxy = JSON.Serialize(Settings.Profile.Proxy);
-			await File.WriteAllTextAsync(file, JSON.Serialize(ipapi));
-			return ipapi;
 		}
 		var ipapi = await Ipapi();
 		Toaster.Info($"Timezone: {ipapi.timezone}, Lat: {ipapi.lat}, Lon: {ipapi.lon}");

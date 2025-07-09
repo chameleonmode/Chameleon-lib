@@ -1,5 +1,5 @@
 import readline from "node:readline";
-import { Browzer, Logger, Playwrighteer, sleepo } from "./lib/index.js";
+import { Browzer, Logger, Playwrighteer, sleepo, state } from "./lib/index.js";
 async function main() {
     const args = process.argv.slice(2);
     Logger.log("Starting Runner...", args);
@@ -47,6 +47,7 @@ async function main() {
     Logger.log("command ({arg: 'run', file, port, opts}, play, exit):");
     if (args.length) {
         const [file, port, opts] = args;
+        state.testing = true;
         play({ file, port, opts });
     }
 }

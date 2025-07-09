@@ -176,7 +176,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task Service_Routes_Promptee() {
-		var res = await Service.Routes.Promptee.Genorate(new(
+		var res = await Service.I.Robo.Genorate(new(
 			new(System: "you are helpful", Tone: "roboto", Human: "mr", Audience: "roboto", Background: "domo"), 2, ["popeye", "captain crunch"])
 		);
 		Debug.WriteLine(JSON.Serialize(res!));
@@ -185,7 +185,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_Routes_Cooky() {
-		var cookies = await Util.GetCookies(new(new(SystemBrowserType.Chrome, new() { Id = 25541 }), null));
+		var cookies = await Util.GetCookies(new(new(Chameleon.lib.WebBrowser.BrowserType.Chrome, new() { Id = 25541 }), null));
 		var email = "elimdadia@gmail.com";
 		//var email = "ezexerael@gmail.com";
 		await DB.I.Cooky.SendCookies(25541, email, cookies ?? throw new InvalidOperationException("Failed to get cookies from browser profile"));

@@ -531,7 +531,7 @@ public interface IMboxService {
 	Task<MboxResult> Show(string title, string content,
 		MBoxButtons btns = MBoxButtons.YesNo, string icon = "Info");
 	Task<TaskDialogResult> ShowTaskDialog<TViewModel>(Func<TViewModel> initialize, object content, string header,
-		string? subHeader = null, string title = Const.AppName, object? footer = null, Symbas symbas = Symbas.Alert, MBoxButtons btns = MBoxButtons.YesNo);
+		string? subHeader = null, string title = IoC.AppName, object? footer = null, Symbas symbas = Symbas.Alert, MBoxButtons btns = MBoxButtons.YesNo);
 }
 public class MessageBox {
 	private readonly IMboxService MboxService;
@@ -548,7 +548,7 @@ public class MessageBox {
 		await Show(title, content + (ex != null ? $"\n{(ex.Message.Contains('\n') ? ex.Message[ex.Message.LastIndexOf('\n')..] : ex.Message)}" : ""), MBoxButtons.OkCancel, "Error");
 
 	public record Options<TViewModel>(Func<TViewModel> Initialize, string Header,
-		 string? SubHeader = null, string Title = Const.AppName, object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo
+		 string? SubHeader = null, string Title = IoC.AppName, object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo
 	);
 	public static async Task<bool> Show<TView, TViewModel>(Options<TViewModel> parameters) where TView : new() {
 		var result = await Instance.MboxService.ShowTaskDialog(

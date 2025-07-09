@@ -25,6 +25,7 @@ export function rando(thing, thinger) {
                 ? Math.floor(Math.random() * thing)
                 : Math.random() < 0.5;
 }
+export const randy = () => Math.random() - 0.5;
 export async function tryForEach(promises) {
     const fulfilled = [];
     const errors = [];

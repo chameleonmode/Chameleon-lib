@@ -29,7 +29,7 @@ public class HttpApiClient {
 	public Task<T> Delete<T>(string path) => Send<T>(HttpMethod.Delete, path);
 
 	private async Task<T> Send<T>(HttpMethod method, string path, object? body = default) {
-		var response = await EX.Policy(async () => {
+		var response = await EX.Poly(async () => {
 			var request = new HttpRequestMessage(method, "http://18.157.103.1/api/" + path);
 			if (Auther.AuthToken.IsNot())
 				request.Headers.Authorization = new("Bearer", Auther.AuthToken);
@@ -38,12 +38,12 @@ public class HttpApiClient {
 				request.Content = new StringContent(JSON.Serialize(body, options), Encoding.UTF8, "application/json");
 			}
 			return await _httpClient.SendAsync(request);
-		}, caught: (e, i) => {
+		}, new((e) => {
 			OnRetry?.Invoke(e.Message);
 			if (e.Message.Contains("401")) _ = OnAuthError?.Invoke();
-			//if (e.Message.Contains("429")) // TODO: check
 			OnCircuitBreaker?.Invoke(e.Message);
-		});
+			return Task.CompletedTask;
+		}));
 
 		ArgumentNullException.ThrowIfNull(response);
 		if (typeof(T) == typeof(RootResult)) return await Read<T>(response!);

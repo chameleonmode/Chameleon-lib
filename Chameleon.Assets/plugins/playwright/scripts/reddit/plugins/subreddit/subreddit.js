@@ -1,5 +1,4 @@
-import { Logger, promptee } from "../../../../lib/index.js";
-import { bang } from "../../../../lib/utils.js";
+import { Logger, bang, promptee, randy } from "../../../../lib/index.js";
 import Reddito from "../../reddit.js";
 export class Subreddit {
     reddit;
@@ -16,58 +15,50 @@ export class Subreddit {
         await this.reddit.click(locator);
     }
     async voter() {
-        const comments = [];
+        const ups = [];
         if (await this.reddit.joinConversation()) {
             const these = await this.reddit.getComments();
             const min = Math.min(these.length, this.reddit.opts.settings.start.rando.min);
+            bang("Vote count", min > 0);
             try {
-                while (comments.length < min) {
-                    const promptmise = promptee.ranking({
-                        task: `rank these reddit comments for up-voting make sure to mix and match the best comments that relate to the users incception metadata.
-				do not only rank the top comments, but also include some of the lower ranked comments that are relevant to the users metadata.`,
-                        generations: {
-                            type: "ranking",
-                            range: { min: 1, max: 1 },
-                            input: {
-                                data: these.filter((comment) => !comments.some((c) => c.id === comment.id)),
-                                user_intent: `Rank all of these comments to up-vote on @${this.reddit.page.url()}`,
-                            },
+                const data = these.sort(() => randy()).slice(0, min);
+                const promptmise = promptee.ranking({
+                    task: `rank these reddit comments for voting positively ${min} times on. your reply data needs to be a ordered array of the provided comment id and your ranking number.`,
+                    generations: {
+                        type: "ranking",
+                        range: { min: 1, max: 1 },
+                        input: {
+                            data: data.sort(() => randy()),
+                            user_intent: `This batch comments are @${this.reddit.page.url()}`,
                         },
-                    });
-                    const reply = await this.reddit.waitabit(promptmise);
-                    const ranked = reply[0].data
-                        .sort((a) => a.rank)
-                        .map((item) => these.find((c) => c.id === item.id))
-                        .filter((comment) => comment !== undefined);
-                    comments.push(...ranked);
-                }
+                    },
+                });
+                const reply = await this.reddit.waitabit(promptmise);
+                const ranked = reply[0].data
+                    .map((item) => these.find((c) => c.id === item.id))
+                    .filter((comment) => comment !== undefined);
+                ups.push(...ranked.map((c) => c.locator.getByRole("button", { name: "Upvote" })));
             }
             catch (error) {
                 Logger.warn("Error in ranking wait", error);
             }
         }
-        else {
+        else
             await this.reddit.scrollabit();
+        if (ups.length === 0) {
+            const locator = await this.reddit.page.getByRole("button", { name: "Upvote" }).all();
+            ups.push(...locator);
         }
-        const ups = comments.length
-            ? comments.map((c) => c.locator.getByRole("button", { name: "Upvote" }))
-            : this.reddit.page.getByRole("button", { name: "Upvote" });
-        const downs = comments.length
-            ? comments.map((c) => c.locator.getByRole("button", { name: "Downvote" }))
-            : this.reddit.page.getByRole("button", { name: "Downvote" });
-        const upCount = Array.isArray(ups) ? ups.length : await ups.count();
-        const downCount = Array.isArray(downs) ? downs.length : await downs.count();
-        const count = Math.min(upCount, downCount) - 1;
+        const downs = await this.reddit.page.getByRole("button", { name: "Downvote" }).all();
+        const count = Math.min(ups.length, downs.length) - 1;
         const length = Math.min(count, this.reddit.opts.settings.start.rando.min);
-        bang("Vote count", length > 0, { upCount, downCount, count, length });
+        bang("Vote count", length > 0, { upCount: ups.length, downCount: downs.length, count, length });
         for (let i = 0; i < length; i++) {
-            const upLocator = Array.isArray(ups) ? ups[i] : ups.nth(i);
-            const downLocator = Array.isArray(downs) ? downs[i] : downs.nth(i);
-            await this.reddit.click(Math.random() * 100 <= 96 ? upLocator : downLocator);
+            await this.reddit.click(Math.random() * 69 <= 96 ? ups[i] : downs[i]);
         }
         return {
-            ups: { locator: ups, count: upCount },
-            downs: { locator: downs, count: downCount },
+            ups: { locator: ups, count: ups.length },
+            downs: { locator: downs, count: downs.length },
         };
     }
     async joiner() {
