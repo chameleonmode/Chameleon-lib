@@ -7,15 +7,15 @@ using System.Diagnostics;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
 
-public enum BrowserEventType { Unknown, Error, Closed, Opened, Foreground, Background }
-public record BrowserEvent(BrowserSetting OpenOptions, BrowserEventType EventType);
+public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
+public record BrowserEvent(BrowserSetting OpenOptions, Event Event);
 
 public interface IBrowserInstance {
 	event Delegatorz.Event<BrowserEvent>? OnEvent;
 	Process? Brocess { get; set; }
 	BrowserSetting Settings { get; init; }
 	string SessionId { get; }
-	void InvokeEvent(BrowserEventType eventType);
+	void InvokeEvent(Event @event);
 	void Close();
 	Task Closee();
 	Task Ensure();
@@ -33,8 +33,8 @@ public abstract class Browser : IBrowserInstance {
 	public string InitUrl =>
 		$"http://127.0.0.1:{AddonsServer.Instance.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
 
-	public void InvokeEvent(BrowserEventType eventType) {
-		if (eventType == BrowserEventType.Foreground && Brocess is not null) {
+	public void InvokeEvent(Event @event) {
+		if (@event == Event.Foreground && Brocess is not null) {
 			if (OperatingSystem.IsWindows() && Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
 				_ = U32til.BringWindowToForeground(handle);
 			} else if (OperatingSystem.IsMacOS()) {
@@ -42,12 +42,12 @@ public abstract class Browser : IBrowserInstance {
 			}
 		}
 
-		OnEvent?.Invoke(this, new(Settings, eventType));
+		OnEvent?.Invoke(this, new(Settings, @event));
 	}
 
 	public Task Closee() => ProcessUtil.TryKillProcess(Brocess);
 	public void Close() {
-		InvokeEvent(BrowserEventType.Closed);
+		InvokeEvent(Event.Closed);
 		if (Brocess == null) return;
 		_ = LoadedTCS.TrySetResult(false);
 		
@@ -155,14 +155,13 @@ public abstract class Browser : IBrowserInstance {
 		};
 	}
 
-			// Non-Windows platforms use base implementation
+	// Non-Windows platforms use base implementation
 	protected virtual async Task WaitForWinHandle() {
 		if (OperatingSystem.IsWindows()) return;
 		Brocess!.Exited += (s, e) => { Close(); };
-		await EX.Poly(async () => {
+		var result = await EX.Poly(async () => {
 			await Task.Delay(54);
-			var result = !Brocess!.HasExited;
-			if (!result) throw new InvalidOperationException("Window handle not found.");
+			if (!Brocess!.HasExited) throw new InvalidOperationException("Window handle not found.");
 			else MacOSWindowListener.Instance.AddPid(Brocess.Id);
 			return MacOSUtil.FindWindowByPID(Brocess.Id) != null;
 		},

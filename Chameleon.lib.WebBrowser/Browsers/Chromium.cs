@@ -109,7 +109,7 @@ public class Chromium : Browser {
 			// The id of the extension which you intend to debug. Attaching to an extension background page is only possible when the --silent-debugger-extension-api command-line switch is used.
 			"--silent-debugger-extension-api",
 			// Additional flags 
-			// TODO: test"--proxy-bypass-list=<loopback>",
+			// @TODO: test"--proxy-bypass-list=<loopback>",
 			"--bypass-app-banner-engagement-checks",
 			"--disable-field-trial-config",
 			"--disable-session-crashed-bubble",
@@ -145,7 +145,7 @@ public class Chromium : Browser {
 		var hasValidHandle = Brocess?.MainWindowHandle != IntPtr.Zero && Brocess?.HasExited == false;
 		if (hasValidHandle) {
 			_ = LoadedTCS.TrySetResult(true);
-			InvokeEvent(BrowserEventType.Opened);
+			InvokeEvent(Event.Opened);
 		} else {
 			if (Brocess?.HasExited == true) Close();
 			else _ = LoadedTCS.TrySetResult(false);

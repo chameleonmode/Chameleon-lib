@@ -4,9 +4,6 @@ using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Browsers;
-using Chameleon.lib.WebBrowser.System.Brave;
-using Chameleon.lib.WebBrowser.System.Chrome;
-using Chameleon.lib.WebBrowser.System.Firefox;
 using Microsoft.Win32;
 
 namespace Chameleon.lib.WebBrowser.Services;
@@ -128,7 +125,7 @@ public class SystemBrowser {
 			windowEventHandler.OnForeground += (handle) => {
 				Instances.TryEach(i => {
 					if (i.Value.Brocess?.MainWindowHandle == handle)
-						i.Value.InvokeEvent(BrowserEventType.Foreground);
+						i.Value.InvokeEvent(Event.Foreground);
 				});
 			};
 		}
@@ -136,8 +133,9 @@ public class SystemBrowser {
 
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
 		if (settings.Profile.Extensions) _ = await Project.Initialized.Task;
+		settings.Profile.Port = TcpUtil.NextFreePort(9613);
 		settings.Browser.OnEvent += async (sender, args) => {
-			if (args.EventType == BrowserEventType.Closed) {
+			if (args.Event == Event.Closed) {
 				_ = await settings.Browser.LoadedTCS.Task;
 				_ = Instances.TryRemove(settings, out _);
 			}
@@ -150,7 +148,7 @@ public class SystemBrowser {
 		);
 		if (!opened && !settings.Profile.Extensions)
 			throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
-		settings.Browser.InvokeEvent(BrowserEventType.Opened);
+		settings.Browser.InvokeEvent(Event.Opened);
 		return Instances[settings] = settings.Browser;
 	}
 	public async Task<IBrowserInstance> Open(BrowserSetting options) {
@@ -160,8 +158,8 @@ public class SystemBrowser {
 				async () => browser = await Launch(options),
 				e => {
 					Toaster.Error(e.Message);
-					browser?.InvokeEvent(BrowserEventType.Closed);
-					if (Observers.TryGetValue(options.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, BrowserEventType.Closed)));
+					browser?.InvokeEvent(Event.Closed);
+					if (Observers.TryGetValue(options.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, Event.Closed)));
 
 					if (e is InvalidDataException or TimeoutException && Instances.ContainsKey(options)) _ = Instances.TryRemove(options, out _);
 					_ = browser?.LoadedTCS.TrySetResult(false); ;
@@ -186,7 +184,7 @@ public class SystemBrowser {
 	}
 
 	public void UpdateBrowserStatus(IBrowserInstance browser, bool isRunning) {
-		var eventType = isRunning ? BrowserEventType.Opened : BrowserEventType.Closed;
+		var eventType = isRunning ? Event.Opened : Event.Closed;
 		var browserEvent = new BrowserEvent(browser.Settings, eventType);
 
 		if (Observers.TryGetValue(browser.Settings.Profile.Id, out var observers)) {
