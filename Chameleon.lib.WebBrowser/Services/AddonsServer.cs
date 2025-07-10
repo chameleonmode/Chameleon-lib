@@ -19,6 +19,7 @@ public class AddonsServer : IStartUp {
   public int Port { get; } 
   public string RedirectUri { get; }
   public ConcurrentDictionary<string, object> AddonInstances { get; } = [];
+  public ConcurrentDictionary<string, BrowserProfile> InstanceSettings { get; } = [];
 
   public bool IsRunning => app != null;
 
@@ -135,9 +136,16 @@ public class AddonsServer : IStartUp {
             // TODO: Handle the data
           }
           Debug.WriteLine($"Received data from instance {instanceId} with session {sessionId}");
-
           return Results.Json(type switch {
             "init" => GetInitResponse(sessionId.ToString()),
+            "port" => new {
+              status = "ok",
+              message =
+                body.TryGetProperty("port", out var ele) &&
+                ele.TryGetInt32(out var port) &&
+                InstanceSettings.TryGetValue(sessionId.ToString(), out var profile)
+              ? (profile.Port = port).ToString() : ""
+            },
             "event" => new { status = "ok", message = "Event received" },
             "action" => new { status = "ok", message = "Action received" },
             _ => new { status = "error", message = "Invalid type" }
@@ -150,7 +158,7 @@ public class AddonsServer : IStartUp {
       #endregion
 
       // Start the server
-      await app.StartAsync();
+      await app.StartAsync(); 
       do {
         await Task.Delay(1000);
         try {
@@ -197,7 +205,7 @@ public class AddonsServer : IStartUp {
     }
     
     Debug.WriteLine($"GetInitResponse: Found session {sessionId} successfully");
-    return new { config };
+    return new { config, port = InstanceSettings[sessionId].Port };
   }
 
   public static AddonsServer Instance { get; } = new();

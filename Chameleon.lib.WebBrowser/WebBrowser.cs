@@ -167,7 +167,7 @@ public static class Project {
 			
     private static string GetDevChromePath() {
       if (OperatingSystem.IsMacOS()) {
-        return Path.Combine("/Users/dev/src/chameleon-playwright/dist");
+        return Path.Combine("/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons");
       } else {
         // Windows equivalent just as placeholder
         return Path.Combine(@"C:\Projects\Chameleon\chameleon-playwright\dist");
@@ -179,8 +179,8 @@ public static class Project {
   public static async Task<bool> Init() {
     await AddonsServer.Instance.Start();
 
-    if (IoC.GetValue(nameof(Extensions)) is not string ver || ver != IoC.Assembled) {
-      IoC.SetValue(nameof(Extensions), IoC.Assembled);
+    if (IoC.GetValue(nameof(Extensions)) is not string ver || ver != "o") {//ver != IoC.Assembled) {
+      IoC.SetValue(nameof(Extensions), "o"); //IoC.Assembled);
       await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
       await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
     }

@@ -58,10 +58,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   log.info(`Tab ${tabId} is loading with URL: ${tab.url}`);
   if (
     changeInfo.status !== "loading" ||
-    !tab.url.startsWith("http") ||
-    tab.url.startsWith("http://127.0.0.1")
-  )
+    !tab.url.startsWith("http") 
+  ) return;
+  if (tab.url.startsWith("http://127.0.0.1")) {
+    if (await App.onUpdated()) chrome.tabs.remove(tabId);
     return;
+  }
+  
   
   if (!App.config.enabled || App.config.bypass.some((bypassUrl) => tab.url.startsWith(bypassUrl))) {
     log.log(`Tab ${tabId} is bypassed`);

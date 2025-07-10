@@ -279,12 +279,12 @@ public class Gecko : Browser {
 
 		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.BrowserCache);
 	}
-	protected override string GetCommandLineArguments(bool args) {
+	protected override string GetCommandLineArguments(string? url) {
 		var arguments = new List<string> {
 			"-allow-downgrade",
 			"-no-remote",
 			$"-profile \"{Settings.BrowserCache}\"",
-			args ? InitUrl : "about:blank",
+			url ?? InitUrl,
 			// @TODO Settings.OpenOptions.Headless ? "-headless" : "",
 		};
 

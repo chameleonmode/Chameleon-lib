@@ -19,7 +19,7 @@ public interface IBrowserInstance {
 	void Close();
 	Task Closee();
 	Task Ensure();
-	Process Brocessor(bool args);
+	Process Brocessor(string url);
 	TaskCompletionSource<bool> LoadedTCS { get; }
 	Task Initialize(object? param = null);
 }
@@ -38,7 +38,7 @@ public abstract class Browser : IBrowserInstance {
 			if (OperatingSystem.IsWindows() && Brocess.MainWindowHandle is nint handle && U32.IsWindow(handle)) {
 				_ = U32til.BringWindowToForeground(handle);
 			} else if (OperatingSystem.IsMacOS()) {
-				Brocessor(false).Start();
+				Brocessor().Start();
 			}
 		}
 
@@ -74,11 +74,11 @@ public abstract class Browser : IBrowserInstance {
 		else Close();
 	}
 
-	public Process Brocessor(bool args = true) {
+	public Process Brocessor(string? url = null) {
 		Process process = new () {
 			StartInfo = new() {
 				FileName = ExePath,
-				Arguments = GetCommandLineArguments(args),
+				Arguments = GetCommandLineArguments(url),
 				UseShellExecute = false,
 				CreateNoWindow = true,
 			},
@@ -88,8 +88,12 @@ public abstract class Browser : IBrowserInstance {
 		process.Exited += (sender, e) => {
 			// Only close if the process exited with an error or during initialization
 			if (process.ExitCode != 0) Close();
-			else _ = LoadedTCS.TrySetResult(false);
-		};
+			else if(LoadedTCS.Task.IsCompleted == false) {
+				_ = LoadedTCS.TrySetResult(Brocessor(url).Start());
+				// Brocessor(false).Start();
+			}
+		}
+			;
 
 		return process;
 	}
@@ -98,7 +102,7 @@ public abstract class Browser : IBrowserInstance {
 	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
-	protected abstract string GetCommandLineArguments(bool args);
+	protected abstract string GetCommandLineArguments(string? url);
 	protected virtual async Task InitializeExtensions() {
 		if(!Settings.Profile.Extensions) return;
 		
@@ -111,6 +115,7 @@ public abstract class Browser : IBrowserInstance {
 			};
 		}
 		var ipapi = await Ipapi();
+		AddonsServer.Instance.InstanceSettings[SessionId] = Settings.Profile;
 
 		// set the extension settings
 		AddonsServer.Instance.AddonInstances[SessionId] = new {
@@ -161,7 +166,9 @@ public abstract class Browser : IBrowserInstance {
 
 	// Non-Windows platforms use base implementation
 	protected virtual async Task WaitForWinHandle() {
-		Brocess!.Exited += (s, e) => { if(LoadedTCS.Task.IsCompleted) Close(); };
+		Brocess!.Exited += (s, e) => {
+			if (LoadedTCS.Task.IsCompleted) Close();
+		};
 		if (OperatingSystem.IsWindows()) return;
 		var result = await EX.Poly(async () => {
 			await Task.Delay(54);

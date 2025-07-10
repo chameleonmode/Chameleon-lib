@@ -83,6 +83,7 @@ const discoverServer = async () => {
 const App = {
 	server: null,
 	port: null,
+	remoteDebugPort: undefined,
 	config,
 	session: {
 		sessionId: null,
@@ -91,6 +92,12 @@ const App = {
 	launchedSessions: {},
 	// Object to store event types and their callback functions
 	observers: {},
+
+	onUpdated: async () => {
+		if(App.server && App.remoteDebugPort){
+			return await App.sendData({ type: "port", port: App.remoteDebugPort });
+		}
+	},
 
 	// Startup
 	startup: async function () {
@@ -147,7 +154,9 @@ const App = {
 			this.config = { ...this.config, ...sync.config };
 		}
 
-		const response = data || (await this.sendData({ type: "init" })).config;
+		const { config, port } = await this.sendData({ type: "init" });
+		this.remoteDebugPort = port;
+		const response = data || config;
 		for (const [key, value] of Object.entries(response)) {
 			this.config[key] =
 				this.config.sync || key === "proxy"

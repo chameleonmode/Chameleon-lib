@@ -1,4 +1,6 @@
-﻿using System.Reflection.Metadata.Ecma335;
+﻿using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
+using System.Text.RegularExpressions;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
@@ -15,7 +17,7 @@ public class Chromium : Browser {
 	public override string ExePath => BrowserInfo.Find(Settings.BrowserType).Path;
 
 	// ...
-	protected override string GetCommandLineArguments(bool args) {
+	protected override string GetCommandLineArguments(string? url) {
 		return string.Join(" ", new string?[] {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
@@ -123,7 +125,7 @@ public class Chromium : Browser {
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
 			Settings.Profile.Extensions ? $"--load-extension=\"{Project.Extensions.Chromeleon}\"" : null,
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
-			args ? Settings.Profile.Extensions ? InitUrl : Settings.Profile.StartUrl : "about:blank"
+			url ??= Settings.Profile.Extensions ? InitUrl : Settings.Profile.StartUrl
 		}.Where(x => x != null));
 	}
 
@@ -148,6 +150,143 @@ public class Chromium : Browser {
 			if (Brocess?.HasExited == true) Close();
 			else _ = LoadedTCS.TrySetResult(false);
 			// Don't trigger Opened event since browser is not properly connected
+		}
+	}
+
+	protected virtual int? GetExistingProcessDebuggingPort() {
+		var processNames = GetProcessNames();
+		var profilePath = Settings.BrowserCache;
+		
+		foreach (var processName in processNames) {
+			var processes = Process.GetProcessesByName(processName);
+			
+			foreach (var process in processes) {
+				try {
+					if (process.HasExited) {
+						process.Dispose();
+						continue;
+					}
+					var commandLine = GetProcessCommandLine(process.Id);
+					
+					var hasProfilePath = !string.IsNullOrEmpty(commandLine) &&
+										(commandLine.Contains($"\"{profilePath}\"") ||
+										 commandLine.Contains($" {profilePath} ") ||
+										 commandLine.Contains($" {profilePath}"));
+
+					if (hasProfilePath) {
+						var port = commandLine != null ? ExtractDebuggingPortFromCommandLine(commandLine) : null;
+						
+						if (port.HasValue) {
+							// Verify process is still accessible
+							try {
+								using var testProcess = Process.GetProcessById(process.Id);
+								if (testProcess.HasExited) {
+									process.Dispose();
+									continue;
+								}
+							} catch (ArgumentException) {
+								process.Dispose();
+								continue;
+							}
+
+							foreach (var p in processes) {
+								if (p != process) p.Dispose();
+							}
+							process.Dispose();
+							return port;
+						}
+					}
+
+					process.Dispose();
+				} catch (InvalidOperationException) {
+					try {
+						process.Dispose();
+					} catch { }
+					continue;
+				} catch (Exception) {
+					try {
+						process.Dispose();
+					} catch { }
+					continue;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	protected virtual string[] GetProcessNames() {
+		return Settings.BrowserType switch {
+			BrowserType.Chrome => ["chrome"],
+			BrowserType.Brave => ["brave"],
+			_ => ["chrome"]
+		};
+	}
+
+	private static int? ExtractDebuggingPortFromCommandLine(string commandLine) {
+		if (string.IsNullOrEmpty(commandLine)) {
+			return null;
+		}
+		var match = Regex.Match(commandLine, @"--remote-debugging-port=(\d+)", RegexOptions.IgnoreCase);
+		if (match.Success && int.TryParse(match.Groups[1].Value, out var port)) {
+			return port;
+		}
+
+		return null;
+	}
+
+	private static string? GetProcessCommandLine(int processId) {
+		try {
+			using var testProcess = Process.GetProcessById(processId);
+			if (testProcess.HasExited) {
+				return null;
+			}
+			
+			if (OperatingSystem.IsWindows()) {
+#pragma warning disable CA1416 // Validate platform compatibility
+				using var searcher = new global::System.Management.ManagementObjectSearcher(
+					$"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {processId}");
+				using var objects = searcher.Get();
+				foreach (var obj in objects) {
+					var cmdLine = obj["CommandLine"]?.ToString();
+					return cmdLine;
+				}
+#pragma warning restore CA1416 // Validate platform compatibility
+			} else if (OperatingSystem.IsLinux()) {
+				var cmdPath = $"/proc/{processId}/cmdline";
+				if (File.Exists(cmdPath)) {
+					var raw = File.ReadAllText(cmdPath);
+					return raw.Replace('\0', ' ').Trim();
+				}
+			} else if (OperatingSystem.IsMacOS()) {
+				var startInfo = new ProcessStartInfo {
+					FileName = "/bin/ps",
+					Arguments = $"-p {processId} -o command=",
+					RedirectStandardOutput = true,
+					UseShellExecute = false,
+					CreateNoWindow = true
+				};
+				using var psProc = Process.Start(startInfo);
+				if (psProc != null) {
+					var output = psProc.StandardOutput.ReadToEnd();
+					psProc.WaitForExit();
+					return output.Trim();
+				}
+			}
+		} catch (Exception) {
+			// Do not throw exceptions here
+		}
+
+		return null;
+	}
+
+	public override async Task Ensure() {
+		await base.Ensure();
+		var existingPort = GetExistingProcessDebuggingPort();
+		if (existingPort.HasValue) {
+			var errorMessage = $"Browser instance is already running for profile {Settings.Profile.Id} on port {existingPort.Value}. " +
+							   "Please close the existing browser instance before launching a new one.";
+			throw new InvalidOperationException(errorMessage);
 		}
 	}
 }
