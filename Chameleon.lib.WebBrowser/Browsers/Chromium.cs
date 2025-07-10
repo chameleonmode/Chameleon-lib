@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System.Reflection.Metadata.Ecma335;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
@@ -117,7 +117,7 @@ public class Chromium : Browser {
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
 			// "--restore-last-session",
-			$"--remote-debugging-port={Settings.OpenOptions.Profile.Port}",
+			$"--remote-debugging-port={Settings.Profile.Port}",
 			$"--user-data-dir=\"{Settings.BrowserCache}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
@@ -127,92 +127,30 @@ public class Chromium : Browser {
 		}.Where(x => x != null));
 	}
 
-	protected override Task InitializeExtensionPath() {
-		return Task.CompletedTask;
-	}
-
 	// ...
 	protected override async Task WaitForWinHandle() {
-		if (OperatingSystem.IsWindows()) _ = await EX.Poly(
-			() => Task.FromResult(Brocess?.MainWindowHandle != nint.Zero),
-			new(sleep: 250, retries: 9)
-		);
-		else if (OperatingSystem.IsMacOS()) await base.WaitForWinHandle();
-		// TODO:  return;
-		// if (Settings.BrowserType == Enums.SystemBrowserType.Chrome)
-		// 	      async Task<string?> GetWebSocketDebuggerUrl()
-		//     {
-		//         using var httpClient = new HttpClient();
-		//         // Query Chrome's /json/version endpoint to get the active WebSocket URL
-		//         var resp = await httpClient.GetStringAsync($"http://localhost:{Settings.Port}/json/version");
-		//         using var doc = JsonDocument.Parse(resp);
-		//         if (doc.RootElement.TryGetProperty("webSocketDebuggerUrl", out var wsUrl))
-		//         {
-		//             return wsUrl.GetString();
-		//         }
-		//         return null;
-		//     }
-		// {
-		// 	try
-		// 	{
-		// 		// 1. Fetch the WebSocket Debugger URL
-		// 		var webSocketUrl = await GetWebSocketDebuggerUrl();
-		// 		if (string.IsNullOrEmpty(webSocketUrl))
-		// 		{
-		// 			await MessageBox.ShowErrorAsync(
-		// 				"WebSocket URL Error",
-		// 				"Failed to retrieve WebSocket Debugger URL. Ensure that the browser is running with remote debugging enabled."
-		// 			);
-		// 			return;
-		// 		}
+		if (!OperatingSystem.IsWindows()) {
+			await base.WaitForWinHandle();
+			return;
+		}
 
-		// 		Debug.WriteLine($"Debugger WebSocket URL: {webSocketUrl}");
+		var result = await EX.Poly(async () => {
+			await Task.Delay(54);
+			return Brocess!.HasExited || Brocess.MainWindowHandle == nint.Zero
+				? throw new InvalidOperationException("Failed to retrieve main window handle.")
+				: Brocess.MainWindowHandle != nint.Zero;
+		}, new(sleep: 100, retries: 6));
 
-		// 		// 2. Connect to Chrome DevTools Protocol via WebSocket
-		// 		using var ws = new ClientWebSocket();
-		// 		await ws.ConnectAsync(new Uri(webSocketUrl), CancellationToken.None);
-		// 		Debug.WriteLine("WebSocket connected.");
-
-		// 		// 3. Build the CDP message for Extensions.loadUnpacked
-		// 		//    Method: "Extensions.loadUnpacked"
-		// 		//    Params: { path: "<absolute_path_to_unpacked_extension>" }
-		// 		var cdpMessage = new
-		// 		{
-		// 			id = 1,
-		// 			method = "Extensions.loadUnpacked",
-		// 			@params = new
-		// 			{
-		// 				path = Project.Extensions.Chromeleon.Replace("\\", "\\\\")
-		// 			}
-		// 		};
-		// 		var jsonPayload = JsonSerializer.Serialize(cdpMessage);
-
-		// 		// 4. Send the JSON payload over WebSocket
-		// 		var bytesToSend = Encoding.UTF8.GetBytes(jsonPayload);
-		// 		await ws.SendAsync(new ArraySegment<byte>(bytesToSend), WebSocketMessageType.Text, true, CancellationToken.None);
-		// 		Debug.WriteLine("Sent Extensions.loadUnpacked command.");
-
-		// 		// 5. Await and print the response
-		// 		var buffer = new byte[8192];
-		// 		var sb = new StringBuilder();
-		// 		WebSocketReceiveResult result;
-		// 		do
-		// 		{
-		// 			result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-		// 			sb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
-		// 		} while (!result.EndOfMessage);
-
-		// 		Debug.WriteLine("Response from CDP:");
-		// 		Debug.WriteLine(sb.ToString());
-
-		// 		// 6. Close the WebSocket
-		// 		await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Done", CancellationToken.None);
-		// 	}
-		// 	catch (Exception ex)
-		// 	{
-		// 		Debug.WriteLine($"Error: {ex.Message}\n{ex.StackTrace}");
-		// 	}
-		// }
+		// Verify browser process is running AND has a valid main window handle
+		var hasValidHandle = Brocess?.MainWindowHandle != IntPtr.Zero && Brocess?.HasExited == false;
+		if (hasValidHandle) {
+			_ = LoadedTCS.TrySetResult(true);
+			InvokeEvent(BrowserEventType.Opened);
+		} else {
+			if (Brocess?.HasExited == true) Close();
+			else _ = LoadedTCS.TrySetResult(false);
+			// Don't trigger Opened event since browser is not properly connected
+		}
 	}
 }
 

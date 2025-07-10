@@ -105,72 +105,67 @@ public static class BrowserInfo {
 public class SystemBrowser {
 	private readonly WindowEventHandler? windowEventHandler;
 	public int TimeOut { get; } = 14;
-	public ConcurrentDictionary<LaunchOptions, IBrowserInstance> Instances { get; } = [];
+	public ConcurrentDictionary<BrowserSetting, IBrowserInstance> Instances { get; } = [];
 	public ConcurrentDictionary<int, List<Delegatorz.Event<BrowserEvent>>> Observers { get; } = [];
 	SystemBrowser() {
 		if (OperatingSystem.IsWindows()) {
 			windowEventHandler = new WindowEventHandler();
-			windowEventHandler.OnDestroy += async (obj) => {
-				await EX.Try(async () => {
-					for (var i = Instances.Count - 1; i >= 0; i--) {
-						if (
-							Instances.TryGetValue(Instances.Keys.ElementAt(i), out var browser) &&
-							browser != null &&
-						 	await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(3)) == false
-						) {
-							if(browser.Brocess?.HasExited == false || browser.Brocess?.MainWindowHandle == IntPtr.Zero) await browser.Closee();
-							browser.Close();
-						}
+			windowEventHandler.OnDestroy += (handle) => {
+				EX.Try(() => {
+					var browsersToClose = new List<IBrowserInstance>();
+					Instances.ForEach(i => {
+						if (i.Value.Brocess?.MainWindowHandle == handle)
+							browsersToClose.Add(i.Value);
+					});
+					browsersToClose.TryEach(b => b.Close());
+
+					// Periodically clean up stale instances (every 10th window destruction event)
+					if (Random.Shared.Next(0, 10) == 0) {
+						CleanupStaleInstances();
 					}
+				});
+			};
+			windowEventHandler.OnForeground += (handle) => {
+				Instances.TryEach(i => {
+					if (i.Value.Brocess?.MainWindowHandle == handle)
+						i.Value.InvokeEvent(BrowserEventType.Foreground);
 				});
 			};
 		}
 	}
 
-	public async Task<IBrowserInstance> Open(BrowserSettings settings) {
+	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
 		if (settings.Profile.Extensions) _ = await Project.Initialized.Task;
-		// TODO: test node console standard server launcher vs tcp server 
-		// await NodeServerLauncher.Instance.StartServer();
-		// TODO: move to app startup or possibly add a lib startup module
-		// await AddonsServer.Instance.Start();
-		settings.Profile.Port = settings.Profile.Port == 0 ? TcpUtil.NextFreePort(9613) : settings.Profile.Port;
-		IBrowserInstance browser = settings.BrowserType switch {
-			BrowserType.Brave => new Brave() { Settings = settings },
-			BrowserType.Chrome => new Chrome() { Settings = settings },
-			BrowserType.Firefox => new Firefox() { Settings = settings },
-			_ => throw new NotImplementedException(),
-		};
-		if (
-			!Instances.ContainsKey(settings.OpenOptions) &&
-			!Instances.TryAdd(settings.OpenOptions, browser) &&
-			!settings.Profile.Extensions
-		) throw new Exception("Browser linkage failed. Try closing all running profiles and restarting the application.");
-
-		browser.OnEvent += async (sender, args) => {
+		settings.Browser.OnEvent += async (sender, args) => {
 			if (args.EventType == BrowserEventType.Closed) {
-				_ = await browser.LoadedTCS.Task;
-				_ = Instances.TryRemove(settings.OpenOptions, out _);
+				_ = await settings.Browser.LoadedTCS.Task;
+				_ = Instances.TryRemove(settings, out _);
 			}
-			//if(Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
-			if (Observers.TryGetValue(settings.Profile.Id, out var value)) value.ForEach(x => x.Invoke(sender, args));
+			if (Observers.TryGetValue(settings.Profile.Id, out var observer))
+				observer.ForEach(x => x.Invoke(sender, args));
 		};
-		_ = browser.Initialize();
-		if (await browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6))) browser.InvokeEvent(BrowserEventType.Opened);
-		else if (!settings.Profile.Extensions) throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
-		Instances[settings.OpenOptions] = browser;
-		return browser;
+		_ = settings.Browser.Initialize();
+		var opened = await settings.Browser.LoadedTCS.Task.WaitAsync(
+			TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6)
+		);
+		if (!opened && !settings.Profile.Extensions)
+			throw new Exception("Browser needs to be restarted to apply changes. Please close and reopen your browser.");
+		settings.Browser.InvokeEvent(BrowserEventType.Opened);
+		return Instances[settings] = settings.Browser;
 	}
-	public async Task<IBrowserInstance?> Open(LaunchOptions options) {
+	public async Task<IBrowserInstance> Open(BrowserSetting options) {
 		var browser = Instances.FirstOrDefault(x => x.Key.Profile.Id == options.Profile.Id && x.Key.BrowserType == options.BrowserType).Value;
 		if (browser == null) {
-			return await EX.Catch(async () => browser = await Open(new BrowserSettings(options)), e => {
-				Toaster.Error(e.Message);
-				if (browser != null) browser.InvokeEvent(BrowserEventType.Closed);
-				else if (Observers.TryGetValue(options.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, BrowserEventType.Closed)));
+			return await EX.Catch(
+				async () => browser = await Launch(options),
+				e => {
+					Toaster.Error(e.Message);
+					browser?.InvokeEvent(BrowserEventType.Closed);
+					if (Observers.TryGetValue(options.Profile.Id, out var events)) events.ForEach(x => x.Invoke(this, new(options, BrowserEventType.Closed)));
 
-				if (e is InvalidDataException or TimeoutException && Instances.ContainsKey(options)) _ = Instances.TryRemove(options, out _);
-				_ = browser?.LoadedTCS.TrySetResult(false);
-			});
+					if (e is InvalidDataException or TimeoutException && Instances.ContainsKey(options)) _ = Instances.TryRemove(options, out _);
+					_ = browser?.LoadedTCS.TrySetResult(false); ;
+				}) ?? throw new InvalidOperationException();
 		} else if (browser.Brocess is null || browser.Brocess.HasExited) {
 			await browser.Closee();
 			browser.Close();
@@ -186,7 +181,43 @@ public class SystemBrowser {
 
 		return Instances
 			.Where(x => x.Value?.Settings.Profile.Id == id)
-			.Select(b => b.Value?.Settings.BrowserType ?? BrowserType.Unknown);
+			.Select(b => b.Value?.Settings.BrowserType ?? BrowserType.Unknown)
+			.ToArray();
+	}
+
+	public void UpdateBrowserStatus(IBrowserInstance browser, bool isRunning) {
+		var eventType = isRunning ? BrowserEventType.Opened : BrowserEventType.Closed;
+		var browserEvent = new BrowserEvent(browser.Settings, eventType);
+
+		if (Observers.TryGetValue(browser.Settings.Profile.Id, out var observers)) {
+			observers.TryEach((o) => o.Invoke(browser, browserEvent));
+		}
+	}
+
+	public void CleanupStaleInstances() {
+		var staleBrowsers = new List<BrowserSetting>();
+
+		foreach (var kvp in Instances) {
+			var options = kvp.Key;
+			var browser = kvp.Value;
+
+			if (browser?.Brocess == null || browser.Brocess.HasExited) {
+				staleBrowsers.Add(options);
+			} else if (OperatingSystem.IsWindows() && browser.Brocess.MainWindowHandle == IntPtr.Zero) {
+				EX.Try(() => {
+					browser.Brocess.Refresh();
+					if (browser.Brocess.MainWindowHandle == IntPtr.Zero) {
+						staleBrowsers.Add(options);
+					}
+				}, _ => staleBrowsers.Add(options));
+			}
+		}
+
+		foreach (var options in staleBrowsers) {
+			if (Instances.TryRemove(options, out var staleBrowser) ) {
+				EX.Try(staleBrowser.Close);
+			}
+		}
 	}
 
 	// Singleton

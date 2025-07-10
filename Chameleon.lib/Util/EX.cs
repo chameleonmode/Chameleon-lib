@@ -54,12 +54,12 @@ public static class EX {
 			return true;
 		}, caught);
 
-	public class RetryPolicy<T, TT>(Func<TT, Task>? caught = null, int sleep = 2000, int retries = 3) where TT : Exception {
+	public class RetryPolicy<TT>(Func<TT, Task>? caught = null, int sleep = 2000, int retries = 3) where TT : Exception {
 		private readonly Func<TT, Task>? caught = caught;
 		private int sleep = sleep;
 		private int retries = retries;
 
-		public async Task<T?> Execute(Func<Task<T>> operation) {
+		public async Task<T?> Execute<T>(Func<Task<T>> operation) {
 			try {
 				return await operation();
 			} catch (TT e) {
@@ -72,11 +72,11 @@ public static class EX {
 		}
 	}
 
-	public static async Task<T?> Poly<T, TT>(Func<Task<T>> operation, RetryPolicy<T, TT>? policy = null) where TT : Exception {
-		policy ??= new RetryPolicy<T, TT>();
+	public static async Task<T?> Poly<T, TT>(Func<Task<T>> operation, RetryPolicy<TT>? policy = null) where TT : Exception {
+		policy ??= new RetryPolicy<TT>();
 		return await policy.Execute(operation);
 	}
-	public static async Task<T?> Poly<T>(Func<Task<T>> operation, RetryPolicy<T, Exception>? policy = null) {
+	public static async Task<T?> Poly<T>(Func<Task<T>> operation, RetryPolicy<Exception>? policy = null) {
 		return await Poly<T, Exception>(operation, policy);
 	}
 

@@ -49,9 +49,8 @@ public class Api {
 				return Task.CompletedTask;
 			}, retries: 2)
 		);
-		if (response is null ||
-			JSON.Deserialize<Ipapi>(response) is not { } ipapi
-		) throw new Exception("Failed to retrieve IP data.");
+		if (JSON.Deserialize<Ipapi>(response ?? "") is not { } ipapi)
+			throw new Exception("Failed to retrieve IP data.");
 
 		Toaster.Info(
 			$"IP {ipapi.query}: {ipapi.city} {ipapi.country} ({ipapi.countryCode})\n" +

@@ -3,7 +3,11 @@ using System.Diagnostics;
 using System.Net;
 using chameleon.assets;
 using Chameleon.lib.Util;
+using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
+using Chameleon.lib.WebBrowser.System.Brave;
+using Chameleon.lib.WebBrowser.System.Chrome;
+using Chameleon.lib.WebBrowser.System.Firefox;
 
 namespace Chameleon.lib.WebBrowser;
 
@@ -85,11 +89,11 @@ public record class BrowserRecord(string Name, string Path) {
   }
   public bool Exists => !string.IsNullOrEmpty(Path) && File.Exists(Path);
 }
-public static class Factorially {
-  public static BrowserSettings Chrome(BrowserProfile profile) {
-    return new BrowserSettings(new(BrowserType.Chrome, profile));
+public static class FactorySettings {
+  public static BrowserSetting Chrome(BrowserProfile profile) {
+    return new BrowserSetting(BrowserType.Chrome, profile);
   }
-  public static BrowserSettings Chrome(string url) {
+  public static BrowserSetting Chrome(string url) {
     return Chrome(new BrowserProfile {
       StartUrl = url,
       Extensions = false,
@@ -97,13 +101,26 @@ public static class Factorially {
       Port = TcpUtil.NextFreePort(9613)
     });
   }
+
+  public static BrowserSetting Brave(BrowserProfile profile) {
+    return new BrowserSetting(BrowserType.Brave, profile);
+  }
+
+  public static BrowserSetting Firefox(BrowserProfile profile) {
+    return new BrowserSetting(BrowserType.Firefox, profile);
+  }
 }
-public record LaunchOptions(BrowserType BrowserType, BrowserProfile Profile);
-public record BrowserSettings(LaunchOptions OpenOptions) {
-  public BrowserType BrowserType => OpenOptions.BrowserType;
-  public BrowserProfile Profile => OpenOptions.Profile;
+public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
   public string BrowserCache => Resources.Assert(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString());
   public string Cached => Resources.Assert(FilePaths.AppDataDir, "cache", BrowserType.ToString(), Profile.Id.ToString());
+
+  private IBrowserInstance? browser;
+  public IBrowserInstance Browser => browser ??= BrowserType switch {
+			BrowserType.Brave => new Brave() { Settings = this },
+			BrowserType.Chrome => new Chrome() { Settings = this },
+			BrowserType.Firefox => new Firefox() { Settings = this },
+			_ => throw new NotImplementedException(),
+		};
 }
 public class EmulationOptions {
   public bool AutoTimezone { get; set; } = true;
