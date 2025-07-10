@@ -285,7 +285,7 @@ public class Chromium : Browser {
 		var existingPort = GetExistingProcessDebuggingPort();
 		if (existingPort.HasValue) {
 			var errorMessage = $"Browser instance is already running for profile {Settings.Profile.Id} on port {existingPort.Value}. " +
-							   "Please close the existing browser instance before launching a new one.";
+							   "Close the existing browser instance before launching a new one.";
 			throw new InvalidOperationException(errorMessage);
 		}
 	}
