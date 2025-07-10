@@ -57,7 +57,7 @@ public abstract class Browser : IBrowserInstance {
 	}
 
 	public async Task Initialize(object? param = null) {
-		if (Brocess is not null || LoadedTCS.Task.IsCompleted) return;
+		if (Brocess is not null) return;
 		
 		await Ensure();
 		await InitializeExtensions();
@@ -161,7 +161,7 @@ public abstract class Browser : IBrowserInstance {
 
 	// Non-Windows platforms use base implementation
 	protected virtual async Task WaitForWinHandle() {
-		Brocess!.Exited += (s, e) => { Close(); };
+		Brocess!.Exited += (s, e) => { if(LoadedTCS.Task.IsCompleted) Close(); };
 		if (OperatingSystem.IsWindows()) return;
 		var result = await EX.Poly(async () => {
 			await Task.Delay(54);
