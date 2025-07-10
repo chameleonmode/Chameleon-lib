@@ -176,10 +176,13 @@ public class SystemBrowser {
 	}
 
 	public IEnumerable<BrowserType> HasInstanceOf(int id, Delegatorz.Event<BrowserEvent> action) {
-		if (Observers.TryGetValue(id, out var value)) value.Add(action);
-		else Observers[id] = [action];
+		if (Observers.TryGetValue(id, out var value)) {
+			value.Add(action);
+		} else {
+			Observers[id] = [action];
+		}
 
-		return Instances
+		var browserTypes = Instances
 			.Where(x => x.Value?.Settings.Profile.Id == id)
 			.Select(b => b.Value?.Settings.BrowserType ?? BrowserType.Unknown)
 			.ToArray();

@@ -46,11 +46,15 @@ public abstract class Browser : IBrowserInstance {
 	}
 
 	public Task Closee() => ProcessUtil.TryKillProcess(Brocess);
+	private bool isClosing = false;
+	
 	public void Close() {
+		if (isClosing) return;
+		isClosing = true;
 		InvokeEvent(BrowserEventType.Closed);
 		if (Brocess == null) return;
 		_ = LoadedTCS.TrySetResult(false);
-		
+
 		MacOSWindowListener.Instance.RemPid(Brocess?.Id);
     Brocess?.Dispose();
 		Brocess = null;
