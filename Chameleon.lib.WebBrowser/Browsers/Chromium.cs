@@ -133,7 +133,10 @@ public class Chromium : Browser {
 
 	// ...
 	protected override async Task WaitForWinHandle() {
-		if (OperatingSystem.IsWindows()) _ = await TaskUtil.AwaitFor(() => Brocess?.MainWindowHandle != nint.Zero, 18);
+		if (OperatingSystem.IsWindows()) _ = await EX.Poly(
+			() => Task.FromResult(Brocess?.MainWindowHandle != nint.Zero),
+			new(sleep: 250, retries: 9)
+		);
 		else if (OperatingSystem.IsMacOS()) await base.WaitForWinHandle();
 		// TODO:  return;
 		// if (Settings.BrowserType == Enums.SystemBrowserType.Chrome)

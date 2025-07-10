@@ -6,7 +6,7 @@ namespace Tests.WebBrowser;
 public class BrowserLauncherTests : TestSetup {
 	public override async Task InitializeAsync() {
 		await base.InitializeAsync();
-		// _ = await Project.Init();
+		_ = await Project.Init();
 	}
 
 	readonly ManualResetEventSlim testCompletionEvent = new(false);

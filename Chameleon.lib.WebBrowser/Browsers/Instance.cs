@@ -144,7 +144,7 @@ public abstract class Browser : IBrowserInstance {
 			},
 			urls = new {
 				start = Settings.Profile.StartUrl,
-				homePages = Settings.Profile.DefaultHomePageSettings,
+				homePages = Settings.Profile.Bookmarks,
 			},
 			tz = new {
 				enabled = Settings.Profile.Emulations.AutoTimezone,

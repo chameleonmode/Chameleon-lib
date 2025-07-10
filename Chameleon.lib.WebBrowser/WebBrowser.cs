@@ -67,12 +67,12 @@ public class BrowserProfile {
   public BrowserProxy Proxy { get; set; } = new();
   public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 
-  public string[] DefaultHomePageSettings { get; init; } =
-    IoC.GetJsonValue<string[]>(nameof(DefaultHomePageSettings))
+  public string[] Bookmarks { get; init; } =
+    IoC.GetJsonValue<string[]>(nameof(Bookmarks))
       .Let(urls => urls != null && urls.Length > 0 ? new[] { urls[new Random().Next(urls.Length)] } : ["example.com"]);
 
   public string StartUrl { get; init; } =
-    IoC.GetJsonValue<string[]>(nameof(DefaultHomePageSettings))
+    IoC.GetJsonValue<string[]>(nameof(Bookmarks))
       .Let(urls => urls != null && urls.Length > 0 ? urls[new Random().Next(urls.Length)] : "example.com")
       .Let(randomUrl => Uri.TryCreate(randomUrl, UriKind.Absolute, out var uriResult)
         && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)

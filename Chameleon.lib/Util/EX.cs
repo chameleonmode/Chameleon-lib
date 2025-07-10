@@ -13,7 +13,7 @@ public static class EX {
 			}
 		}
 
-    public async Task<T?> Execute(Func<Task<T>> operation) {
+		public async Task<T?> Execute(Func<Task<T>> operation) {
 			try {
 				return await operation();
 			} catch (TT e) {
@@ -21,11 +21,11 @@ public static class EX {
 			}
 		}
 
-    private T? Catcher(TT e) {
-      caught?.Invoke(e);
+		private T? Catcher(TT e) {
+			caught?.Invoke(e);
 			PrintException(e);
 			return default;
-    }
+		}
 	}
 
 	public static async Task<T?> Catch<T, TT>(Func<Task<T>> action, Action<TT>? caught = null) where TT : Exception {
@@ -84,7 +84,7 @@ public static class EX {
 		FilePaths.AppDataDir, "logz"
 	), "exceptions.log");
 	public static string? LogContent => File.Exists(LogFile) ? File.ReadAllText(LogFile) : null;
-	
+
 	private static async void PrintException(Exception? e) {
 		if (e == null) return;
 		var logMessage = $"Message: {e.Message}\nStackTrace:\n{e.StackTrace}";

@@ -183,7 +183,10 @@ public class WindowEventHandler {
 	public event Action<nint>? OnForeground;
 	public event Action<nint>? OnDestroy;
 
-	public void StartListening(int tries = 0) {
+	public WindowEventHandler() {
+		_ = StartListening();
+	}
+	public async Task StartListening(int tries = 3) {
 		_delegate = new U32.WinEventDelegate(WinEventProc);
 		_hook = U32.SetWinEventHook(
 				(uint)User32Events.EVENT_SYSTEM_FOREGROUND,
@@ -203,8 +206,9 @@ public class WindowEventHandler {
 				0,
 				(uint)User32Events.WINEVENT_OUTOFCONTEXT);
 
-		if (_hook == IntPtr.Zero && tries < 3) {
-			StartListening(tries++);
+		if (_hook == IntPtr.Zero && tries > 0) {
+			await Task.Delay(1000);
+			await StartListening(tries - 1);
 		}
 	}
 

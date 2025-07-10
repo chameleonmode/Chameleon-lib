@@ -123,6 +123,7 @@ public class IoC {
 
 	//
 	public static T? GetService<T>() => (T?)I.Services?.GetService(typeof(T));
+	public static T? GetService<T>(Type t) => (T?)I.Services?.GetService(t);
 	public static object? GetService(Type t) => I.Services?.GetService(t);
 
 	//
