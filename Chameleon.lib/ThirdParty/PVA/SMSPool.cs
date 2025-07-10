@@ -1,5 +1,4 @@
 ﻿using System.Net.Http.Headers;
-using System.Text.Json;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.ThirdParty.PVA;
@@ -10,13 +9,13 @@ public class OrderBase {
 }
 
 public class SMSOrder {
-	public int status { get; set; }
-	public string? message { get; set; }
-	public string? sms { get; set; }
-	public string? full_sms { get; set; }
-	public int resend { get; set; }
-	public long expiration { get; set; }
-	public long time_left { get; set; }
+	public object? status { get; set; }
+	public object? message { get; set; }
+	public object? sms { get; set; }
+	public object? full_sms { get; set; }
+	public object? resend { get; set; }
+	public object? expiration { get; set; }
+	public object? time_left { get; set; }
 }
 
 public class SuccessfullOrder : OrderBase {
@@ -68,12 +67,12 @@ public class SMSPoolAPI : PVAInstance {
 
 		var getCountriesUrl = $"https://api.smspool.net/country/retrieve_all";
 		var countriesResponse = await HttpClientUtil.GetAsync(getCountriesUrl);
-		if (countriesResponse != null && JsonSerializer.Deserialize<Country[]>(countriesResponse, JSOptions) is Country[] countries)
+		if (countriesResponse != null && JSON.Deserialize<Country[]>(countriesResponse, JSOptions) is Country[] countries)
 			Countries = countries;
 
 		var getServicesUrl = $"https://api.smspool.net/service/retrieve_all";
 		var servicesResponse = await HttpClientUtil.GetAsync(getServicesUrl);
-		if (servicesResponse != null && JsonSerializer.Deserialize<Service[]>(servicesResponse, JSOptions) is Service[] services)
+		if (servicesResponse != null && JSON.Deserialize<Service[]>(servicesResponse, JSOptions) is Service[] services)
 			Services = services;
 	}
 
@@ -92,20 +91,20 @@ public class SMSPoolAPI : PVAInstance {
 		var apiUrl = $"https://api.smspool.net/purchase/sms";
 		using var response = await HttpClientUtil.PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
 		{
-						{ new StringContent(country.ID.ToString()), "country" },
-						{ new StringContent(service.ID.ToString()), "service" },
-						{ new StringContent(ApiKey), "key" }
-				});
+			{ new StringContent(country.ID.ToString()), "country" },
+			{ new StringContent(service.ID.ToString()), "service" },
+			{ new StringContent(ApiKey), "key" }
+		});
 		var responseContent = await response.Content.ReadAsStringAsync();
 		return response.IsSuccessStatusCode &&
-				JsonSerializer.Deserialize<SuccessfullOrder>(responseContent, JSOptions) is SuccessfullOrder successfullOrder
+				JSON.Deserialize<SuccessfullOrder>(responseContent) is SuccessfullOrder successfullOrder
 			? new Tuple<string, string>(
-					JsonSerializer.Serialize(successfullOrder, JSOptions),
+					JSON.Serialize(successfullOrder),
 					successfullOrder.number.ToString()
 				)
-			: JsonSerializer.Deserialize<UnSuccessfullOrder>(responseContent, JSOptions) is UnSuccessfullOrder unsuccessfullOrder
+			: JSON.Deserialize<UnSuccessfullOrder>(responseContent) is UnSuccessfullOrder unsuccessfullOrder
 				? new Tuple<string, string>(
-								JsonSerializer.Serialize(unsuccessfullOrder, JSOptions),
+								JSON.Serialize(unsuccessfullOrder),
 								unsuccessfullOrder.message ?? "Failed to read reason for unsuccessfull order"
 							)
 				: new Tuple<string, string>(responseContent, response.StatusCode.ToString());
@@ -114,16 +113,16 @@ public class SMSPoolAPI : PVAInstance {
 	public override async Task<Tuple<string, string>> CancelOrderAsync(string orderid) {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
-		if (JsonSerializer.Deserialize<SuccessfullOrder>(orderid, JSOptions) is SuccessfullOrder phoneNumberData && phoneNumberData.order_id != null) {
+		if (JSON.Deserialize<SuccessfullOrder>(orderid) is SuccessfullOrder phoneNumberData && phoneNumberData.order_id != null) {
 			var apiUrl = "https://api.smspool.net/sms/cancel";
 			using var response = await HttpClientUtil.PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
 			{
-						{ new StringContent(phoneNumberData.order_id), "orderid" },
-						{ new StringContent(ApiKey), "key" }
-				});
+				{ new StringContent(phoneNumberData.order_id), "orderid" },
+				{ new StringContent(ApiKey), "key" }
+			});
 			var responseContent = await response.Content.ReadAsStringAsync();
-			var jsonResponse = JsonSerializer.Deserialize<OrderBase>(responseContent, JSOptions);
-			var formattedJson = JsonSerializer.Serialize(jsonResponse, JSOptions);
+			var jsonResponse = JSON.Deserialize<OrderBase>(responseContent);
+			var formattedJson = JSON.Stringify(jsonResponse);
 			return new Tuple<string, string>(formattedJson, (jsonResponse?.success > 0).ToString());
 		} else {
 			return new Tuple<string, string>("", "Failed to deserialize orderid");
@@ -133,25 +132,23 @@ public class SMSPoolAPI : PVAInstance {
 	public override async Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData) {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
-		if (JsonSerializer.Deserialize<SuccessfullOrder>(numberData, JSOptions) is SuccessfullOrder phoneNumberData && phoneNumberData.order_id != null) {
+		if (JSON.Deserialize<SuccessfullOrder>(numberData) is SuccessfullOrder phoneNumberData && phoneNumberData.order_id != null) {
 			var apiUrl = "https://api.smspool.net/sms/check";
 			using var response = await HttpClientUtil.PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
 			{
-						{ new StringContent(phoneNumberData.order_id), "orderid" },
-						{ new StringContent(ApiKey), "key" }
-				});
-			var responseContent = await response.Content.ReadAsStringAsync();
-			var jsonResponse = JsonSerializer.Deserialize<SMSOrder>(responseContent, JSOptions);
+				{ new StringContent(phoneNumberData.order_id), "orderid" },
+				{ new StringContent(ApiKey), "key" }
+			});
+			var content = await response.Content.ReadAsStringAsync();
 
-			return response.IsSuccessStatusCode &&
-					 JsonSerializer.Deserialize<SMSOrder>(responseContent, JSOptions) is SMSOrder order
-				? new Tuple<string, string>(JsonSerializer.Serialize(jsonResponse, JSOptions), order.sms!)
-				: JsonSerializer.Deserialize<UnSuccessfullOrder>(responseContent, JSOptions) is UnSuccessfullOrder unsuccessfullOrder
-					? new Tuple<string, string>(
-										JsonSerializer.Serialize(unsuccessfullOrder, JSOptions),
-										unsuccessfullOrder.message ?? "Failed to read reason for unsuccessfull order"
-									)
-					: new Tuple<string, string>(responseContent, response.StatusCode.ToString());
+			return
+				response.IsSuccessStatusCode &&
+				JSON.Deserialize<SMSOrder>(content) is { } order &&
+				order.sms?.ToString() is { } sms
+					? new Tuple<string, string>(JSON.Serialize(order), sms)
+					: JSON.Deserialize<UnSuccessfullOrder>(content) is { } fail
+						? new Tuple<string, string>(JSON.Serialize(fail), fail.message ?? "Failed to read reason for unsuccessfull order")
+						: new Tuple<string, string>(content, response.StatusCode.ToString());
 		}
 		return new Tuple<string, string>("", "Failed to deserialize orderid");
 	}

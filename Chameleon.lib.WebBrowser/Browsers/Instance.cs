@@ -68,6 +68,10 @@ public abstract class Browser : IBrowserInstance {
 
 		await Task.Delay(2000);
 		await WaitForWinHandle();
+		await Task.Delay(1000);
+
+		if (!Brocess!.HasExited) _ = LoadedTCS.TrySetResult(true);
+		else Close();
 	}
 
 	public Process Brocessor(bool args = true) {
@@ -157,8 +161,8 @@ public abstract class Browser : IBrowserInstance {
 
 	// Non-Windows platforms use base implementation
 	protected virtual async Task WaitForWinHandle() {
-		if (OperatingSystem.IsWindows()) return;
 		Brocess!.Exited += (s, e) => { Close(); };
+		if (OperatingSystem.IsWindows()) return;
 		var result = await EX.Poly(async () => {
 			await Task.Delay(54);
 			if (!Brocess!.HasExited) throw new InvalidOperationException("Window handle not found.");
@@ -166,8 +170,5 @@ public abstract class Browser : IBrowserInstance {
 			return MacOSUtil.FindWindowByPID(Brocess.Id) != null;
 		},
 		new(sleep: 100, retries: 6));
-
-		if (!Brocess!.HasExited) _ = LoadedTCS.TrySetResult(true);
-		else Close();
 	}
 }

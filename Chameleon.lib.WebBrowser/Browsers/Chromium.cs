@@ -129,10 +129,8 @@ public class Chromium : Browser {
 
 	// ...
 	protected override async Task WaitForWinHandle() {
-		if (!OperatingSystem.IsWindows()) {
-			await base.WaitForWinHandle();
-			return;
-		}
+		await base.WaitForWinHandle();
+		if (!OperatingSystem.IsWindows()) return;
 
 		var result = await EX.Poly(async () => {
 			await Task.Delay(54);

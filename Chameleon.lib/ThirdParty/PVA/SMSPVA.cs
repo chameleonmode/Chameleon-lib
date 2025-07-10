@@ -1,6 +1,5 @@
 ﻿using Chameleon.lib.Util;
 
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Chameleon.lib.ThirdParty.PVA;
@@ -82,7 +81,7 @@ public class SMSPVAPI : PVAInstance {
 		var responseBody =
 				await HttpClientUtil.GetAsync(url, ApiKeyHeaders);
 		var jsonResponse =
-				JsonSerializer.Deserialize<ApiResponse<GetNumberData>>(responseBody, JSOptions);
+				JSON.Deserialize<ApiResponse<GetNumberData>>(responseBody);
 
 		return new Tuple<string, string>(responseBody, jsonResponse?.Data?.PhoneNumber ?? "(+x)-xxx-xxx-xxxx");
 	}
@@ -90,11 +89,11 @@ public class SMSPVAPI : PVAInstance {
 	public override async Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData) {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
-		if (JsonSerializer.Deserialize<ApiResponse<GetNumberData>>(numberData, JSOptions)?.Data?.OrderId is int oId) {
+		if (JSON.Deserialize<ApiResponse<GetNumberData>>(numberData)?.Data?.OrderId is int oId) {
 			var url = $"https://api.smspva.com/activation/sms/{oId}";
 
 			var responseBody = await HttpClientUtil.GetAsync(url, ApiKeyHeaders);
-			var responseData = JsonSerializer.Deserialize<ApiResponse<ReceiveSMSData>>(responseBody, JSOptions);
+			var responseData = JSON.Deserialize<ApiResponse<ReceiveSMSData>>(responseBody);
 			return new Tuple<string, string>(responseBody, responseData?.Data?.Sms?.Code ?? "xxx-xxx");
 		} else {
 			return new Tuple<string, string>("", "Failed to find orderid");
@@ -104,11 +103,11 @@ public class SMSPVAPI : PVAInstance {
 	public override async Task<Tuple<string, string>> CancelOrderAsync(string orderId) {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
-		if (JsonSerializer.Deserialize<ApiResponse<GetNumberData>>(orderId, JSOptions)?.Data?.OrderId is int oId) {
+		if (JSON.Deserialize<ApiResponse<GetNumberData>>(orderId)?.Data?.OrderId is int oId) {
 			var url = $"https://api.smspva.com/activation/cancelorder/{oId}";
 
 			var responseContent = await HttpClientUtil.PutAsync(url, ApiKeyHeaders);
-			var jsonResponse = JsonSerializer.Deserialize<ApiResponse<DataBase>>(responseContent, JSOptions);
+			var jsonResponse = JSON.Deserialize<ApiResponse<DataBase>>(responseContent);
 			return new Tuple<string, string>(responseContent, (jsonResponse?.Error?.Type == null).ToString());
 		} else {
 			return new Tuple<string, string>("", "Failed to find orderid");

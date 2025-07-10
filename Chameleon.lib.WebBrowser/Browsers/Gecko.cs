@@ -292,10 +292,8 @@ public class Gecko : Browser {
 	}
 
 	protected override async Task WaitForWinHandle() {
-		if (!OperatingSystem.IsWindows()) {
-			await base.WaitForWinHandle();
-			return;
-		}
+		await base.WaitForWinHandle();
+		if (!OperatingSystem.IsWindows()) return;
 		if (Brocess == null || Brocess.HasExited) {
 			// Wait for Firefox to fully initialize before searching for processes
 			await Task.Delay(3000);
