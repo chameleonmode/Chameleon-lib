@@ -136,17 +136,7 @@ public class Chromium : Browser {
 			await Task.Delay(60);
 			return (Brocess?.HasExited == false && Brocess.MainWindowHandle != IntPtr.Zero).ThrowIfTrue();
 		}, new(sleep: 90, retries: 6));
-
-		// Verify browser process is running AND has a valid main window handle
-		var hasValidHandle = Brocess?.MainWindowHandle != IntPtr.Zero && Brocess?.HasExited == false;
-		if (hasValidHandle) {
-			_ = LoadedTCS.TrySetResult(true);
-			InvokeEvent(Event.Opened);
-		} else {
-			if (Brocess?.HasExited == true) Close();
-			else _ = LoadedTCS.TrySetResult(false);
-			// Don't trigger Opened event since browser is not properly connected
-		}
+		_ = (Brocess!.HasExited || Brocess.MainWindowHandle != IntPtr.Zero).ThrowIfTrue();
 	}
 
 	protected virtual int? GetExistingProcessDebuggingPort() {

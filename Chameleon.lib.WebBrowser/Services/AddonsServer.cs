@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualBasic;
 namespace Chameleon.lib.WebBrowser.Services;
 
 public class AddonsServer : IStartUp {
@@ -20,7 +19,7 @@ public class AddonsServer : IStartUp {
 
   public int Port { get; }
   public string RedirectUri { get; }
-  public ConcurrentDictionary<string, object> AddonInstances { get; } = [];
+  public ConcurrentDictionary<string, (object, int)> AddonInstances { get; } = [];
 
   public bool IsRunning => app != null;
 
@@ -103,7 +102,7 @@ public class AddonsServer : IStartUp {
 
       app.MapGet("/init", ([FromQuery] string instanceId, [FromQuery] string sessionId) => {
         if (sessionId.Is()) return Results.BadRequest("Missing sessionId parameter");
-        else if (AddonInstances.TryGetValue(sessionId, out var config)) return Results.Content(JSON.Serialize(config), "application/json");
+        else if (AddonInstances.TryGetValue(sessionId, out var config)) return Results.Content(JSON.Serialize(config.Item1), "application/json");
 
         // Log the missing session for debugging
         Debug.WriteLine($"Session {sessionId} not found in AddonInstances. Available sessions: {string.Join(", ", AddonInstances.Keys)}");
@@ -125,10 +124,10 @@ public class AddonsServer : IStartUp {
         try {
           var instanceId = int.TryParse(context.Request.Headers["X-Instance-ID"].ToString(), out var id) ? id : 0;
           var sessionId = context.Request.Headers["X-Session-ID"].ToString();
-          _ = (SystemBrowser.I.Instances.TryGetValue(instanceId, out var browser) && browser != null).ThrowIfFalse();
+          _ = SystemBrowser.I.Instances.TryGetValue(instanceId, out var browser);
           return body.GetProperty("type").GetString() switch {
-            "init" => AddonInstances.TryGetValue(sessionId, out var config)
-              ? Results.Json(new { config, port = browser!.Settings.Profile.Port })
+            "init" => AddonInstances.TryGetValue(sessionId, out var instance)
+              ? Results.Json(new { config = instance.Item1, port = instance.Item2 })
               : Results.NotFound(new { error = "Session not found" }),
             "port" when body.TryGetProperty("port", out var ele) && ele.TryGetInt32(out var port) =>
               Results.Ok(new { status = "ok", port = browser!.Settings.Profile.Port = port }),

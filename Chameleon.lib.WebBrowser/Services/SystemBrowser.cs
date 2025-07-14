@@ -140,12 +140,8 @@ public class SystemBrowser {
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
 		if (settings.Profile.Extensions) _ = await Project.Initialized.Task;
 		settings.Profile.Port = Processez.NextFreePort(9613);
-		settings.Browser.OnEvent += async (sender, args) => {
-			if (args.Event == Event.Closed) {
-				_ = await settings.Browser.LoadedTCS.Task;
-				_ = Instances.TryRemove(settings.Profile.Id, out _);
-			}
-
+		settings.Browser.OnEvent += (sender, args) => {
+			if (args.Event == Event.Closed) _ = Instances.TryRemove(settings.Profile.Id, out _);
 			if (Observers.TryGetValue(settings.Profile.Id, out var observer))
 				observer.ForEach(x => x.Invoke(sender, args));
 		};
@@ -153,7 +149,7 @@ public class SystemBrowser {
 		var opened = await settings.Browser.LoadedTCS.Task.WaitAsync(
 			TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6)
 		);
-		_ = (!opened && !settings.Profile.Extensions).ThrowIfTrue();
+		_ = (!opened && settings.Profile.Extensions).ThrowIfTrue();
 		settings.Browser.InvokeEvent(Event.Opened);
 		return Instances[settings.Profile.Id] = settings.Browser;
 	}

@@ -45,38 +45,32 @@ public abstract class Browser : IBrowserInstance {
 
 	public async Task Closee() => await Processez.TryKillProcess(Brocess);
 	public void Close() {
-		InvokeEvent(Event.Closed);
-		if (Brocess == null) return;
 		_ = LoadedTCS.TrySetResult(false);
-		
+		InvokeEvent(Event.Closed);
 		MacOSWindowListener.Instance.RemPid(Brocess?.Id);
-    Brocess?.Dispose();
+		Brocess?.Dispose();
 		Brocess = null;
 	}
 
 	public async Task Initialize(object? param = null) {
 		if (Brocess is not null) return;
-		
+
 		await Ensure();
 		await InitializeExtensions();
 
 		// StartProcess
 		Brocess = Brocessor();
-		EX.Try(()=> Brocess.Start(), e => throw e);
+		EX.Try(() => Brocess.Start(), e => throw e);
 
-		await Task.Delay(2000);
 		await WaitForWinHandle();
 		await Task.Delay(1000);
 
-			_ = LoadedTCS.TrySetResult(true);
-			InvokeEvent(Event.Opened);
-
-		if (!Brocess!.HasExited) _ = LoadedTCS.TrySetResult(true);
+		if (!Brocess.HasExited) _ = LoadedTCS.TrySetResult(true);
 		else Close();
 	}
 
 	public Process Brocessor(string? url = null) {
-		Process process = new () {
+		Process process = new() {
 			StartInfo = new() {
 				FileName = ExePath,
 				Arguments = GetCommandLineArguments(url),
@@ -88,13 +82,14 @@ public abstract class Browser : IBrowserInstance {
 
 		process.Exited += (sender, e) => {
 			// Only close if the process exited with an error or during initialization
-			if (process.ExitCode != 0) Close();
-			else if(LoadedTCS.Task.IsCompleted == false) {
-				_ = LoadedTCS.TrySetResult(Brocessor(url).Start());
-				// Brocessor(false).Start();
-			}
-		}
-			;
+			if (LoadedTCS.Task.IsCompleted) Close();
+			else if (process.ExitCode == 0) _ = LoadedTCS.TrySetResult(false);
+			// // {
+			// // 	_ = LoadedTCS.TrySetResult(false);
+			// // 	// _ = LoadedTCS.TrySetResult(Brocessor(url).Start());
+			// // 	// Brocessor(false).Start();
+			// // }
+		};
 
 		return process;
 	}
@@ -105,70 +100,71 @@ public abstract class Browser : IBrowserInstance {
 	public abstract string ExePath { get; }
 	protected abstract string GetCommandLineArguments(string? url);
 	protected virtual async Task InitializeExtensions() {
-		if(!Settings.Profile.Extensions) return;
+		if (!Settings.Profile.Extensions) return;
 
 		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
 		// set the extension settings
-		AddonsServer.I.AddonInstances[SessionId] = new {
-			proxy = new {
-				enabled = Settings.Profile.Proxy.CanUse,
-				type = "http",
-				server = Settings.Profile.Proxy.Server,
-				host = Settings.Profile.Proxy.Host,
-				port = Settings.Profile.Proxy.Port,
-				username = Settings.Profile.Proxy.UserName,
-				password = Settings.Profile.Proxy.Password,
+		AddonsServer.I.AddonInstances[SessionId] = (
+			new {
+				proxy = new {
+					enabled = Settings.Profile.Proxy.CanUse,
+					type = "http",
+					server = Settings.Profile.Proxy.Server,
+					host = Settings.Profile.Proxy.Host,
+					port = Settings.Profile.Proxy.Port,
+					username = Settings.Profile.Proxy.UserName,
+					password = Settings.Profile.Proxy.Password,
+				},
+				urls = new {
+					start = Settings.Profile.StartUrl,
+					homePages = Settings.Profile.Bookmarks,
+				},
+				tz = new {
+					enabled = Settings.Profile.Emulations.AutoTimezone,
+					zone = ipapi.timezone,
+					system = ipapi.tzSystem,
+					locale = "en-" + ipapi.countryCode,
+				},
+				geo = new {
+					enabled = Settings.Profile.Emulations.SpoofGeoLocation,
+					ipapi.lat,
+					ipapi.lon,
+				},
+				canvas = new {
+					enabled = Settings.Profile.Emulations.SpoofCanvasFingerprint,
+				},
+				webgl = new {
+					enabled = Settings.Profile.Emulations.SpoofWebGLFingerprint,
+				},
+				rects = new {
+					enabled = Settings.Profile.Emulations.SpoofClientRects,
+				},
+				fonts = new {
+					enabled = Settings.Profile.Emulations.SpoofFontFingerprint,
+				},
+				audio = new {
+					enabled = Settings.Profile.Emulations.SpoofAudio,
+				},
+				navi = new {
+					enabled = Settings.Profile.Emulations.SpoofNavigator,
+				},
 			},
-			urls = new {
-				start = Settings.Profile.StartUrl,
-				homePages = Settings.Profile.Bookmarks,
-			},
-			tz = new {
-				enabled = Settings.Profile.Emulations.AutoTimezone,
-				zone = ipapi.timezone,
-				system = ipapi.tzSystem,
-				locale = "en-" + ipapi.countryCode,
-			},
-			geo = new {
-				enabled = Settings.Profile.Emulations.SpoofGeoLocation,
-				ipapi.lat,
-				ipapi.lon,
-			},
-			canvas = new {
-				enabled = Settings.Profile.Emulations.SpoofCanvasFingerprint,
-			},
-			webgl = new {
-				enabled = Settings.Profile.Emulations.SpoofWebGLFingerprint,
-			},
-			rects = new {
-				enabled = Settings.Profile.Emulations.SpoofClientRects,
-			},
-			fonts = new {
-				enabled = Settings.Profile.Emulations.SpoofFontFingerprint,
-			},
-			audio = new {
-				enabled = Settings.Profile.Emulations.SpoofAudio,
-			},
-			navi = new {
-				enabled = Settings.Profile.Emulations.SpoofNavigator,
-			},
-		};
+			Settings.Profile.Port
+		);
 	}
 
 	// Non-Windows platforms use base implementation
 	protected virtual async Task WaitForWinHandle() {
-		Brocess!.Exited += (s, e) => {
-			if (LoadedTCS.Task.IsCompleted) Close();
-		};
+		await Task.Delay(1000);
 		if (OperatingSystem.IsWindows()) return;
 		var result = await EX.Poly(async () => {
 			await Task.Delay(54);
-			if (!Brocess!.HasExited) throw new InvalidOperationException("Window handle not found.");
-			else MacOSWindowListener.Instance.AddPid(Brocess.Id);
-			return MacOSUtil.FindWindowByPID(Brocess.Id) != null;
+			(Brocess!.HasExited == true).ThrowIfTrue();
+			MacOSWindowListener.Instance.AddPid(Brocess!.Id);
+			return (MacOSUtil.FindWindowByPID(Brocess.Id) == null).ThrowIfTrue();
 		},
 		new(sleep: 100, retries: 6));
-		_ = result.ThrowIfFalse();
+		_ = result.ThrowIfTrue();
 	}
 
 	public event Action<object, BrowserEvent>? OnEvent;
