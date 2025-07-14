@@ -167,8 +167,5 @@ public class Chromium : Browser {
 	}
 }
 
-public class Brave : Chromium {
-
-}
-public class Chrome : Chromium {
-}
+public class Brave : Chromium { }
+public class Chrome : Chromium { }

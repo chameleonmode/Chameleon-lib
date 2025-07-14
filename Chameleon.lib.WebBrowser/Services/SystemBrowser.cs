@@ -149,7 +149,7 @@ public class SystemBrowser {
 		var opened = await settings.Browser.LoadedTCS.Task.WaitAsync(
 			TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6)
 		);
-		(!opened && settings.Profile.Extensions).ThrowTrue();
+		(!opened && settings.Profile.Extensions).ThrowTrue("connnection state does not indicate success");
 		settings.Browser.InvokeEvent(Event.Opened);
 		return Instances[settings.Profile.Id] = settings.Browser;
 	}
@@ -162,7 +162,7 @@ public class SystemBrowser {
 					_ = Instances.TryRemove(settings.Profile.Id, out _);
 					_ = settings.Browser.LoadedTCS.TrySetResult(false);
 					settings.Browser.InvokeEvent(Event.Error);
-				}) ?? throw new InvalidOperationException();
+			}) ?? throw new InvalidOperationException();
 		} else if (browser.Brocess is null || browser.Brocess.HasExited) {
 			await browser.Closee();
 			browser.Close();
