@@ -22,7 +22,9 @@ public static class Extensions {
     return self ? throw new InvalidOperationException(message ?? $"{nameof(self)}, is {self}") : self;
   }
   public static bool ThrowIfFalse(this bool self, string? message = null) => ThrowIf(!self, message);
+  public static void ThrowFalse(this bool self, string? message = null) => ThrowIf(!self, message);
   public static bool ThrowIfTrue(this bool self, string? message = null) => ThrowIf(self, message);
+  public static void ThrowTrue(this bool self, string? message = null) => ThrowIf(self, message);
 }
 
 public static class TaskExtensions {

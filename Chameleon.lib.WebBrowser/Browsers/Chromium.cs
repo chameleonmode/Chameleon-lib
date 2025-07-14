@@ -136,7 +136,7 @@ public class Chromium : Browser {
 			await Task.Delay(60);
 			return (Brocess?.HasExited == false && Brocess.MainWindowHandle != IntPtr.Zero).ThrowIfTrue();
 		}, new(sleep: 90, retries: 6));
-		_ = (Brocess!.HasExited || Brocess.MainWindowHandle != IntPtr.Zero).ThrowIfTrue();
+		(Brocess!.HasExited || Brocess.MainWindowHandle != IntPtr.Zero).ThrowTrue();
 	}
 
 	protected virtual int? GetExistingProcessDebuggingPort() {

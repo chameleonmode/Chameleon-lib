@@ -159,12 +159,12 @@ public abstract class Browser : IBrowserInstance {
 		if (OperatingSystem.IsWindows()) return;
 		var result = await EX.Poly(async () => {
 			await Task.Delay(54);
-			(Brocess!.HasExited == true).ThrowIfTrue();
+			Brocess!.HasExited.ThrowTrue();
 			MacOSWindowListener.Instance.AddPid(Brocess!.Id);
 			return (MacOSUtil.FindWindowByPID(Brocess.Id) == null).ThrowIfTrue();
 		},
 		new(sleep: 100, retries: 6));
-		_ = result.ThrowIfTrue();
+		result.ThrowTrue();
 	}
 
 	public event Action<object, BrowserEvent>? OnEvent;

@@ -55,7 +55,7 @@ public static class Processez {
 
 	public static string? GetCommandLine(Process process) {
 		try {
-			_ = process.HasExited.ThrowIfTrue();
+			process.HasExited.ThrowTrue();
 			if (OperatingSystem.IsWindows()) {
 				using var searcher = new ManagementObjectSearcher(
 					$"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {process.Id}");

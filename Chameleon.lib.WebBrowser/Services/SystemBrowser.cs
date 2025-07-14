@@ -149,7 +149,7 @@ public class SystemBrowser {
 		var opened = await settings.Browser.LoadedTCS.Task.WaitAsync(
 			TimeSpan.FromSeconds(settings.Profile.Extensions ? TimeOut : 6)
 		);
-		_ = (!opened && settings.Profile.Extensions).ThrowIfTrue();
+		(!opened && settings.Profile.Extensions).ThrowTrue();
 		settings.Browser.InvokeEvent(Event.Opened);
 		return Instances[settings.Profile.Id] = settings.Browser;
 	}
