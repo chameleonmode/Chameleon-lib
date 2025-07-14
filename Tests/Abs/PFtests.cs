@@ -10,7 +10,7 @@ public record J2on<T> {
   public string Jzon { get; set; } = string.Empty;
   public T O {
     get => JSON.Parse<T>(Jzon);
-    set => Jzon = JSON.Stringify(value);
+    set => Jzon = JSON.Stringify(value) ?? "";
   }
 }
 

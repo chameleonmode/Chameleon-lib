@@ -153,21 +153,21 @@ public class SystemBrowser {
 		settings.Browser.InvokeEvent(Event.Opened);
 		return Instances[settings.Profile.Id] = settings.Browser;
 	}
-	public async Task<IBrowserInstance> Open(BrowserSetting options) {
-		if (!Instances.TryGetValue(options.Profile.Id, out var browser) || browser == null) {
+	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
+		if (!Instances.TryGetValue(settings.Profile.Id, out var browser) || browser == null) {
 			return await EX.Catch(
-				async () => browser = await Launch(options),
+				async () => browser = await Launch(settings),
 				e => {
-					Toaster.Error(e.Message);
-					_ = Instances.TryRemove(options.Profile.Id, out _);
-					_ = options.Browser.LoadedTCS.TrySetResult(false);
-					options.Browser.InvokeEvent(Event.Error);
+					if (settings.Profile.Extensions) Toaster.Error(e.Message);
+					_ = Instances.TryRemove(settings.Profile.Id, out _);
+					_ = settings.Browser.LoadedTCS.TrySetResult(false);
+					settings.Browser.InvokeEvent(Event.Error);
 				}) ?? throw new InvalidOperationException();
 		} else if (browser.Brocess is null || browser.Brocess.HasExited) {
 			await browser.Closee();
 			browser.Close();
 			await Task.Delay(256);
-			return await Open(options);
+			return await Open(settings);
 		}
 		return browser;
 	}
