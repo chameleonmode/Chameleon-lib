@@ -4,27 +4,24 @@ namespace Chameleon.lib.ThirdParty.PVA;
 
 public class ApiGetNumberResponse {
 	public string? Number { get; set; }
-
-	public List<string> Errors { get; } =
-	[
-			"Customer Not Found.",
-				"App Not Found.",
-				"Country Not Found.",
-				"New Numbers registration in progress, please wait or check back later.",
-				"Error 102, check back later."
+	public List<string> Errors { get; } = [
+		"Customer Not Found.",
+		"App Not Found.",
+		"Country Not Found.",
+		"New Numbers registration in progress, please wait or check back later.",
+		"Error 102, check back later."
 	];
 }
 
 public class ApiGetCodeResponse {
 	public string? Code { get; set; }
 
-	public List<string> Errors { get; } =
-	[
-			"Customer Not Found.",
-				"Number Not Found.",
-				"You have not received any code yet.",
-				"Your balance is expired.",
-				"Error 102, check back later."
+	public List<string> Errors { get; } = [
+		"Customer Not Found.",
+		"Number Not Found.",
+		"You have not received any code yet.",
+		"Your balance is expired.",
+		"Error 102, check back later."
 	];
 }
 
@@ -37,18 +34,18 @@ public class CodesVerifyAPI : PVAInstance {
 	}
 
 	public override async Task Save() {
-		await IoC.SetValueAsync(ApiKey, nameof(CodesVerifyAPI), nameof(ApiKey));
+		await IoC.SetValue(ApiKey, nameof(CodesVerifyAPI), nameof(ApiKey));
 	}
 
 	public override async Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app) {
 		var apiUrl = $"http://codesverify.com/user/api/get_number.php?customer={ApiKey}&app={app.Name}&country={country.Name}";
-		var responseBody = await HttpClientUtil.GetAsync(apiUrl);
+		var responseBody = await GetAsync(apiUrl);
 		return new Tuple<string, string>(responseBody, responseBody);
 	}
 
 	public override async Task<Tuple<string, string>> GetCodeAsync(RCountry country, RService app, string numberData) {
 		var apiUrl = $"http://codesverify.com/user/api/get_sms.php?customer={ApiKey}&number={numberData}&country={country.Name}&app={app.Name}";
-		var responseBody = await HttpClientUtil.GetAsync(apiUrl);
+		var responseBody = await GetAsync(apiUrl);
 		return new Tuple<string, string>(responseBody, responseBody);
 	}
 

@@ -5,23 +5,20 @@ using chameleon.assets;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
-using Chameleon.lib.WebBrowser.System.Brave;
-using Chameleon.lib.WebBrowser.System.Chrome;
-using Chameleon.lib.WebBrowser.System.Firefox;
 
 namespace Chameleon.lib.WebBrowser;
 
-	public enum BrowserType {
-		Unknown,
-		Chromium,
-		[Description("chrome")] Chrome,
-		[Description("firefox")] Firefox,
-		[Description("brave")] Brave,
-	}
+public enum BrowserType {
+  Unknown,
+  Chromium,
+  [Description("chrome")] Chrome,
+  [Description("firefox")] Firefox,
+  [Description("brave")] Brave,
+}
 
 #region models
 public record BrowserOption(BrowserType Option) {
-	public string IconName { get; } = Option.ToString().ToLower();
+  public string IconName { get; } = Option.ToString().ToLower();
 }
 public class BrowserProxy {
   public string? HostForRequest => Host?.Contains("proxy.chameleonmode.com") == true ?
@@ -83,12 +80,6 @@ public class BrowserProfile {
           ? uriResult.AbsoluteUri
           : "http://" + randomUrl);
 }
-public record class BrowserRecord(string Name, string Path) {
-  public override string ToString() {
-    return Name ?? Path;
-  }
-  public bool Exists => !string.IsNullOrEmpty(Path) && File.Exists(Path);
-}
 public static class FactorySettings {
   public static BrowserSetting Chrome(BrowserProfile profile) {
     return new BrowserSetting(BrowserType.Chrome, profile);
@@ -98,7 +89,7 @@ public static class FactorySettings {
       StartUrl = url,
       Extensions = false,
       Emulations = new(),
-      Port = TcpUtil.NextFreePort(9613)
+      Port = Processez.NextFreePort(9613)
     });
   }
 
@@ -112,15 +103,14 @@ public static class FactorySettings {
 }
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
   public string BrowserCache => Resources.Assert(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString());
-  public string Cached => Resources.Assert(FilePaths.AppDataDir, "cache", BrowserType.ToString(), Profile.Id.ToString());
 
   private IBrowserInstance? browser;
   public IBrowserInstance Browser => browser ??= BrowserType switch {
-			BrowserType.Brave => new Brave() { Settings = this },
-			BrowserType.Chrome => new Chrome() { Settings = this },
-			BrowserType.Firefox => new Firefox() { Settings = this },
-			_ => throw new NotImplementedException(),
-		};
+    BrowserType.Brave => new Brave() { Settings = this },
+    BrowserType.Chrome => new Chrome() { Settings = this },
+    BrowserType.Firefox => new Firefox() { Settings = this },
+    _ => throw new NotImplementedException(),
+  };
 }
 public class EmulationOptions {
   public bool AutoTimezone { get; set; } = true;
@@ -137,17 +127,17 @@ public class EmulationOptions {
 
 public static class Project {
   public static bool Staging { get; } = true && (Debugger.IsAttached || Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true");
-  
+
   public static class Extensions {
     public static string Chromium => Resources.Assert(
       FilePaths.AppDataDir, "extensions", "chromium"
     );
-    
-    public static string Chromeleon { 
+
+    public static string Chromeleon {
       get {
         var devPath = Path.Combine(GetDevChromePath(), "chromeleon");
         var prodPath = Path.Combine(Chromium, ExtensionType.chromeleon.ToString());
-        
+
         if (Staging && Directory.Exists(devPath)) {
           return devPath;
         } else {
@@ -161,10 +151,10 @@ public static class Project {
     );
     public static string Geckoleon => Path.Combine(Gecko, "geckoleon.xpi");
 
-	  public static string Defaults => OperatingSystem.IsMacOS()
-			? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..Resources/browser/extensions")
-			: Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources\\browser\\extensions");
-			
+    public static string Defaults => OperatingSystem.IsMacOS()
+      ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..Resources/browser/extensions")
+      : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources\\browser\\extensions");
+
     private static string GetDevChromePath() {
       if (OperatingSystem.IsMacOS()) {
         return Path.Combine("/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons");
@@ -177,10 +167,10 @@ public static class Project {
 
   public static TaskCompletionSource<bool> Initialized { get; } = new();
   public static async Task<bool> Init() {
-    await AddonsServer.Instance.Start();
+    await AddonsServer.I.Start();
 
-    if (IoC.GetValue(nameof(Extensions)) is not string ver || ver != "o") {//ver != IoC.Assembled) {
-      IoC.SetValue(nameof(Extensions), "o"); //IoC.Assembled);
+    if (IoC.GetValue(nameof(Extensions)) is not string version || version != IoC.Assembled) {
+      IoC.SetValue(nameof(Extensions), IoC.Assembled);
       await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
       await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
     }

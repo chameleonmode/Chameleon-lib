@@ -2,22 +2,25 @@
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace Chameleon.lib.Auth.Oidc;
+
 public class Client {
 	public const string Domain = "dev-gcjhdlkot8s8v2vr.us.auth0.com";
-  public const string ClientId = "dEtvplqXMKlDV1xSuuPfTLoWxtR8uMJv";
-  public const string ApiAudience = "https://api.chameleonmode.com/";
-  public const string Auth0Audience = "https://dev-gcjhdlkot8s8v2vr.us.auth0.com/userinfo";
+	public const string ClientId = "dEtvplqXMKlDV1xSuuPfTLoWxtR8uMJv";
+	public const string ApiAudience = "https://api.chameleonmode.com/";
+	public const string Auth0Audience = "https://dev-gcjhdlkot8s8v2vr.us.auth0.com/userinfo";
 
 	readonly string state;
 	readonly string codeVerifier;
 	readonly string codeChallenge;
 
-	public AuthenticationHeaderValue? Authorization { get; internal set; } 
+	public AuthenticationHeaderValue? Authorization { get; internal set; }
 
-	public Browser OidcBrowser { get; } 
+	public Browser OidcBrowser { get; }
 	public string RedirectUri { get; }
 
 	public TokenResponse? Token => IoC.GetJsonValue<TokenResponse>(nameof(TokenResponse));
@@ -37,18 +40,20 @@ public class Client {
 
 	public Client() {
 		// Generate state and PKCE values
-		state = StringsUtil.GenerateRandomString();
-		codeVerifier = StringsUtil.GenerateRandomString();
-		codeChallenge = StringsUtil.GenerateCodeChallenge(codeVerifier);
+		state = GenerateRandomString();
+		codeVerifier = GenerateRandomString();
+		codeChallenge = Convert.ToBase64String(
+			SHA256.HashData(Encoding.UTF8.GetBytes(codeVerifier))
+		).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-		RedirectUri = $"http://127.0.0.1:{TcpUtil.NextFreePort(7891, 7896)}/callback";
+		RedirectUri = $"http://127.0.0.1:{Processez.NextFreePort(7891, 7896)}/callback";
 		OidcBrowser = new Browser(this);
 	}
 
 	private TokenResponse DeserializeToken(string res) {
 		var token = JsonSerializer.Deserialize<TokenResponse>(res, JSON.CaseInsensitiveOptions);
 		ArgumentNullException.ThrowIfNull(token, "Token not found in response");
-		
+
 		SaveToken(token);
 		return token;
 	}
@@ -133,5 +138,16 @@ public class Client {
 		}
 
 		return Authorization;
+	}
+	
+	private static string GenerateRandomString(int length = 32) {
+		var bytes = new byte[length];
+		using (var rng = RandomNumberGenerator.Create()) {
+			rng.GetBytes(bytes);
+		}
+		return Convert.ToBase64String(bytes)
+				.TrimEnd('=')
+				.Replace('+', '-')
+				.Replace('/', '_');
 	}
 }

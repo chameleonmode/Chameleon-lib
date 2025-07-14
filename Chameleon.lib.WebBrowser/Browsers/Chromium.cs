@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
 using System.Text.RegularExpressions;
 using Chameleon.lib.Util;
-using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
 
-namespace Chameleon.lib.WebBrowser.System;
+namespace Chameleon.lib.WebBrowser.Browsers;
 
 public class Chromium : Browser {
 	public override string PrefsFile => Path.Combine(
@@ -135,11 +133,9 @@ public class Chromium : Browser {
 		if (!OperatingSystem.IsWindows()) return;
 
 		var result = await EX.Poly(async () => {
-			await Task.Delay(54);
-			return Brocess!.HasExited || Brocess.MainWindowHandle == nint.Zero
-				? throw new InvalidOperationException("Failed to retrieve main window handle.")
-				: Brocess.MainWindowHandle != nint.Zero;
-		}, new(sleep: 100, retries: 6));
+			await Task.Delay(60);
+			return (Brocess?.HasExited == false && Brocess.MainWindowHandle != IntPtr.Zero).ThrowIfTrue();
+		}, new(sleep: 90, retries: 6));
 
 		// Verify browser process is running AND has a valid main window handle
 		var hasValidHandle = Brocess?.MainWindowHandle != IntPtr.Zero && Brocess?.HasExited == false;
@@ -154,253 +150,35 @@ public class Chromium : Browser {
 	}
 
 	protected virtual int? GetExistingProcessDebuggingPort() {
-		var processNames = GetProcessNames();
-		var profilePath = Settings.BrowserCache;
-		
-		foreach (var processName in processNames) {
-			var processes = Process.GetProcessesByName(processName);
-			
-			foreach (var process in processes) {
-				try {
-					if (process.HasExited) {
-						process.Dispose();
-						continue;
-					}
-					var commandLine = GetProcessCommandLine(process.Id);
-					
-					var hasProfilePath = !string.IsNullOrEmpty(commandLine) &&
-										(commandLine.Contains($"\"{profilePath}\"") ||
-										 commandLine.Contains($" {profilePath} ") ||
-										 commandLine.Contains($" {profilePath}"));
-
-					if (hasProfilePath) {
-						var port = commandLine != null ? ExtractDebuggingPortFromCommandLine(commandLine) : null;
-						
-						if (port.HasValue) {
-							// Verify process is still accessible
-							try {
-								using var testProcess = Process.GetProcessById(process.Id);
-								if (testProcess.HasExited) {
-									process.Dispose();
-									continue;
-								}
-							} catch (ArgumentException) {
-								process.Dispose();
-								continue;
-							}
-
-							foreach (var p in processes) {
-								if (p != process) p.Dispose();
-							}
-							process.Dispose();
-							return port;
-						}
-					}
-
-					process.Dispose();
-				} catch (InvalidOperationException) {
-					try {
-						process.Dispose();
-					} catch { }
-					continue;
-				} catch (Exception) {
-					try {
-						process.Dispose();
-					} catch { }
-					continue;
-				}
-			}
-		}
-
-		return null;
-	}
-
-	protected virtual string[] GetProcessNames() {
-		return Settings.BrowserType switch {
-			BrowserType.Chrome => ["chrome"],
-			BrowserType.Brave => ["brave"],
-			_ => ["chrome"]
-		};
-	}
-
-	private static int? ExtractDebuggingPortFromCommandLine(string commandLine) {
-		if (string.IsNullOrEmpty(commandLine)) {
-			return null;
-		}
-		var match = Regex.Match(commandLine, @"--remote-debugging-port=(\d+)", RegexOptions.IgnoreCase);
-		if (match.Success && int.TryParse(match.Groups[1].Value, out var port)) {
+		foreach (var process in Process.GetProcessesByName(Settings.BrowserType switch {
+			BrowserType.Chrome => "chrome",
+			BrowserType.Brave => "brave",
+			_ => throw new NotImplementedException()
+		})) {
+			if (
+				Processez.ExtractFromCommand<int?>(
+					process,
+					@"--remote-debugging-port=(\d+)",
+					$"\"{Settings.BrowserCache}\"", $" {Settings.BrowserCache} ", $" {Settings.BrowserCache}"
+				) is not { } port
+			) continue;
 			return port;
 		}
-
-		return null;
-	}
-
-	private static string? GetProcessCommandLine(int processId) {
-		try {
-			using var testProcess = Process.GetProcessById(processId);
-			if (testProcess.HasExited) {
-				return null;
-			}
-			
-			if (OperatingSystem.IsWindows()) {
-#pragma warning disable CA1416 // Validate platform compatibility
-				using var searcher = new global::System.Management.ManagementObjectSearcher(
-					$"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {processId}");
-				using var objects = searcher.Get();
-				foreach (var obj in objects) {
-					var cmdLine = obj["CommandLine"]?.ToString();
-					return cmdLine;
-				}
-#pragma warning restore CA1416 // Validate platform compatibility
-			} else if (OperatingSystem.IsLinux()) {
-				var cmdPath = $"/proc/{processId}/cmdline";
-				if (File.Exists(cmdPath)) {
-					var raw = File.ReadAllText(cmdPath);
-					return raw.Replace('\0', ' ').Trim();
-				}
-			} else if (OperatingSystem.IsMacOS()) {
-				var startInfo = new ProcessStartInfo {
-					FileName = "/bin/ps",
-					Arguments = $"-p {processId} -o command=",
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true
-				};
-				using var psProc = Process.Start(startInfo);
-				if (psProc != null) {
-					var output = psProc.StandardOutput.ReadToEnd();
-					psProc.WaitForExit();
-					return output.Trim();
-				}
-			}
-		} catch (Exception) {
-			// Do not throw exceptions here
-		}
-
 		return null;
 	}
 
 	public override async Task Ensure() {
 		await base.Ensure();
-		var existingPort = GetExistingProcessDebuggingPort();
-		if (existingPort.HasValue) {
-			var errorMessage = $"Browser instance is already running for profile {Settings.Profile.Id} on port {existingPort.Value}. " +
-							   "Close the existing browser instance before launching a new one.";
+		if (GetExistingProcessDebuggingPort() is { } port) {
+			var errorMessage = $"Browser instance is already running for profile {Settings.Profile.Id} on port {port}. " +
+								 "Close the existing browser instance before launching a new one.";
 			throw new InvalidOperationException(errorMessage);
 		}
 	}
 }
 
-// TODO: 
-// "--enable-blink-features=" + string.Join(",", [
-// 	"WebRtcHideLocalIpsWithMdns",
-// 	"ReducedReferrerGranularity",
-// 	"PartitionVisitedLinkDatabase",
-// 	"QuoteEmptySecChUaStringHeadersConsistently",
-// 	"FencedFrames",
-// 	"ReduceUserAgentMinorVersion",
-// 	"ParkableImagesToDisk",
-// 	"SetIntervalWithoutClamp",
-// 	"WebCryptoCurve25519",
-// 	"BackForwardCacheNotRestoredReasons",
-// 	"LowerHighResolutionTimerThreshold",
-// ]),
-// "--disable-blink-features=" + string.Join(",", [
-// 	"WebGL1",
-// 	"WebGL2",
-// 	"Canvas2dImageChromium",
-// 	"WebGLImageChromium",
-// 	"CreateImageBitmapOrientationNone",
-// 	"ComputePressure",
-// 	"DeviceAttributes",
-// 	"ClientHintsDPR_DEPRECATED",
-// 	"ClientHintsDeviceMemory_DEPRECATED",
-// 	"ClientHintsViewportWidth_DEPRECATED",
-// 	"ClientHintsResourceWidth_DEPRECATED",
-// 	"PreciseMemoryInfo",
-// 	"CaptureJSExecutionLocation",
-// 	"IntensiveWakeUpThrottling",
-// ]),
-//"--blink-settings=" + string.Join(",", [
-// 	"webGL1Enabled=false",
-// 	"webGL2Enabled=false",
-// 	"navigatorPlatformOverride=\"Linux x86_64\"",
-// 	"deviceScaleAdjustment=1.0",
-// 	"forceDarkModeEnabled=true",
-// 	"inForcedColors=true",
-// 	"prefersReducedMotion=true",
-// 	"prefersReducedTransparency=true",
-// 	"antialiased2dCanvasEnabled=false",
-// 	"primaryPointerType=mojom::blink::PointerType::kPointerCoarse",
-// 	"primaryHoverType=mojom::blink::HoverType::kHoverHoverable",
-//	"bypassCSP=true",
-//]),
+public class Brave : Chromium {
 
-//"--enable-blink-features=" + string.Join(",", [
-// "ReducedReferrerGranularity",
-// "WebRtcHideLocalIpsWithMdns",
-// "PartitionVisitedLinkDatabase",
-// "QuoteEmptySecChUaStringHeadersConsistently",
-// "FencedFrames",
-// "ReduceUserAgentMinorVersion",
-// "TopicsAPI",
-// "BackForwardCacheNotRestoredReasons",
-//]),
-//"--blink-settings=" + string.Join(",", [
-// "webGLErrorsToConsoleEnabled=false",
-// "navigatorPlatformOverride=\"Linux x86_64\"",
-// "deviceScaleAdjustment=1.0",
-//"forceDarkModeEnabled=true",
-// "antialiased2dCanvasEnabled=false",
-// "primaryPointerType=mojom::blink::PointerType::kPointerCoarse",
-// "primaryHoverType=mojom::blink::HoverType::kHoverHoverable",
-// "bypassCSP=true",
-//]),
-// "--enable-blink-features=" + string.Join(",", [
-// 	"ReducedReferrerGranularity",
-// 	"WebRtcHideLocalIpsWithMdns",
-// 	"PartitionVisitedLinkDatabase",
-// 	"QuoteEmptySecChUaStringHeadersConsistently",
-// 	"UnifiedScrollableAreas",
-// 	"ForcedColors",
-// 	"CSSScopeImport",
-// 	"WebCrypto",
-// 	"WebPrefetchPrivacyChanges",
-// 	"WebSQLAccess=false",
-// 	"BackForwardCacheNotRestoredReasons",
-// 	"CSSHexAlphaColor",
-// ]),
-// "--disable-blink-features=" + string.Join(",", [
-// 	"WebGL1",
-// 	"WebGL2",
-// 	"Canvas2dImageChromium",
-// 	"NetInfoDownlinkMax",
-// 	"PreciseMemoryInfo",
-// 	"ClientHintsDPR_DEPRECATED",
-// 	"ClientHintsDeviceMemory_DEPRECATED",
-// 	"WebGPUDeveloperFeatures",
-// 	"CSSColorTypedOM",
-// 	"DeviceAttributes",
-// 	"MeasureMemory",
-// 	"HandwritingRecognition",
-// 	"ExtendedTextMetrics",
-// 	"GamepadMultitouch",
-// ]),
-// "--blink-settings=" + string.Join(",", [
-// 	"webGL1Enabled=false",
-// 	"webGL2Enabled=false",
-// 	"webGLErrorsToConsoleEnabled=false",
-// 	"cookieEnabled=false",
-// 	"hyperlinkAuditingEnabled=false",
-// 	"dnsPrefetchingEnabled=false",
-// 	"allowRunningOfInsecureContent=false",
-// 	"disableReadingFromCanvas=true",
-// 	"strictMixedContentChecking=true",
-// 	"strictPowerfulFeatureRestrictions=true",
-// 	"prefersReducedMotion=true",
-// 	"forceDarkModeEnabled=true",
-// 	"prefersReducedTransparency=true",
-// 	"textTrackBackgroundColor=#000000",
-// 	"bypassCSP=false",
-// 	"inForcedColors=true",
-// ]),
+}
+public class Chrome : Chromium {
+}

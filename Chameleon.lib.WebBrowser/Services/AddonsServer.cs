@@ -6,25 +6,26 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 using Chameleon.lib.Services;
+using Chameleon.lib.Util;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-
+using Microsoft.VisualBasic;
 namespace Chameleon.lib.WebBrowser.Services;
+
 public class AddonsServer : IStartUp {
   private WebApplication? app;
 
-  public int Port { get; } 
+  public int Port { get; }
   public string RedirectUri { get; }
   public ConcurrentDictionary<string, object> AddonInstances { get; } = [];
-  public ConcurrentDictionary<string, BrowserProfile> InstanceSettings { get; } = [];
 
   public bool IsRunning => app != null;
 
   AddonsServer() {
-    foreach (var port in new [] { 3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696 }) {
+    foreach (var port in new[] { 3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696 }) {
       try {
         // Create a listener to check if the port is available
         var listener = new TcpListener(IPAddress.Loopback, port);
@@ -87,35 +88,30 @@ public class AddonsServer : IStartUp {
 
       // Configure to listen on all available interfaces, not just localhost
       _ = builder.WebHost.ConfigureKestrel(options => {
-				options.Listen(IPAddress.Loopback, Port);
-			});
+        options.Listen(IPAddress.Loopback, Port);
+      });
       app = builder.Build();
-			// Use minimal middleware
-			_ = app.UseRouting()
-				     .UseCors("AllowAnyOrigin");
+      // Use minimal middleware
+      _ = app.UseRouting()
+             .UseCors("AllowAnyOrigin");
 
       #region routes
       // Health check endpoint
-      app.MapGet("/ping", () => 
+      app.MapGet("/ping", () =>
         Results.Json(new { status = "ok", time = DateTime.Now })
       );
 
       app.MapGet("/init", ([FromQuery] string instanceId, [FromQuery] string sessionId) => {
-        if (string.IsNullOrEmpty(sessionId)) {
-          return Results.BadRequest("Missing sessionId parameter");
-        }
-        
-        if (AddonInstances.TryGetValue(sessionId, out var config)) {
-          return Results.Content(JSON.Serialize(config), "application/json");
-        }
-        
+        if (sessionId.Is()) return Results.BadRequest("Missing sessionId parameter");
+        else if (AddonInstances.TryGetValue(sessionId, out var config)) return Results.Content(JSON.Serialize(config), "application/json");
+
         // Log the missing session for debugging
         Debug.WriteLine($"Session {sessionId} not found in AddonInstances. Available sessions: {string.Join(", ", AddonInstances.Keys)}");
         return Results.NotFound($"Session {sessionId} not found");
       });
 
       // Get application state endpoint
-      app.MapGet("/app/state", () => 
+      app.MapGet("/app/state", () =>
         Results.Json(new {
           appName = "Chameleon",
           version = "1.0.0",
@@ -126,39 +122,28 @@ public class AddonsServer : IStartUp {
 
       // endpoint to receive data from extensions
       app.MapPost("/app/data", (HttpContext context, [FromBody] JsonElement body) => {
-        // Extract launch information from headers
-        var instanceId = context.Request.Headers["X-Instance-ID"];
-        var sessionId = context.Request.Headers["X-Session-ID"];
-
         try {
-					var type = body.GetProperty("type").GetString();
-          if(body.TryGetProperty("data", out var data)){
-            // TODO: Handle the data
-          }
-          Debug.WriteLine($"Received data from instance {instanceId} with session {sessionId}");
-          return Results.Json(type switch {
-            "init" => GetInitResponse(sessionId.ToString()),
-            "port" => new {
-              status = "ok",
-              message =
-                body.TryGetProperty("port", out var ele) &&
-                ele.TryGetInt32(out var port) &&
-                InstanceSettings.TryGetValue(sessionId.ToString(), out var profile)
-              ? (profile.Port = port).ToString() : ""
-            },
-            "event" => new { status = "ok", message = "Event received" },
-            "action" => new { status = "ok", message = "Action received" },
-            _ => new { status = "error", message = "Invalid type" }
-          });
-        } catch(Exception e) {
-          return Results.BadRequest(new { error = "Invalid", e});
+          var instanceId = int.TryParse(context.Request.Headers["X-Instance-ID"].ToString(), out var id) ? id : 0;
+          var sessionId = context.Request.Headers["X-Session-ID"].ToString();
+          _ = (SystemBrowser.I.Instances.TryGetValue(instanceId, out var browser) && browser != null).ThrowIfFalse();
+          return body.GetProperty("type").GetString() switch {
+            "init" => AddonInstances.TryGetValue(sessionId, out var config)
+              ? Results.Json(new { config, port = browser!.Settings.Profile.Port })
+              : Results.NotFound(new { error = "Session not found" }),
+            "port" when body.TryGetProperty("port", out var ele) && ele.TryGetInt32(out var port) =>
+              Results.Ok(new { status = "ok", port = browser!.Settings.Profile.Port = port }),
+            "event" or "action" => Results.Ok(new { status = "ok" }),
+            _ => Results.BadRequest(new { error = "Invalid type" })
+          };
+        } catch (Exception e) {
+          return Results.BadRequest(new { error = "Invalid", e });
         }
       });
 
       #endregion
 
       // Start the server
-      await app.StartAsync(); 
+      await app.StartAsync();
       do {
         await Task.Delay(1000);
         try {
@@ -179,8 +164,8 @@ public class AddonsServer : IStartUp {
       Console.WriteLine($"AddonsServer started successfully on port {Port}");
     }, TaskCreationOptions.LongRunning);
 
-		// Wait for the server to start
-		_ = await serverStarted.Task;
+    // Wait for the server to start
+    _ = await serverStarted.Task;
   }
 
   public async Task Stop() {
@@ -191,22 +176,5 @@ public class AddonsServer : IStartUp {
     }
   }
 
-  private object GetInitResponse(string sessionId) {
-    if (string.IsNullOrEmpty(sessionId)) {
-      Debug.WriteLine($"GetInitResponse: sessionId is null or empty");
-      return new { config = new { error = "Session ID is null or empty" } };
-    }
-    
-    if (!AddonInstances.TryGetValue(sessionId, out var config)) {
-      Debug.WriteLine($"GetInitResponse: Session {sessionId} not found in AddonInstances.");
-      Debug.WriteLine($"Available sessions: {string.Join(", ", AddonInstances.Keys)}");
-      Debug.WriteLine($"Total sessions: {AddonInstances.Count}");
-      return new { config = new { error = "Session not found", sessionId, availableSessions = AddonInstances.Keys.ToArray() } };
-    }
-    
-    Debug.WriteLine($"GetInitResponse: Found session {sessionId} successfully");
-    return new { config, port = InstanceSettings[sessionId].Port };
-  }
-
-  public static AddonsServer Instance { get; } = new();
+  public static AddonsServer I { get; } = new();
 }

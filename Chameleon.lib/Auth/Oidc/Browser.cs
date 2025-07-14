@@ -6,7 +6,7 @@ using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Auth.Oidc;
 public class Browser(Client oidcClient) {
-	public Func<string, Task> Open { get; set; } = url => Task.Run(() => ProcessUtil.OpenBrowser(url));
+	public Func<string, Task> Open { get; set; } = url => Task.Run(() => Processez.OpenBrowser(url));
 	public TaskCompletionSource? TaskCompletion { get; private set; }
 	const string authResponseHtml = @"
 		<!DOCTYPE html>

@@ -3,7 +3,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace Chameleon.lib.Common.Util.Win;
+namespace Chameleon.lib.Util;
+
+#region windows
 
 [StructLayout(LayoutKind.Sequential)]
 public struct PROCESS_BASIC_INFORMATION {
@@ -356,112 +358,7 @@ public static class U32til {
 
 		return pbi.InheritedFromUniqueProcessId.ToInt32();
 	}
-
-	// public static Process? GetChildProcess(int parentId) {
-	// 	return Process.GetProcesses().FirstOrDefault(p => {
-	// 		try {
-	// 			return p.Id != 0 && p.ParentProcessId() == parentId;
-	// 		} catch {
-	// 			return false;
-	// 		}
-	// 	});
-	// }
-
-	// public static int ParentProcessId(this Process process) {
-	// 	var pbi = new PROCESS_BASIC_INFORMATION();
-	// 	var status = LibraryImports.NtQueryInformationProcess(process.Handle, 0, ref pbi, (uint)Marshal.SizeOf(pbi), out _);
-	// 	return status != 0
-	// 		? throw new Exception("NtQueryInformationProcess failed with status: " + status)
-	// 		: pbi.InheritedFromUniqueProcessId.ToInt32();
-	// }
 }
-
-// [SupportedOSPlatform("windows")]
-// public class MWHandleTrackerUtility(Process aprocess, SystemBrowserType systemBrowserType, CancellationTokenSource cts) {
-// 	private readonly List<int> _childProcessIds = [];
-
-// 	private IntPtr _mainWindowHandle = IntPtr.Zero;
-// 	private TaskCompletionSource<Tuple<IntPtr, Process?>> _tcs = new();
-
-// 	private Process _process = aprocess ?? throw new ArgumentNullException(nameof(aprocess));
-
-// 	public void StartTracking()
-// 	{
-// 		new Thread(() => TrackMainWindowHandle(cts.Token)) { IsBackground = true }.Start();
-// 	}
-
-// 	private void TrackMainWindowHandle(CancellationToken token)
-// 	{
-// 		while (!token.IsCancellationRequested) {
-// 			try {
-// 				if (_process.HasExited) {
-// 					_tcs.SetResult(new(0, null));
-// 					break;
-// 				}
-// 				if (_mainWindowHandle == IntPtr.Zero) {
-// 					if (systemBrowserType == SystemBrowserType.Firefox) {
-// 						Thread.Sleep(500);
-// 						var currentProcesses = Process.GetProcessesByName(
-// 								systemBrowserType == SystemBrowserType.Firefox ? "firefox"
-// 								: systemBrowserType == SystemBrowserType.Chrome ? "chrome"
-// 								: "chrome").Where(p => p.Id != 0);
-// 						foreach (var p in currentProcesses) {
-// 							if (!_childProcessIds.Contains(p.Id) && p.ParentProcessId() == _process.Id) {
-// 								_childProcessIds.Add(p.Id);
-// 								var childProcess = Process.GetProcessById(p.Id);
-// 								if (childProcess != null && !childProcess.HasExited) {
-// 									var thishandle = U32til.FindMainWindowHandle(childProcess.Id);
-// 									if (U32.IsWindow(thishandle)) {
-// 										_process = childProcess;
-// 										break;
-// 									}
-// 								}
-// 							}
-// 						}
-// 					}
-// 				}
-
-// 				var handle = U32til.FindMainWindowHandle(_process.Id);
-// 				if (handle != _mainWindowHandle && U32.IsWindow(handle)) {
-// 					_mainWindowHandle = handle;
-// 					var tcs = _tcs;
-// 					_tcs = new();
-// 					tcs.SetResult(new(_mainWindowHandle, _process));
-// 					break;
-// 				}
-
-// 			} catch (Exception ex) {
-// 				Console.WriteLine(ex.StackTrace);
-// 				_tcs.SetResult(new(0, null));
-// 				break;
-// 			}
-
-// 			Thread.Sleep(1000);  // Poll every second
-// 		}
-// 	}
-
-// 	public void StopTracking()
-// 	{
-// 		cts.Cancel();
-// 	}
-
-// 	public Task<Tuple<IntPtr, Process?>> WaitForMainWindowHandleChangeAsync() => _tcs.Task;
-// }
-
-/*
-    [StructLayout(LayoutKind.Sequential)]
-    public struct WindowsPosition
-    {
-        public IntPtr hwnd;
-        public IntPtr hwndInsertAfter;
-        public int Left;
-        public int Top;
-        public int Width;
-        public int Height;
-        public int Flags;
-    }
-    */
-
 // workaround LiteDB compatibility issue in RECT data structure
 [StructLayout(LayoutKind.Sequential)]
 public struct POINT(int x, int y) {
@@ -492,3 +389,288 @@ public struct RECT {
 	}
 }
 
+#endregion
+
+#region mac
+
+public class MacOSWindowListener {
+	public static MacOSWindowListener Instance { get; } = new MacOSWindowListener();
+
+	public event Action<int>? WindowForegroundChanged;
+	private readonly System.Timers.Timer pollingTimer;
+	private readonly List<int> targetPids = [];
+
+	public MacOSWindowListener() {
+		pollingTimer = new System.Timers.Timer(1000); // Poll every second
+		pollingTimer.Elapsed += OnPollingTimerElapsed;
+	}
+
+	private async void OnPollingTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e) {
+		var fgPid = await Task.Run(MacOSUtil.GetWindowForeground);
+		if (fgPid.HasValue && targetPids.Contains(fgPid.Value))
+			WindowForegroundChanged?.Invoke(fgPid.Value);
+	}
+	
+	public void AddPid(int pid) {
+		if (!targetPids.Contains(pid)) targetPids.Add(pid);
+		if (targetPids.Count >= 1) pollingTimer.Start();
+	}
+
+	public void RemPid(int? pid) {
+		if (!OperatingSystem.IsMacOS()) return;
+		if (pid is int id) _ = targetPids.Remove(id);
+		if (targetPids.Count == 0) pollingTimer.Stop();
+	}
+}
+
+internal enum NSApplicationActivateOptions : uint {
+	ActivatingIgnoringOtherApps = 1 << 0
+}
+
+public static class MacOSUtil {
+	public static bool SetForegroundWindow(int pid) {
+		return EX.Catch(() => {
+			var windowId = FindWindowByPID(pid);
+			return windowId.HasValue && BringWindowToForeground(pid);
+		});
+	}
+
+	private static IntPtr GetWindowList() {
+		return MacOSInterop.CGWindowListCopyWindowInfo(0x00000001, 0);
+	}
+
+	public static int? FindWindowByPID(int pid) {
+		var windowListInfo = GetWindowList();
+		if (windowListInfo == IntPtr.Zero)
+			return null;
+
+		using var windowList = new CFArray(windowListInfo);
+		for (var i = 0; i < windowList.Count; i++) {
+			var dict = new CFDictionary(windowList[i]);
+			if (dict.ContainsKey("kCGWindowOwnerPID") && dict.GetInt32Value("kCGWindowOwnerPID") == pid) {
+				return dict.GetInt32Value("kCGWindowNumber");
+			}
+
+		}
+
+		return null;
+	}
+
+	private static bool BringWindowToForeground(int pid) {
+		var nsRunningApplicationClass = ObjectiveCRuntime.ObjCGetClass("NSRunningApplication");
+		var runningApp = ObjectiveCRuntime.ObjCMsgSend(nsRunningApplicationClass, ObjectiveCRuntime.SelRegisterName("runningApplicationWithProcessIdentifier:"), new IntPtr(pid));
+
+		if (runningApp != IntPtr.Zero) {
+			_ = ObjectiveCRuntime.ObjCMsgSend(runningApp,
+					ObjectiveCRuntime.SelRegisterName("activateWithOptions:"),
+					new IntPtr((int)NSApplicationActivateOptions.ActivatingIgnoringOtherApps));
+			return true;
+		} else {
+			Console.WriteLine("Failed to find running application with specified PID.");
+			return false;
+		}
+	}
+
+	public static int? GetWindowForeground() {
+		var windowListInfo = GetWindowList(); // Get list of all windows
+		if (windowListInfo == IntPtr.Zero)
+			return null;
+
+		using var windowList = new CFArray(windowListInfo);
+		for (var i = 0; i < windowList.Count; i++) {
+			var dict = new CFDictionary(windowList[i]);
+			if (dict.ContainsKey("kCGWindowOwnerPID")) {
+				// Check if the window's layer is 0, indicating it is the frontmost window
+				var layer = dict.GetInt32Value("kCGWindowLayer");
+				if (layer == 0) {
+					return dict.GetInt32Value("kCGWindowOwnerPID"); // Window is in the foreground
+				}
+			}
+		}
+
+		return null; // Window is not in the foreground
+	}
+}
+
+internal static partial class MacOSInterop {
+	// Import Quartz functions for window manipulation
+	[LibraryImport("/System/Library/Frameworks/Quartz.framework/Quartz")]
+	internal static partial IntPtr CGWindowListCopyWindowInfo(uint option, uint relativeToWindow);
+
+	[LibraryImport("/System/Library/Frameworks/Quartz.framework/Quartz")]
+	internal static partial void CFRelease(IntPtr cfRef);
+}
+
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1401:P/Invokes should not be visible", Justification = "<Pending>")]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "SYSLIB1054:Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time", Justification = "<Pending>")]
+public class ObjectiveCRuntime {
+	[DllImport("/usr/lib/libobjc.dylib", EntryPoint = "sel_registerName", CharSet = CharSet.Unicode)]
+	public static extern IntPtr SelRegisterName(string name);
+
+	[DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_getClass", CharSet = CharSet.Unicode)]
+	public static extern IntPtr ObjCGetClass(string name);
+
+	[DllImport("/usr/lib/libobjc.dylib", EntryPoint = "objc_msgSend")]
+	public static extern IntPtr ObjCMsgSend(IntPtr receiver, IntPtr selector, IntPtr arg);
+}
+
+internal partial class MacOSWindowManipulator {
+	[LibraryImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+	internal static partial IntPtr CGWindowListCopyWindowInfo(uint option, uint relativeToWindow);
+
+	public static IntPtr GetWindowInfo(int processId) {
+		return CGWindowListCopyWindowInfo(0, (uint)processId);
+	}
+}
+
+public partial class CFArray(IntPtr array) : IDisposable {
+	private IntPtr _array = array;
+
+	public int Count => CFArrayGetCount(_array);
+
+	public IntPtr this[int index] => CFArrayGetValueAtIndex(_array, index);
+
+	public void Dispose() {
+		if (_array != IntPtr.Zero) {
+			MacOSInterop.CFRelease(_array);
+			_array = IntPtr.Zero;
+		}
+		GC.SuppressFinalize(this);
+	}
+
+	[LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+	internal static partial int CFArrayGetCount(IntPtr array);
+
+	[LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+	internal static partial IntPtr CFArrayGetValueAtIndex(IntPtr array, int index);
+}
+
+public partial class CFDictionary(IntPtr dict) {
+	private readonly IntPtr _dict = dict;
+
+	public bool ContainsKey(string key) {
+		var cfKey = CFString.Create(key);
+		return CFDictionaryContainsKey(_dict, cfKey);
+	}
+
+	public int GetInt32Value(string key) {
+		var cfKey = CFString.Create(key);
+		var value = CFDictionaryGetValue(_dict, cfKey);
+		return CFNumber.ToInt32(value);
+	}
+
+	[LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+	internal static partial IntPtr CFDictionaryGetValue(IntPtr dict, IntPtr key);
+
+	[LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	internal static partial bool CFDictionaryContainsKey(IntPtr dict, IntPtr key);
+}
+
+public static partial class CFString {
+	public static IntPtr Create(string str) {
+		return CFStringCreateWithCString(IntPtr.Zero, str, 0x08000100); // kCFStringEncodingUTF8
+	}
+
+	[LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", StringMarshalling = StringMarshalling.Utf8)]
+	internal static partial IntPtr CFStringCreateWithCString(IntPtr alloc, string cStr, int encoding);
+}
+
+public static partial class CFNumber {
+	public static int ToInt32(IntPtr number) {
+		return number == IntPtr.Zero
+			? throw new ArgumentNullException(nameof(number))
+			: !CFNumberGetValue(number, 9, out var value)
+			? throw new InvalidOperationException("Could not convert CFNumber to Int32.")
+			: value;
+	}
+
+	[LibraryImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	internal static partial bool CFNumberGetValue(IntPtr number, int theType, out int value);
+}
+
+public class MacFileVersionInfo {
+  MacFileVersionInfo() { }
+
+  public string? FilePath { get; private set; }
+  public string? ProductVersion { get; private set; }
+  public string? BuildVersion { get; private set; }
+  public string? BundleIdentifier { get; private set; }
+  public string? ProductName { get; private set; }
+
+  public static MacFileVersionInfo GetVersionInfo(string filePath) {
+    var info = new MacFileVersionInfo {
+      FilePath = filePath
+    };
+
+    if (Directory.Exists(filePath) && filePath.EndsWith(".app", StringComparison.OrdinalIgnoreCase)) {
+      // Handle application bundles
+      var plistPath = Path.Combine(filePath, "Contents", "Info.plist");
+      if (File.Exists(plistPath)) {
+        info.LoadFromPlist(plistPath);
+      }
+    } else if (File.Exists(filePath)) {
+      // Handle regular files using mdls
+      info.LoadFromMdls();
+    }
+
+    return info;
+  }
+
+  private void LoadFromPlist(string plistPath) {
+    ProductVersion = ExecutePlistBuddy(plistPath, "CFBundleShortVersionString");
+    BuildVersion = ExecutePlistBuddy(plistPath, "CFBundleVersion");
+    BundleIdentifier = ExecutePlistBuddy(plistPath, "CFBundleIdentifier");
+    ProductName = ExecutePlistBuddy(plistPath, "CFBundleName");
+  }
+
+  private void LoadFromMdls() {
+    // For non-app files, try to get metadata using mdls
+    var output = ExecuteCommand("mdls", $"\"{FilePath}\"");
+
+    // Parse the output to extract relevant metadata
+    // This is simplified and might need enhancement for specific cases
+    foreach (var line in output.Split('\n')) {
+      if (line.Contains("kMDItemVersion")) {
+        ProductVersion = ExtractValue(line);
+      }
+    }
+  }
+
+  private static string ExtractValue(string line) {
+    var equalsPos = line.IndexOf('=');
+    if (equalsPos > 0 && equalsPos < line.Length - 1) {
+      var value = line[(equalsPos + 1)..].Trim();
+      // Remove quotes if present
+      if (value.StartsWith('\"') && value.EndsWith('\"')) {
+        value = value[1..^1];
+      }
+      return value;
+    }
+    return string.Empty;
+  }
+
+  private static string ExecutePlistBuddy(string plistPath, string property) {
+    return ExecuteCommand("/usr/libexec/PlistBuddy", $"-c \"Print {property}\" \"{plistPath}\"").Trim();
+  }
+
+  private static string ExecuteCommand(string command, string arguments) {
+		using var process = Process.Start(new ProcessStartInfo {
+      FileName = command,
+      Arguments = arguments,
+      RedirectStandardOutput = true,
+      RedirectStandardError = true,
+      UseShellExecute = false,
+      CreateNoWindow = true
+    });
+		if (process == null)
+			return string.Empty;
+
+		var output = process.StandardOutput.ReadToEnd();
+		process.WaitForExit();
+		return output;
+	}
+}
+
+#endregion

@@ -92,7 +92,7 @@ public static class Util {
 			var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
 			var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
 			if (Directory.Exists(chromiumDefaultDirOriginal)) {
-				await IOtil.CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir);
+				await IOU.CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir);
 			} else {
 				var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
 				_ = Directory.CreateDirectory(tempNetworkDir);

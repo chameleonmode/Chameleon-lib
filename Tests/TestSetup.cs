@@ -8,13 +8,9 @@ namespace Tests;
 public abstract class TestSetup : IAsyncLifetime {
 	public readonly TaskCompletionSource<bool> _tcs = new();
 	public TestSetup(int dictionary = 0) {
-		IoC.I.StartUps.Add(AddonsServer.Instance);
-		IoC.I.Configure(() => {
-			return new WritableConfiguration(new ConfigurationBuilder()
-				.SetBasePath(Directory.GetCurrentDirectory())
-				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-				.AddEnvironmentVariables()
-				.Build(), Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
+		IoC.I.StartUps.Add(AddonsServer.I);
+		IoC.I.Configure((c) => {
+			_ = c.SetBasePath(Directory.GetCurrentDirectory());
 		}, (services) => {
 			_ = services;
 		});

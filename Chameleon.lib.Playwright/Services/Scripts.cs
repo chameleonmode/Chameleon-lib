@@ -48,11 +48,11 @@ public class BundledScriptsService {
 		return returned;
 	}
 	public static Task<IEnumerable<Arguments>> GetUserScripts() => Task.Run<IEnumerable<Arguments>>(() => {
-		var path = IoC.GetValue<string>("UserScriptsDirectory");
+		var path = IoC.GetValue("UserScriptsDirectory");
 		if (path.Is() || !Directory.Exists(path)) return []; 
 		
 		var returned = new List<Arguments>();
-		foreach (var item in IOtil.ReadDirectory(path)) {
+		foreach (var item in IOU.ReadDirectory(path)) {
 			var inf = new FileInfo(item);
 			if (inf.Extension != ".js")
 				continue;

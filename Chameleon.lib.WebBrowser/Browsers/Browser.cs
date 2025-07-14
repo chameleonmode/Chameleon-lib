@@ -1,17 +1,14 @@
-﻿using Chameleon.lib.Common.Util.Mac;
-using Chameleon.lib.Common.Util.Win;
+﻿using Chameleon.lib.Util;
 using Chameleon.lib.ThirdParty.GeoIp;
-using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 using System.Diagnostics;
 
 namespace Chameleon.lib.WebBrowser.Browsers;
 
 public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
-public record BrowserEvent(BrowserSetting OpenOptions, Event Event);
+public record BrowserEvent(BrowserSetting Settings, Event Event);
 
 public interface IBrowserInstance {
-	event Delegatorz.Event<BrowserEvent>? OnEvent;
 	Process? Brocess { get; set; }
 	BrowserSetting Settings { get; init; }
 	string SessionId { get; }
@@ -22,16 +19,16 @@ public interface IBrowserInstance {
 	Process Brocessor(string url);
 	TaskCompletionSource<bool> LoadedTCS { get; }
 	Task Initialize(object? param = null);
+	event Action<object, BrowserEvent>? OnEvent;
 }
 public abstract class Browser : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
-	public event Delegatorz.Event<BrowserEvent>? OnEvent;
 	public Process? Brocess { get; set; }
 	public required BrowserSetting Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 
 	public string InitUrl =>
-		$"http://127.0.0.1:{AddonsServer.Instance.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
+		$"http://127.0.0.1:{AddonsServer.I.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
 
 	public void InvokeEvent(Event @event) {
 		if (@event == Event.Foreground && Brocess is not null) {
@@ -42,10 +39,11 @@ public abstract class Browser : IBrowserInstance {
 			}
 		}
 
-		OnEvent?.Invoke(this, new(Settings, @event));
+		var args = new BrowserEvent(Settings, @event);
+		OnEvent?.Invoke(this, args);
 	}
 
-	public Task Closee() => ProcessUtil.TryKillProcess(Brocess);
+	public async Task Closee() => await Processez.TryKillProcess(Brocess);
 	public void Close() {
 		InvokeEvent(Event.Closed);
 		if (Brocess == null) return;
@@ -69,6 +67,9 @@ public abstract class Browser : IBrowserInstance {
 		await Task.Delay(2000);
 		await WaitForWinHandle();
 		await Task.Delay(1000);
+
+			_ = LoadedTCS.TrySetResult(true);
+			InvokeEvent(Event.Opened);
 
 		if (!Brocess!.HasExited) _ = LoadedTCS.TrySetResult(true);
 		else Close();
@@ -105,20 +106,10 @@ public abstract class Browser : IBrowserInstance {
 	protected abstract string GetCommandLineArguments(string? url);
 	protected virtual async Task InitializeExtensions() {
 		if(!Settings.Profile.Extensions) return;
-		
-		async Task<Ipapi> Ipapi() {
-			return await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? new() {
-				timezone = "Pacific/Honolulu",
-				lat = 34.052235,
-				lon = -118.243683,
-				tzSystem = true
-			};
-		}
-		var ipapi = await Ipapi();
-		AddonsServer.Instance.InstanceSettings[SessionId] = Settings.Profile;
 
+		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
 		// set the extension settings
-		AddonsServer.Instance.AddonInstances[SessionId] = new {
+		AddonsServer.I.AddonInstances[SessionId] = new {
 			proxy = new {
 				enabled = Settings.Profile.Proxy.CanUse,
 				type = "http",
@@ -177,5 +168,8 @@ public abstract class Browser : IBrowserInstance {
 			return MacOSUtil.FindWindowByPID(Brocess.Id) != null;
 		},
 		new(sleep: 100, retries: 6));
+		_ = result.ThrowIfFalse();
 	}
+
+	public event Action<object, BrowserEvent>? OnEvent;
 }

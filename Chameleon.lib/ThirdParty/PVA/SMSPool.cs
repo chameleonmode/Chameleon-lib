@@ -66,18 +66,18 @@ public class SMSPoolAPI : PVAInstance {
 		ApiKey = IoC.GetValue(nameof(SMSPoolAPI), nameof(ApiKey));
 
 		var getCountriesUrl = $"https://api.smspool.net/country/retrieve_all";
-		var countriesResponse = await HttpClientUtil.GetAsync(getCountriesUrl);
-		if (countriesResponse != null && JSON.Deserialize<Country[]>(countriesResponse, JSOptions) is Country[] countries)
+		var countriesResponse = await GetAsync(getCountriesUrl);
+		if (countriesResponse != null && JSON.Deserialize<Country[]>(countriesResponse) is Country[] countries)
 			Countries = countries;
 
 		var getServicesUrl = $"https://api.smspool.net/service/retrieve_all";
-		var servicesResponse = await HttpClientUtil.GetAsync(getServicesUrl);
-		if (servicesResponse != null && JSON.Deserialize<Service[]>(servicesResponse, JSOptions) is Service[] services)
+		var servicesResponse = await GetAsync(getServicesUrl);
+		if (servicesResponse != null && JSON.Deserialize<Service[]>(servicesResponse) is Service[] services)
 			Services = services;
 	}
 
 	public override async Task Save() {
-		await IoC.SetValueAsync(ApiKey, nameof(SMSPoolAPI), nameof(ApiKey));
+		await IoC.SetValue(ApiKey, nameof(SMSPoolAPI), nameof(ApiKey));
 	}
 
 	public override Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app)
@@ -89,7 +89,7 @@ public class SMSPoolAPI : PVAInstance {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
 		var apiUrl = $"https://api.smspool.net/purchase/sms";
-		using var response = await HttpClientUtil.PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
+		using var response = await PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
 		{
 			{ new StringContent(country.ID.ToString()), "country" },
 			{ new StringContent(service.ID.ToString()), "service" },
@@ -115,7 +115,7 @@ public class SMSPoolAPI : PVAInstance {
 
 		if (JSON.Deserialize<SuccessfullOrder>(orderid) is SuccessfullOrder phoneNumberData && phoneNumberData.order_id != null) {
 			var apiUrl = "https://api.smspool.net/sms/cancel";
-			using var response = await HttpClientUtil.PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
+			using var response = await PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
 			{
 				{ new StringContent(phoneNumberData.order_id), "orderid" },
 				{ new StringContent(ApiKey), "key" }
@@ -123,7 +123,7 @@ public class SMSPoolAPI : PVAInstance {
 			var responseContent = await response.Content.ReadAsStringAsync();
 			var jsonResponse = JSON.Deserialize<OrderBase>(responseContent);
 			var formattedJson = JSON.Stringify(jsonResponse);
-			return new Tuple<string, string>(formattedJson, (jsonResponse?.success > 0).ToString());
+			return new Tuple<string, string>(formattedJson ?? string.Empty, (jsonResponse?.success > 0).ToString());
 		} else {
 			return new Tuple<string, string>("", "Failed to deserialize orderid");
 		}
@@ -134,7 +134,7 @@ public class SMSPoolAPI : PVAInstance {
 
 		if (JSON.Deserialize<SuccessfullOrder>(numberData) is SuccessfullOrder phoneNumberData && phoneNumberData.order_id != null) {
 			var apiUrl = "https://api.smspool.net/sms/check";
-			using var response = await HttpClientUtil.PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
+			using var response = await PostAsync(apiUrl, Authorization, null, new MultipartFormDataContent
 			{
 				{ new StringContent(phoneNumberData.order_id), "orderid" },
 				{ new StringContent(ApiKey), "key" }

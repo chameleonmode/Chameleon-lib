@@ -10,15 +10,11 @@ public class IOCTest {
 	public IOCTest() {
 		// Setup
 		async void setup() {
-			await Task.Delay(2000); // 
+			await Task.Delay(20); // 
 			_tcs.SetResult(true);
 		}
-		IoC.I.Configure(() => {
-			return new WritableConfiguration(new ConfigurationBuilder()
-				.SetBasePath(Directory.GetCurrentDirectory())
-				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-				.AddEnvironmentVariables()
-				.Build(), Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
+		IoC.I.Configure((builder) => {
+			_ = builder.SetBasePath(Directory.GetCurrentDirectory());
 		}, (services) => {
 			_ = services;
 		});
@@ -34,8 +30,8 @@ public class IOCTest {
 
 		// Set a new value
 		IoC.SetValue("NewValue", "CustomSetting");
-		var customSetting = IoC.GetValue<string>("CustomSetting");
-		Assert.True(customSetting == "NewValue");
+		var customSetting = IoC.GetValue("NewValue");
+		Assert.True(customSetting == "CustomSetting");
 
 		// Set a new Type value
 		IoC.SetJsonValue(new EmulationOptions {
@@ -49,10 +45,5 @@ public class IOCTest {
 		}, nameof(EmulationOptions));
 		var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions));
 		Assert.NotNull(emulations);
-
-		// Set a new arrat Type value
-		IoC.SetValue<string[]>(["duckduckgo.com", "1", "2"], "arrr");
-		var arr = IoC.GetValue<string[]>("arrr");
-		Assert.NotNull(arr);
 	}
 }

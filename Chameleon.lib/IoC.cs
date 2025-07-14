@@ -3,7 +3,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Json;
 
 using Microsoft.Extensions.Logging.Console;
 using System.Reflection;
@@ -11,62 +10,14 @@ using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Services;
-using System.Text.Json.Serialization;
 using Chameleon.lib.Util;
+using Microsoft.Extensions.FileProviders;
 
 namespace Chameleon.lib;
 
-public static class Delegatorz {
-	public delegate void Event<T>(object sender, T options);
-}
-public static class JSON {
-	public static readonly JsonSerializerOptions CamelCaseOptions = new() {
-		WriteIndented = true, // Pretty print JSON
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase, //Use camelCase
-	};
-	public static readonly JsonSerializerOptions CaseInsensitiveOptions = new() {
-		PropertyNameCaseInsensitive = true,
-		AllowTrailingCommas = true,
-	};
-	public static readonly JsonSerializerOptions InsensitiveCamelCaseOptions = new() {
-		PropertyNameCaseInsensitive = true,
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-	};
-	public static readonly JsonSerializerOptions EnumConverter = new() {
-		WriteIndented = true,
-		IncludeFields = true,
-		Converters = { new JsonStringEnumConverter() },
-	};
-	public static readonly JsonSerializerOptions InsensitiveEnumConverter = new() {
-		 PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } };
-
-	public static T? Deserialize<T>(string json, JsonSerializerOptions? options = null) {
-			return EX.Catch(()=> JsonSerializer.Deserialize<T>(json, options ?? InsensitiveCamelCaseOptions));
-	}
-	public static T Parse<T>(string? json, JsonSerializerOptions? options = null) {
-		return Deserialize<T>(json ?? "", options) ?? Activator.CreateInstance<T>();
-	}
-
-	public static string Serialize(object o, JsonSerializerOptions? options = null) =>
-	 JsonSerializer.Serialize(o, options ?? InsensitiveCamelCaseOptions);
-	public static string Stringify(object? o, JsonSerializerOptions? options = null) {
-		return Serialize(o ?? throw new ArgumentNullException(nameof(o)), options);
-	}
-
-	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {
-		public override T2? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-			var jsonObject = JsonDocument.ParseValue(ref reader).RootElement;
-			return JsonSerializer.Deserialize<T1>(jsonObject.GetRawText(), options);
-		}
-
-		public override void Write(Utf8JsonWriter writer, T2 value, JsonSerializerOptions options) {
-			JsonSerializer.Serialize(writer, value, options);
-		}
-	}
-}
 public class IoC {
 	public const string AppName = "Chameleon";
+	public const string SettingFile = "appsettings.json";
 	public static readonly string Assembled = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0";
 	private bool isInitialized = false;
 
@@ -76,20 +27,19 @@ public class IoC {
 	public IServiceProvider? Services { get; private set; }
 
 	/// <summary>
-	/// Gets the <see cref="IChaonfigurationManager"/> instance to resolve application CONFIGURATIONS.
+	/// Gets the <see cref="IConfiguration"/> instance to resolve application CONFIGURATIONS.
 	/// </summary>
-	public Chonfigurationer? Config { get; private set; }
-	
+	public Configz? Config { get; private set; }
+
 	/// <summary>
 	/// List of al services tasks that need to be started on ioc init
 	/// </summary>
 	public List<IStartUp> StartUps { get; } = [];
 
-	public async void Init(Action<bool> action)
-	{
+	public async void Init(Action<bool> action) {
 		foreach (var task in StartUps)
 			await task.Start();
-		
+
 		isInitialized = true;
 		action(isInitialized);
 	}
@@ -97,28 +47,36 @@ public class IoC {
 	/// <summary>
 	/// Configures the services for the application.
 	/// </summary>
-	public void Configure(Func<WritableConfiguration> config, Action<ServiceCollection> action) {
-		Config = new Chonfigurationer(config());
+	public void Configure(Action<IConfigurationBuilder> config, Action<ServiceCollection> collection) {
+		var builder = new ConfigurationBuilder();
+		config(builder);
+		Config = new Configz(new(builder
+			.AddEnvironmentVariables()
+			.AddJsonFile(SettingFile, optional: true, reloadOnChange: true)
+			.Build()),
+			Path.Combine(((PhysicalFileProvider)builder.GetFileProvider()).Root, SettingFile)
+		);
 
 		var services = new ServiceCollection();
-		action(services);
+		collection(services);
 
 		Services = services
-						.AddLogging(builder => {
-							_ = builder
-									.AddConsole(opt => {
-										opt.FormatterName = ConsoleFormatterNames.Simple;
-									})
-									.AddFilter(level => true)
-									.SetMinimumLevel(LogLevel.Trace);
-						})
-						.Configure<LoggerFilterOptions>(options => {
-							options.MinLevel = LogLevel.Trace;
-							options.CaptureScopes = true;
-						})
-						.Configure<SimpleConsoleFormatterOptions>(options => {
-							options.IncludeScopes = true;
-						}).BuildServiceProvider();
+			 .AddLogging(builder => {
+			 	_ = builder
+			 			.AddConsole(opt => {
+			 				opt.FormatterName = ConsoleFormatterNames.Simple;
+			 			})
+			 			.AddFilter(level => true)
+			 			.SetMinimumLevel(LogLevel.Trace);
+			 })
+			 .Configure<LoggerFilterOptions>(options => {
+			 	options.MinLevel = LogLevel.Trace;
+			 	options.CaptureScopes = true;
+			 })
+			 .Configure<SimpleConsoleFormatterOptions>(options => {
+			 	options.IncludeScopes = true;
+			 })
+			 .BuildServiceProvider();
 	}
 
 	//
@@ -127,142 +85,89 @@ public class IoC {
 	public static object? GetService(Type t) => I.Services?.GetService(t);
 
 	//
-	public static T? GetValue<T>(string key) where T : class => I.Config?.GetValue<T>(key.Replace(' ', '_'));
-	public static string? GetValue(params string[] keys) => GetValue<string>(string.Join('_', keys));
-
-	//
-	public static void SetValue(string key, string value) {
-		I.Config?.SetValue(key, value);
-	}
-	public static void SetValue<T>(T value, params string[] keys) {
+	public static string? GetValue(params string[] keys) => I.Config?.GetValue<string>(string.Join('_', keys));
+	public static void SetValue(string key, string value) => I.Config?.SetValue(key, value);
+	public static Task SetValue<T>(T value, params string[] keys) => Task.Run(() => {
 		var key = string.Join('_', keys).Replace(' ', '_');
-		var current = I.Config!.GetValue<T>(key);
-		if (EqualityComparer<T>.Default.Equals(current, value)
-			 || (value is Array arr && arr.Length == 0)) {
-			return; // Value is unchanged; no update required.
-		}
+		if (
+			I.Config is null ||
+			EqualityComparer<T>.Default.Equals(I.Config.GetValue<T>(key), value)
+		) return; // Value is unchanged; no update required.
 
-		I.Config!.SetValue(key, value);
-		Toaster.Success("Settings saved");
-	}
-	//
-	public static void SetJsonValue<T>(T value, params string[] keys) {
-		var key = string.Join('_', keys).Replace(' ', '_');
-		SetJsonVal(value, key, "Settings saved");
-	}
+		I.Config.SetValue(key, value, "Settings saved");
+	});
+
+	public static T? GetJsonValue<T>(params string[] keys) => JSON.Deserialize<T>(GetValue(keys) ?? "");
+	public static void SetJsonValue<T>(T value, params string[] keys) => SetJsonVal(value, string.Join('_', keys).Replace(' ', '_'), "Settings saved");
 	public static void SetJsonVal<T>(T value, string key, string? message = null) {
-		var newValue = JsonSerializer.Serialize(value);
-		var currentValue = I.Config!.GetValue<string>(key);
-		if (string.Equals(newValue, currentValue, StringComparison.Ordinal)) {
-			return; // Serialized JSON is unchanged; no update required.
-		}
-		I.Config!.SetValue(key, newValue);
-		if (message != null)
-			Toaster.Success(message);
+		if (
+			I.Config is null ||
+			JSON.Stringify(value) is not { } nv ||
+			string.Equals(nv, I.Config.GetValue<string>(key), StringComparison.Ordinal)
+		) return;
+		I.Config.SetValue(key, nv, message);
 	}
-	public static T? GetJsonValue<T>(params string[] keys) => GetValue<string>(string.Join('_', keys)) is string val ? JSON.Deserialize<T>(val) : default;
-	public static Task SetValueAsync<T>(T value, params string[] keys) => Task.Run(() => SetValue(value, keys));
 
 	//
 	public static void ClearValue(params string[] keys) {
+		if (I.Config is null) return;
 		var key = string.Join('_', keys).Replace(' ', '_');
-		if (I.Config is Chonfigurationer config) {
-			_ = config._overrides.TryRemove(key, out _);
-			SetValue("null", keys);
-		}
+		_ = I.Config.overrides.TryRemove(key, out _);
+		_ = SetValue("null", keys);
 	}
 
 	//Singleton pattern
 	public static IoC I { get; } = new();
 }
+public class Configz(Configuration configuration, string filePath) {
+	internal readonly ConcurrentDictionary<string, object> overrides = new();
 
-public class Chonfigurationer(IConfiguration configuration) {
-	readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-	internal readonly ConcurrentDictionary<string, object> _overrides = new();
+	public T? GetValue<T>(string key) =>
+		overrides.TryGetValue(key, out var value) ? (T)value : configuration.GetSection(key).Get<T>();
 
-	public T? GetValue<T>(string key) {
-		var returned = _overrides.TryGetValue(key, out var overriddenValue);
-		return returned ? (T?)overriddenValue : _configuration.GetSection(key).Get<T>();
+	public void SetValue<T>(string key, T value, string? message = null) {
+		if (value is null) return;
+		overrides[key] = value;
+		configuration[key] = value?.ToString() ?? string.Empty;
+		Save();
+		if (message != null) Toaster.Success(message);
 	}
-
-	public void SetValue<T>(string key, T value) {
-		ArgumentNullException.ThrowIfNull(value, nameof(value));
-		_overrides[key] = value;
-
-		// If the underlying configuration supports writing, update it as well
-		if (_configuration is WritableConfiguration writableConfig) {
-			writableConfig[key] = value?.ToString() ?? string.Empty;
-			writableConfig.Save();
-		}
-	}
-}
-
-public class WritableConfiguration(IConfiguration baseConfiguration, string filePath) : IConfiguration {
-	private readonly ConcurrentDictionary<string, string?> _writeStore = new();
-
-	public string? this[string key] {
-		get => _writeStore.TryGetValue(key, out var value) ? value : baseConfiguration[key];
-		set => _writeStore[key] = value;
-	}
-
-	public IEnumerable<IConfigurationSection> GetChildren() {
-		var baseSections = baseConfiguration.GetChildren();
-		var writtenKeys = _writeStore.Keys.Select(k => k.Split(':')[0]).Distinct();
-
-		return baseSections
-			.Concat(writtenKeys
-				.Except(baseSections
-					.Select(s => s.Key))
-				.Select(k => new WritableConfigurationSection(this, k)))
-			.DistinctBy(s => s.Key);
-	}
-
-	public IChangeToken GetReloadToken() => baseConfiguration.GetReloadToken();
-
-	public IConfigurationSection GetSection(string key) => baseConfiguration.GetSection(key) ?? new WritableConfigurationSection(this, key);
 
 	public void Save() {
-		var jsonConfig = baseConfiguration as IConfigurationRoot;
-		if (jsonConfig != null) {
-			var jsonProvider = jsonConfig.Providers.FirstOrDefault(p => p is JsonConfigurationProvider) as JsonConfigurationProvider;
-			if (jsonProvider != null) {
-				var field = typeof(JsonConfigurationProvider).GetProperty("Data", BindingFlags.NonPublic | BindingFlags.Instance);
-				if (field != null) {
-					var data = field.GetValue(jsonProvider) as IDictionary<string, string?>;
-					if (data != null) {
-						foreach (var kvp in _writeStore) {
-							data[kvp.Key] = kvp.Value;
-						}
-						File.WriteAllText(filePath, JsonSerializer.Serialize(data));
-					}
-				}
-			}
-		}
-	}
-
-	private class WritableConfigurationSection(WritableConfiguration configuration, string key) : IConfigurationSection {
-		private readonly WritableConfiguration _configuration = configuration;
-
-		public string? this[string key] {
-			get => _configuration[$"{Path}:{key}"];
-			set => _configuration[$"{Path}:{key}"] = value;
-		}
-
-		public string Key { get; } = key;
-		public string Path => Key;
-		public string? Value {
-			get => _configuration[Key];
-			set => _configuration[Key] = value;
-		}
-
-		public IEnumerable<IConfigurationSection> GetChildren() =>
-			_configuration.GetChildren()
-			.Where(c => c.Path.StartsWith($"{Path}:"))
-			.Select(c => new WritableConfigurationSection(_configuration, c.Path[(Path.Length + 1)..]));
-
-		public IChangeToken GetReloadToken() => _configuration.GetReloadToken();
-
-		public IConfigurationSection GetSection(string key) =>
-			new WritableConfigurationSection(_configuration, $"{Path}:{key}");
+		var data = configuration.AsEnumerable().ToDictionary(kv => kv.Key, kv => kv.Value);
+		foreach (var kv in configuration.Store) data[kv.Key] = kv.Value;
+		File.WriteAllText(filePath, JSON.Serialize(data));
 	}
 }
+
+public class Configuration(IConfiguration configuration) : IConfiguration {
+	public ConcurrentDictionary<string, string?> Store { get; } = new();
+	public string? this[string key] {
+		get => Store.TryGetValue(key, out var value) ? value : configuration[key];
+		set => Store[key] = value;
+	}
+
+	public IChangeToken GetReloadToken() => configuration.GetReloadToken();
+	public IConfigurationSection GetSection(string key) => configuration.GetSection(key) ?? new WritableSection(this, key);
+	public IEnumerable<IConfigurationSection> GetChildren() =>
+		configuration.GetChildren().Concat(
+			Store.Keys.Select(k => k.Split(':')[0])
+				.Except(configuration.GetChildren().Select(s => s.Key))
+				.Select(k => new WritableSection(this, k)));
+
+	class WritableSection(IConfiguration configuration, string key) : IConfigurationSection {
+		public string Key { get; } = key;
+		public string Path => Key;
+		public string? Value { get => configuration[Key]; set => configuration[Key] = value; }
+		public string? this[string key] { get => configuration[$"{Path}:{key}"]; set => configuration[$"{Path}:{key}"] = value; }
+		public IChangeToken GetReloadToken() => configuration.GetReloadToken();
+		public IConfigurationSection GetSection(string key) => new WritableSection(configuration, $"{Path}:{key}");
+		public IEnumerable<IConfigurationSection> GetChildren() {
+			var prefix = $"{Path}:";
+			return configuration.GetChildren()
+				.Where(c => c.Path.StartsWith(prefix))
+				.Select(c => new WritableSection(configuration, c.Path[prefix.Length..]));
+		}
+	}
+}
+

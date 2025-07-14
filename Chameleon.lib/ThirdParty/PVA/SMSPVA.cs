@@ -65,7 +65,7 @@ public class SMSPVAPI : PVAInstance {
 	}
 
 	public override async Task Save() {
-		await IoC.SetValueAsync(ApiKey, nameof(SMSPVAPI), nameof(ApiKey));
+		await IoC.SetValue(ApiKey, nameof(SMSPVAPI), nameof(ApiKey));
 	}
 
 	public override Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app)
@@ -76,12 +76,9 @@ public class SMSPVAPI : PVAInstance {
 			where T2 : Service {
 		ArgumentNullException.ThrowIfNull(ApiKey, nameof(ApiKey));
 
-		var url =
-				$"https://api.smspva.com/activation/number/{country.Code}/{service.Code}";
-		var responseBody =
-				await HttpClientUtil.GetAsync(url, ApiKeyHeaders);
-		var jsonResponse =
-				JSON.Deserialize<ApiResponse<GetNumberData>>(responseBody);
+		var url = $"https://api.smspva.com/activation/number/{country.Code}/{service.Code}";
+		var responseBody = await GetAsync(url, ApiKeyHeaders);
+		var jsonResponse = JSON.Deserialize<ApiResponse<GetNumberData>>(responseBody);
 
 		return new Tuple<string, string>(responseBody, jsonResponse?.Data?.PhoneNumber ?? "(+x)-xxx-xxx-xxxx");
 	}
@@ -92,7 +89,7 @@ public class SMSPVAPI : PVAInstance {
 		if (JSON.Deserialize<ApiResponse<GetNumberData>>(numberData)?.Data?.OrderId is int oId) {
 			var url = $"https://api.smspva.com/activation/sms/{oId}";
 
-			var responseBody = await HttpClientUtil.GetAsync(url, ApiKeyHeaders);
+			var responseBody = await GetAsync(url, ApiKeyHeaders);
 			var responseData = JSON.Deserialize<ApiResponse<ReceiveSMSData>>(responseBody);
 			return new Tuple<string, string>(responseBody, responseData?.Data?.Sms?.Code ?? "xxx-xxx");
 		} else {
@@ -106,7 +103,7 @@ public class SMSPVAPI : PVAInstance {
 		if (JSON.Deserialize<ApiResponse<GetNumberData>>(orderId)?.Data?.OrderId is int oId) {
 			var url = $"https://api.smspva.com/activation/cancelorder/{oId}";
 
-			var responseContent = await HttpClientUtil.PutAsync(url, ApiKeyHeaders);
+			var responseContent = await PutAsync(url, ApiKeyHeaders);
 			var jsonResponse = JSON.Deserialize<ApiResponse<DataBase>>(responseContent);
 			return new Tuple<string, string>(responseContent, (jsonResponse?.Error?.Type == null).ToString());
 		} else {

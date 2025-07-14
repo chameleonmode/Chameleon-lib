@@ -56,7 +56,7 @@ public class Service : Web {
           }
         }
 
-        ProcessUtil.OpenFolder(FilePaths.AppDownloadDir);
+        FilePaths.OpenFolder(FilePaths.AppDownloadDir);
 
         return File.Exists(outputFile);
       }

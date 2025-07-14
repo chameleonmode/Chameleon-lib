@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using chameleon.assets;
-using Chameleon.lib.Common.Util.Win;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
@@ -20,22 +19,22 @@ public class Gecko : Browser {
 
 	public override async Task Ensure() {
 		// clean old copies
-		IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
-		IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
-		IOtil.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Geckoleon"));
+		IOU.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
+		IOU.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
+		IOU.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Geckoleon"));
 
 		var system = OperatingSystem.IsMacOS()
 			? "/Applications/firefox.app"
 			: BrowserInfo.Find(BrowserType.Firefox).Path;
 
 		var needsUpdate = !Path.Exists(ExePath) || (OperatingSystem.IsMacOS()
-				? UMacFileVersionInfo.GetVersionInfo(ExeDir).ProductVersion != UMacFileVersionInfo.GetVersionInfo(system).ProductVersion
+				? MacFileVersionInfo.GetVersionInfo(ExeDir).ProductVersion != MacFileVersionInfo.GetVersionInfo(system).ProductVersion
 				: FileVersionInfo.GetVersionInfo(ExePath).ProductVersion != FileVersionInfo.GetVersionInfo(system).ProductVersion);
 
 		if (needsUpdate) {
 			Toaster.Info("Updating Firefox browser...");
-			IOtil.DeleteDir(ExeDir);
-			await IOtil.CopyDirectory(
+			IOU.DeleteDir(ExeDir);
+			await IOU.CopyDirectory(
 				OperatingSystem.IsMacOS() ? system : Path.GetDirectoryName(system)!, ExeDir
 			);
 		}
@@ -46,7 +45,7 @@ public class Gecko : Browser {
 	protected override async Task InitializeExtensions() {
 		await base.InitializeExtensions();
 		await File.WriteAllTextAsync(
-			Path.Combine(await IOtil.DC(OperatingSystem.IsMacOS()
+			Path.Combine(await IOU.DC(OperatingSystem.IsMacOS()
 			? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
 			: Path.Combine(ExeDir, "distribution")), "policies.json"),
 			JSON.Serialize(new {
@@ -425,7 +424,7 @@ public class Gecko : Browser {
 			if (testProcess.HasExited) {
 				return null;
 			}
-			
+
 			if (OperatingSystem.IsWindows()) {
 #pragma warning disable CA1416 // Validate platform compatibility
 				using var searcher = new global::System.Management.ManagementObjectSearcher(
@@ -465,4 +464,8 @@ public class Gecko : Browser {
 		}
 		return null;
 	}
+}
+
+public class Firefox : Gecko {
+
 }
