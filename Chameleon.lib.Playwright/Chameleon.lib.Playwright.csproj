@@ -20,7 +20,6 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
-	  <ProjectReference Include="..\Chameleon.lib.AIR\Chameleon.lib.AIR.csproj" />
 	  <ProjectReference Include="..\Chameleon.lib.Api\Chameleon.lib.Api.csproj" />
 	  <ProjectReference Include="..\Chameleon.lib.WebBrowser\Chameleon.lib.WebBrowser.csproj" />
 	</ItemGroup>
