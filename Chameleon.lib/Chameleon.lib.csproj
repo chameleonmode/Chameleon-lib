@@ -18,6 +18,9 @@
 	  <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 	  <PackageReference Include="Microsoft.Extensions.Logging.Configuration" />
 	  <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+		<PackageReference Include="Microsoft.Playwright" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Common" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 	  <PackageReference Include="System.Management" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
     <PackageReference Include="System.Data.SQLite" />
