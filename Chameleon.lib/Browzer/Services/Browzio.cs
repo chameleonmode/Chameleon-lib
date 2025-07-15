@@ -3,9 +3,10 @@ using Chameleon.lib.ThirdParty.GeoIp;
 using System.Diagnostics;
 using Chameleon.lib.Helpers;
 using System.Collections.Concurrent;
-using static Chameleon.lib.WebBrowser.IBrowserInstance;
+using static Chameleon.lib.Browzer.IBrowserInstance;
+using Chameleon.lib.Browzer;
 
-namespace Chameleon.lib.WebBrowser.Services;
+namespace Chameleon.lib.Browzer.Services;
 
 public abstract class Browser : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
@@ -157,7 +158,7 @@ public class Browzio {
 	Browzio() { }
 
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
-		if (settings.Profile.Extensions) _ = await Project.Initialized.Task;
+		if (settings.Profile.Extensions) _ = await Project.TCS.Task;
 		settings.Profile.Port = Processez.NextFreePort(9613);
 		settings.Browser.OnEvent += (sender, args) => {
 			if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);

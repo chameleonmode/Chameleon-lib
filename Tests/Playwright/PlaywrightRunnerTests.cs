@@ -1,5 +1,7 @@
 using Chameleon.lib.AIR.Scripts.Reddit.Post;
 using Chameleon.lib.AIR.Scripts.Reddit.Subreddit;
+using Chameleon.lib.Browzer;
+using Chameleon.lib.Browzer.Services;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Util;

@@ -2,21 +2,18 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
-using System.Web;
-
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-namespace Chameleon.lib.WebBrowser.Services;
+namespace Chameleon.lib.Browzer.Services;
 
 public class AddonsServer : IStartUp {
+	public TaskCompletionSource<bool> Initialized { get; } = new();
 	private WebApplication? app;
 
 	public int Port { get; }
@@ -40,7 +37,7 @@ public class AddonsServer : IStartUp {
 		RedirectUri = $"http://127.0.0.1:{Port}/callback";
 	}
 
-	public async Task Start() {
+	public async Task Init() {
 		if (app != null) return;
 
 		// builder configuration
@@ -122,6 +119,7 @@ public class AddonsServer : IStartUp {
 		}));
 		// Signal that the server has started successfully
 		Console.WriteLine($"AddonsServer started successfully on port {Port}");
+		_ = Initialized.TrySetResult(true);
 	}
 
 	public async Task Stop() {

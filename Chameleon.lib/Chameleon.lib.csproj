@@ -24,4 +24,11 @@
     <PackageReference Include="DynamicData" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../Chameleon.Assets/chameleon.assets.csproj" />
+    <!-- ASP.NET Core references -->
+    <!-- Use the Microsoft.AspNetCore.App metapackage for .NET 8 -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
 </Project>

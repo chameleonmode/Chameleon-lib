@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using chameleon.assets;
+using Chameleon.lib.Browzer.Services;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
-using Chameleon.lib.WebBrowser.Services;
 
-namespace Chameleon.lib.WebBrowser.Browsers;
+namespace Chameleon.lib.Browzer.Browsers;
 
 public class Gecko : Browser {
 

@@ -1,11 +1,13 @@
-﻿using Chameleon.lib.WebBrowser;
+﻿using Chameleon.lib.Browzer;
+using Chameleon.lib.Browzer.Services;
+using Chameleon.lib.WebBrowser;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Tests.WebBrowser;
 public class BrowserLauncherTests : TestSetup {
 	public override async Task InitializeAsync() {
 		await base.InitializeAsync();
-		_ = await Project.Init();
+		_ = await Chameleon.lib.Browzer.Project.Initialize();
 	}
 
 	readonly ManualResetEventSlim testCompletionEvent = new(false);

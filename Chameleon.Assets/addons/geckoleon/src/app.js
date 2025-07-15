@@ -1,3 +1,4 @@
+export const state = { loaded: false };
 export const noises = ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"];
 export const config = {
 	enabled: true,
@@ -79,7 +80,7 @@ const discoverServer = async () => {
 		}
 	}
 	return discoverServer();
-}
+};
 const App = {
 	server: null,
 	port: null,

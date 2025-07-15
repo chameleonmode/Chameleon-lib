@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
-using Chameleon.lib.Helpers;
+using Chameleon.lib.Browzer;
+using Chameleon.lib.Browzer.Services;
 using Chameleon.lib.Util;
-using Chameleon.lib.WebBrowser.Services;
 
-namespace Chameleon.lib.WebBrowser.Browsers;
+namespace Chameleon.lib.Browzer.Browsers;
 
 public class Chromium : Browser {
 	public override string PrefsFile => Path.Combine(

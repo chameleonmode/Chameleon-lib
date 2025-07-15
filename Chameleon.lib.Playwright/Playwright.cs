@@ -10,6 +10,7 @@ using Chameleon.lib.AIR.Scripts;
 namespace Chameleon.lib.Playwright;
 
 #region types
+public enum CookieOp { Import, Export }
 public interface IBundledCSScript : IScript {
 	Task Run(IBrowserContext browserContext, IDictionary<string, string>? options = null);
 }

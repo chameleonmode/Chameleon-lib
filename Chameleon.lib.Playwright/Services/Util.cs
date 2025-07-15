@@ -1,12 +1,10 @@
-﻿using Chameleon.lib.Helpers;
+﻿using Chameleon.lib.Browzer;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
-using Chameleon.lib.WebBrowser;
-using Chameleon.lib.WebBrowser.Services;
 using Microsoft.Playwright;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-
 
 namespace Chameleon.lib.Playwright.Services;
 
@@ -15,15 +13,14 @@ namespace Chameleon.lib.Playwright.Services;
 /// </summary>
 public static class Util {
 	public static Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(Options options)
-		=> ExecuteWithRetryPolicyAsync((_) => ExecuteCookieActionAsync(options));
+		=> ExecuteWithRetryPolicyAsync((_) => ExecuteCookieAction(options));
 
 	public static Task<IReadOnlyList<BrowserContextCookiesResult>> SetCookies(Options options, IEnumerable<Cookie> cookies)
-		=> ExecuteWithRetryPolicyAsync((_) => ExecuteCookieActionAsync(options, [.. cookies]));
+		=> ExecuteWithRetryPolicyAsync((_) => ExecuteCookieAction(options, [.. cookies]));
 
-	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> ExecuteCookieActionAsync(Options options, List<Cookie>? cookiesToSet = null) {
-
+	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> ExecuteCookieAction(Options options, List<Cookie>? cookiesToSet = null) {
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = options.Browser.BrowserType == WebBrowser.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+		var playwrightBrowser = options.Browser.BrowserType == Browzer.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
 
 		if (options.Port != null) {
 			try {
@@ -83,7 +80,7 @@ public static class Util {
 	}
 
 	private static async Task CopyProfileDataToTempDir(Options options, string userProfileActualDir, string tempDir) {
-		if (options.Browser.BrowserType == WebBrowser.BrowserType.Firefox) {
+		if (options.Browser.BrowserType == Browzer.BrowserType.Firefox) {
 			var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
 			if (File.Exists(originalCookieFile)) {
         File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
@@ -121,8 +118,8 @@ public static class Util {
 		}
 	}
 
-	public static async Task<string> GetBrowseExecutablePath(WebBrowser.BrowserType browserType) {
-		return browserType == WebBrowser.BrowserType.Firefox
+	public static async Task<string> GetBrowseExecutablePath(Browzer.BrowserType browserType) {
+		return browserType == Browzer.BrowserType.Firefox
 				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Playwright's Firefox")
 				: BrowserInfo.Find(browserType).Path;
 	}

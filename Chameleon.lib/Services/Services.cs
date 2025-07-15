@@ -1,7 +1,8 @@
 namespace Chameleon.lib.Services;
 
 public interface IStartUp {
-  Task Start();
+	TaskCompletionSource<bool> Initialized { get; }
+  Task Init();
 }
 
 public enum MboxResult { None = 0, Primary = 1, Secondary = 2 }

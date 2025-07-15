@@ -136,9 +136,3 @@ browser.webNavigation.onCommitted.addListener(executions);
 // Run on page load
 browser.webNavigation.onDOMContentLoaded.addListener(executions);
 
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    if (tab.url.startsWith("http://127.0.0.1")) {
-        if (await App.onUpdated()) chrome.tabs.remove(tabId);
-        return;
-    }
-});
