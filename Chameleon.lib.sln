@@ -11,8 +11,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.lib.Playwright", "Chameleon.lib.Playwright\Chameleon.lib.Playwright.csproj", "{204EB71F-2069-418C-A4D1-01409FEF8253}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "chameleon.assets", "Chameleon.Assets\chameleon.assets.csproj", "{F2358F28-43B3-452B-A124-C7BD67174878}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.lib.Api", "Chameleon.lib.Api\Chameleon.lib.Api.csproj", "{DA0C5DB8-AD43-4C75-A639-8AD9A8BD4A5D}"
@@ -40,36 +38,6 @@ Global
 		ReleaseWPF|x86 = ReleaseWPF|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Debug|x64.Build.0 = Debug|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Debug|x86.Build.0 = Debug|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Release|Any CPU.Build.0 = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Release|x64.ActiveCfg = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Release|x64.Build.0 = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Release|x86.ActiveCfg = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.Release|x86.Build.0 = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvalonia|Any CPU.ActiveCfg = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvalonia|Any CPU.Build.0 = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvalonia|x64.ActiveCfg = ReleaseAvalonia|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvalonia|x64.Build.0 = ReleaseAvalonia|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvalonia|x86.ActiveCfg = ReleaseAvalonia|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvalonia|x86.Build.0 = ReleaseAvalonia|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.ActiveCfg = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.Build.0 = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvaloniaRemoteDebugSupport|x64.ActiveCfg = ReleaseAvaloniaRemoteDebugSupport|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvaloniaRemoteDebugSupport|x64.Build.0 = ReleaseAvaloniaRemoteDebugSupport|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvaloniaRemoteDebugSupport|x86.ActiveCfg = ReleaseAvaloniaRemoteDebugSupport|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseAvaloniaRemoteDebugSupport|x86.Build.0 = ReleaseAvaloniaRemoteDebugSupport|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseWPF|Any CPU.ActiveCfg = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseWPF|Any CPU.Build.0 = Release|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseWPF|x64.ActiveCfg = ReleaseWPF|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseWPF|x64.Build.0 = ReleaseWPF|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseWPF|x86.ActiveCfg = ReleaseWPF|Any CPU
-		{204EB71F-2069-418C-A4D1-01409FEF8253}.ReleaseWPF|x86.Build.0 = ReleaseWPF|Any CPU
 		{F2358F28-43B3-452B-A124-C7BD67174878}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F2358F28-43B3-452B-A124-C7BD67174878}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F2358F28-43B3-452B-A124-C7BD67174878}.Debug|x64.ActiveCfg = Debug|Any CPU

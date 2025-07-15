@@ -34,7 +34,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Chameleon.lib.Api\Chameleon.lib.Api.csproj" />
-    <ProjectReference Include="..\Chameleon.lib.Playwright\Chameleon.lib.Playwright.csproj" />
     <ProjectReference Include="..\Chameleon.lib\Chameleon.lib.csproj" />
   </ItemGroup>
 
