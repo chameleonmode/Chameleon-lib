@@ -90,7 +90,7 @@ public static class Processez {
 		if (!match.Success) return default;
 
 		var val = match.Groups[1].Value;
-		return typeof(T) == typeof(int) && int.TryParse(val, out var port) ? (T)(object)port : (T)(object)val;
+		return typeof(T) == typeof(int?) && int.TryParse(val, out var number) ? (T)(object)number : (T)(object)val;
 	}
 
 	public static bool ExtractArgs(this Process process, params (string regex, string value)[] args) {
@@ -101,7 +101,7 @@ public static class Processez {
 		return cmd.IsNot() && args.Any(arg => {
 			var match = Regex.Match(cmd, arg.regex, RegexOptions.IgnoreCase);
 			Debug.WriteLine($"Checking argument '{arg.regex}' in command line: {cmd}");
-			return match.Success && match.Groups[1].Value.StartsWith(arg.value, StringComparison.OrdinalIgnoreCase);
+			return match.Success && match.Groups.Values.Any(v => v.Value.StartsWith(arg.value, StringComparison.OrdinalIgnoreCase));
 		});
 	}
 

@@ -2,31 +2,9 @@ import App from "./src/app.js";
 import proxy from "./src/services/proxy.js";
 import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
+import { checkForExtensionUpdate } from "./src/lib/util.js";
 import "./src/services/webrtc.js";
 import "./src/services/debugger.js";
-import { checkForExtensionUpdate } from "./src/lib/util.js";
-
-const startup = async (id = -1) => {
-  log.log("startup");
-  // Restore session from storage
-  log.info("App initialized with session:", App.session);
-  log.info("App initialized with config:", App.config);
-
-  // Only update the tab if id is valid (not undefined, null, or -1)
-  // TODO:
-  // else {
-  //   // Create a new tab if id is invalid
-  //   await chrome.tabs.create({ url: App.config.urls.start });
-  // }
-
-  // // Reload all tabs except the one that triggered the startup
-  // const tabs = await chrome.tabs.query({});
-  // await Promise.all(
-  //   tabs.filter((tab) => tab.id !== id).map((tab) => chrome.tabs.reload(tab.id, { bypassCache: true }))
-  // );
-
-  // Add bookmarks for home pages
-};
 
 const on = async () => {
   log.info("On installed or started");

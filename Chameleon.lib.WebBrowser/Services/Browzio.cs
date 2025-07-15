@@ -16,11 +16,6 @@ public abstract class Browser : IBrowserInstance {
 	public string InitUrl =>
 		$"http://127.0.0.1:{AddonsServer.I.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
 
-			// if (OperatingSystem.IsWindows()) {
-			// 	_ = U32til.BringWindowToForeground(Brocess.MainWindowHandle);
-			// } else if (OperatingSystem.IsMacOS()) {
-			// }
-
 	public void InvokeEvent(Event @event) {
 		var args = new IBrowserInstance.EventArgs(Settings, @event);
 		if (@event == Event.Foreground){
@@ -53,6 +48,7 @@ public abstract class Browser : IBrowserInstance {
 		await WaitForWinHandle();
 		await Task.Delay(1000);
 
+		Brocess.EnableRaisingEvents = true;
 		Brocess.Exited += (sender, e) => {
 			// Only close if the process exited with an error or during initialization
 			if (LoadedTCS.Task.IsCompleted) Close();
@@ -132,7 +128,8 @@ public abstract class Browser : IBrowserInstance {
 					enabled = Settings.Profile.Emulations.SpoofNavigator,
 				},
 			},
-			Settings.Profile.Port
+			Settings.Profile.Port,
+			Settings.BrowserType
 		);
 	}
 
@@ -155,38 +152,15 @@ public abstract class Browser : IBrowserInstance {
 
 public class Browzio {
 	public int TimeOut { get; } = 14;
-	public ConcurrentDictionary<int, IBrowserInstance> Browsers { get; } = [];
+	public ConcurrentDictionary<(BrowserType bt, int id), IBrowserInstance> Browsers { get; } = [];
 	public ConcurrentDictionary<int, List<Action<object, IBrowserInstance.EventArgs>>> Observers { get; } = [];
-	Browzio() {
-		if (OperatingSystem.IsWindows()) _ = new WindowEventHandler(
-			onForeground: handle => {
-				I.Browsers.TryEach(i => {
-					if (i.Value.Brocess?.MainWindowHandle == handle)
-						i.Value.InvokeEvent(Event.Foreground);
-				});
-			},
-		onDestroy: handle => {
-			EX.Try(() => {
-				var browsersToClose = new List<IBrowserInstance>();
-				I.Browsers.ForEach(i => {
-					if (i.Value.Brocess?.MainWindowHandle == handle)
-						browsersToClose.Add(i.Value);
-				});
-				browsersToClose.TryEach(b => b.Close());
-
-				// Periodically clean up stale instances (every 10th window destruction event)
-				if (Random.Shared.Next(0, 10) == 0) {
-					I.CleanupStaleInstances();
-				}
-			});
-		}).StartListening();
-	}
+	Browzio() { }
 
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
 		if (settings.Profile.Extensions) _ = await Project.Initialized.Task;
 		settings.Profile.Port = Processez.NextFreePort(9613);
 		settings.Browser.OnEvent += (sender, args) => {
-			if (args.Event == Event.Closed) Browsers.TryRemove(settings.Profile.Id, out _);
+			if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
 			if (Observers.TryGetValue(settings.Profile.Id, out var observer))
 				observer.ForEach(x => x.Invoke(sender, args));
 		};
@@ -195,16 +169,16 @@ public class Browzio {
 		else _ = init();
 		await settings.Browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(3));
 		settings.Browser.InvokeEvent(Event.Opened);
-		return Browsers[settings.Profile.Id] = settings.Browser;
+		return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
 	}
 	
 	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
-		if (!Browsers.TryGetValue(settings.Profile.Id, out var browser) || browser == null) {
+		if (!Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) || browser == null) {
 			return await EX.Catch(
 				async () => browser = await Launch(settings),
 				e => {
 					if (settings.Profile.Extensions) Toaster.Error(e.Message);
-					_ = Browsers.TryRemove(settings.Profile.Id, out _);
+					_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
 					settings.Browser.InvokeEvent(Event.Error);
 				}) ?? throw new InvalidOperationException();
 		} else if (browser.Brocess is null || browser.Brocess.HasExited) {
@@ -226,14 +200,14 @@ public class Browzio {
 	}
 
 	public void CleanupStaleInstances() {
-		var staleBrowsers = new List<int>();
+		var staleBrowsers = new List<(BrowserType, int)>();
 
 		foreach (var (key, browser) in Browsers) {
 			if (
 				browser.Brocess != null && (
-					browser.Brocess.HasExited == false || (
-					OperatingSystem.IsWindows() &&
-					browser.Brocess.MainWindowHandle == IntPtr.Zero)
+				browser.Brocess.HasExited == false || (
+				OperatingSystem.IsWindows() &&
+				browser.Brocess.MainWindowHandle == IntPtr.Zero)
 			)) continue;
 			staleBrowsers.Add(key);
 		}

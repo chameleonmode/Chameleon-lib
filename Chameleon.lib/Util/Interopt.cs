@@ -23,7 +23,7 @@ public struct PROCESS_BASIC_INFORMATION {
 public enum U32Events : uint {
 	EVENT_MIN = 0x00000001,//WINEVENT_SKIPOWNTHREAD = 0x0001,
 	EVENT_MAX = 0x7FFFFFFF,
-	FOREGROUND = 0x0003,
+	EVENT_SYSTEM_FOREGROUND = 0x0003,
 	EVENT_SYSTEM_MENUSTART = 0x0004,//WINEVENT_INCONTEXT = 0x0004
 	EVENT_SYSTEM_MENUEND = 0x0005,
 	EVENT_SYSTEM_MENUPOPUPSTART = 0x0006,
@@ -54,7 +54,7 @@ public enum U32Events : uint {
 
 	EVENT_OBJECT_IME_SHOW = 0x8027,
 	EVENT_OBJECT_FOCUS = 0x8005,
-	DESTROY = 0x8001,
+	EVENT_OBJECT_DESTROY = 0x8001,
 	EVENT_OBJECT_REORDER = 0x8004,
 	EVENT_OBJECT_LOCATIONCHANGE = 0x800B,
 	EVENT_OBJECT_NAMECHANGE = 0x800C,
@@ -169,19 +169,18 @@ public static partial class U32 {
 [SupportedOSPlatform("windows")]
 public class WindowEventHandler(Action<nint>? onForeground = null, Action<nint>? onDestroy = null) {
 	private readonly IntPtr[] hooks = [IntPtr.Zero, IntPtr.Zero];
-	private readonly U32.WinEventDelegate @delegate = (hWinEventHook, eventType, hwnd, idObject, idChild, dwEventThread, dwmsEventTime) => {
-		if (eventType == (uint)U32Events.FOREGROUND) onForeground?.Invoke(hwnd);
-		else if (eventType == (uint)U32Events.DESTROY) onDestroy?.Invoke(hwnd);
-	};
-
 	public async Task StartListening(int tries = 3) {
+		var @delegate = new U32.WinEventDelegate((hWinEventHook, eventType, hwnd, idObject, idChild, dwEventThread, dwmsEventTime) => {
+			if (eventType == (uint)U32Events.EVENT_SYSTEM_FOREGROUND) onForeground?.Invoke(hwnd);
+			else if (eventType == (uint)U32Events.EVENT_OBJECT_DESTROY) onDestroy?.Invoke(hwnd);
+		});
 		IntPtr SetWinEventHook(uint eventType) =>
 			 U32.SetWinEventHook(eventType, eventType, IntPtr.Zero, @delegate, 0, 0, (uint)U32Events.WINEVENT_OUTOFCONTEXT);
-		hooks[0] = SetWinEventHook((uint)U32Events.FOREGROUND);
-		hooks[1] = SetWinEventHook((uint)U32Events.DESTROY);
+		hooks[0] = SetWinEventHook((uint)U32Events.EVENT_SYSTEM_FOREGROUND);
+		hooks[1] = SetWinEventHook((uint)U32Events.EVENT_OBJECT_DESTROY);
 
 		if (hooks.Any(hook => hook == IntPtr.Zero) && tries > 0) {
-			StopListening();
+			// StopListening();
 			await Task.Delay(1000);
 			await StartListening(tries - 1);
 		}

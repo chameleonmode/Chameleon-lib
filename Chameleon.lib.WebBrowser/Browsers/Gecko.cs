@@ -287,14 +287,14 @@ public class Gecko : Browser {
 			"-allow-downgrade",
 			"-no-remote",
 			$"-profile \"{Settings.BrowserCache}\"",
-			Brocess is null ? url ?? InitUrl : "-new-tab about:blank",
+			(Brocess is null ? "" : "-new-tab ") + InitUrl,
 			// @TODO Settings.OpenOptions.Headless ? "-headless" : "",
 		}.Where(x => x.IsNot()));
 	}
 	protected override async Task WaitForWinHandle() {
 		await base.WaitForWinHandle();
-#pragma warning disable CA1416 // Validate platform compatibility
 		if (!OperatingSystem.IsWindows()) return;
+#pragma warning disable CA1416 // Validate platform compatibility
 		var result = await EX.Poly(async () => {
 			await Task.Delay(60);
 			var processes = Process.GetProcessesByName("firefox");
@@ -309,10 +309,10 @@ public class Gecko : Browser {
 				if (U32.IsWindow(thishandle)) return child;
 			}
 			return null;
-		}, new(sleep: 90, retries: 6));
-		Brocess = result ?? throw new InvalidOperationException(
+		}, new(sleep: 90, retries: 6)) ?? throw new InvalidOperationException(
 			"Ensure Firefox is closed and not running before trying again."
 		);
+		Brocess = result;
 #pragma warning restore CA1416 // Validate platform compatibility
 	}
 }

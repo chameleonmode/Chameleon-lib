@@ -269,7 +269,7 @@ public class Project : IStartUp {
         return Path.Combine("/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons");
       } else {
         // Windows equivalent just as placeholder
-        return Path.Combine(@"C:\Projects\Chameleon\chameleon-playwright\dist");
+        return Path.Combine(@"C:\repos\Chameleon-lib\Chameleon.Assets\addons\");
       }
     }
   }

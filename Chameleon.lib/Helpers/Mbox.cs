@@ -4,8 +4,11 @@ namespace Chameleon.lib.Helpers;
 
 public class MessageBox {
 	private readonly IMboxService MboxService;
+	private readonly IDispatchService dispatcher;
 	MessageBox() {
 		MboxService = IoC.GetService<IMboxService>()!;
+		dispatcher = IoC.GetService<IDispatchService>()
+			?? throw new InvalidOperationException("IDispatchService is not registered in the IoC container.");
 	}
 	public static MessageBox Instance { get; } = new MessageBox();
 
@@ -23,7 +26,7 @@ public class MessageBox {
 		 object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo
 	);
 	public static async Task<TViewModel?> Show<TView, TViewModel>(TViewModel vm, Options parameters) where TView : new() {
-		var result = await Instance.MboxService.ShowTaskDialog(
+		var result = await Instance.dispatcher.InvokeOnUiThread(async () => await Instance.MboxService.ShowTaskDialog(
 			 () => vm,
 			 new TView(),
 			 parameters.Header,
@@ -31,7 +34,8 @@ public class MessageBox {
 			 parameters.Title,
 			 parameters.Footer,
 			 parameters.Symbas,
-			 MBoxButtons.OkCancel);
+			 MBoxButtons.OkCancel)
+		);
 		return result is TaskDialogResult.OK or TaskDialogResult.Yes ? vm : default;
 	}
 

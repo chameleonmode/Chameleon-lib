@@ -152,7 +152,7 @@ public class Chromium : Browser {
 			_ => throw new NotImplementedException()
 		})) {
 			if (
-					process.ExtractArgs<int>(
+					process.ExtractArgs<int?>(
 						@"--remote-debugging-port=(\d+)",
 						(@"--user-data-dir=(""?([^""]+)""?)", Settings.BrowserCache)
 					) is { }

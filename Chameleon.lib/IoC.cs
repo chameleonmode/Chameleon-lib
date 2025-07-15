@@ -120,10 +120,13 @@ public class Configz(Configuration configuration, string filePath) {
 		if (message != null) Toaster.Success(message);
 	}
 
-	public void Save() {
+	public async void Save() {
 		var data = configuration.AsEnumerable().ToDictionary(kv => kv.Key, kv => kv.Value);
 		foreach (var kv in configuration.Store) data[kv.Key] = kv.Value;
-		File.WriteAllText(filePath, JSON.Serialize(data));
+		await EX.Poly(async () => {
+			await File.WriteAllTextAsync(filePath, JSON.Serialize(data));
+			return Task.CompletedTask;
+		});
 	}
 }
 

@@ -132,10 +132,6 @@ const App = {
 			this.config.noise = noise;
 			this.config.hash = hash;
 		}
-    // this.config.noise = noises[Math.floor(Math.random() * noises.length)];
-    // this.config.hash = Math.random() * (100 - 1.5) + 1.5; // Random number between 1.5 and 100
-		// await chrome.storage.sync.set({ config: App.config });
-		// await chrome.storage.local.set({ config: App.config });
 
 		return {
 			session: this.session,
