@@ -1,12 +1,5 @@
-using System.Diagnostics;
-using Chameleon.lib;
 using Chameleon.lib.Abs;
 using Chameleon.lib.Abs.Platformatic;
-using Chameleon.lib.Api.Dto;
-using Chameleon.lib.Playwright.Services;
-using Chameleon.lib.WebBrowser;
-
-using Microsoft.Playwright;
 
 namespace Tests.Abs;
 

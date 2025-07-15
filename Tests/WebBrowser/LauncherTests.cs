@@ -1,7 +1,5 @@
 ﻿using Chameleon.lib.Browzer;
 using Chameleon.lib.Browzer.Services;
-using Chameleon.lib.WebBrowser;
-using Chameleon.lib.WebBrowser.Services;
 
 namespace Tests.WebBrowser;
 public class BrowserLauncherTests : TestSetup {

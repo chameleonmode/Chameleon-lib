@@ -1,6 +1,5 @@
 ﻿using Chameleon.lib;
 using Chameleon.lib.Auth;
-using Chameleon.lib.WebBrowser.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace Tests;
