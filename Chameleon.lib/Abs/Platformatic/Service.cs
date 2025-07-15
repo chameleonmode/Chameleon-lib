@@ -90,8 +90,8 @@ public class Service : Web {
       }
       public async Task<IEnumerable<string>> Terms(GenorateRequest request, int tries = 3) {
         Toaster.Info($"Tries left {tries} to generate {request.Variations} variation{(
-            request.Variations > 1 ? "(s)" : "" )} for {request.Search.Count()} term{(
-            request.Search.Count() > 1 ? "(s)" : "")}");
+            request.Variations > 1 ? "s" : "" )} for {request.Search.Count()} term{(
+            request.Search.Count() > 1 ? "s" : "")}");
 
         var response = await Genorate(request);
         return response is not null

@@ -19,9 +19,8 @@ export class Player {
             while (!((await this.actor.onWhile(url)) instanceof Error)) {
                 for (let i = 0; i < this.actor.opts.settings.start.iterations.max; i++) {
                     Logger.info(`Iteration #${i + 1} of ${this.actor.opts.settings.start.iterations.max}`);
-                    if (i > 0) {
+                    if (i > 0)
                         await this.actor.onReIteration(url);
-                    }
                     const resulto = await this.actor.scenario(url);
                     Logger.info("Scenario Result", resulto);
                 }

@@ -98,11 +98,11 @@ export class Reddit extends Actor {
                                 },
                             });
                             const reply = await this.waitabit(promptmise);
-                            await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing));
+                            return await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing));
                         }
                     }
                     catch (error) {
-                        await func(locatorz);
+                        return await func(locatorz);
                     }
                 };
                 if (state.testing) {
@@ -216,10 +216,12 @@ export class Reddit extends Actor {
         return bang(`scopeulate`, scopeulated, scoped);
     }
     async backscratcher(url, error) {
-        bang("backscratcher checking listing attempts", !error || this.opts.settings.start.attempts-- > 0, {
+        bang("backscratcher checking listing attempts", this.opts.settings.start.attempts > 0, {
             attempts: this.opts.settings.start.attempts,
             error,
         });
+        if (error)
+            this.opts.settings.start.attempts--;
         while (await this.page.evaluate(() => window.history.length > 1)) {
             if (new URL(this.page.url()).pathname === url.pathname)
                 break;
@@ -293,7 +295,7 @@ export class Reddit extends Actor {
         const done = scopeulation.visited.length + scopeulation.searched.length;
         const stats = { todo, done, visit, search, searched, basic };
         Logger.log(`Status`, stats, scopeulation);
-        return search && basic
+        return search > 0 && basic
             ? await this.searcho()
             : visit && !scopeulation.visited.includes(url)
                 ? await this.navigato(url)
