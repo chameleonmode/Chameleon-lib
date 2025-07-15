@@ -21,10 +21,10 @@ public static class Extensions {
   static bool ThrowIf(bool self, string? message = null) {
     return self ? throw new InvalidOperationException(message ?? $"{nameof(self)}, is {self}") : self;
   }
-  public static bool ThrowIfFalse(this bool self, string? message = null) => ThrowIf(!self, message);
-  public static void ThrowFalse(this bool self, string? message = null) => ThrowIf(!self, message);
-  public static bool ThrowIfTrue(this bool self, string? message = null) => ThrowIf(self, message);
-  public static void ThrowTrue(this bool self, string? message = null) => ThrowIf(self, message);
+  public static bool ThrowIfFalse([DoesNotReturnIf(false)] this bool self, string? message = null) => ThrowIf(!self, message);
+  public static void ThrowFalse([DoesNotReturnIf(false)] this bool self, string? message = null) => ThrowIf(!self, message);
+  public static bool ThrowIfTrue([DoesNotReturnIf(true)] this bool self, string? message = null) => ThrowIf(self, message);
+  public static void ThrowTrue([DoesNotReturnIf(true)] this bool self, string? message = null) => ThrowIf(self, message);
 }
 
 public static class TaskExtensions {
@@ -113,8 +113,9 @@ public static class ListsExtensions {
     }
   }
 
-  public static void AddIfNot<T>(this IList<T> list, T item, Func<T, bool> predicate) {
-    if (!list.Any(predicate)) list.Add(item);
+  public static void AddOrRemove<T>(this IList<T> list, T item, Func<bool> predicate) {
+    if (predicate() ) list.AddIfNot(item);
+    else list.Remove(item);
   }
   public static void AddIfNot<T>(this IList<T> list, T item) {
     if (!list.Contains(item)) list.Add(item);
@@ -162,28 +163,27 @@ public static class ListsExtensions {
 }
 
 
-
 public static class Stringz {
-	// Extension Methods
-	public static bool Is([NotNullWhen(false)] this string? self) =>
-		self == null || self == string.Empty || string.IsNullOrEmpty(self) || string.IsNullOrWhiteSpace(self);
-	public static string ThrowIfNullOrEmpty(this string? self) {
-		ArgumentException.ThrowIfNullOrEmpty(self);
-		return self;
-	}
-	public static bool IsNot([NotNullWhen(true)] this string? self) => !self.Is();
-	public static string Strip(this string self, string prefix) =>
-		self.StartsWith(prefix) ? self[prefix.Length..] : self;
+  // Extension Methods
+  public static bool Is([NotNullWhen(false)] this string? self) =>
+    self == null || self == string.Empty || string.IsNullOrEmpty(self) || string.IsNullOrWhiteSpace(self);
+  public static string ThrowIfNullOrEmpty(this string? self) {
+    ArgumentException.ThrowIfNullOrEmpty(self);
+    return self;
+  }
+  public static bool IsNot([NotNullWhen(true)] this string? self) => !self.Is();
+  public static string Strip(this string self, string prefix) =>
+    self.StartsWith(prefix) ? self[prefix.Length..] : self;
 
-	public static object? ParseValue(this string? value) {
-		// Try to parse the value as a simple type
-		if (int.TryParse(value, out var intValue)) return intValue;
-		if (bool.TryParse(value, out var boolValue)) return boolValue;
-		if (double.TryParse(value, out var doubleValue)) return doubleValue;
-		if (DateTime.TryParse(value, out var dateTimeValue)) return dateTimeValue;
+  public static object? ParseValue(this string? value) {
+    // Try to parse the value as a simple type
+    if (int.TryParse(value, out var intValue)) return intValue;
+    if (bool.TryParse(value, out var boolValue)) return boolValue;
+    if (double.TryParse(value, out var doubleValue)) return doubleValue;
+    if (DateTime.TryParse(value, out var dateTimeValue)) return dateTimeValue;
 
-		// If parsing fails, return the original string
-		return value;
-	}
+    // If parsing fails, return the original string
+    return value;
+  }
 
 }

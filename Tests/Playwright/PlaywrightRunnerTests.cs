@@ -12,11 +12,11 @@ namespace Tests.Playwright;
 public class PlaywrightRunnerTests : TestSetup {
 	readonly int port = 9613;
 	readonly BundledScriptsService repo;
-	readonly SystemBrowser browserService;
+	readonly Browzio browserService;
 
 	public PlaywrightRunnerTests() {
 		repo = BundledScriptsService.Instance;
-		browserService = SystemBrowser.I;
+		browserService = Browzio.I;
 	}
 
 	async Task<int> OpenBrowser(BrowserType bt = BrowserType.Chrome, int id = 28296) {

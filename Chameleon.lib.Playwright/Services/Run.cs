@@ -9,7 +9,7 @@ namespace Chameleon.lib.Playwright.Services;
 public class Arguments {
   public int Port { get; set; }
   public bool Record { get; set; } = false;
-  public BrowserType BrowserType { get; set; } = BrowserType.Chromium;
+  public BrowserType BrowserType { get; set; } = BrowserType.Chrome;
   public IScript? Script { get; set; }
   public Opts? Opts { get; set; }
   public ScriptDescription? Description { get; set; }

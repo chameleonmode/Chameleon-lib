@@ -20,10 +20,10 @@ public struct PROCESS_BASIC_INFORMATION {
  * This is a subset of events from winuser.h.
  * See: https://docs.microsoft.com/en-us/windows/win32/winauto/event-constants
  */
-public enum User32Events : uint {
+public enum U32Events : uint {
 	EVENT_MIN = 0x00000001,//WINEVENT_SKIPOWNTHREAD = 0x0001,
 	EVENT_MAX = 0x7FFFFFFF,
-	EVENT_SYSTEM_FOREGROUND = 0x0003,
+	FOREGROUND = 0x0003,
 	EVENT_SYSTEM_MENUSTART = 0x0004,//WINEVENT_INCONTEXT = 0x0004
 	EVENT_SYSTEM_MENUEND = 0x0005,
 	EVENT_SYSTEM_MENUPOPUPSTART = 0x0006,
@@ -54,7 +54,7 @@ public enum User32Events : uint {
 
 	EVENT_OBJECT_IME_SHOW = 0x8027,
 	EVENT_OBJECT_FOCUS = 0x8005,
-	EVENT_OBJECT_DESTROY = 0x8001,
+	DESTROY = 0x8001,
 	EVENT_OBJECT_REORDER = 0x8004,
 	EVENT_OBJECT_LOCATIONCHANGE = 0x800B,
 	EVENT_OBJECT_NAMECHANGE = 0x800C,
@@ -94,14 +94,11 @@ public struct WINDOWPLACEMENT {
 [SupportedOSPlatform("windows")]
 public static partial class U32 {
 	#region delegates
-	public delegate IntPtr MouseHookHandler(
-			int nCode, uint wParam, IntPtr lParam);
+	public delegate IntPtr MouseHookHandler(int nCode, uint wParam, IntPtr lParam);
 
-	public delegate bool MonitorEnumDelegate(
-			IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+	public delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
 
-	public delegate bool EnumWindowsProc(
-			IntPtr hWnd, IntPtr lParam);
+	public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 	#endregion
 
 	// Delegate for the WinEventProc callback
@@ -119,39 +116,31 @@ public static partial class U32 {
 
 	[LibraryImport("user32.dll")]
 	[return: MarshalAs(UnmanagedType.Bool)]
-	public static partial bool UnhookWinEvent(
-			IntPtr hWinEventHook);
+	public static partial bool UnhookWinEvent(IntPtr hWinEventHook);
 
 	[LibraryImport("user32.dll", SetLastError = true)]
-	public static partial IntPtr SetActiveWindow(
-			IntPtr hWnd);
+	public static partial IntPtr SetActiveWindow(IntPtr hWnd);
 
 	[LibraryImport("user32.dll", SetLastError = true)]
 	[return: MarshalAs(UnmanagedType.Bool)]
-	public static partial bool IsWindow(
-			IntPtr hWnd);
+	public static partial bool IsWindow(IntPtr hWnd);
 
 	[LibraryImport("user32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-	public static partial IntPtr FindWindow(
-			string lpClassName, string lpWindowName);
+	public static partial IntPtr FindWindow(string lpClassName, string lpWindowName);
 
 	[LibraryImport("user32.dll", SetLastError = true)]
-	public static partial uint GetWindowThreadProcessId(
-			IntPtr hWnd, out uint lpdwProcessId);
+	public static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
 	[LibraryImport("user32.dll", SetLastError = true)]
-	public static partial IntPtr GetWindow(
-			IntPtr hWnd, uint uCmd);
+	public static partial IntPtr GetWindow(IntPtr hWnd, uint uCmd);
 
 	[LibraryImport("user32.dll")]
 	[return: MarshalAs(UnmanagedType.Bool)]
-	public static partial bool SetForegroundWindow(
-			IntPtr hWnd);
+	public static partial bool SetForegroundWindow(IntPtr hWnd);
 
 	[LibraryImport("user32.dll", SetLastError = true)]
 	[return: MarshalAs(UnmanagedType.Bool)]
-	public static partial bool EnumWindows(
-			EnumWindowsProc lpEnumFunc, IntPtr lParam);
+	public static partial bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
 	[LibraryImport("user32.dll")]
 	[return: MarshalAs(UnmanagedType.Bool)]
@@ -178,62 +167,29 @@ public static partial class U32 {
 }
 
 [SupportedOSPlatform("windows")]
-public class WindowEventHandler {
-	private IntPtr _hook;
-	private U32.WinEventDelegate? _delegate;
+public class WindowEventHandler(Action<nint>? onForeground = null, Action<nint>? onDestroy = null) {
+	private readonly IntPtr[] hooks = [IntPtr.Zero, IntPtr.Zero];
+	private readonly U32.WinEventDelegate @delegate = (hWinEventHook, eventType, hwnd, idObject, idChild, dwEventThread, dwmsEventTime) => {
+		if (eventType == (uint)U32Events.FOREGROUND) onForeground?.Invoke(hwnd);
+		else if (eventType == (uint)U32Events.DESTROY) onDestroy?.Invoke(hwnd);
+	};
 
-	public event Action<nint>? OnForeground;
-	public event Action<nint>? OnDestroy;
-
-	public WindowEventHandler() {
-		_ = StartListening();
-	}
 	public async Task StartListening(int tries = 3) {
-		_delegate = new U32.WinEventDelegate(WinEventProc);
-		_hook = U32.SetWinEventHook(
-				(uint)User32Events.EVENT_SYSTEM_FOREGROUND,
-				(uint)User32Events.EVENT_SYSTEM_FOREGROUND,
-				IntPtr.Zero,
-				_delegate,
-				0,
-				0,
-				(uint)User32Events.WINEVENT_OUTOFCONTEXT);
+		IntPtr SetWinEventHook(uint eventType) =>
+			 U32.SetWinEventHook(eventType, eventType, IntPtr.Zero, @delegate, 0, 0, (uint)U32Events.WINEVENT_OUTOFCONTEXT);
+		hooks[0] = SetWinEventHook((uint)U32Events.FOREGROUND);
+		hooks[1] = SetWinEventHook((uint)U32Events.DESTROY);
 
-		_ = U32.SetWinEventHook(
-				(uint)User32Events.EVENT_OBJECT_DESTROY,
-				(uint)User32Events.EVENT_OBJECT_DESTROY,
-				IntPtr.Zero,
-				_delegate,
-				0,
-				0,
-				(uint)User32Events.WINEVENT_OUTOFCONTEXT);
-
-		if (_hook == IntPtr.Zero && tries > 0) {
+		if (hooks.Any(hook => hook == IntPtr.Zero) && tries > 0) {
+			StopListening();
 			await Task.Delay(1000);
 			await StartListening(tries - 1);
 		}
 	}
 
 	public void StopListening() {
-		if (_hook != IntPtr.Zero) {
-			_ = U32.UnhookWinEvent(_hook);
-			_hook = IntPtr.Zero;
-		}
-	}
-
-	private void WinEventProc(IntPtr hWinEventHook, uint eventType,
-			IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime) {
-		switch (eventType) {
-			case (uint)User32Events.EVENT_SYSTEM_FOREGROUND:
-				OnForeground?.Invoke(hwnd);
-				break;
-
-			case (uint)User32Events.EVENT_OBJECT_DESTROY:
-				OnDestroy?.Invoke(hwnd);
-				break;
-
-			default:
-				break;
+		foreach (var hook in hooks.Where(hook => hook != IntPtr.Zero)) {
+			_ = U32.UnhookWinEvent(hook);
 		}
 	}
 }
@@ -314,47 +270,13 @@ public static class U32til {
 		}
 	}   // Gets the parent process ID for a given process.
 			// Returns -1 if the parent process ID cannot be determined (e.g., process has exited, access denied, or other error).
-	public static int GetParentProcessId(this Process process) {
-		if (process == null) {
-			return -1;
-		}
-		var processNameForDebug = "unknown";
-		var processIdForDebug = -1;
-
-		try {
-			// Try to get ProcessName and Id for logging, but be careful as they can throw if process state is odd.
-			try { processNameForDebug = process.ProcessName; processIdForDebug = process.Id; } catch { /* ignore for logging */ }
-
-			if (process.HasExited) {
-				Debug.WriteLine($"Process (ID: {processIdForDebug}, Name: {processNameForDebug}) has exited. Cannot get parent PID.");
-				return -1;
-			}
-		} catch (InvalidOperationException) {
-			Debug.WriteLine($"InvalidOperationException accessing handle for process (ID: {processIdForDebug}, Name: {processNameForDebug}). Likely exited. Cannot get parent PID.");
-			return -1;
-		} catch (Win32Exception ex) {
-			Debug.WriteLine($"Win32Exception accessing handle for process (ID: {processIdForDebug}, Name: {processNameForDebug}): {ex.Message}. Cannot get parent PID.");
-			return -1;
-		} catch (Exception ex) {
-			Debug.WriteLine($"Unexpected error accessing handle for process (ID: {processIdForDebug}, Name: {processNameForDebug}): {ex.Message}. Cannot get parent PID.");
-			return -1;
-		}
-
-		if (process.Handle == IntPtr.Zero) {
-			Debug.WriteLine($"Failed to obtain a valid handle for process (ID: {processIdForDebug}, Name: {processNameForDebug}). Cannot get parent PID.");
-			return -1;
-		}
+	public static int ParentProcessId(this Process process) {
+		(process == null || process.HasExited || process.Handle == IntPtr.Zero).ThrowTrue();
 
 		var pbi = new PROCESS_BASIC_INFORMATION();
 		var sizeOfPbi = Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION));
-
 		var status = U32.NtQueryInformationProcess(process.Handle, 0, ref pbi, sizeOfPbi, out var _);
-
-		if (status != 0) // NT_SUCCESS is 0. Any non-zero status is an error.
-		{
-			Debug.WriteLine($"NtQueryInformationProcess failed for process (ID: {processIdForDebug}, Name: {processNameForDebug}) with NTSTATUS: 0x{status:X}");
-			return -1;
-		}
+		(status == 0).ThrowFalse();
 
 		return pbi.InheritedFromUniqueProcessId.ToInt32();
 	}

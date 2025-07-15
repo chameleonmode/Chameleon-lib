@@ -30,27 +30,18 @@ public static class Processez {
 	}
 
 	public static async Task TryKillProcess(Process? p) {
-		if (p == null || p.HasExited) return;
-
 		EX.Try(() => {
+			if (p == null || p.HasExited) return;
 			// Attempt to close the process gracefully
-			if (p.MainWindowHandle != IntPtr.Zero) _ = p.CloseMainWindow();
-			// If the process is stubborn, kill it with the entire process tree.
-			p.Kill(true);
-			_ = p.WaitForExit(TimeSpan.FromSeconds(3)); // Wait for the process to be killed
-		});
-
-		await Task.Delay(1000);
-
-		EX.Try(() => {
-			// This is important to release the resources associated with the process.=
-			// If the process has already exited, this will do nothing.
-			p.Close();
-			p.Dispose();
+			_ = p.CloseMainWindow();
 			_ = p.WaitForExit(TimeSpan.FromSeconds(1)); // Wait for the process to be killed
 		});
-		// Log or handle the exception if closing the process fails
-		if (!p.HasExited) Toaster.Error($"Failed to close process");
+		await Task.Delay(600);
+		EX.Try(() => {
+			p?.Kill(true);
+			p?.Close();
+			p?.Dispose();
+		});
 	}
 
 	public static string? GetCommandLine(Process process) {
@@ -91,17 +82,27 @@ public static class Processez {
 		return null;
 	}
 
-	public static T? ExtractFromCommand<T>(Process process, [StringSyntax("Regex")] string pattern, params string[] args) {
-		var line = GetCommandLine(process);
-		if (line.Is() || args.Any(arg => line.Contains(arg, StringComparison.OrdinalIgnoreCase))) return default;
+	public static T? ExtractArgs<T>(this Process process, [StringSyntax("Regex")] string pattern, params (string regex, string value)[] args) {
+		var cmd = GetCommandLine(process);
+		if (!MatchesArgs(cmd, args)) return default;
 
-		var match = Regex.Match(line, pattern, RegexOptions.IgnoreCase);
+		var match = Regex.Match(cmd, pattern, RegexOptions.IgnoreCase);
 		if (!match.Success) return default;
 
-		var value = match.Groups[1].Value;
-		return (T)(object)(
-			typeof(T) == typeof(int) && int.TryParse(value, out var port)? port : value
-		);
+		var val = match.Groups[1].Value;
+		return typeof(T) == typeof(int) && int.TryParse(val, out var port) ? (T)(object)port : (T)(object)val;
+	}
+
+	public static bool ExtractArgs(this Process process, params (string regex, string value)[] args) {
+		return MatchesArgs(GetCommandLine(process), args);
+	}
+
+	private static bool MatchesArgs([NotNullWhen(true)] string? cmd, (string regex, string value)[] args) {
+		return cmd.IsNot() && args.Any(arg => {
+			var match = Regex.Match(cmd, arg.regex, RegexOptions.IgnoreCase);
+			Debug.WriteLine($"Checking argument '{arg.regex}' in command line: {cmd}");
+			return match.Success && match.Groups[1].Value.StartsWith(arg.value, StringComparison.OrdinalIgnoreCase);
+		});
 	}
 
 	/// <summary>

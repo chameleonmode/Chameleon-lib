@@ -18,6 +18,12 @@ public class Gecko : Browser {
 		: Path.Combine(ExeDir, "firefox.exe");
 
 	public override async Task Ensure() {
+		await base.Ensure();
+		foreach (var process in Process.GetProcessesByName(OperatingSystem.IsWindows() ? "firefox" : "Firefox")) {
+			if (
+				process.ExtractArgs((@"-profile ""?([^""]+)""?", Settings.BrowserCache))
+			) await Processez.TryKillProcess(process);
+		}
 		// clean old copies
 		IOU.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
 		IOU.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
@@ -38,8 +44,6 @@ public class Gecko : Browser {
 				OperatingSystem.IsMacOS() ? system : Path.GetDirectoryName(system)!, ExeDir
 			);
 		}
-
-		await base.Ensure();
 	}
 
 	protected override async Task InitializeExtensions() {
@@ -279,193 +283,38 @@ public class Gecko : Browser {
 		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.BrowserCache);
 	}
 	protected override string GetCommandLineArguments(string? url) {
-		var arguments = new List<string> {
+		return string.Join(" ", new[]{
 			"-allow-downgrade",
 			"-no-remote",
 			$"-profile \"{Settings.BrowserCache}\"",
-			url ?? InitUrl,
+			Brocess is null ? url ?? InitUrl : "-new-tab about:blank",
 			// @TODO Settings.OpenOptions.Headless ? "-headless" : "",
-		};
-
-		return string.Join(" ", arguments.Where(x => !string.IsNullOrWhiteSpace(x)));
+		}.Where(x => x.IsNot()));
 	}
-
 	protected override async Task WaitForWinHandle() {
 		await base.WaitForWinHandle();
-		if (!OperatingSystem.IsWindows()) return;
-		if (Brocess == null || Brocess.HasExited) {
-			// Wait for Firefox to fully initialize before searching for processes
-			await Task.Delay(3000);
-
-			var firefoxProcesses = Process.GetProcessesByName("firefox");
-			Process? mainFirefoxProcess = null;
-
-			// Find Firefox process for our specific profile
-			foreach (var ffProcess in firefoxProcesses) {
-				try {
-					if (ffProcess.HasExited) {
-						ffProcess.Dispose();
-						continue;
-					}
-
-					var processId = ffProcess.Id;
-					var commandLine = GetProcessCommandLine(processId);
-					var profilePath = Settings.BrowserCache;
-					var hasProfilePath = !string.IsNullOrEmpty(commandLine) &&
-														 (commandLine.Contains($"\"{profilePath}\"") ||
-														 commandLine.Contains($" {profilePath} ") ||
-														 commandLine.Contains($" {profilePath}"));
-
-					if (hasProfilePath) {
-						// Validate process is still accessible
-						try {
-							using var testProcess = Process.GetProcessById(processId);
-							if (testProcess.HasExited) {
-								ffProcess.Dispose();
-								continue;
-							}
-						} catch (ArgumentException) {
-							ffProcess.Dispose();
-							continue;
-						}
-
-						if (OperatingSystem.IsWindows()) {
-							var windowHandle = U32til.FindMainWindowHandle(processId);
-							if (U32.IsWindow(windowHandle)) {
-								mainFirefoxProcess = ffProcess;
-								break;
-							}
-						} else {
-							mainFirefoxProcess = ffProcess;
-							break;
-						}
-					}
-
-					ffProcess.Dispose();
-				} catch (InvalidOperationException) {
-					try {
-						ffProcess.Dispose();
-					} catch { }
-					continue;
-				} catch (Exception) {
-					try {
-						ffProcess.Dispose();
-					} catch { }
-					continue;
-				}
-			}
-
-			// Clean up unused processes
-			foreach (var ffProcess in firefoxProcesses) {
-				if (ffProcess != mainFirefoxProcess) {
-					try {
-						if (!ffProcess.HasExited) {
-							ffProcess.Dispose();
-						}
-					} catch (InvalidOperationException) {
-						// Process already invalid, ignore
-					} catch { }
-				}
-			}
-
-			if (mainFirefoxProcess != null) {
-				// Validate process before assignment
-				try {
-					var processId = mainFirefoxProcess.Id;
-
-					if (mainFirefoxProcess.HasExited) {
-						mainFirefoxProcess.Dispose();
-						throw new InvalidOperationException("Selected Firefox process exited before initialization could complete");
-					}
-
-					Brocess = mainFirefoxProcess;
-
-					// Set up exit event handler
-					try {
-						Brocess.EnableRaisingEvents = true;
-						Brocess.Exited += (s, e) => Close();
-					} catch (InvalidOperationException) {
-						// Continue without event handlers if process is otherwise valid
-					}
-				} catch (InvalidOperationException) {
-					try {
-						mainFirefoxProcess.Dispose();
-					} catch { }
-					throw new InvalidOperationException("Could not establish a stable connection to Firefox process for this profile");
-				}
-			} else {
-				throw new InvalidOperationException("Could not find Firefox process for this profile");
-			}
-		} else {
-			// Set up event handler for original process
-			try {
-				var processId = Brocess.Id;
-				if (!Brocess.HasExited) {
-					Brocess.EnableRaisingEvents = true;
-					Brocess.Exited += (s, e) => Close();
-				} else {
-					throw new InvalidOperationException("Original process has exited");
-				}
-			} catch (InvalidOperationException) {
-				throw new InvalidOperationException("Original Firefox process became invalid");
-			}
-		}
-	}
-
-	/// <summary>
-	/// Gets the command line arguments of a process by its ID
-	/// </summary>
-	/// <param name="processId">The process ID</param>
-	/// <returns>Command line string or null if not accessible</returns>
-	private static string? GetProcessCommandLine(int processId) {
-		try {
-			// Verify process exists and is accessible
-			using var testProcess = Process.GetProcessById(processId);
-			if (testProcess.HasExited) {
-				return null;
-			}
-
-			if (OperatingSystem.IsWindows()) {
 #pragma warning disable CA1416 // Validate platform compatibility
-				using var searcher = new global::System.Management.ManagementObjectSearcher(
-					$"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {processId}");
-				using var objects = searcher.Get();
-				foreach (var obj in objects) {
-					return obj["CommandLine"]?.ToString();
-				}
-#pragma warning restore CA1416 // Validate platform compatibility
-			} else if (OperatingSystem.IsLinux()) {
-				var cmdPath = $"/proc/{processId}/cmdline";
-				if (File.Exists(cmdPath)) {
-					var raw = File.ReadAllText(cmdPath);
-					return raw.Replace('\0', ' ').Trim();
-				}
-			} else if (OperatingSystem.IsMacOS()) {
-				var startInfo = new ProcessStartInfo {
-					FileName = "/bin/ps",
-					Arguments = $"-p {processId} -o command=",
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true
-				};
-				using var psProc = Process.Start(startInfo);
-				if (psProc != null) {
-					var output = psProc.StandardOutput.ReadToEnd();
-					psProc.WaitForExit();
-					return output.Trim();
-				}
+		if (!OperatingSystem.IsWindows()) return;
+		var result = await EX.Poly(async () => {
+			await Task.Delay(60);
+			var processes = Process.GetProcessesByName("firefox");
+			foreach (var p in processes) {
+				if (
+					p.ParentProcessId() != Brocess?.Id ||
+					Process.GetProcessById(p.Id) is not { } child ||
+					child.HasExited
+				) continue;
+
+				var thishandle = U32til.FindMainWindowHandle(child.Id);
+				if (U32.IsWindow(thishandle)) return child;
 			}
-		} catch (ArgumentException) {
-			// Process doesn't exist
-		} catch (InvalidOperationException) {
-			// Process is not accessible
-		} catch {
-			// Other errors
-		}
-		return null;
+			return null;
+		}, new(sleep: 90, retries: 6));
+		Brocess = result ?? throw new InvalidOperationException(
+			"Ensure Firefox is closed and not running before trying again."
+		);
+#pragma warning restore CA1416 // Validate platform compatibility
 	}
 }
 
-public class Firefox : Gecko {
-
-}
+public class Firefox : Gecko { }

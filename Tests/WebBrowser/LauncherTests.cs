@@ -1,5 +1,4 @@
 ﻿using Chameleon.lib.WebBrowser;
-using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Tests.WebBrowser;
@@ -32,7 +31,7 @@ public class BrowserLauncherTests : TestSetup {
 	// N2Vb4Jvy
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
-		var bi = await SystemBrowser.I.Open(FactorySettings.Chrome("https://example.com"));
+		var bi = await Browzio.I.Open(FactorySettings.Chrome("https://example.com"));
 		Assert.NotNull(bi);
 		await Task.Delay(1000 * 3); // Wait for the browser to load
 		await bi.Closee(); // Close the browser instance after testing
@@ -41,7 +40,7 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Brave() {
-		var bi = await SystemBrowser.I.Open(
+		var bi = await Browzio.I.Open(
 			new BrowserSetting(BrowserType.Brave,
 				new BrowserProfile() {
 					Id = 99,
@@ -69,7 +68,7 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
-		var bi = await SystemBrowser.I.Open(new BrowserSetting(BrowserType.Firefox, new() {
+		var bi = await Browzio.I.Open(new BrowserSetting(BrowserType.Firefox, new() {
 			Id = 22,
 			Proxy = new BrowserProxy() {
 				Host = "proxy.chameleonmode.com",

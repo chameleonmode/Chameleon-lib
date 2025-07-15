@@ -18,10 +18,7 @@ public class IOCTest {
 		}, (services) => {
 			_ = services;
 		});
-		// Setup IoC
-		IoC.I.Init((on) => {
 			setup();
-		});
 	}
 
 	[Fact]

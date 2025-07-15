@@ -144,5 +144,5 @@ end_of_line = crlf
 
 # CS1591: Missing XML comment for publicly visible type or member
 dotnet_diagnostic.CS1591.severity = none
-csharp_prefer_system_threading_lock = true:suggestion
+dotnet_diagnostic.IDE0011.severity = none
 csharp_indent_braces = false

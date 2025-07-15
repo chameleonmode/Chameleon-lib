@@ -1,22 +1,33 @@
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
+using System.Runtime.Versioning;
 using chameleon.assets;
+using Chameleon.lib.Services;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Browsers;
 using Chameleon.lib.WebBrowser.Services;
 
 namespace Chameleon.lib.WebBrowser;
 
-public enum BrowserType {
-  Unknown,
-  Chromium,
-  [Description("chrome")] Chrome,
-  [Description("firefox")] Firefox,
-  [Description("brave")] Brave,
-}
 
-#region models
+#region types
+public enum BrowserType { Chrome, Firefox, Brave }
+
+public interface IBrowserInstance {
+	public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
+	public record EventArgs(BrowserSetting Settings, Event Event);
+	Process? Brocess { get; set; }
+	BrowserSetting Settings { get; init; }
+	string SessionId { get; }
+	void InvokeEvent(Event @event);
+	void Close();
+	Task Closee();
+	Task Ensure();
+	Process Brocessor(string url);
+	TaskCompletionSource<bool> LoadedTCS { get; }
+	Task Initialize(object? param = null);
+	event Action<object, EventArgs>? OnEvent;
+}
 public record BrowserOption(BrowserType Option) {
   public string IconName { get; } = Option.ToString().ToLower();
 }
@@ -125,7 +136,105 @@ public class EmulationOptions {
 }
 #endregion
 
-public static class Project {
+
+public static class BrowserInfo {
+	public record class BrowserRecord(string Name, string Path) {
+		public override string ToString() {
+			return Name ?? Path;
+		}
+		public bool Exists => !string.IsNullOrEmpty(Path) && File.Exists(Path);
+	}
+
+	[SupportedOSPlatform("windows")]
+	private static (bool Installed, string FilePath) CheckApplication(string executable) {
+		// Check common installation paths
+		string[] commonPaths = [
+			 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), executable),
+				 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), executable)
+		];
+
+		foreach (var path in commonPaths) {
+			if (File.Exists(path)) return (true, path);
+		}
+
+		// Check registry
+		string[] registryKeys = [
+			 @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
+				 @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths"
+		];
+
+		foreach (var registryKey in registryKeys) {
+			using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executable));
+			if (key != null) {
+				var path = key.GetValue(null) as string;
+				if (!string.IsNullOrEmpty(path) && File.Exists(path)) return (true, path);
+			}
+		}
+
+		// Check for user-specific installation
+		var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+		var userSpecificPaths = Directory.GetFiles(appDataPath, executable, SearchOption.AllDirectories);
+		if (userSpecificPaths.Length != 0) return (true, userSpecificPaths.First());
+
+		// Check uninstall registry keys
+		string[] uninstallKeys = [
+			 @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+				 @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+		];
+
+		foreach (var uninstallKey in uninstallKeys) {
+			using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(uninstallKey);
+			if (key != null) {
+				foreach (var subKeyName in key.GetSubKeyNames()) {
+					using var subKey = key.OpenSubKey(subKeyName);
+					var displayName = subKey?.GetValue("DisplayName") as string;
+					if (
+						 !string.IsNullOrEmpty(displayName) &&
+						 displayName.Contains(Path.GetFileNameWithoutExtension(executable), StringComparison.OrdinalIgnoreCase)
+					) {
+						var installLocation = subKey?.GetValue("InstallLocation") as string;
+						if (!string.IsNullOrEmpty(installLocation)) {
+							var fullPath = Path.Combine(installLocation, executable);
+							if (File.Exists(fullPath)) return (true, fullPath);
+						}
+					}
+				}
+			}
+		}
+
+		return (false, string.Empty);
+	}
+
+	static BrowserRecord FindByName(string executable) {
+		if (OperatingSystem.IsMacOS()) {
+			var chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+			var bravePath = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
+			var firefoxPath = "/Applications/firefox.app/Contents/MacOS/firefox";
+
+			return executable switch {
+				"chrome.exe" => File.Exists(chromePath) ? new BrowserRecord("chrome", chromePath) : null,
+				"brave.exe" => File.Exists(bravePath) ? new BrowserRecord("brave", bravePath) : null,
+				"firefox.exe" => File.Exists(firefoxPath) ? new BrowserRecord("brave", firefoxPath) : null,
+				_ => null
+			} ?? throw new NotSupportedException(
+						$"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
+		} else if (OperatingSystem.IsWindows()) {
+			var (installed, filepath) = CheckApplication(executable);
+			if (installed && !string.IsNullOrWhiteSpace(filepath)) return new BrowserRecord(executable, filepath);
+		}
+
+		throw new NotSupportedException(
+					$"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
+	}
+
+	public static BrowserRecord Find(BrowserType BrowserType) => BrowserType switch {
+		BrowserType.Chrome => FindByName("chrome.exe"),
+		BrowserType.Brave => FindByName("brave.exe"),
+		BrowserType.Firefox => FindByName("firefox.exe"),
+		_ => throw new NotSupportedException("Browser type not found."),
+	};
+}
+public class Project : IStartUp {
   public static bool Staging { get; } = true && (Debugger.IsAttached || Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true");
 
   public static class Extensions {
@@ -167,8 +276,6 @@ public static class Project {
 
   public static TaskCompletionSource<bool> Initialized { get; } = new();
   public static async Task<bool> Init() {
-    await AddonsServer.I.Start();
-
     if (IoC.GetValue(nameof(Extensions)) is not string version || version != IoC.Assembled) {
       IoC.SetValue(nameof(Extensions), IoC.Assembled);
       await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
@@ -177,5 +284,7 @@ public static class Project {
 
     return Initialized.TrySetResult(true);
   }
+
+	public Task Start() => Init();
 }
 

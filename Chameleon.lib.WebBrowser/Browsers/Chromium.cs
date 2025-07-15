@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Chameleon.lib.WebBrowser.Services;
 
@@ -136,33 +137,26 @@ public class Chromium : Browser {
 			await Task.Delay(60);
 			return (Brocess!.HasExited || Brocess.MainWindowHandle == IntPtr.Zero).ThrowIfTrue();
 		}, new(sleep: 90, retries: 6));
-		(Brocess!.HasExited || Brocess.MainWindowHandle == IntPtr.Zero).ThrowTrue();
+		result.ThrowTrue();
 	}
 
 	protected virtual int? GetExistingProcessDebuggingPort() {
-		foreach (var process in Process.GetProcessesByName(Settings.BrowserType switch {
-			BrowserType.Chrome => "chrome",
-			BrowserType.Brave => "brave",
-			_ => throw new NotImplementedException()
-		})) {
-			if (
-				Processez.ExtractFromCommand<int?>(
-					process,
-					@"--remote-debugging-port=(\d+)",
-					$"\"{Settings.BrowserCache}\"", $" {Settings.BrowserCache} ", $" {Settings.BrowserCache}"
-				) is not { } port
-			) continue;
-			return port;
-		}
 		return null;
 	}
 
 	public override async Task Ensure() {
 		await base.Ensure();
-		if (GetExistingProcessDebuggingPort() is { } port) {
-			var errorMessage = $"Browser instance is already running for profile {Settings.Profile.Id} on port {port}. " +
-								 "Close the existing browser instance before launching a new one.";
-			throw new InvalidOperationException(errorMessage);
+		foreach (var process in Process.GetProcessesByName(Settings.BrowserType switch {
+			BrowserType.Chrome => OperatingSystem.IsWindows() ? "chrome" : "Google Chrome",
+			BrowserType.Brave => OperatingSystem.IsWindows() ? "brave" : "Brave Browser",
+			_ => throw new NotImplementedException()
+		})) {
+			if (
+					process.ExtractArgs<int>(
+						@"--remote-debugging-port=(\d+)",
+						(@"--user-data-dir=(""?([^""]+)""?)", Settings.BrowserCache)
+					) is { }
+			) await Processez.TryKillProcess(process);
 		}
 	}
 }

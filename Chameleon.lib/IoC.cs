@@ -19,7 +19,6 @@ public class IoC {
 	public const string AppName = "Chameleon";
 	public const string SettingFile = "appsettings.json";
 	public static readonly string Assembled = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0";
-	private bool isInitialized = false;
 
 	/// <summary>
 	/// Gets the <see cref="IServiceProvider"/> instance to resolve application services.
@@ -31,18 +30,6 @@ public class IoC {
 	/// </summary>
 	public Configz? Config { get; private set; }
 
-	/// <summary>
-	/// List of al services tasks that need to be started on ioc init
-	/// </summary>
-	public List<IStartUp> StartUps { get; } = [];
-
-	public async void Init(Action<bool> action) {
-		foreach (var task in StartUps)
-			await task.Start();
-
-		isInitialized = true;
-		action(isInitialized);
-	}
 
 	/// <summary>
 	/// Configures the services for the application.
