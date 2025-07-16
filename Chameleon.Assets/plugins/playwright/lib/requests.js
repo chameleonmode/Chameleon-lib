@@ -32,19 +32,9 @@ export var promptee;
         return { method: "POST", headers, body: JSON.stringify(prompt) };
     }
     async function requesito(route, ctx) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60 * 1000 * 3);
-        try {
-            const request = await fetch(await endpoint(route), {
-                signal: controller.signal,
-                ...promptio(ctx)
-            });
-            const out = bang("request response", await request.json());
-            return out.reply;
-        }
-        finally {
-            clearTimeout(timeoutId);
-        }
+        const request = await fetch(await endpoint(route), promptio(ctx));
+        const out = bang("request response", await request.json());
+        return out.reply;
     }
     async function ranking(ctx) {
         ctx.model = "o4-mini";

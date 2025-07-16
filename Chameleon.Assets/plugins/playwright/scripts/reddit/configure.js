@@ -44,6 +44,7 @@ export async function configure(ctx, opts) {
         ...(opts?.settings?.start?.urls || []),
         ...(search.length && !opts?.settings?.start?.urls?.length ? [BASE_URL] : [])
     ].filter(Boolean);
+    state.testing = false;
     if (state.testing) {
         Logger.debug("Testing mode enabled, using provided URLs and search terms.");
         args.scope = "Posts";
@@ -59,7 +60,6 @@ export async function configure(ctx, opts) {
         ai.model = "grok-4";
         Logger.warn("No search terms or URLs provided, using default values.");
     }
-    state.testing = true;
     const options = {
         run: opts?.run ?? {},
         args: { ...args, ...opts?.args },
