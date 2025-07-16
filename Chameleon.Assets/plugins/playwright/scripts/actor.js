@@ -128,14 +128,10 @@ export class Actor {
     async waitabit(promise) {
         await this.scrollabit();
         let racer = await Promise.race([promise, delay(100)]);
-        if (typeof racer === "number")
-            await this.scrollabit(6);
-        racer = await Promise.race([promise, delay(100)]);
-        if (typeof racer === "number")
+        while (typeof racer === "number") {
             await this.scrollabit(3);
-        racer = await Promise.race([promise, delay(100)]);
-        if (typeof racer === "number")
-            await this.scrollabit();
+            racer = await Promise.race([promise, delay(100)]);
+        }
         return await promise;
     }
     async scrollabit(times = rando(3, 6)) {

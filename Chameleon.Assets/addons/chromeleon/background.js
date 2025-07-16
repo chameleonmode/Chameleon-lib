@@ -38,7 +38,7 @@ const on = async () => {
   // Common startup operations
   await App.startup();
   await proxy(App.config.proxy);
-  await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
+  await addUrlsAsBookmarks("Chromeleon", App.config.urls.homePages);
   
   const id = tab?.id || tab?.id || (await chrome.tabs.query({}))[0].id;
   await chrome.tabs.update(id, { url: App.config.urls.start});

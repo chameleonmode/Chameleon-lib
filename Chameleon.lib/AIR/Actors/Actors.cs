@@ -34,7 +34,7 @@ public interface IActor {
 }
 
 public record Decorations(string System, string Human, string Audience, string Background, string Tone);
-public record AI(Decorations Decorators);
+public record AI(Decorations Decorators, string Model =  "o4-mini");
 public record Rando(int Min, int Max, int? Multiplier = null);
 public record Timeouts(int Default, int Wait, int Navigate, Rando Naps) {
   public Artifact Artifacto { get; set; } = new() { ["delay"] = 120 };

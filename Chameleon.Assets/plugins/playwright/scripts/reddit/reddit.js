@@ -71,7 +71,8 @@ export class Reddit extends Actor {
                     const locatorz = await this.navigateIntoPost().catch(async () => {
                         const scopeulator = this.scopeulate();
                         const finder = await scopeulator.findulator();
-                        await this.scrollabit(6);
+                        if (!state.testing)
+                            await this.scrollabit(6);
                         return await finder.find.locator.all();
                     });
                     try {
@@ -87,7 +88,7 @@ export class Reddit extends Actor {
                         }
                         for (const data of batches) {
                             const promptmise = promptee.ranking({
-                                task: `Score these reddit threads by relevance to for ${this.opts.settings.start.feature}. Include a rank number along with the thread ID provided.`,
+                                task: `Score these reddit threads by relevance to for ${this.opts.settings.start.feature}`,
                                 generations: {
                                     type: "ranking",
                                     range: { min: 1, max: 1 },
@@ -98,7 +99,7 @@ export class Reddit extends Actor {
                                 },
                             });
                             const reply = await this.waitabit(promptmise);
-                            return await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing));
+                            return await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing)).catch();
                         }
                     }
                     catch (error) {

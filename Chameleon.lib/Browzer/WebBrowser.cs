@@ -78,17 +78,18 @@ public class BrowserProfile {
   public BrowserProxy Proxy { get; set; } = new();
   public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 
-  public string[] Bookmarks { get; init; } =
-    IoC.GetJsonValue<string[]>(nameof(Bookmarks))
-      .Let(urls => urls != null && urls.Length > 0 ? new[] { urls[new Random().Next(urls.Length)] } : ["example.com"]);
+  public string[] Bookmarks { get; init; } = IoC.GetJsonValue<string[]>(nameof(Bookmarks)) ?? [];
 
-  public string StartUrl { get; init; } =
-    IoC.GetJsonValue<string[]>(nameof(Bookmarks))
-      .Let(urls => urls != null && urls.Length > 0 ? urls[new Random().Next(urls.Length)] : "example.com")
-      .Let(randomUrl => Uri.TryCreate(randomUrl, UriKind.Absolute, out var uriResult)
-        && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
-          ? uriResult.AbsoluteUri
-          : "http://" + randomUrl);
+  public string StartPage { get; init; } = IoC.GetValue(nameof(StartPage))
+    .Let(url =>
+      url.Is()
+        ? "about:blank" 
+        : Uri.TryCreate(url, UriKind.Absolute, out var uriResult) && (
+            uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps
+          )
+            ? uriResult.AbsoluteUri 
+            : "http://" + url
+    );
 }
 public static class FactorySettings {
   public static BrowserSetting Chrome(BrowserProfile profile) {
@@ -96,7 +97,7 @@ public static class FactorySettings {
   }
   public static BrowserSetting Chrome(string url) {
     return Chrome(new BrowserProfile {
-      StartUrl = url,
+      StartPage = url,
       Extensions = false,
       Emulations = new(),
       Port = Processez.NextFreePort(9613)

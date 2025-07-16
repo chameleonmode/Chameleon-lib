@@ -56,8 +56,10 @@ export async function configure(ctx, opts) {
         settings.start.rando = { min: 19, max: 3 };
         settings.start.iterations = { min: 1, max: 1 };
         settings.start.variations = { min: 1, max: 1 };
+        ai.model = "grok-4";
         Logger.warn("No search terms or URLs provided, using default values.");
     }
+    state.testing = true;
     const options = {
         run: opts?.run ?? {},
         args: { ...args, ...opts?.args },
@@ -77,7 +79,7 @@ export async function configure(ctx, opts) {
             },
         },
         ai: {
-            model: ai.model,
+            model: opts?.ai?.model || state.ai?.model || "o4-mini",
             decorators: {
                 ...ai.decorators,
                 ...opts?.ai?.decorators,

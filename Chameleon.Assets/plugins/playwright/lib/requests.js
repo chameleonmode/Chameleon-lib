@@ -23,7 +23,7 @@ export var promptee;
     function promptio(ctx) {
         const prompt = {
             ...ctx,
-            model: ctx.model || "o4-mini",
+            model: ctx.model || state.ai?.model || "o4-mini",
             task: bang("prompt request task", ctx.task),
             decorators: bang("prompt request decorators", state.ai?.decorators, state),
             generations: bang("prompt request generations", ctx.generations),
@@ -32,16 +32,28 @@ export var promptee;
         return { method: "POST", headers, body: JSON.stringify(prompt) };
     }
     async function requesito(route, ctx) {
-        const request = await fetch(await endpoint(route), promptio(ctx));
-        const out = bang("request response", await request.json());
-        return out.reply;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60 * 1000 * 3);
+        try {
+            const request = await fetch(await endpoint(route), {
+                signal: controller.signal,
+                ...promptio(ctx)
+            });
+            const out = bang("request response", await request.json());
+            return out.reply;
+        }
+        finally {
+            clearTimeout(timeoutId);
+        }
     }
     async function ranking(ctx) {
+        ctx.model = "o4-mini";
         return await requesito("robo/ranking", ctx);
     }
     promptee.ranking = ranking;
     async function content(ctx) {
-        return await requesito("robo/content", ctx);
+        ctx.model ||= state.ai?.model || "o4-mini";
+        return await requesito("robo/" + (ctx.model == "grok-4" ? "grok" : "content"), ctx);
     }
     promptee.content = content;
 })(promptee || (promptee = {}));

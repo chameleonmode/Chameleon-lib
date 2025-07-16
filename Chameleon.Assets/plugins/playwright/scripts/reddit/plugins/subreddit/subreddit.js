@@ -23,7 +23,7 @@ export class Subreddit {
             try {
                 const data = these.sort(() => randy()).slice(0, min);
                 const promptmise = promptee.ranking({
-                    task: `rank these reddit comments for voting positively ${min} times on. your reply data needs to be a ordered array of the provided comment id and your ranking number.`,
+                    task: `rank these reddit comments for voting positively on`,
                     generations: {
                         type: "ranking",
                         range: { min: 1, max: 1 },

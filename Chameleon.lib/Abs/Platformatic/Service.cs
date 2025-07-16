@@ -63,6 +63,13 @@ public class Service : Web {
     }
 
     public class Roboto() : Root("robo") {
+      public enum Model {  Gpt41 = 0, O4Mini = 1, Grok4 = 2 }
+      public static string GetModelString(Model model) => model switch {
+        Model.Gpt41 => "gpt-4.1",
+        Model.O4Mini => "o4-mini",
+        Model.Grok4 => "grok-4",
+        _ => throw new ArgumentOutOfRangeException(nameof(model), model, null)
+      };
       public record Rep<T>(T Reply);
       public record GenorateRequest(Decorations Decorators, int Variations, IEnumerable<string> Search);
       public record GenorateResponse(string Type, string[] Data, object? Id, object? Reason);

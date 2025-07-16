@@ -96,7 +96,7 @@ public abstract class Browser : IBrowserInstance {
 					password = Settings.Profile.Proxy.Password,
 				},
 				urls = new {
-					start = Settings.Profile.StartUrl,
+					start = Settings.Profile.StartPage,
 					homePages = Settings.Profile.Bookmarks,
 				},
 				tz = new {

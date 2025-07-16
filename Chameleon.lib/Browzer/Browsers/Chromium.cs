@@ -123,7 +123,7 @@ public class Chromium : Browser {
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
 			Settings.Profile.Extensions ? $"--load-extension=\"{Project.Extensions.Chromeleon}\"" : null,
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
-			url ??= Settings.Profile.Extensions ? InitUrl : Settings.Profile.StartUrl
+			url ??= Settings.Profile.Extensions ? InitUrl : Settings.Profile.StartPage
 		}.Where(x => x != null));
 	}
 
