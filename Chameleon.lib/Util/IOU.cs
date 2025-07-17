@@ -15,7 +15,7 @@ public static class IOU {
 	}
 
 	public static Task CreateZipAsync(string sourceDir, string zipDir, string? zipFile = null, bool dc = true) => Task.Run(async () => {
-		if (!Directory.Exists(sourceDir)) 			throw new DirectoryNotFoundException($"The directory '{sourceDir}' does not exist.");
+		if (!Directory.Exists(sourceDir)) throw new DirectoryNotFoundException($"The directory '{sourceDir}' does not exist.");
 
 		if (dc) await DC(zipDir);
 		else if (!Directory.Exists(zipDir)) _ = Directory.CreateDirectory(zipDir);
@@ -80,7 +80,7 @@ public static class IOU {
 		}
 	}
 
-	public static Task CopyDirectory(string source, string destination) => Task.Run(() => {
+	public static async Task CopyDirectory(string source, string destination) {
 		// Create the destination directory if it doesn't exist
 		_ = Directory.CreateDirectory(destination);
 
@@ -96,12 +96,13 @@ public static class IOU {
 
 			// Create the directory structure for the destination file if it doesn't exist
 			var destDir = Path.GetDirectoryName(destFile);
-			if (!string.IsNullOrWhiteSpace(destDir) && !Directory.Exists(destDir)) 				_ = Directory.CreateDirectory(destDir);
+			if (destDir.IsNot() && !Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
 
 			// Copy the file
 			File.Copy(file, destFile, true);
+			await Task.Delay(30); // Optional: Add a small delay to avoid overwhelming the file system
 		}
-	});
+	}
 
 	public static Task CopyFolderAsync(string directory, string directoryForCopy) =>
 		Task.Run(() => CopyFolder(directory, directoryForCopy));

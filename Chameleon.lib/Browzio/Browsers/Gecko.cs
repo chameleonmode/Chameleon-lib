@@ -1,15 +1,15 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using chameleon.assets;
-using Chameleon.lib.Browzer.Services;
+using Chameleon.lib.Browzio.Services;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 
-namespace Chameleon.lib.Browzer.Browsers;
+namespace Chameleon.lib.Browzio.Browsers;
 
-public class Gecko : Browser {
+public class Gecko : Browzer {
 
-	public override string PrefsFile => Path.Combine(Settings.BrowserCache, "prefs.js");
+	public override string PrefsFile => Path.Combine(Settings.CachePath, "prefs.js");
 	public override string ExeDir { get; } = OperatingSystem.IsMacOS()
 		? Path.Combine(FilePaths.AppDataLocalDir, "gecko", "firefox.app")
 		: Path.Combine(FilePaths.AppDataLocalDir, "gecko");
@@ -21,7 +21,7 @@ public class Gecko : Browser {
 		await base.Ensure();
 		foreach (var process in Process.GetProcessesByName(OperatingSystem.IsWindows() ? "firefox" : "Firefox")) {
 			if (
-				process.ExtractArgs((@"-profile ""?([^""]+)""?", Settings.BrowserCache))
+				process.ExtractArgs((@"-profile ""?([^""]+)""?", Settings.CachePath))
 			) await Processez.TryKillProcess(process);
 		}
 		// clean old copies
@@ -44,6 +44,12 @@ public class Gecko : Browser {
 				OperatingSystem.IsMacOS() ? system : Path.GetDirectoryName(system)!, ExeDir
 			);
 		}
+
+		// if (!Settings.Profile.Extensions || Directory.Exists(Settings.ExtensionsPath)) return;
+		// Directory.CreateDirectory(Settings.ExtensionsPath);
+		// // Copy the Geckoleon extension to the extensions path
+		// File.Copy(Browzio.Extensions.Geckoleon, Path.Combine(Settings.ExtensionsPath, "geckoleon.xpi"), true);
+		// await Task.Delay(30);
 	}
 
 	protected override async Task InitializeExtensions() {
@@ -105,7 +111,7 @@ public class Gecko : Browser {
 								installation_mode = "normal_installed",
 								default_area = "navbar",
 								private_browsing = true,
-								install_url = $"file:///{Project.Extensions.Geckoleon.Replace("\\", "/")}" // Correct path handling
+								install_url = $"file:///{Browzio.Extensions.Geckoleon.Replace("\\", "/")}" // Correct path handling
 					    }
 						}
 					}
@@ -280,13 +286,13 @@ public class Gecko : Browser {
 			}
 		}
 
-		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.BrowserCache);
+		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.CachePath);
 	}
 	protected override string GetCommandLineArguments(string? url) {
 		return string.Join(" ", new[]{
 			"-allow-downgrade",
 			"-no-remote",
-			$"-profile \"{Settings.BrowserCache}\"",
+			$"-profile \"{Settings.CachePath}\"",
 			(Brocess is null ? "" : "-new-tab ") + InitUrl,
 			// @TODO Settings.OpenOptions.Headless ? "-headless" : "",
 		}.Where(x => x.IsNot()));

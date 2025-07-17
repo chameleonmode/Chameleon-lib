@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Chameleon.lib.AIR.Scripts;
 using Chameleon.lib.AIR.Actors;
 using Chameleon.lib.Util;
-using Chameleon.lib.Browzer;
+using Chameleon.lib.Browzio;
 
 namespace Chameleon.lib.Playwright.Services;
 

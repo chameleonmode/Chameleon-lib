@@ -167,8 +167,8 @@ public static class Stringz {
   // Extension Methods
   public static bool Is([NotNullWhen(false)] this string? self) =>
     self == null || self == string.Empty || string.IsNullOrEmpty(self) || string.IsNullOrWhiteSpace(self);
-  public static string ThrowIfNullOrEmpty(this string? self) {
-    ArgumentException.ThrowIfNullOrEmpty(self);
+  public static string ThrowIfNullOrEmpty(this string? self, string? message = null) {
+    ArgumentException.ThrowIfNullOrEmpty(self, message);
     return self;
   }
   public static bool IsNot([NotNullWhen(true)] this string? self) => !self.Is();

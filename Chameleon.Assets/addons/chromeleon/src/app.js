@@ -1,3 +1,4 @@
+export const state = { loaded: false };
 export const noises = ["nano", "mini", "low", "mid", "bold", "high", "ultra", "super", "max"];
 export const config = {
   enabled: true,

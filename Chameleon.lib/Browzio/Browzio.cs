@@ -2,30 +2,30 @@ using System.Diagnostics;
 using System.Net;
 using System.Runtime.Versioning;
 using chameleon.assets;
-using Chameleon.lib.Browzer.Browsers;
-using Chameleon.lib.Browzer.Services;
+using Chameleon.lib.Browzio.Browsers;
+using Chameleon.lib.Browzio.Services;
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
 
-namespace Chameleon.lib.Browzer;
+namespace Chameleon.lib.Browzio;
 
 #region types
 public enum BrowserType { Chrome, Firefox, Brave }
 
 public interface IBrowserInstance {
-	public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
-	public record EventArgs(BrowserSetting Settings, Event Event);
-	Process? Brocess { get; set; }
-	BrowserSetting Settings { get; init; }
-	string SessionId { get; }
-	void InvokeEvent(Event @event);
-	void Close();
-	Task Closee();
-	Task Ensure();
-	Process Brocessor(string url);
-	TaskCompletionSource<bool> LoadedTCS { get; }
-	Task Initialize(object? param = null);
-	event Action<object, EventArgs>? OnEvent;
+  public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
+  public record EventArgs(BrowserSetting Settings, Event Event);
+  Process? Brocess { get; set; }
+  BrowserSetting Settings { get; init; }
+  string SessionId { get; }
+  void InvokeEvent(Event @event);
+  void Close();
+  Task Closee();
+  Task Ensure();
+  Process Brocessor(string url);
+  TaskCompletionSource<bool> LoadedTCS { get; }
+  Task Initialize(object? param = null);
+  event Action<object, EventArgs>? OnEvent;
 }
 public record BrowserOption(BrowserType Option) {
   public string IconName { get; } = Option.ToString().ToLower();
@@ -74,46 +74,28 @@ public class BrowserProxy {
 public class BrowserProfile {
   public int Id { get; init; } = -1; // -1 is a special value for the default profile
   public bool Extensions { get; init; } = true;
-  public int Port { get; set; } = 0;
   public BrowserProxy Proxy { get; set; } = new();
   public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 
   public string[] Bookmarks { get; init; } = IoC.GetJsonValue<string[]>(nameof(Bookmarks)) ?? [];
 
-  public string StartPage { get; init; } = IoC.GetValue(nameof(StartPage))
+  public string StartPage { get; set; } = IoC.GetValue(nameof(StartPage))
     .Let(url =>
       url.Is()
-        ? "about:blank" 
-        : Uri.TryCreate(url, UriKind.Absolute, out var uriResult) && (
-            uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps
-          )
-            ? uriResult.AbsoluteUri 
+        ? "about:blank"
+        : Uri.TryCreate(url, UriKind.Absolute, out var uriResult) &&
+          (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
+            ? uriResult.AbsoluteUri
             : "http://" + url
     );
 }
-public static class FactorySettings {
-  public static BrowserSetting Chrome(BrowserProfile profile) {
-    return new BrowserSetting(BrowserType.Chrome, profile);
-  }
-  public static BrowserSetting Chrome(string url) {
-    return Chrome(new BrowserProfile {
-      StartPage = url,
-      Extensions = false,
-      Emulations = new(),
-      Port = Processez.NextFreePort(9613)
-    });
-  }
-
-  public static BrowserSetting Brave(BrowserProfile profile) {
-    return new BrowserSetting(BrowserType.Brave, profile);
-  }
-
-  public static BrowserSetting Firefox(BrowserProfile profile) {
-    return new BrowserSetting(BrowserType.Firefox, profile);
-  }
-}
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
-  public string BrowserCache => Resources.Assert(FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString());
+  public int Port { get; set; } = 0;
+  public string CachePath => FilePaths.EnsureDirectoryExists(
+    FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()
+  );
+  public string ExtensionsPath =>
+    Path.Combine(FilePaths.AppTempDir, "Chromo", BrowserType.ToString(), Profile.Id.ToString());
 
   private IBrowserInstance? browser;
   public IBrowserInstance Browser => browser ??= BrowserType switch {
@@ -136,41 +118,8 @@ public class EmulationOptions {
 }
 #endregion
 
-public class Project : IStartUp {
-  public static bool Staging { get; } = Debugger.IsAttached || Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true";
-
-  public static class Extensions {
-    private static string AddonDevPath =>
-      OperatingSystem.IsMacOS() ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons" : @"C:\repos\Chameleon-lib\Chameleon.Assets\addons";
-
-    public static string Chromium => Resources.Assert(
-      FilePaths.AppDataDir, "extensions", "chromium"
-    );
-    public static string Chromeleon => Path.Combine(Staging && Directory.Exists(AddonDevPath) ? AddonDevPath : Chromium, "chromeleon");
-    public static string Gecko => Resources.Assert(
-      FilePaths.AppDataDir, "extensions", "gecko"
-    );
-    public static string Geckoleon => Path.Combine(Staging && Directory.Exists(AddonDevPath) ? AddonDevPath : Gecko, "geckoleon.xpi");
-    
-  }
-
-  public static async Task<bool> Initialize() {
-    await AddonsServer.I.Initialized.Task;
-    if (IoC.GetValue(nameof(Extensions)) is not string version || version != IoC.Assembled) {
-      IoC.SetValue(nameof(Extensions), IoC.Assembled);
-      await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
-      await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
-    }
-
-    return TCS.TrySetResult(true);
-  }
-  public static TaskCompletionSource<bool> TCS { get; } = new();
-  public TaskCompletionSource<bool> Initialized => TCS;
-  public Task Init() => Initialize();
-}
-
 public static class BrowserInfo {
-  public record class BrowserRecord(string Name, string Path) {
+  public record class Info(string Name, string Path) {
     public override string ToString() {
       return Name ?? Path;
     }
@@ -237,32 +186,98 @@ public static class BrowserInfo {
     return (false, string.Empty);
   }
 
-  static BrowserRecord FindByName(string executable) {
+  static Info FindByName(string executable) {
     if (OperatingSystem.IsMacOS()) {
       var chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
       var bravePath = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
       var firefoxPath = "/Applications/firefox.app/Contents/MacOS/firefox";
 
       return executable switch {
-        "chrome.exe" => File.Exists(chromePath) ? new BrowserRecord("chrome", chromePath) : null,
-        "brave.exe" => File.Exists(bravePath) ? new BrowserRecord("brave", bravePath) : null,
-        "firefox.exe" => File.Exists(firefoxPath) ? new BrowserRecord("brave", firefoxPath) : null,
+        "chrome.exe" => File.Exists(chromePath) ? new Info("chrome", chromePath) : null,
+        "brave.exe" => File.Exists(bravePath) ? new Info("brave", bravePath) : null,
+        "firefox.exe" => File.Exists(firefoxPath) ? new Info("brave", firefoxPath) : null,
         _ => null
       } ?? throw new NotSupportedException(
             $"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
     } else if (OperatingSystem.IsWindows()) {
       var (installed, filepath) = CheckApplication(executable);
-      if (installed && !string.IsNullOrWhiteSpace(filepath)) return new BrowserRecord(executable, filepath);
+      if (installed && !string.IsNullOrWhiteSpace(filepath)) return new Info(executable, filepath);
     }
 
     throw new NotSupportedException(
           $"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
   }
 
-  public static BrowserRecord Find(BrowserType BrowserType) => BrowserType switch {
+  public static Info Find(BrowserType BrowserType) => BrowserType switch {
     BrowserType.Chrome => FindByName("chrome.exe"),
     BrowserType.Brave => FindByName("brave.exe"),
     BrowserType.Firefox => FindByName("firefox.exe"),
     _ => throw new NotSupportedException("Browser type not found."),
   };
+}
+
+public class Browzio : IStartUp {
+  public static class State {
+    public static bool Staging { get; } = Debugger.IsAttached || Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true";
+  }
+  public static class Extensions {
+    public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value!); }
+    public static string AddonDevPath => OperatingSystem.IsMacOS()
+      ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons"
+      : @"C:\repos\Chameleon-lib\Chameleon.Assets\addons";
+
+    public static string Chromium => FilePaths.EnsureDirectoryExists(
+      FilePaths.AppDataDir, "extensions", "chromium"
+    );
+    public static string Chromeleon => Path.Combine(
+      State.Staging && Directory.Exists(AddonDevPath)
+      ? AddonDevPath
+      : Chromium, "chromeleon");
+
+    public static string Gecko => Resources.Assert(
+      FilePaths.AppDataDir, "extensions", "gecko"
+    );
+    public static string Geckoleon => Path.Combine(
+      State.Staging && Directory.Exists(AddonDevPath)
+      ? AddonDevPath
+      : Gecko, "geckoleon.xpi");
+  }
+  public static class Factory {
+    public static BrowserSetting Chrome(BrowserProfile profile) {
+      return new BrowserSetting(BrowserType.Chrome, profile) {
+        Port = Processez.NextFreePort(9613)
+      };
+    }
+    public static BrowserSetting Chrome(string url) {
+      return Chrome(new BrowserProfile {
+        StartPage = url,
+        Extensions = false,
+        Emulations = new(),
+      });
+    }
+
+    public static BrowserSetting Brave(BrowserProfile profile) {
+      return new BrowserSetting(BrowserType.Brave, profile);
+    }
+
+    public static BrowserSetting Firefox(BrowserProfile profile) {
+      return new BrowserSetting(BrowserType.Firefox, profile);
+    }
+  }
+
+  public TaskCompletionSource<bool> Initialized { get; } = new();
+
+  public async Task Init() {
+    await AddonsServer.I.Initialized.Task;
+    if (Extensions.Version != IoC.Assembled) {
+      Extensions.Version = IoC.Assembled;
+      await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
+      await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
+    }
+
+    _ = Initialized.TrySetResult(true);
+  }
+
+  Browzio() { }
+  public static Browzio I { get; } = new();
 }

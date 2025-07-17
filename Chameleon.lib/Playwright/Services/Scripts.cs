@@ -9,7 +9,7 @@ namespace Chameleon.lib.Playwright.Services;
 
 public record ScriptDescription(Dictionary<string, string> Parameters, string? Title = null, string? Description = null, string? FilePath = null);
 public class BundledScriptsService {
-	public IDictionary<string, IBundledCSScript> BundledCSScripts { get; } = new Dictionary<string, IBundledCSScript> {
+	public IDictionary<string, IBundledCSScript> CsharpScripts { get; } = new Dictionary<string, IBundledCSScript> {
 		{ nameof(KeepGmailAlive), new KeepGmailAlive() },
 		{ nameof(URLsexplorer), new URLsexplorer() },
 		{ nameof(GoogleCTR), new GoogleCTR() },
@@ -42,8 +42,8 @@ public class BundledScriptsService {
 		}
 
 		var returned = new List<Arguments>();
-		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new Arguments { Script = script }));
-		returned.AddRange(AddMappedScripts(BundledCSScripts, script => new Arguments { Script = script }));
+		// returned.AddRange(AddMappedScripts(BundledJSScripts, script => new Arguments { Script = script }));
+		returned.AddRange(AddMappedScripts(CsharpScripts, script => new Arguments { Script = script }));
 
 		return returned;
 	}

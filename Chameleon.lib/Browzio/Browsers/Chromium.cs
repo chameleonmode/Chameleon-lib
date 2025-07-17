@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics;
-using Chameleon.lib.Browzer;
-using Chameleon.lib.Browzer.Services;
+using Chameleon.lib.Browzio;
+using Chameleon.lib.Browzio.Services;
 using Chameleon.lib.Util;
 
-namespace Chameleon.lib.Browzer.Browsers;
+namespace Chameleon.lib.Browzio.Browsers;
 
-public class Chromium : Browser {
+public abstract class Chromium : Browzer {
 	public override string PrefsFile => Path.Combine(
-		Settings.BrowserCache,
+		Settings.CachePath,
 		"Default",
 		"Preferences"
 	);
@@ -117,11 +117,11 @@ public class Chromium : Browser {
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
 			// "--restore-last-session",
-			$"--remote-debugging-port={Settings.Profile.Port}",
-			$"--user-data-dir=\"{Settings.BrowserCache}\"",
+			$"--remote-debugging-port={Settings.Port}",
+			$"--user-data-dir=\"{Settings.CachePath}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
-			Settings.Profile.Extensions ? $"--load-extension=\"{Project.Extensions.Chromeleon}\"" : null,
+			Settings.Profile.Extensions ? $"--load-extension=\"{Settings.ExtensionsPath}\"" : null,
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
 			url ??= Settings.Profile.Extensions ? InitUrl : Settings.Profile.StartPage
 		}.Where(x => x != null));
@@ -132,11 +132,10 @@ public class Chromium : Browser {
 		await base.WaitForWinHandle();
 		if (!OperatingSystem.IsWindows()) return;
 
-		var result = await EX.Poly(async () => {
+		await EX.Poly(async () => {
 			await Task.Delay(60);
 			return (Brocess!.HasExited || Brocess.MainWindowHandle == IntPtr.Zero).ThrowIfTrue();
-		}, new(sleep: 90, retries: 6));
-		result.ThrowTrue();
+		}, new(sleep: 96, retries: 3));
 	}
 
 	protected virtual int? GetExistingProcessDebuggingPort() {
@@ -145,20 +144,26 @@ public class Chromium : Browser {
 
 	public override async Task Ensure() {
 		await base.Ensure();
-		foreach (var process in Process.GetProcessesByName(Settings.BrowserType switch {
-			BrowserType.Chrome => OperatingSystem.IsWindows() ? "chrome" : "Google Chrome",
-			BrowserType.Brave => OperatingSystem.IsWindows() ? "brave" : "Brave Browser",
-			_ => throw new NotImplementedException()
-		})) {
+		foreach (var process in Process.GetProcessesByName(ProcessName)) {
 			if (
 					process.ExtractArgs<int?>(
 						@"--remote-debugging-port=(\d+)",
-						(@"--user-data-dir=(""?([^""]+)""?)", Settings.BrowserCache)
+						(@"--user-data-dir=(""?([^""]+)""?)", Settings.CachePath)
 					) is { }
 			) await Processez.TryKillProcess(process);
 		}
+
+		if (!Settings.Profile.Extensions || Directory.Exists(Settings.ExtensionsPath)) return;
+		await IOU.CopyDirectory(Browzio.Extensions.Chromeleon, Settings.ExtensionsPath);
+		Settings.Profile.StartPage = "about:blank";
 	}
+
+	public abstract string ProcessName { get; }
 }
 
-public class Brave : Chromium { }
-public class Chrome : Chromium { }
+public class Brave : Chromium {
+	public override string ProcessName => OperatingSystem.IsWindows() ? "brave" : "Brave Browser";
+}
+public class Chrome : Chromium {
+	public override string ProcessName => OperatingSystem.IsWindows() ? "chrome" : "Google Chrome";
+}

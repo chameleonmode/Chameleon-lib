@@ -49,21 +49,17 @@ const detach = async (tabId) => {
   } catch (e) {
     // Ignore errors when detaching
   }
-  if (observers.get(tabId)) {
-    observers.delete(tabId);
-  }
+  if (observers.get(tabId)) observers.delete(tabId);
+
 };
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   log.info(`Tab ${tabId} is loading with URL: ${tab.url}`);
   if (
     changeInfo.status !== "loading" ||
+    tab.url.startsWith("http://127.0.0.1") ||
     !tab.url.startsWith("http") 
   ) return;
-  if (tab.url.startsWith("http://127.0.0.1")) {
-    if (await App.onUpdated()) chrome.tabs.remove(tabId);
-    return;
-  }
   
   
   if (!App.config.enabled || App.config.bypass.some((bypassUrl) => tab.url.startsWith(bypassUrl))) {

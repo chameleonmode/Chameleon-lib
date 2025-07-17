@@ -42,9 +42,9 @@ public class ChromeiumPlaywrightBrowser : IPlaywrightBrowser {
 }
 
 public static class Factorially {
-	public static IPlaywrightBrowser CreateBrowser(Browzer.BrowserType type) => type switch {
-		Browzer.BrowserType.Chrome or
-		Browzer.BrowserType.Brave => new ChromeiumPlaywrightBrowser(),
+	public static IPlaywrightBrowser CreateBrowser(Browzio.BrowserType type) => type switch {
+		Browzio.BrowserType.Chrome or
+		Browzio.BrowserType.Brave => new ChromeiumPlaywrightBrowser(),
 		_ => throw new NotImplementedException($"Browser type {type} is not implemented")
 	};
 }

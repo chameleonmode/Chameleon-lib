@@ -102,7 +102,7 @@ public class Client {
 	/// <param name="refreshToken"></param>
 	/// <returns></returns>
 	public async Task RefreshToken() {
-		ArgumentNullException.ThrowIfNull(Token!.refresh_token, "Token not found");
+		Token!.refresh_token.ThrowIfNullOrEmpty("Token not found");
 		using var client = new HttpClient();
 		var res = await client.PostAsync(
 				$"https://{Domain}/oauth/token",

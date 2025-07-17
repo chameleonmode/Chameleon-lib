@@ -1,4 +1,4 @@
-﻿using Chameleon.lib.Browzer;
+﻿using Chameleon.lib.Browzio;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 using Microsoft.Playwright;
@@ -20,7 +20,7 @@ public static class Util {
 
 	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> ExecuteCookieAction(Options options, List<Cookie>? cookiesToSet = null) {
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = options.Browser.BrowserType == Browzer.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+		var playwrightBrowser = options.Browser.BrowserType == Browzio.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
 
 		if (options.Port != null) {
 			try {
@@ -80,7 +80,7 @@ public static class Util {
 	}
 
 	private static async Task CopyProfileDataToTempDir(Options options, string userProfileActualDir, string tempDir) {
-		if (options.Browser.BrowserType == Browzer.BrowserType.Firefox) {
+		if (options.Browser.BrowserType == Browzio.BrowserType.Firefox) {
 			var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
 			if (File.Exists(originalCookieFile)) {
         File.Copy(originalCookieFile, Path.Combine(tempDir, "cookies.sqlite"), true);
@@ -118,8 +118,8 @@ public static class Util {
 		}
 	}
 
-	public static async Task<string> GetBrowseExecutablePath(Browzer.BrowserType browserType) {
-		return browserType == Browzer.BrowserType.Firefox
+	public static async Task<string> GetBrowseExecutablePath(Browzio.BrowserType browserType) {
+		return browserType == Browzio.BrowserType.Firefox
 				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Playwright's Firefox")
 				: BrowserInfo.Find(browserType).Path;
 	}

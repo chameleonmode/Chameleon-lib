@@ -14,10 +14,20 @@ public static class FilePaths {
 	public static string AppTempDir => EnsureDirectoryExists(
 		Path.GetTempPath(), IoC.AppName
 	);
-	public static string AppDownloadDir => EnsureDirectoryExists(
-		AppTempDir, "Downloads"
-	);
-
+	public static string AppDownloadDir {
+		get {
+			var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+			var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+			var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+			return Directory.Exists(downloads)
+				? downloads
+				: Directory.Exists(desktop)
+					? desktop 
+					: Directory.Exists(documents)
+						? documents
+						: EnsureDirectoryExists(AppTempDir, "Downloads");
+		}
+	}
 
 	public static string EnsureDirectoryExists(params string[] paths) {
 		var path = Path.Combine(paths);
@@ -35,8 +45,7 @@ public static class FilePaths {
 	/// <param name="folderPath">The full path to the folder to open.</param>
 	/// <exception cref="PlatformNotSupportedException">Thrown if the current OS is not Windows or macOS.</exception>
 	public static void OpenFolder(string folderPath) {
-		if (string.IsNullOrWhiteSpace(folderPath))
-			throw new ArgumentException("Folder path cannot be null or whitespace.", nameof(folderPath));
+		if (folderPath.Is()) throw new ArgumentException("Folder path cannot be null or whitespace.", nameof(folderPath));
 
 		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 			// For Windows, use Explorer.exe.
@@ -48,6 +57,9 @@ public static class FilePaths {
 		} else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 			// For macOS, use the 'open' command.
 			_ = Process.Start("open", folderPath);
+		} else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+			// For Linux, use the 'xdg-open' command.
+			_ = Process.Start("xdg-open", folderPath);
 		} else {
 			throw new PlatformNotSupportedException("This platform is not supported.");
 		}

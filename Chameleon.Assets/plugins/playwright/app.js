@@ -1,5 +1,5 @@
 import readline from "node:readline";
-import { Browzer, Logger, Playwrighteer, sleepo, state } from "./lib/index.js";
+import { Browzer, delay, Logger, Playwrighteer, state } from "./lib/index.js";
 async function main() {
     const args = process.argv.slice(2);
     Logger.log("Starting Runner...", args);
@@ -26,10 +26,11 @@ async function main() {
         .on("line", async (line) => {
         Logger.log(`Received`, line);
         if (line.startsWith("{")) {
-            const { arg, file, port, opts } = JSON.parse(line);
+            const { arg, file, port, opts, testing } = JSON.parse(line);
             switch (arg) {
                 case "run":
-                    await sleepo({ min: 3000, max: 6000, multiplier: 1 });
+                    await delay(1000);
+                    state.testing = testing;
                     play({ file, port, opts });
                     break;
                 case "cua":

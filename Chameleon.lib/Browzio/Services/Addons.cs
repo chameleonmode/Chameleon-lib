@@ -10,15 +10,18 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-namespace Chameleon.lib.Browzer.Services;
+namespace Chameleon.lib.Browzio.Services;
 
 public class AddonsServer : IStartUp {
-	public TaskCompletionSource<bool> Initialized { get; } = new();
 	private WebApplication? app;
+
+	public TaskCompletionSource? IsBusy { get; private set; }
 
 	public int Port { get; }
 	public string RedirectUri { get; }
-	public ConcurrentDictionary<string, (object config, int port, BrowserType bt)> AddonInstances { get; } = [];
+
+	public TaskCompletionSource<bool> Initialized { get; } = new();
+	private readonly ConcurrentDictionary<(string sessionId, int instanceId), (object config, int port, BrowserType bt)> sessions = [];
 
 	AddonsServer() {
 		foreach (var port in new[] { 3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696 }) {
@@ -35,6 +38,11 @@ public class AddonsServer : IStartUp {
 		}
 
 		RedirectUri = $"http://127.0.0.1:{Port}/callback";
+	}
+
+	public void AddSession(string sessionId, BrowserSetting settings, object config) {
+		IsBusy = new TaskCompletionSource();
+		sessions[(sessionId, settings.Profile.Id)] = (config, settings.Port, settings.BrowserType);
 	}
 
 	public async Task Init() {
@@ -61,12 +69,12 @@ public class AddonsServer : IStartUp {
 			Results.Json(new { status = "ok", time = DateTime.Now })
 		);
 
-		app.MapGet("/init", ([FromQuery] string instanceId, [FromQuery] string sessionId) => {
+		app.MapGet("/init", ([FromQuery] int instanceId, [FromQuery] string sessionId) => {
 			if (sessionId.Is()) return Results.BadRequest("Missing sessionId parameter");
-			else if (AddonInstances.TryGetValue(sessionId, out var config)) return Results.Content(JSON.Serialize(config.Item1), "application/json");
+			else if (sessions.TryGetValue((sessionId, instanceId), out var instance)) return Results.Content(JSON.Serialize(instance.config), "application/json");
 
 			// Log the missing session for debugging
-			Debug.WriteLine($"Session {sessionId} not found in AddonInstances. Available sessions: {string.Join(", ", AddonInstances.Keys)}");
+			Debug.WriteLine($"Session {sessionId} not found in AddonInstances. Available sessions: {string.Join(", ", sessions.Keys)}");
 			return Results.NotFound($"Session {sessionId} not found");
 		});
 
@@ -85,12 +93,12 @@ public class AddonsServer : IStartUp {
 			try {
 				var instanceId = int.TryParse(context.Request.Headers["X-Instance-ID"].ToString(), out var id) ? id : 0;
 				var sessionId = context.Request.Headers["X-Session-ID"].ToString();
-				var gotSession = AddonInstances.TryGetValue(sessionId, out var instance);
+				var gotSession = sessions.TryGetValue((sessionId, instanceId), out var instance);
 				IBrowserInstance? browser = null; // Ensure browser is initialized  
-				if (gotSession) _ = Browzio.I.Browsers.TryGetValue((instance.bt, instanceId), out browser);
+				if (gotSession) _ = Browzers.I.Browsers.TryGetValue((instance.bt, instanceId), out browser);
 				return body.GetProperty("type").GetString() switch {
 					"init" => gotSession ? Results.Json(new { instance.config, instance.port }) : Results.NotFound(new { error = "Session not found" }),
-					"port" => Results.Ok(new { port = browser?.Settings.Profile.Port }),
+					"port" => Results.Ok(new { port = browser?.Settings.Port }),
 					// @TODO: Implement proper handling for "init" type
 					//"port" when body.TryGetProperty("port", out var ele) && ele.TryGetInt32(out var port) && browser != null =>
 					//	Results.Ok(new { status = "ok", port = browser.Settings.Profile.Port = port }),

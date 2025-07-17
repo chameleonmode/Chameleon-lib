@@ -1,5 +1,5 @@
 import { Logger } from "../../lib/logger.js";
-import { state } from "../../lib/index.js";
+import { state, delay } from "../../lib/index.js";
 export const BASE_URL = "https://www.reddit.com";
 export const args = {
     scope: "People",
@@ -93,6 +93,8 @@ export async function configure(ctx, opts) {
     options.settings.timeouts.naps.max = options.settings.start.variations.min + 512;
     options.settings.timeouts.artifacto.delay = 1000 * options.settings.timeouts.artifacto.delay;
     Logger.debug("Options", options);
+    while (ctx.pages().some((page) => /^http:\/\/127\.0\.0\.1/.test(page.url())))
+        await delay(1000);
     const page = options.settings.start.new ? await ctx.newPage() : ctx.pages()[ctx.pages().length - 1];
     return { page, options };
 }

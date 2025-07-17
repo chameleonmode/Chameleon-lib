@@ -3,12 +3,11 @@ using Chameleon.lib.ThirdParty.GeoIp;
 using System.Diagnostics;
 using Chameleon.lib.Helpers;
 using System.Collections.Concurrent;
-using static Chameleon.lib.Browzer.IBrowserInstance;
-using Chameleon.lib.Browzer;
+using static Chameleon.lib.Browzio.IBrowserInstance;
 
-namespace Chameleon.lib.Browzer.Services;
+namespace Chameleon.lib.Browzio.Services;
 
-public abstract class Browser : IBrowserInstance {
+public abstract class Browzer : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public Process? Brocess { get; set; }
 	public required BrowserSetting Settings { get; init; }
@@ -20,10 +19,10 @@ public abstract class Browser : IBrowserInstance {
 	public void InvokeEvent(Event @event) {
 		var args = new IBrowserInstance.EventArgs(Settings, @event);
 		if (@event == Event.Foreground){
-			Browzio.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, args)));
+			Browzers.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, args)));
 			if(Brocess is not null) Brocessor().Start();
 		}
-		else if (@event == Event.Opened) Browzio.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, new(Settings, Event.Foreground))));
+		else if (@event == Event.Opened) Browzers.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, new(Settings, Event.Foreground))));
 		else OnEvent?.Invoke(this, args);
 	}
 
@@ -56,8 +55,9 @@ public abstract class Browser : IBrowserInstance {
 			else if (Brocess.ExitCode == 0) _ = LoadedTCS.TrySetResult(false);
 		};
 
-		if (!Brocess.HasExited) _ = LoadedTCS.TrySetResult(true);
-		else Close();
+		Brocess.HasExited.ThrowIfTrue("Browser process has already exited");
+		 _ = LoadedTCS.TrySetResult(true);
+		InvokeEvent(Event.Opened);
 	}
 
 	public Process Brocessor(string? url = null) {
@@ -74,106 +74,98 @@ public abstract class Browser : IBrowserInstance {
 		return process;
 	}
 
-	public virtual Task Ensure() => Task.CompletedTask;
 	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
-	protected abstract string GetCommandLineArguments(string? url);
+
+	public virtual Task Ensure() => Task.CompletedTask;
 	protected virtual async Task InitializeExtensions() {
 		if (!Settings.Profile.Extensions) return;
 
-		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
 		// set the extension settings
-		AddonsServer.I.AddonInstances[SessionId] = (
-			new {
-				proxy = new {
-					enabled = Settings.Profile.Proxy.CanUse,
-					type = "http",
-					server = Settings.Profile.Proxy.Server,
-					host = Settings.Profile.Proxy.Host,
-					port = Settings.Profile.Proxy.Port,
-					username = Settings.Profile.Proxy.UserName,
-					password = Settings.Profile.Proxy.Password,
-				},
-				urls = new {
-					start = Settings.Profile.StartPage,
-					homePages = Settings.Profile.Bookmarks,
-				},
-				tz = new {
-					enabled = Settings.Profile.Emulations.AutoTimezone,
-					zone = ipapi.timezone,
-					system = ipapi.tzSystem,
-					locale = "en-" + ipapi.countryCode,
-				},
-				geo = new {
-					enabled = Settings.Profile.Emulations.SpoofGeoLocation,
-					ipapi.lat,
-					ipapi.lon,
-				},
-				canvas = new {
-					enabled = Settings.Profile.Emulations.SpoofCanvasFingerprint,
-				},
-				webgl = new {
-					enabled = Settings.Profile.Emulations.SpoofWebGLFingerprint,
-				},
-				rects = new {
-					enabled = Settings.Profile.Emulations.SpoofClientRects,
-				},
-				fonts = new {
-					enabled = Settings.Profile.Emulations.SpoofFontFingerprint,
-				},
-				audio = new {
-					enabled = Settings.Profile.Emulations.SpoofAudio,
-				},
-				navi = new {
-					enabled = Settings.Profile.Emulations.SpoofNavigator,
-				},
+		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
+		AddonsServer.I.AddSession(SessionId, Settings, new {
+			proxy = new {
+				type = "http",
+				enabled = Settings.Profile.Proxy.CanUse,
+				server = Settings.Profile.Proxy.Server,
+				host = Settings.Profile.Proxy.Host,
+				port = Settings.Profile.Proxy.Port,
+				username = Settings.Profile.Proxy.UserName,
+				password = Settings.Profile.Proxy.Password,
 			},
-			Settings.Profile.Port,
-			Settings.BrowserType
-		);
+			urls = new {
+				start = Settings.Profile.StartPage,
+				homePages = Settings.Profile.Bookmarks,
+			},
+			tz = new {
+				enabled = Settings.Profile.Emulations.AutoTimezone,
+				zone = ipapi.timezone,
+				system = ipapi.tzSystem,
+				locale = "en-" + ipapi.countryCode,
+			},
+			geo = new {
+				enabled = Settings.Profile.Emulations.SpoofGeoLocation,
+				ipapi.lat,
+				ipapi.lon,
+			},
+			canvas = new { enabled = Settings.Profile.Emulations.SpoofCanvasFingerprint },
+			webgl = new { enabled = Settings.Profile.Emulations.SpoofWebGLFingerprint },
+			rects = new { enabled = Settings.Profile.Emulations.SpoofClientRects },
+			fonts = new { enabled = Settings.Profile.Emulations.SpoofFontFingerprint },
+			audio = new { enabled = Settings.Profile.Emulations.SpoofAudio },
+			navi = new { enabled = Settings.Profile.Emulations.SpoofNavigator },
+		});
 	}
-
-	// Non-Windows platforms use base implementation
 	protected virtual async Task WaitForWinHandle() {
 		await Task.Delay(1000);
 		if (OperatingSystem.IsWindows()) return;
-		var result = await EX.Poly(async () => {
+		await EX.Poly(async () => {
 			await Task.Delay(54);
 			Brocess!.HasExited.ThrowTrue();
 			MacOSWindowListener.Instance.AddPid(Brocess!.Id);
 			return (MacOSUtil.FindWindowByPID(Brocess.Id) == null).ThrowIfTrue();
 		},
-		new(sleep: 100, retries: 6));
-		result.ThrowTrue();
+		new(sleep: 96, retries: 3));
 	}
+
+	protected abstract string GetCommandLineArguments(string? url);
 
 	public event Action<object, IBrowserInstance.EventArgs>? OnEvent;
 }
 
-public class Browzio {
-	public int TimeOut { get; } = 14;
+public class Browzers {
+	private readonly SemaphoreSlim semaphore = new(1, 1);
+	public int TimeOut { get; } = 18;
 	public ConcurrentDictionary<(BrowserType bt, int id), IBrowserInstance> Browsers { get; } = [];
 	public ConcurrentDictionary<int, List<Action<object, IBrowserInstance.EventArgs>>> Observers { get; } = [];
-	Browzio() { }
+	Browzers() { }
 
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
-		if (settings.Profile.Extensions) _ = await Project.TCS.Task;
-		settings.Profile.Port = Processez.NextFreePort(9613);
-		settings.Browser.OnEvent += (sender, args) => {
-			if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-			if (Observers.TryGetValue(settings.Profile.Id, out var observer))
-				observer.ForEach(x => x.Invoke(sender, args));
-		};
-		var init = settings.Browser.Initialize;
-		if (settings.Profile.Extensions) await init().WaitAsync(TimeSpan.FromSeconds(TimeOut));
-		else _ = init();
-		await settings.Browser.LoadedTCS.Task.WaitAsync(TimeSpan.FromSeconds(3));
-		settings.Browser.InvokeEvent(Event.Opened);
-		return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
+		try {
+			if (!settings.Profile.Extensions) {
+				_ = settings.Browser.Initialize();
+				await settings.Browser.LoadedTCS.Task;
+				return settings.Browser;
+			}
+			await AddonsServer.I.Initialized.Task;
+			settings.Port = Processez.NextFreePort(9613);
+			settings.Browser.OnEvent += (sender, args) => {
+				if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+				if (Observers.TryGetValue(settings.Profile.Id, out var observer))
+					observer.ForEach(x => x.Invoke(sender, args));
+			};
+			await settings.Browser.Initialize();
+			return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
+		} finally {
+			// To signal
+			_ = semaphore.Release();
+		}
 	}
-	
+
 	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
+		await semaphore.WaitAsync();
+		// To wait
 		if (!Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) || browser == null) {
 			return await EX.Catch(
 				async () => browser = await Launch(settings),
@@ -221,5 +213,5 @@ public class Browzio {
 	}
 
 	// Singleton
-	public static Browzio I { get; } = new();
+	public static Browzers I { get; } = new();
 }
