@@ -95,7 +95,7 @@ public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
     FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()
   );
   public string ExtensionsPath =>
-    Path.Combine(FilePaths.AppTempDir, Browzio.Extensions.Version ?? "o1", "Chromo", BrowserType.ToString(), Profile.Id.ToString());
+    Path.Combine(FilePaths.AppTempDir, Browzio.Extensions.Version, "Chromo", BrowserType.ToString(), Profile.Id.ToString());
 
   private IBrowserInstance? browser;
   public IBrowserInstance Browser => browser ??= BrowserType switch {
@@ -219,10 +219,10 @@ public static class BrowserInfo {
 public class Browzio : IStartUp {
   public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value!); }
   public static class State {
-    public static bool Staging { get; } = Debugger.IsAttached || Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true";
+    public static bool Staging { get; } = false && (Debugger.IsAttached || Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true");
   }
   public static class Extensions {
-    public const string Version = "2025.7.18";
+    public const string Version = "2025.7.17.4";
     public static string AddonDevPath => OperatingSystem.IsMacOS()
       ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons"
       : @"C:\repos\Chameleon-lib\Chameleon.Assets\addons";
@@ -270,11 +270,8 @@ public class Browzio : IStartUp {
 
   public async Task Init() {
     await AddonsServer.I.Initialized.Task;
-    if (Version != "o1") { //IoC.Assembled) {
-      await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
-      await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
-      Version = "o1"; // IoC.Assembled;
-    }
+    await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
+    await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
 
     _ = Initialized.TrySetResult(true);
   }

@@ -142,45 +142,40 @@ public class Browzers {
 	Browzers() { }
 
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
+		if (!settings.Profile.Extensions) {
+			_ = settings.Browser.Initialize();
+			await settings.Browser.LoadedTCS.Task;
+			return settings.Browser;
+		}
+		await AddonsServer.I.Initialized.Task;
+		settings.Port = Processez.NextFreePort(9613);
+		settings.Browser.OnEvent += (sender, args) => {
+			if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+			if (Observers.TryGetValue(settings.Profile.Id, out var observer))
+				observer.ForEach(x => x.Invoke(sender, args));
+		};
+		await settings.Browser.Initialize();
+		return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
+	}
+
+	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
 		try {
-			if (!settings.Profile.Extensions) {
-				_ = settings.Browser.Initialize();
-				await settings.Browser.LoadedTCS.Task;
-				return settings.Browser;
+			await semaphore.WaitAsync();
+			// To wait
+			if (!Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) || browser == null) {
+				return await EX.Catch(
+					async () => browser = await Launch(settings),
+					e => {
+						if (settings.Profile.Extensions) Toaster.Error(e.Message);
+						_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+						settings.Browser.InvokeEvent(Event.Error);
+					}) ?? throw new InvalidOperationException();
 			}
-			await AddonsServer.I.Initialized.Task;
-			settings.Port = Processez.NextFreePort(9613);
-			settings.Browser.OnEvent += (sender, args) => {
-				if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-				if (Observers.TryGetValue(settings.Profile.Id, out var observer))
-					observer.ForEach(x => x.Invoke(sender, args));
-			};
-			await settings.Browser.Initialize();
-			return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
+			return browser;
 		} finally {
 			// To signal
 			_ = semaphore.Release();
 		}
-	}
-
-	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
-		await semaphore.WaitAsync();
-		// To wait
-		if (!Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) || browser == null) {
-			return await EX.Catch(
-				async () => browser = await Launch(settings),
-				e => {
-					if (settings.Profile.Extensions) Toaster.Error(e.Message);
-					_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-					settings.Browser.InvokeEvent(Event.Error);
-				}) ?? throw new InvalidOperationException();
-		} else if (browser.Brocess is null || browser.Brocess.HasExited) {
-			await browser.Closee();
-			browser.Close();
-			await Task.Delay(256);
-			return await Open(settings);
-		}
-		return browser;
 	}
 
 	public IEnumerable<BrowserType> HasInstanceOf(int id, Action<object, IBrowserInstance.EventArgs> action) {

@@ -8,17 +8,14 @@ import "./src/services/debugger.js";
 const on = async () => {
 	log.info("On installed or started");
 	state.loaded = false;
-	await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for 1 second
+	await new Promise((resolve) => setTimeout(resolve, 900)); // Wait for 0.9 second
 	await checkForExtensionUpdate();
-	const initializer = async () => {
-		await App.discoverServer();
-		const tabs = await chrome.tabs.query({});
-		const matchingTabs = tabs.filter((t) => t.url.includes(App.server));
-		const tab = matchingTabs[matchingTabs.length - 1];
-		if (tab) return tab;
-		else return await initializer();
-	};
-	const tab = await initializer();
+	const tabs = await chrome.tabs.query({});
+	const tab = tabs.find((t) => t.url.startsWith("http://127.0.0.1")) || null;
+	tabs.forEach((t) => {
+		if (t.id !== tab?.id) chrome.tabs.remove(t.id);
+	});
+	await App.discoverServer(tab ? new URL(tab.url).port : null);
 	if (tab) {
 		const url = new URL(tab.url);
 		const sessionId = url.searchParams.get("sessionId");
@@ -47,16 +44,11 @@ const on = async () => {
 	// Common startup operations
 	await App.startup();
 	await proxy(App.config.proxy);
-	await addUrlsAsBookmarks("Home Pages", App.config.urls.homePages);
+	await addUrlsAsBookmarks("Chromeleon", App.config.urls.homePages);
 
 	const id = tab?.id || tab?.id || (await chrome.tabs.query({}))[0].id;
 	await chrome.tabs.update(id, { url: App.config.urls.start });
 	state.loaded = true;
-	(await chrome.tabs.query({})).forEach((t) => {
-		if (t.url.startsWith("http://127.0.0.1")) {
-			chrome.tabs.remove(t.id);
-		}
-	});
 	log.info("Geckoleon started successfully");
 };
 

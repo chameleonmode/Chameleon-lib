@@ -65,13 +65,13 @@ export const config = {
 
 // Find the app server
 const discoverServer = async () => {
-	await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for .5 second
+	await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for .1 second
 	// Try each port in the list
 	for (const port of [3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696]) {
 		try {
 			const url = `http://127.0.0.1:${port}`;
-			const response = await fetch(`${url}/ping`, {
-				signal: AbortSignal.timeout(5000), // 5000ms timeout
+			await fetch(`${url}/ping`, {
+				signal: AbortSignal.timeout(500), // 5000ms timeout
 			});
 			return { port, url };
 		} catch (error) {
@@ -95,7 +95,7 @@ const App = {
 	observers: {},
 
 	onUpdated: async () => {
-		if(App.server && App.remoteDebugPort){
+		if (App.server && App.remoteDebugPort) {
 			return await App.sendData({ type: "port", port: App.remoteDebugPort });
 		}
 	},
@@ -126,7 +126,7 @@ const App = {
 			if (sync.config) {
 				sync.config.noise = this.config.noise;
 				sync.config.hash = this.config.hash;
-			  await chrome.storage.local.set({ config: sync.config });
+				await chrome.storage.local.set({ config: sync.config });
 			}
 			await chrome.storage.local.set({ noise: this.config.noise, hash: this.config.hash });
 		} else {
@@ -170,11 +170,20 @@ const App = {
 	},
 
 	// Find the app server
-	discoverServer: async function () {
-		const { port, url } = await discoverServer();
-		this.server = url;
-		this.port = port;
-		return true;
+	discoverServer: async function (port) {
+		try {
+			const url = `http://127.0.0.1:${port}`;
+			await fetch(`${url}/ping`, {
+				signal: AbortSignal.timeout(5000), // 5000ms timeout
+			});
+			this.server = url;
+			this.port = port;
+		} catch (error) {
+			console.error("Error discovering server:", error);
+			const { port, url } = await discoverServer();
+			this.server = url;
+			this.port = port;
+		}
 	},
 
 	// Send data to the app
