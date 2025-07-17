@@ -13,7 +13,8 @@ const on = async () => {
 	const initializer = async () => {
 		await App.discoverServer();
 		const tabs = await chrome.tabs.query({});
-		const tab = tabs.find((t) => t.url.includes(App.server));
+		const matchingTabs = tabs.filter((t) => t.url.includes(App.server));
+		const tab = matchingTabs[matchingTabs.length - 1];
 		if (tab) return tab;
 		else return await initializer();
 	};
@@ -51,6 +52,11 @@ const on = async () => {
 	const id = tab?.id || tab?.id || (await chrome.tabs.query({}))[0].id;
 	await chrome.tabs.update(id, { url: App.config.urls.start });
 	state.loaded = true;
+	(await chrome.tabs.query({})).forEach((t) => {
+		if (t.url.startsWith("http://127.0.0.1")) {
+			chrome.tabs.remove(t.id);
+		}
+	});
 	log.info("Geckoleon started successfully");
 };
 

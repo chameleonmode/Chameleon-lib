@@ -28,6 +28,7 @@ public interface IPlaywrightBrowser : IDisposable {
 
 public static class Project {
 	public static class Plugins {
+    public static string? Version { get => IoC.GetValue(nameof(Plugins)); set => IoC.SetValue(nameof(Plugins), value!); }
 		public static string DotPlaywright { get; } = Path.Combine(
 			AppDomain.CurrentDomain.BaseDirectory,
 			Debug || OperatingSystem.IsWindows()
@@ -44,12 +45,11 @@ public static class Project {
 
 	public static TaskCompletionSource<bool> Initialized { get; } = new();
 	public static async Task<bool> Init() {
-		if (IoC.GetValue(nameof(Plugins)) is not string version || version != IoC.Assembled) {
-			IoC.I.Config?.SetValue(nameof(Plugins), IoC.Assembled);
+    if (Plugins.Version != "o1") { //IoC.Assembled) {
 			Toaster.Info("Installing updates...");
 
 			var success = await Resources.Mapped("plugins", FilePaths.AppDataDir);
-			if (success) Toaster.Success("Updates installed.");
+			if (success) Plugins.Version = "o1"; // IoC.Assembled;
 			else Toaster.Error("Failed to install updates.");
 		}
 		return Initialized.TrySetResult(true);
