@@ -42,7 +42,7 @@ public class BundledScriptsService {
 		}
 
 		var returned = new List<Arguments>();
-		// returned.AddRange(AddMappedScripts(BundledJSScripts, script => new Arguments { Script = script }));
+		returned.AddRange(AddMappedScripts(BundledJSScripts, script => new Arguments { Script = script }));
 		returned.AddRange(AddMappedScripts(CsharpScripts, script => new Arguments { Script = script }));
 
 		return returned;
