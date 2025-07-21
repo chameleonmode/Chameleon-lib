@@ -31,7 +31,8 @@ public class Gecko : Browzer {
 
 		var system = OperatingSystem.IsMacOS()
 			? "/Applications/firefox.app"
-			: BrowserInfo.Find(BrowserType.Firefox).Path;
+			: Browzio.Utilities.GetBrowser(BrowserType.Firefox)?.ExecutablePath ??
+			  throw new InvalidOperationException("Browser executable path not found.");
 
 		var needsUpdate = !Path.Exists(ExePath) || (OperatingSystem.IsMacOS()
 				? MacFileVersionInfo.GetVersionInfo(ExeDir).ProductVersion != MacFileVersionInfo.GetVersionInfo(system).ProductVersion

@@ -18,13 +18,13 @@ public record Options(BrowserSetting Browser, int? Port) {
 	public string Dir => Path.Combine(FilePaths.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());
 }
 
-public sealed class PlaywrightCookiesSyncService {
+public sealed class Sync {
 	readonly List<DB.Routes.Cooky.Replies.CookyPayload<BrowserContextCookiesResult>> cookyPayloads = [];
 	#region Constructor
-	private PlaywrightCookiesSyncService() { }
+	private Sync() { }
 	// Thread-safe singleton implementation
-	private static readonly Lazy<PlaywrightCookiesSyncService> _instance = new(() => new PlaywrightCookiesSyncService(), LazyThreadSafetyMode.ExecutionAndPublication);
-	public static PlaywrightCookiesSyncService Instance => _instance.Value;
+	private static readonly Lazy<Sync> _instance = new(() => new Sync(), LazyThreadSafetyMode.ExecutionAndPublication);
+	public static Sync Instance => _instance.Value;
 	// ----------------------------
 	#endregion
 
@@ -49,9 +49,7 @@ public sealed class PlaywrightCookiesSyncService {
 		var exePath = await Util.GetBrowseExecutablePath(browserType);
 
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = browserType == Browzio.BrowserType.Firefox
-				? playwright.Firefox
-				: playwright.Chromium;
+		var playwrightBrowser = browserType == Browzio.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
 
 		//// We only want cookie entries that have a non-empty ProfileId
 		//var cookiesToSync = absApiCookiesRepo.CookiesCache;
@@ -67,7 +65,7 @@ public sealed class PlaywrightCookiesSyncService {
 					Path.Combine(FilePaths.AppDataLocalDir, browserType.ToString(), cookieData.ProfileId),
 					new() {
 						Headless = true,
-						ExecutablePath = await Util.GetBrowseExecutablePath(browserType),
+						ExecutablePath = exePath,
 						Args = ["--allow-downgrade"]
 					}
 			);
@@ -87,6 +85,53 @@ public sealed class PlaywrightCookiesSyncService {
 			);
 			// Close the context
 			await context.CloseAsync();
+		}
+	}
+
+	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(Options options)
+		=> await EX.Poly(async () => await ExecuteCookieAction(options)) ?? 
+			throw new InvalidOperationException("Failed to retrieve cookies");
+
+	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> SetCookies(Options options, IEnumerable<Cookie> cookies)
+		=> await EX.Poly(async () => await ExecuteCookieAction(options, [.. cookies])) ??
+			throw new InvalidOperationException("Failed to set cookies");
+
+	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> ExecuteCookieAction(Options options, List<Cookie>? cookiesToSet = null) {
+		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		var playwrightBrowser = options.Browser.BrowserType == Browzio.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+		try {
+			if (options.Port != null) {
+				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}");
+				var context = browser.Contexts.Count > 0 ? browser.Contexts[0] : await browser.NewContextAsync();
+				if (cookiesToSet == null) {
+					return await context.CookiesAsync();
+				} else {
+					await context.AddCookiesAsync(cookiesToSet);
+					return [];
+				}
+			} else {
+				await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
+						options.Dir,
+						new() {
+							Headless = true,
+							Args = ["--allow-downgrade"],
+							Proxy = options.Proxy,
+							ExecutablePath = await Util.GetBrowseExecutablePath(options.Browser.BrowserType),
+							// ExecutablePath = Browzio.Browzio.Utilities.GetBrowser(options.Browser.BrowserType)?.ExecutablePath ??
+							// 	throw new InvalidOperationException("Browser executable path not found."),
+						}
+				);
+				if (cookiesToSet == null) {
+					var cookies = await context.CookiesAsync();
+					return cookies;
+				} else {
+					await context.AddCookiesAsync(cookiesToSet);
+					await context.CloseAsync();
+					return Array.Empty<BrowserContextCookiesResult>();
+				}
+			}
+		} finally {
+			playwright.Dispose();
 		}
 	}
 }

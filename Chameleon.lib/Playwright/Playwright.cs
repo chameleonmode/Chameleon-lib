@@ -28,38 +28,35 @@ public interface IPlaywrightBrowser : IDisposable {
 
 public static class Project {
 	public static class Plugins {
-    public static string? Version { get => IoC.GetValue(nameof(Plugins)); set => IoC.SetValue(nameof(Plugins), value!); }
-		public static string DotPlaywright { get; } = Path.Combine(
-			AppDomain.CurrentDomain.BaseDirectory,
-			Debug || OperatingSystem.IsWindows()
-			? ".playwright"
-			: "../Resources/.playwright"
+		public static string? Version { get => IoC.GetValue(nameof(Plugins)); set => IoC.SetValue(nameof(Plugins), value!); }
+		public static string DotPlaywright { get; } = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+			Debug || OperatingSystem.IsWindows() ? ".playwright" : "../Resources/.playwright"
 		);
+
 		public static string Dir { get; } = Path.Combine(FilePaths.AppDataDir, "playwright");
-		public static string App { get; } = Staging &&
-		Path.Combine("/Users/dev/src/chameleon-playwright/dist", "app.js") is string str && File.Exists(str) ? str
-		: Path.Combine(Dir, "app.js");
+		public static string App { get; } = Staging && Path.Combine("/Users/dev/src/chameleon-playwright/dist", "app.js") is string str &&
+			File.Exists(str) ? str : Path.Combine(Dir, "app.js");
 		public static string Node { get; } = Path.Combine(DotPlaywright, "node", OperatingSystem.IsWindows() ? "win32_x64\\node.exe" : "darwin-x64/node");
-		// TODO: public static string Node { get; } = Path.Combine(Playwright, "node" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+		public static string CLI { get; } = Path.Combine(DotPlaywright, "package", "cli.js");
 	}
 
 	public static TaskCompletionSource<bool> Initialized { get; } = new();
 	public static async Task<bool> Init() {
-    if (Plugins.Version != "o1") { //IoC.Assembled) {
+    if (Plugins.Version != IoC.Assembled) {
 			Toaster.Info("Installing updates...");
 
 			var success = await Resources.Mapped("plugins", FilePaths.AppDataDir);
-			if (success) Plugins.Version = "o1"; // IoC.Assembled;
+			if (success) Plugins.Version = IoC.Assembled;
 			else Toaster.Error("Failed to install updates.");
 		}
 		return Initialized.TrySetResult(true);
 	}
 
-	public static bool Staging { get; } = true && Debugger.IsAttached;
 	public static bool Debug { get; } =
 #if DEBUG
 		true;
 #else
 		false;
 #endif
+	public static bool Staging { get; } = Debug && Debugger.IsAttached;
 }

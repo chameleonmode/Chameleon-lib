@@ -12,7 +12,8 @@ public abstract class Chromium : Browzer {
 		"Preferences"
 	);
 
-	public override string ExePath => BrowserInfo.Find(Settings.BrowserType).Path;
+	public override string ExePath => Browzio.Utilities.GetBrowser(Settings.BrowserType)?.ExecutablePath ?? 
+		throw new InvalidOperationException("Browser executable path not found.");
 
 	// ...
 	protected override string GetCommandLineArguments(string? url) {

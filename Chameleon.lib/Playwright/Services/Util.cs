@@ -1,9 +1,7 @@
-﻿using Chameleon.lib.Browzio;
-using Chameleon.lib.Helpers;
+﻿using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
-using Microsoft.Playwright;
+using Microsoft.CodeAnalysis;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Chameleon.lib.Playwright.Services;
@@ -12,73 +10,6 @@ namespace Chameleon.lib.Playwright.Services;
 /// Helper/Util class for static Playwright operations
 /// </summary>
 public static class Util {
-	public static Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(Options options)
-		=> ExecuteWithRetryPolicyAsync((_) => ExecuteCookieAction(options));
-
-	public static Task<IReadOnlyList<BrowserContextCookiesResult>> SetCookies(Options options, IEnumerable<Cookie> cookies)
-		=> ExecuteWithRetryPolicyAsync((_) => ExecuteCookieAction(options, [.. cookies]));
-
-	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> ExecuteCookieAction(Options options, List<Cookie>? cookiesToSet = null) {
-		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = options.Browser.BrowserType == Browzio.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
-
-		if (options.Port != null) {
-			try {
-				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}");
-				var context = browser.Contexts.Count > 0 ? browser.Contexts[0] : await browser.NewContextAsync();
-				if (cookiesToSet == null) {
-					return await context.CookiesAsync();
-				} else {
-					await context.AddCookiesAsync(cookiesToSet);
-					return [];
-				}
-			} catch (Exception ex) {
-				throw new InvalidOperationException($"Failed to connect to browser on port {options.Port}. " +
-						$"Ensure the browser is running with remote debugging enabled. Error: {ex.Message}", ex);
-			}
-		} else {
-			var userProfileActualDir = options.Dir;
-			if (string.IsNullOrEmpty(userProfileActualDir) || !Directory.Exists(userProfileActualDir)) {
-				Debug.WriteLine($"Error: User profile directory 'options.Dir' is not set or does not exist: {userProfileActualDir}");
-				return new List<BrowserContextCookiesResult>();
-			}
-
-			var tempDir = Path.Combine(Path.GetTempPath(), "chameleon-cookie-temp", Guid.NewGuid().ToString());
-			try {
-				_ = Directory.CreateDirectory(tempDir);
-				await CopyProfileDataToTempDir(options, userProfileActualDir, tempDir);
-
-				await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-						tempDir,
-						new() {
-							Headless = true,
-							Args = ["--allow-downgrade"],
-							Proxy = options.Proxy,
-							ExecutablePath = await GetBrowseExecutablePath(options.Browser.BrowserType),
-						}
-				);
-
-				if (cookiesToSet == null) {
-					var cookies = await context.CookiesAsync();
-					Debug.WriteLine($"Found {cookies.Count} cookies in Util.cs for profile {options.Dir}");
-					return cookies;
-				} else {
-					await context.AddCookiesAsync(cookiesToSet);
-					await context.CloseAsync();
-					return Array.Empty<BrowserContextCookiesResult>();
-				}
-			} finally {
-				try {
-					if (Directory.Exists(tempDir)) {
-						Directory.Delete(tempDir, true);
-					}
-				} catch (Exception ex) {
-					Debug.WriteLine($"Error cleaning up temp directory {tempDir}: {ex.Message}");
-				}
-			}
-		}
-	}
-
 	private static async Task CopyProfileDataToTempDir(Options options, string userProfileActualDir, string tempDir) {
 		if (options.Browser.BrowserType == Browzio.BrowserType.Firefox) {
 			var originalCookieFile = Path.Combine(userProfileActualDir, "cookies.sqlite");
@@ -109,19 +40,11 @@ public static class Util {
 		ex.Message.Contains("WebSocket") ||
 		ex.Message.Contains("net::ERR_CONNECTION_REFUSED");
 
-	private static async Task<T> ExecuteWithRetryPolicyAsync<T>(Func<int, Task<T>> action, int tries = 0) {
-		try {
-			return await action(tries);
-		} catch (Exception ex) when (IsPlaywrightException(ex) && tries < 3) {
-			await Task.Delay(500 * (tries + 1));
-			return await ExecuteWithRetryPolicyAsync(action, ++tries);
-		}
-	}
-
 	public static async Task<string> GetBrowseExecutablePath(Browzio.BrowserType browserType) {
 		return browserType == Browzio.BrowserType.Firefox
-				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Playwright's Firefox")
-				: BrowserInfo.Find(browserType).Path;
+				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Firefox")
+				: lib.Browzio.Browzio.Utilities.GetBrowser(browserType)?.ExecutablePath ??
+				  throw new InvalidOperationException("Browser executable path not found.");
 	}
 
 	// Installs Playwright's Firefox if not already installed
@@ -132,14 +55,10 @@ public static class Util {
 
 		try {
 			Toaster.Info("Installing Firefox Sync Update...");
-
-			// 1.5) Install Firefox if not found
-			var (nodePath, cliPath) = GetPlaywrightPaths();
-
 			using var process = new Process {
 				StartInfo = new ProcessStartInfo {
-					FileName = nodePath,
-					Arguments = $"{cliPath} install firefox",
+					FileName = Project.Plugins.Node,
+					Arguments = $"{Project.Plugins.CLI} install firefox",
 					RedirectStandardOutput = true,
 					RedirectStandardError = true,
 					UseShellExecute = false,
@@ -182,47 +101,15 @@ public static class Util {
 
 	// Finds existing Playwright Firefox installation
 	public static string? FindPlaywrightFirefox() {
-		var cacheDir = GetPlaywrightCacheDir();
-		if (!Directory.Exists(cacheDir)) return null;
-
-		var firefoxDir = Directory
-				.GetDirectories(cacheDir, "firefox-*", SearchOption.TopDirectoryOnly)
-				.OrderByDescending(d => d)
-				.FirstOrDefault();
-
-		return firefoxDir == null ? null : Path.Combine(firefoxDir, "firefox", "firefox.exe");
-	}
-
-	// Gets Playwright paths based on OS
-	public static (string NodePath, string CliPath) GetPlaywrightPaths() {
-		var basePath = Path.Combine(
-				AppDomain.CurrentDomain.BaseDirectory,
-				OperatingSystem.IsMacOS() ? "../Resources/.playwright" : ".playwright"
-		);
-
-		var nodePath = Path.Combine(
-				basePath,
-				"node",
-				OperatingSystem.IsMacOS() ? "darwin-x64/node" : "win32_x64/node.exe"
-		);
-
-		var cliPath = Path.Combine(basePath, "package", "cli.js");
-
-		// Add quotes for Windows paths
-		if (!OperatingSystem.IsMacOS()) {
-			nodePath = $"\"{nodePath}\"";
-			cliPath = $"\"{cliPath}\"";
-		}
-
-		return (nodePath, cliPath);
-	}
-
-	// Helper method to get Playwright cache directory
-	public static string GetPlaywrightCacheDir() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+		var cacheDir = OperatingSystem.IsWindows()
 			? Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA") ?? "", "ms-playwright")
-			: Path.Combine(
-					Environment.GetEnvironmentVariable("HOME") ?? "~",
-					RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "Library/Caches" : ".cache",
-					"ms-playwright"
-			);
+			: Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "~", "Library", "Caches", "ms-playwright");
+		if (
+			!Directory.Exists(cacheDir) ||
+			Directory.GetDirectories(cacheDir, "firefox-*", SearchOption.TopDirectoryOnly)
+				.OrderByDescending(d => d)
+				.FirstOrDefault() is not { } firefoxDir) return null;
+		var file = Path.Combine(firefoxDir, "firefox", OperatingSystem.IsWindows() ? "firefox.exe" : "Nightly.app/Contents/MacOS/firefox");
+		return File.Exists(file) ? file : null;
+	}
 }
