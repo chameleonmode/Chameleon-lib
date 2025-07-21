@@ -36,7 +36,7 @@ const on = async () => {
 
   // Reset the state
   app.state.loaded = false;
-  await new Promise((resolve) => setTimeout(resolve, 900)); // Wait for 0.9 second
+  await new Promise((resolve) => setTimeout(resolve, 300)); // Wait for 0.3 second
   await checkForExtensionUpdate();
 
   // First load the config from sync storage
@@ -46,44 +46,44 @@ const on = async () => {
   // Common startup operations
   await startup();
   await proxy(app.config.proxy);
-  await app.discoverServer();
+  app.discoverServer().then(async () => {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (!tab.url.startsWith("http://127.0.0.1")) continue;
 
-  const tabs = await chrome.tabs.query({});
-  for (const tab of tabs) {
-    if (!tab.url.startsWith("http://127.0.0.1")) continue;
+      const url = new URL(tab.url);
+      const sessionId = url.searchParams.get("sessionId");
+      const instanceId = url.searchParams.get("instanceId");
+      const init = await app.sendData({ type: "init" }, { instanceId, sessionId });
+      if (!init || !init.config || !init.port) {
+        chrome.tabs.remove(tab.id);
+        continue;
+      }
+      app.session = { sessionId, instanceId };
+      app.state.port = init.port;
 
-    const url = new URL(tab.url);
-    const sessionId = url.searchParams.get("sessionId");
-    const instanceId = url.searchParams.get("instanceId");
-    const init = await app.sendData({ type: "init" }, { instanceId, sessionId });
-    if (!init || !init.config || !init.port) {
-      chrome.tabs.remove(tab.id);
-      continue;
+      for (const [key, value] of Object.entries(init.config)) {
+        app.config[key] =
+          app.config.sync || key === "proxy"
+            ? { ...app.config[key], ...value }
+            : { ...value, ...app.config[key] };
+      }
+      await proxy(app.config.proxy);
+
+      await chrome.storage.local.set({ session: app.session, config: app.config });
+      await addUrlsAsBookmarks("Chromeleon", app.config.urls.homePages);
+      await chrome.tabs.update(tab.id, { url: app.config.urls.start });
+      // @TODO: Get page content ?
+      // const results = await chrome.scripting.executeScript({
+      // 	target: { tabId: tab.id },
+      // 	func: () => document.body.textContent,
+      // });
+      break;
     }
-    app.session = { sessionId, instanceId };
-    app.state.port = init.port;
 
-    for (const [key, value] of Object.entries(init.config)) {
-      app.config[key] =
-        app.config.sync || key === "proxy"
-          ? { ...app.config[key], ...value }
-          : { ...value, ...app.config[key] };
-    }
-    await proxy(app.config.proxy);
-
-    await chrome.storage.local.set({ session: app.session, config: app.config });
-    await addUrlsAsBookmarks("Chromeleon", app.config.urls.homePages);
-    await chrome.tabs.update(tab.id, { url: app.config.urls.start });
-    // @TODO: Get page content ?
-    // const results = await chrome.scripting.executeScript({
-    // 	target: { tabId: tab.id },
-    // 	func: () => document.body.textContent,
-    // });
-    break;
-  }
-
-  app.state.loaded = true;
-  log.info("Geckoleon started successfully");
+    app.state.loaded = true;
+    log.info("Geckoleon started successfully");
+  });
 };
 
 chrome.runtime.onInstalled.addListener(on);

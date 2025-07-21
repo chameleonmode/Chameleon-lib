@@ -155,7 +155,7 @@ public abstract class Chromium : Browzer {
 			) await Processez.TryKillProcess(process);
 		}
 
-		if (!Settings.Profile.Extensions || Directory.Exists(Settings.ExtensionsPath)) return;
+		if (!Settings.Profile.Extensions) return;
 		await IO.CopyDirectory(Browzio.Extensions.Chromeleon, Settings.ExtensionsPath);
 		// Settings.Profile.StartPage = "about:blank";
 	}

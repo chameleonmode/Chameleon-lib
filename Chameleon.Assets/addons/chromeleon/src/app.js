@@ -70,25 +70,23 @@ const app = {
   // Find the app server
   async discoverServer() {
     while (!this.state.server) {
-      await new Promise((resolve) => setTimeout(resolve, 900)); // Wait for 0.9 second
+      await new Promise((resolve) => setTimeout(resolve, 600)); // Wait for 0.6 second
       // Try each port in the list
-      for (const port of [3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696]) {
+      for (const port of [3663, 3993, 3693, 3963]) {
+        //, 6969, 6996, 9669, 9696]) {
         const url = `http://127.0.0.1:${port}`;
-        try {
-          // Try the first attempt
+        for (let i = 0; i < 2; i++) {
           try {
-            await fetch(`${url}/ping`, { signal: AbortSignal.timeout(600) });
+            await fetch(`${url}/ping`, { signal: AbortSignal.timeout(300) });
+            this.state.server = url;
+            break; // Exit the retry loop if successful
           } catch (error) {
-            // Try a second attempt before giving up on this port
-            await new Promise((resolve) => setTimeout(resolve, 900)); // Wait for 0.9 second
-            await fetch(`${url}/ping`, { signal: AbortSignal.timeout(600) });
+            console.error(`Port ${port} failed on attempt ${i + 1}:`, error);
+            await new Promise((resolve) => setTimeout(resolve, 600)); // Wait for 0.6 second
           }
-          this.state.server = url;
-          break; // Exit the port loop if successful
-        } catch (error) {
-          // Continue to next port if both attempts fail
-          console.error(`Port ${port} failed after two attempts:`, error);
         }
+        if (this.state.server) break; // Exit if server is already found
+        else await new Promise((resolve) => setTimeout(resolve, 600)); // Wait for 0.6 second
       }
     }
   },
