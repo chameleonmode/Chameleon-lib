@@ -30,7 +30,7 @@ public static class Project {
 	public static class Plugins {
 		public static string? Version { get => IoC.GetValue(nameof(Plugins)); set => IoC.SetValue(nameof(Plugins), value!); }
 		public static string DotPlaywright { get; } = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-			Debug || OperatingSystem.IsWindows() ? ".playwright" : "../Resources/.playwright"
+			IoC.Debug || OperatingSystem.IsWindows() ? ".playwright" : "../Resources/.playwright"
 		);
 
 		public static string Dir { get; } = Path.Combine(FilePaths.AppDataDir, "playwright");
@@ -51,12 +51,5 @@ public static class Project {
 		}
 		return Initialized.TrySetResult(true);
 	}
-
-	public static bool Debug { get; } =
-#if DEBUG
-		true;
-#else
-		false;
-#endif
-	public static bool Staging { get; } = Debug && Debugger.IsAttached;
+	public static bool Staging { get; } = IoC.Debug && Debugger.IsAttached;
 }

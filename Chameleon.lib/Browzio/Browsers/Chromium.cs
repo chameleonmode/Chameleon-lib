@@ -12,7 +12,7 @@ public abstract class Chromium : Browzer {
 		"Preferences"
 	);
 
-	public override string ExePath => Browzio.Utilities.GetBrowser(Settings.BrowserType)?.ExecutablePath ?? 
+	public override string ExePath => Browzio.Utilities.Info.GetBrowser(Settings.BrowserType)?.ExecutablePath ??
 		throw new InvalidOperationException("Browser executable path not found.");
 
 	// ...
@@ -122,7 +122,8 @@ public abstract class Chromium : Browzer {
 			$"--user-data-dir=\"{Settings.CachePath}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
-			Settings.Profile.Extensions ? $"--load-extension=\"{Settings.ExtensionsPath}\"" : null,
+			Settings.Profile.Extensions ? $"--load-extension=\"{(Browzio.State.Staging ? Browzio.Extensions.Chromeleon : Settings.ExtensionsPath)}\"" : null,
+			//Settings.Profile.Extensions ? $"--load-extension=\"{Settings.ExtensionsPath}\"" : null,
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
 			url ??= Settings.Profile.Extensions ? InitUrl : Settings.Profile.StartPage
 		}.Where(x => x != null));
@@ -155,8 +156,8 @@ public abstract class Chromium : Browzer {
 		}
 
 		if (!Settings.Profile.Extensions || Directory.Exists(Settings.ExtensionsPath)) return;
-		await IOU.CopyDirectory(Browzio.Extensions.Chromeleon, Settings.ExtensionsPath);
-		Settings.Profile.StartPage = "about:blank";
+		await IO.CopyDirectory(Browzio.Extensions.Chromeleon, Settings.ExtensionsPath);
+		// Settings.Profile.StartPage = "about:blank";
 	}
 
 	public abstract string ProcessName { get; }

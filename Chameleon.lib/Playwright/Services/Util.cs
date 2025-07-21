@@ -20,7 +20,7 @@ public static class Util {
 			var chromiumDefaultDirOriginal = Path.Combine(userProfileActualDir, "Default");
 			var tempChromiumDefaultDir = Path.Combine(tempDir, "Default");
 			if (Directory.Exists(chromiumDefaultDirOriginal)) {
-				await IOU.CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir);
+				await IO.CopyDirectory(chromiumDefaultDirOriginal, tempChromiumDefaultDir);
 			} else {
 				var tempNetworkDir = Path.Combine(tempDir, "Default", "Network");
 				_ = Directory.CreateDirectory(tempNetworkDir);
@@ -43,7 +43,7 @@ public static class Util {
 	public static async Task<string> GetBrowseExecutablePath(Browzio.BrowserType browserType) {
 		return browserType == Browzio.BrowserType.Firefox
 				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Firefox")
-				: lib.Browzio.Browzio.Utilities.GetBrowser(browserType)?.ExecutablePath ??
+				: lib.Browzio.Browzio.Utilities.Info.GetBrowser(browserType).ExecutablePath ??
 				  throw new InvalidOperationException("Browser executable path not found.");
 	}
 

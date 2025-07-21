@@ -3,7 +3,7 @@ using Chameleon.lib.ThirdParty.GeoIp;
 using System.Diagnostics;
 using Chameleon.lib.Helpers;
 using System.Collections.Concurrent;
-using static Chameleon.lib.Browzio.IBrowserInstance;
+using static Chameleon.lib.Browzio.Browzio;
 
 namespace Chameleon.lib.Browzio.Services;
 
@@ -55,7 +55,7 @@ public abstract class Browzer : IBrowserInstance {
 			else if (Brocess.ExitCode == 0) _ = LoadedTCS.TrySetResult(false);
 		};
 
-		Brocess.HasExited.ThrowIfTrue("Browser process has already exited");
+		Brocess.HasExited.ThrowTrue("Browser process has already exited");
 		 _ = LoadedTCS.TrySetResult(true);
 		InvokeEvent(Event.Opened);
 	}
@@ -78,7 +78,9 @@ public abstract class Browzer : IBrowserInstance {
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
 
-	public virtual Task Ensure() => Task.CompletedTask;
+	public virtual async Task Ensure() {
+		await Task.Delay(600);
+	}
 	protected virtual async Task InitializeExtensions() {
 		if (!Settings.Profile.Extensions) return;
 

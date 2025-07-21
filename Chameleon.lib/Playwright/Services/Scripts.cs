@@ -52,7 +52,7 @@ public class BundledScriptsService {
 		if (path.Is() || !Directory.Exists(path)) return []; 
 		
 		var returned = new List<Arguments>();
-		foreach (var item in IOU.ReadDirectory(path)) {
+		foreach (var item in IO.ReadDirectory(path)) {
 			var inf = new FileInfo(item);
 			if (inf.Extension != ".js")
 				continue;

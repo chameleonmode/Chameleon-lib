@@ -25,13 +25,13 @@ public class Gecko : Browzer {
 			) await Processez.TryKillProcess(process);
 		}
 		// clean old copies
-		IOU.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
-		IOU.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
-		IOU.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Geckoleon"));
+		IO.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Foxameleon"));
+		IO.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "FirefoxChameleon"));
+		IO.DeleteDir(Path.Combine(FilePaths.AppDataLocalDir, "Geckoleon"));
 
 		var system = OperatingSystem.IsMacOS()
 			? "/Applications/firefox.app"
-			: Browzio.Utilities.GetBrowser(BrowserType.Firefox)?.ExecutablePath ??
+			: Browzio.Utilities.Info.GetBrowser(BrowserType.Firefox).ExecutablePath ??
 			  throw new InvalidOperationException("Browser executable path not found.");
 
 		var needsUpdate = !Path.Exists(ExePath) || (OperatingSystem.IsMacOS()
@@ -40,8 +40,8 @@ public class Gecko : Browzer {
 
 		if (needsUpdate) {
 			Toaster.Info("Updating Firefox browser...");
-			IOU.DeleteDir(ExeDir);
-			await IOU.CopyDirectory(
+			IO.DeleteDir(ExeDir);
+			await IO.CopyDirectory(
 				OperatingSystem.IsMacOS() ? system : Path.GetDirectoryName(system)!, ExeDir
 			);
 		}
@@ -56,7 +56,7 @@ public class Gecko : Browzer {
 	protected override async Task InitializeExtensions() {
 		await base.InitializeExtensions();
 		await File.WriteAllTextAsync(
-			Path.Combine(await IOU.DC(OperatingSystem.IsMacOS()
+			Path.Combine(await IO.DC(OperatingSystem.IsMacOS()
 			? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
 			: Path.Combine(ExeDir, "distribution")), "policies.json"),
 			JSON.Serialize(new {

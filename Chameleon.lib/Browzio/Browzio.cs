@@ -9,836 +9,826 @@ using Chameleon.lib.Browzio.Services;
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
 using Microsoft.Win32;
+using static Chameleon.lib.Browzio.Browzio;
 using static Chameleon.lib.Browzio.IBrowserDetector;
 
 namespace Chameleon.lib.Browzio;
 
 #region types
 public enum BrowserType {
-    Unknown,
-    Chrome, Edge, Brave, Opera, Vivaldi, Chromium,
-    Firefox, Waterfox, LibreWolf,
-    Safari, Yandex, Arc, InternetExplorer
+	Unknown,
+	Chrome, Edge, Brave, Opera, Vivaldi, Chromium,
+	Firefox, Waterfox, LibreWolf,
+	Safari, Yandex, Arc, InternetExplorer
 }
-  public enum BrowserEngine {
-    Unknown,
-    Chromium,
-    Gecko,
-    WebKit,
-    Other
+public enum BrowserEngine {
+	Unknown,
+	Chromium,
+	Gecko,
+	WebKit,
+	Other
 }
 
 public record BrowserInfo(BrowserType Type, string ExecutablePath, string Version, BrowserEngine Engine) {
-    public string Name => Type.ToString();
-    public string DisplayName => !string.IsNullOrEmpty(Version) ? $"{Name} {Version}" : Name;
-    //public byte[]? IconData { get; } = IconExtractor.ExtractIcon(ExecutablePath);
+	public string Name => Type.ToString();
+	public string DisplayName => !string.IsNullOrEmpty(Version) ? $"{Name} {Version}" : Name;
+	//public byte[]? IconData { get; } = IconExtractor.ExtractIcon(ExecutablePath);
 }
 
 public interface IBrowserDetector {
-    List<BrowserInfo> DetectBrowsers();
-    BrowserInfo? GetBrowser(BrowserType name);
-    bool IsInstalled(BrowserType name);
-    List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine);
-    List<BrowserInfo> GetChromiumBrowsers();
-    List<BrowserInfo> GetGeckoBrowsers();
+	List<BrowserInfo> DetectBrowsers();
+	BrowserInfo? GetBrowser(BrowserType name);
+	bool IsInstalled(BrowserType name);
+	List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine);
+	List<BrowserInfo> GetChromiumBrowsers();
+	List<BrowserInfo> GetGeckoBrowsers();
 }
 public interface IBrowserInstance {
-  public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
-  public record EventArgs(BrowserSetting Settings, Event Event);
-  Process? Brocess { get; set; }
-  BrowserSetting Settings { get; init; }
-  string SessionId { get; }
-  void InvokeEvent(Event @event);
-  void Close();
-  Task Closee();
-  Task Ensure();
-  Process Brocessor(string url);
-  TaskCompletionSource<bool> LoadedTCS { get; }
-  Task Initialize(object? param = null);
-  event Action<object, EventArgs>? OnEvent;
+	public record EventArgs(BrowserSetting Settings, Event Event);
+	Process? Brocess { get; set; }
+	BrowserSetting Settings { get; init; }
+	string SessionId { get; }
+	void InvokeEvent(Event @event);
+	void Close();
+	Task Closee();
+	Task Ensure();
+	Process Brocessor(string url);
+	TaskCompletionSource<bool> LoadedTCS { get; }
+	Task Initialize(object? param = null);
+	event Action<object, EventArgs>? OnEvent;
 }
 public record BrowserOption(BrowserType Option) {
-  public string IconName { get; } = Option.ToString().ToLower();
+	public string IconName { get; } = Option.ToString().ToLower();
 }
 public class BrowserProxy {
-  public string? HostForRequest => Host?.Contains("proxy.chameleonmode.com") == true ?
-    "proxy.packetstream.io"
-    : Host;
-  public string? Server => CanUse ? $"{Host}:{Port}" : null;
-  public string? ServerForRequest => CanUse ? $"http://{Server}" : null;
-  public WebProxy? WebProxy => CanUse ? new WebProxy(Server) {
-    Credentials = new NetworkCredential(UserName, Password)
-  } : null;
+	public string? HostForRequest => Host?.Contains("proxy.chameleonmode.com") == true ?
+		"proxy.packetstream.io"
+		: Host;
+	public string? Server => CanUse ? $"{Host}:{Port}" : null;
+	public string? ServerForRequest => CanUse ? $"http://{Server}" : null;
+	public WebProxy? WebProxy => CanUse ? new WebProxy(Server) {
+		Credentials = new NetworkCredential(UserName, Password)
+	} : null;
 
-  public bool CanUse => Host.IsNot() && Port > 0;
-  public bool HasLogin => UserName.IsNot() && Password.IsNot();
+	public bool CanUse => Host.IsNot() && Port > 0;
+	public bool HasLogin => UserName.IsNot() && Password.IsNot();
 
-  private string? _host;
-  private int _port = 80;
-  private string? _userName;
-  private string? _password;
+	private string? _host;
+	private int _port = 80;
+	private string? _userName;
+	private string? _password;
 
-  public string? Host {
-    get => _host;
-    set => _host = value?.Trim();
-  }
+	public string? Host {
+		get => _host;
+		set => _host = value?.Trim();
+	}
 
-  public string? UserName {
-    get => _userName;
-    set => _userName = value?.Trim();
-  }
+	public string? UserName {
+		get => _userName;
+		set => _userName = value?.Trim();
+	}
 
-  public string? Password {
-    get => _password;
-    set => _password = value?.Trim();
-  }
+	public string? Password {
+		get => _password;
+		set => _password = value?.Trim();
+	}
 
-  public int Port {
-    get => _port;
-    set {
-      if (value is < 0 or > 65535) value = 0;
-      _port = value;
-    }
-  }
+	public int Port {
+		get => _port;
+		set {
+			if (value is < 0 or > 65535) value = 0;
+			_port = value;
+		}
+	}
 }
 public class BrowserProfile {
-  public int Id { get; init; } = -1; // -1 is a special value for the default profile
-  public bool Extensions { get; init; } = true;
-  public BrowserProxy Proxy { get; set; } = new();
-  public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
+	public int Id { get; init; } = -1; // -1 is a special value for the default profile
+	public bool Extensions { get; init; } = true;
+	public BrowserProxy Proxy { get; set; } = new();
+	public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 
-  public string[] Bookmarks { get; init; } = IoC.GetJsonValue<string[]>(nameof(Bookmarks)) ?? [];
+	public string[] Bookmarks { get; init; } = IoC.GetJsonValue<string[]>(nameof(Bookmarks)) ?? [];
 
-  public string StartPage { get; set; } = IoC.GetValue(nameof(StartPage))
-    .Let(url =>
-      url.Is()
-        ? "about:blank"
-        : Uri.TryCreate(url, UriKind.Absolute, out var uriResult) &&
-    (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
-      ? uriResult.AbsoluteUri
-      : "http://" + url
-    );
+	public string StartPage { get; set; } = IoC.GetValue(nameof(StartPage))
+		.Let(url =>
+			url.Is()
+				? "about:blank"
+				: Uri.TryCreate(url, UriKind.Absolute, out var uriResult) &&
+		(uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
+			? uriResult.AbsoluteUri
+			: "http://" + url
+		);
 }
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
-  public int Port { get; set; } = 0;
-  public string CachePath => FilePaths.EnsureDirectoryExists(
-    FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()
-  );
-  public string ExtensionsPath =>
-    Path.Combine(FilePaths.AppTempDir, Browzio.Extensions.Version, "Chromo", BrowserType.ToString(), Profile.Id.ToString());
+	public int Port { get; set; } = 0;
+	public string CachePath => FilePaths.EnsureDirectoryExists(
+		FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()
+	);
+	public string ExtensionsPath =>
+		Path.Combine(FilePaths.AppTempDir, Browzio.Extensions.Version, "Chromo", BrowserType.ToString(), Profile.Id.ToString());
 
-  private IBrowserInstance? browser;
-  public IBrowserInstance Browser => browser ??= BrowserType switch {
-    BrowserType.Brave => new Brave() { Settings = this },
-    BrowserType.Chrome => new Chrome() { Settings = this },
-    BrowserType.Firefox => new Firefox() { Settings = this },
-    _ => throw new NotImplementedException(),
-  };
+	private IBrowserInstance? browser;
+	public IBrowserInstance Browser => browser ??= BrowserType switch {
+		BrowserType.Brave => new Brave() { Settings = this },
+		BrowserType.Chrome => new Chrome() { Settings = this },
+		BrowserType.Firefox => new Firefox() { Settings = this },
+		_ => throw new NotImplementedException(),
+	};
 }
 public record EmulationOptions(
-  bool AutoTimezone = true,
-  bool SpoofGeoLocation = true,
-  bool SpoofWebGLFingerprint = true,
-  bool SpoofCanvasFingerprint = true,
-  bool SpoofClientRects = true,
-  bool SpoofFontFingerprint = true,
-  bool SpoofAudio = true,
-  bool DisableWebRTC = true,
-  bool SpoofNavigator = false
+	bool AutoTimezone = true,
+	bool SpoofGeoLocation = true,
+	bool SpoofWebGLFingerprint = true,
+	bool SpoofCanvasFingerprint = true,
+	bool SpoofClientRects = true,
+	bool SpoofFontFingerprint = true,
+	bool SpoofAudio = true,
+	bool DisableWebRTC = true,
+	bool SpoofNavigator = false
 );
 #endregion
 
 // Abstract base class with common functionality
 public abstract class BrowserDetectorBase : IBrowserDetector {
-    // Known browser identifiers and their types/engines
-    protected static readonly Dictionary<string, (BrowserType Type, BrowserEngine Engine)> KnownBrowsers = new(StringComparer.OrdinalIgnoreCase) {
-        // Chromium-based
-        ["chrome"] = (BrowserType.Chrome, BrowserEngine.Chromium),
-        ["google chrome"] = (BrowserType.Chrome, BrowserEngine.Chromium),
-        ["msedge"] = (BrowserType.Edge, BrowserEngine.Chromium),
-        ["microsoft edge"] = (BrowserType.Edge, BrowserEngine.Chromium),
-        ["edge"] = (BrowserType.Edge, BrowserEngine.Chromium),
-        ["brave"] = (BrowserType.Brave, BrowserEngine.Chromium),
-        ["brave browser"] = (BrowserType.Brave, BrowserEngine.Chromium),
-        ["opera"] = (BrowserType.Opera, BrowserEngine.Chromium),
-        ["vivaldi"] = (BrowserType.Vivaldi, BrowserEngine.Chromium),
-        ["chromium"] = (BrowserType.Chromium, BrowserEngine.Chromium),
-        ["yandex"] = (BrowserType.Yandex, BrowserEngine.Chromium),
-        ["yandexbrowser"] = (BrowserType.Yandex, BrowserEngine.Chromium),
-        ["arc"] = (BrowserType.Arc, BrowserEngine.Chromium),
-        
-        // Gecko-based
-        ["firefox"] = (BrowserType.Firefox, BrowserEngine.Gecko),
-        ["waterfox"] = (BrowserType.Waterfox, BrowserEngine.Gecko),
-        ["librewolf"] = (BrowserType.LibreWolf, BrowserEngine.Gecko),
-        
-        // WebKit-based
-        ["safari"] = (BrowserType.Safari, BrowserEngine.WebKit),
-        
-        // Other
-        ["iexplore"] = (BrowserType.InternetExplorer, BrowserEngine.Other),
-        ["internet explorer"] = (BrowserType.InternetExplorer, BrowserEngine.Other)
-    };
+	// Known browser identifiers and their types/engines
+	protected static readonly Dictionary<string, (BrowserType Type, BrowserEngine Engine)> KnownBrowsers = new(StringComparer.OrdinalIgnoreCase) {
+		// Chromium-based
+		["chrome"] = (BrowserType.Chrome, BrowserEngine.Chromium),
+		["google chrome"] = (BrowserType.Chrome, BrowserEngine.Chromium),
+		["msedge"] = (BrowserType.Edge, BrowserEngine.Chromium),
+		["microsoft edge"] = (BrowserType.Edge, BrowserEngine.Chromium),
+		["edge"] = (BrowserType.Edge, BrowserEngine.Chromium),
+		["brave"] = (BrowserType.Brave, BrowserEngine.Chromium),
+		["brave browser"] = (BrowserType.Brave, BrowserEngine.Chromium),
+		["opera"] = (BrowserType.Opera, BrowserEngine.Chromium),
+		["vivaldi"] = (BrowserType.Vivaldi, BrowserEngine.Chromium),
+		["chromium"] = (BrowserType.Chromium, BrowserEngine.Chromium),
+		["yandex"] = (BrowserType.Yandex, BrowserEngine.Chromium),
+		["yandexbrowser"] = (BrowserType.Yandex, BrowserEngine.Chromium),
+		["arc"] = (BrowserType.Arc, BrowserEngine.Chromium),
 
-    public abstract List<BrowserInfo> DetectBrowsers();
+		// Gecko-based
+		["firefox"] = (BrowserType.Firefox, BrowserEngine.Gecko),
+		["waterfox"] = (BrowserType.Waterfox, BrowserEngine.Gecko),
+		["librewolf"] = (BrowserType.LibreWolf, BrowserEngine.Gecko),
 
-    public virtual BrowserInfo? GetBrowser(BrowserType type) =>
-        DetectBrowsers().FirstOrDefault(b => b.Type == type);
+		// WebKit-based
+		["safari"] = (BrowserType.Safari, BrowserEngine.WebKit),
 
-    public virtual bool IsInstalled(BrowserType type) =>
-        GetBrowser(type) != null;
+		// Other
+		["iexplore"] = (BrowserType.InternetExplorer, BrowserEngine.Other),
+		["internet explorer"] = (BrowserType.InternetExplorer, BrowserEngine.Other)
+	};
 
-    public virtual List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine) =>
-        DetectBrowsers().Where(b => b.Engine == engine).ToList();
+	public abstract List<BrowserInfo> DetectBrowsers();
 
-    public virtual List<BrowserInfo> GetChromiumBrowsers() =>
-        GetBrowsersByEngine(BrowserEngine.Chromium);
+	public virtual BrowserInfo? GetBrowser(BrowserType type) =>
+			DetectBrowsers().FirstOrDefault(b => b.Type == type);
 
-    public virtual List<BrowserInfo> GetGeckoBrowsers() =>
-        GetBrowsersByEngine(BrowserEngine.Gecko);
+	public virtual bool IsInstalled(BrowserType type) =>
+			GetBrowser(type) != null;
 
-    protected static (BrowserType Type, BrowserEngine Engine) DetermineBrowserInfo(string browserName, string executablePath) {
-        // First check by name
-        if (KnownBrowsers.TryGetValue(browserName, out var browserInfo)) {
-            return browserInfo;
-        }
+	public virtual List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine) =>
+			DetectBrowsers().Where(b => b.Engine == engine).ToList();
 
-        // Check executable name
-        var execName = Path.GetFileNameWithoutExtension(executablePath).ToLower();
-        if (KnownBrowsers.TryGetValue(execName, out browserInfo)) {
-            return browserInfo;
-        }
+	public virtual List<BrowserInfo> GetChromiumBrowsers() =>
+			GetBrowsersByEngine(BrowserEngine.Chromium);
 
-        // Heuristic detection based on path/name patterns
-        var lowerPath = executablePath.ToLower();
-        var lowerName = browserName.ToLower();
-        
-        if (lowerPath.Contains("chrome") && !lowerPath.Contains("chromium") || lowerName.Contains("chrome")) {
-            return (BrowserType.Chrome, BrowserEngine.Chromium);
-        }
-        if (lowerPath.Contains("edge") || lowerName.Contains("edge")) {
-            return (BrowserType.Edge, BrowserEngine.Chromium);
-        }
-        if (lowerPath.Contains("brave") || lowerName.Contains("brave")) {
-            return (BrowserType.Brave, BrowserEngine.Chromium);
-        }
-        if (lowerPath.Contains("opera") || lowerName.Contains("opera")) {
-            return (BrowserType.Opera, BrowserEngine.Chromium);
-        }
-        if (lowerPath.Contains("vivaldi") || lowerName.Contains("vivaldi")) {
-            return (BrowserType.Vivaldi, BrowserEngine.Chromium);
-        }
-        if (lowerPath.Contains("firefox") || lowerName.Contains("firefox")) {
-            return (BrowserType.Firefox, BrowserEngine.Gecko);
-        }
-        if (lowerPath.Contains("waterfox") || lowerName.Contains("waterfox")) {
-            return (BrowserType.Waterfox, BrowserEngine.Gecko);
-        }
-        if (lowerPath.Contains("librewolf") || lowerName.Contains("librewolf")) {
-            return (BrowserType.LibreWolf, BrowserEngine.Gecko);
-        }
-        if (lowerPath.Contains("safari") || lowerName.Contains("safari")) {
-            return (BrowserType.Safari, BrowserEngine.WebKit);
-        }
-        if (lowerPath.Contains("yandex") || lowerName.Contains("yandex")) {
-            return (BrowserType.Yandex, BrowserEngine.Chromium);
-        }
-        if (lowerPath.Contains("chromium") || lowerName.Contains("chromium")) {
-            return (BrowserType.Chromium, BrowserEngine.Chromium);
-        }
+	public virtual List<BrowserInfo> GetGeckoBrowsers() =>
+			GetBrowsersByEngine(BrowserEngine.Gecko);
 
-        return (BrowserType.Unknown, BrowserEngine.Unknown);
-    }
+	protected static (BrowserType Type, BrowserEngine Engine) DetermineBrowserInfo(string browserName, string executablePath) {
+		// First check by name
+		if (KnownBrowsers.TryGetValue(browserName, out var browserInfo)) {
+			return browserInfo;
+		}
 
-    protected static string? GetBrowserVersion(string executablePath) {
-        try {
-            if (!File.Exists(executablePath)) return null;
-            
-            var versionInfo = FileVersionInfo.GetVersionInfo(executablePath);
-            return versionInfo.ProductVersion ?? versionInfo.FileVersion;
-        } catch {
-            return null;
-        }
-    }
+		// Check executable name
+		var execName = Path.GetFileNameWithoutExtension(executablePath).ToLower();
+		if (KnownBrowsers.TryGetValue(execName, out browserInfo)) {
+			return browserInfo;
+		}
+
+		// Heuristic detection based on path/name patterns
+		var lowerPath = executablePath.ToLower();
+		var lowerName = browserName.ToLower();
+
+		if (lowerPath.Contains("chrome") && !lowerPath.Contains("chromium") || lowerName.Contains("chrome")) {
+			return (BrowserType.Chrome, BrowserEngine.Chromium);
+		}
+		if (lowerPath.Contains("edge") || lowerName.Contains("edge")) {
+			return (BrowserType.Edge, BrowserEngine.Chromium);
+		}
+		if (lowerPath.Contains("brave") || lowerName.Contains("brave")) {
+			return (BrowserType.Brave, BrowserEngine.Chromium);
+		}
+		if (lowerPath.Contains("opera") || lowerName.Contains("opera")) {
+			return (BrowserType.Opera, BrowserEngine.Chromium);
+		}
+		if (lowerPath.Contains("vivaldi") || lowerName.Contains("vivaldi")) {
+			return (BrowserType.Vivaldi, BrowserEngine.Chromium);
+		}
+		if (lowerPath.Contains("firefox") || lowerName.Contains("firefox")) {
+			return (BrowserType.Firefox, BrowserEngine.Gecko);
+		}
+		if (lowerPath.Contains("waterfox") || lowerName.Contains("waterfox")) {
+			return (BrowserType.Waterfox, BrowserEngine.Gecko);
+		}
+		if (lowerPath.Contains("librewolf") || lowerName.Contains("librewolf")) {
+			return (BrowserType.LibreWolf, BrowserEngine.Gecko);
+		}
+		if (lowerPath.Contains("safari") || lowerName.Contains("safari")) {
+			return (BrowserType.Safari, BrowserEngine.WebKit);
+		}
+		if (lowerPath.Contains("yandex") || lowerName.Contains("yandex")) {
+			return (BrowserType.Yandex, BrowserEngine.Chromium);
+		}
+		if (lowerPath.Contains("chromium") || lowerName.Contains("chromium")) {
+			return (BrowserType.Chromium, BrowserEngine.Chromium);
+		}
+
+		return (BrowserType.Unknown, BrowserEngine.Unknown);
+	}
+
+	protected static string? GetBrowserVersion(string executablePath) {
+		try {
+			if (!File.Exists(executablePath)) return null;
+
+			var versionInfo = FileVersionInfo.GetVersionInfo(executablePath);
+			return versionInfo.ProductVersion ?? versionInfo.FileVersion;
+		} catch {
+			return null;
+		}
+	}
 }
 
 // Windows implementation
 [SupportedOSPlatform("windows")]
 public class WindowsBrowserDetector : BrowserDetectorBase {
-    // Common installation directories to scan
-    private static readonly string[] SearchDirectories = {
-        @"C:\Program Files",
-        @"C:\Program Files (x86)",
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
-    };
+	// Common installation directories to scan
+	private static readonly string[] SearchDirectories = {
+				@"C:\Program Files",
+				@"C:\Program Files (x86)",
+				Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+				Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+				Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
+		};
 
-    public override List<BrowserInfo> DetectBrowsers() {
-        var browsers = new List<BrowserInfo>();
-        var foundPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+	public override List<BrowserInfo> DetectBrowsers() {
+		var browsers = new List<BrowserInfo>();
+		var foundPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Detect from registry
-        DetectFromRegistry(browsers, foundPaths);
-        
-        // Detect from common installation directories
-        DetectFromFileSystem(browsers, foundPaths);
-        
-        // Detect from PATH environment variable
-        DetectFromPath(browsers, foundPaths);
+		// Detect from registry
+		DetectFromRegistry(browsers, foundPaths);
 
-        return browsers.OrderBy(b => b.Type.ToString()).ToList();
-    }
+		// Detect from common installation directories
+		DetectFromFileSystem(browsers, foundPaths);
 
-    private void DetectFromRegistry(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
-        // Check registered applications
-        CheckRegisteredApplications(browsers, foundPaths);
-        
-        // Check default programs
-        CheckDefaultPrograms(browsers, foundPaths);
-        
-        // Check uninstall entries
-        CheckUninstallEntries(browsers, foundPaths);
-    }
+		// Detect from PATH environment variable
+		DetectFromPath(browsers, foundPaths);
 
-    private void CheckRegisteredApplications(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
-        try {
-            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\RegisteredApplications");
-            if (key == null) return;
+		return browsers.OrderBy(b => b.Type.ToString()).ToList();
+	}
 
-            foreach (var name in key.GetValueNames()) {
-                var path = GetPathFromCapabilities(key.GetValue(name) as string);
-                if (path != null && foundPaths.Add(path)) {
-                    var (type, engine) = DetermineBrowserInfo(name, path);
-                    var version = GetBrowserVersion(path);
-                    browsers.Add(new BrowserInfo(type, path, version ?? "", engine));
-                }
-            }
-        } catch { }
-    }
+	private void DetectFromRegistry(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
+		// Check registered applications
+		CheckRegisteredApplications(browsers, foundPaths);
 
-    private void CheckDefaultPrograms(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
-        try {
-            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\http\shell\open\command");
-            var command = key?.GetValue("") as string;
-            if (!string.IsNullOrEmpty(command)) {
-                var match = Regex.Match(command, @"^""([^""]+)""");
-                if (match.Success && File.Exists(match.Groups[1].Value) && foundPaths.Add(match.Groups[1].Value)) {
-                    var path = match.Groups[1].Value;
-                    var name = Path.GetFileNameWithoutExtension(path);
-                    var (type, engine) = DetermineBrowserInfo(name, path);
-                    var version = GetBrowserVersion(path);
-                    browsers.Add(new BrowserInfo(type, path, version ?? "", engine));
-                }
-            }
-        } catch { }
-    }
+		// Check default programs
+		CheckDefaultPrograms(browsers, foundPaths);
 
-    private void CheckUninstallEntries(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
-        var uninstallKeys = new[] {
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-        };
+		// Check uninstall entries
+		CheckUninstallEntries(browsers, foundPaths);
+	}
 
-        foreach (var uninstallKey in uninstallKeys) {
-            try {
-                using var key = Registry.LocalMachine.OpenSubKey(uninstallKey);
-                if (key == null) continue;
+	private void CheckRegisteredApplications(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
+		try {
+			using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\RegisteredApplications");
+			if (key == null) return;
 
-                foreach (var subKeyName in key.GetSubKeyNames()) {
-                    using var subKey = key.OpenSubKey(subKeyName);
-                    var displayName = subKey?.GetValue("DisplayName") as string;
-                    var installLocation = subKey?.GetValue("InstallLocation") as string;
-                    
-                    if (IsBrowserEntry(displayName) && !string.IsNullOrEmpty(installLocation)) {
-                        var executablePath = FindBrowserExecutable(installLocation);
-                        if (executablePath != null && foundPaths.Add(executablePath)) {
-                            var (type, engine) = DetermineBrowserInfo(displayName!, executablePath);
-                            var version = GetBrowserVersion(executablePath);
-                            browsers.Add(new BrowserInfo(type, executablePath, version ?? "", engine));
-                        }
-                    }
-                }
-            } catch { }
-        }
-    }
+			foreach (var name in key.GetValueNames()) {
+				var path = GetPathFromCapabilities(key.GetValue(name) as string);
+				if (path != null && foundPaths.Add(path)) {
+					var (type, engine) = DetermineBrowserInfo(name, path);
+					var version = GetBrowserVersion(path);
+					browsers.Add(new BrowserInfo(type, path, version ?? "", engine));
+				}
+			}
+		} catch { }
+	}
 
-    private void DetectFromFileSystem(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
-        foreach (var directory in SearchDirectories) {
-            if (!Directory.Exists(directory)) continue;
-            
-            try {
-                ScanDirectoryForBrowsers(directory, browsers, foundPaths, 2); // Max depth of 2
-            } catch { }
-        }
-    }
+	private void CheckDefaultPrograms(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
+		try {
+			using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\http\shell\open\command");
+			var command = key?.GetValue("") as string;
+			if (!string.IsNullOrEmpty(command)) {
+				var match = Regex.Match(command, @"^""([^""]+)""");
+				if (match.Success && File.Exists(match.Groups[1].Value) && foundPaths.Add(match.Groups[1].Value)) {
+					var path = match.Groups[1].Value;
+					var name = Path.GetFileNameWithoutExtension(path);
+					var (type, engine) = DetermineBrowserInfo(name, path);
+					var version = GetBrowserVersion(path);
+					browsers.Add(new BrowserInfo(type, path, version ?? "", engine));
+				}
+			}
+		} catch { }
+	}
 
-    private void ScanDirectoryForBrowsers(string directory, List<BrowserInfo> browsers, HashSet<string> foundPaths, int maxDepth) {
-        if (maxDepth <= 0) return;
+	private void CheckUninstallEntries(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
+		var uninstallKeys = new[] {
+						@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+						@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+				};
 
-        try {
-            foreach (var subDir in Directory.GetDirectories(directory)) {
-                var dirName = Path.GetFileName(subDir).ToLower();
-                
-                // Skip system directories
-                if (dirName.StartsWith("windows") || dirName.StartsWith("system") || 
-                    dirName == "common files" || dirName == "microsoft") continue;
+		foreach (var uninstallKey in uninstallKeys) {
+			try {
+				using var key = Registry.LocalMachine.OpenSubKey(uninstallKey);
+				if (key == null) continue;
 
-                // Look for browser-like directory names
-                if (IsBrowserDirectory(dirName)) {
-                    var executablePath = FindBrowserExecutable(subDir);
-                    if (executablePath != null && foundPaths.Add(executablePath)) {
-                        var (type, engine) = DetermineBrowserInfo(dirName, executablePath);
-                        var version = GetBrowserVersion(executablePath);
-                        browsers.Add(new BrowserInfo(type, executablePath, version ?? "", engine));
-                    }
-                } else if (maxDepth > 1) {
-                    ScanDirectoryForBrowsers(subDir, browsers, foundPaths, maxDepth - 1);
-                }
-            }
-        } catch { }
-    }
+				foreach (var subKeyName in key.GetSubKeyNames()) {
+					using var subKey = key.OpenSubKey(subKeyName);
+					var displayName = subKey?.GetValue("DisplayName") as string;
+					var installLocation = subKey?.GetValue("InstallLocation") as string;
 
-    private void DetectFromPath(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
-        var pathVar = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrEmpty(pathVar)) return;
+					if (IsBrowserEntry(displayName) && !string.IsNullOrEmpty(installLocation)) {
+						var executablePath = FindBrowserExecutable(installLocation);
+						if (executablePath != null && foundPaths.Add(executablePath)) {
+							var (type, engine) = DetermineBrowserInfo(displayName!, executablePath);
+							var version = GetBrowserVersion(executablePath);
+							browsers.Add(new BrowserInfo(type, executablePath, version ?? "", engine));
+						}
+					}
+				}
+			} catch { }
+		}
+	}
 
-        var browserExecutables = new[] { "chrome.exe", "firefox.exe", "msedge.exe", "brave.exe", "opera.exe" };
-        
-        foreach (var path in pathVar.Split(';')) {
-            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) continue;
-            
-            try {
-                foreach (var exe in browserExecutables) {
-                    var fullPath = Path.Combine(path, exe);
-                    if (File.Exists(fullPath) && foundPaths.Add(fullPath)) {
-                        var name = Path.GetFileNameWithoutExtension(exe);
-                        var (type, engine) = DetermineBrowserInfo(name, fullPath);
-                        var version = GetBrowserVersion(fullPath);
-                        browsers.Add(new BrowserInfo(type, fullPath, version ?? "", engine));
-                    }
-                }
-            } catch { }
-        }
-    }
+	private void DetectFromFileSystem(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
+		foreach (var directory in SearchDirectories) {
+			if (!Directory.Exists(directory)) continue;
 
-    private static string? GetPathFromCapabilities(string? capPath) {
-        if (string.IsNullOrEmpty(capPath)) return null;
-        try {
-            capPath = capPath.Replace("SOFTWARE\\", "");
-            using var capKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\{capPath}");
-            using var urlKey = capKey?.OpenSubKey("URLAssociations");
-            var handler = urlKey?.GetValue("https") ?? urlKey?.GetValue("http");
-            if (handler == null) return null;
+			try {
+				ScanDirectoryForBrowsers(directory, browsers, foundPaths, 2); // Max depth of 2
+			} catch { }
+		}
+	}
 
-            using var cmdKey = Registry.ClassesRoot.OpenSubKey($@"{handler}\shell\open\command");
-            var cmd = cmdKey?.GetValue("") as string;
-            if (cmd == null) return null;
+	private void ScanDirectoryForBrowsers(string directory, List<BrowserInfo> browsers, HashSet<string> foundPaths, int maxDepth) {
+		if (maxDepth <= 0) return;
 
-            var match = Regex.Match(cmd, @"^""([^""]+)""");
-            return File.Exists(match.Groups[1].Value) ? match.Groups[1].Value : null;
-        } catch { 
-            return null; 
-        }
-    }
+		try {
+			foreach (var subDir in Directory.GetDirectories(directory)) {
+				var dirName = Path.GetFileName(subDir).ToLower();
 
-    private static bool IsBrowserEntry(string? displayName) {
-        if (string.IsNullOrEmpty(displayName)) return false;
-        var lower = displayName.ToLower();
-        return lower.Contains("chrome") || lower.Contains("firefox") || lower.Contains("edge") ||
-               lower.Contains("brave") || lower.Contains("opera") || lower.Contains("vivaldi") ||
-               lower.Contains("browser") && !lower.Contains("flash");
-    }
+				// Skip system directories
+				if (dirName.StartsWith("windows") || dirName.StartsWith("system") ||
+						dirName == "common files" || dirName == "microsoft") continue;
 
-    private static bool IsBrowserDirectory(string dirName) {
-        return dirName.Contains("chrome") || dirName.Contains("firefox") || dirName.Contains("edge") ||
-               dirName.Contains("brave") || dirName.Contains("opera") || dirName.Contains("vivaldi") ||
-               dirName.Contains("mozilla") || dirName.Contains("browser");
-    }
+				// Look for browser-like directory names
+				if (IsBrowserDirectory(dirName)) {
+					var executablePath = FindBrowserExecutable(subDir);
+					if (executablePath != null && foundPaths.Add(executablePath)) {
+						var (type, engine) = DetermineBrowserInfo(dirName, executablePath);
+						var version = GetBrowserVersion(executablePath);
+						browsers.Add(new BrowserInfo(type, executablePath, version ?? "", engine));
+					}
+				} else if (maxDepth > 1) {
+					ScanDirectoryForBrowsers(subDir, browsers, foundPaths, maxDepth - 1);
+				}
+			}
+		} catch { }
+	}
 
-    private static string? FindBrowserExecutable(string directory) {
-        if (!Directory.Exists(directory)) return null;
+	private void DetectFromPath(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
+		var pathVar = Environment.GetEnvironmentVariable("PATH");
+		if (string.IsNullOrEmpty(pathVar)) return;
 
-        var commonExeNames = new[] { "chrome.exe", "firefox.exe", "msedge.exe", "brave.exe", "opera.exe", "vivaldi.exe", "launcher.exe" };
-        
-        // First, look for common browser executables in the directory and subdirectories
-        foreach (var exeName in commonExeNames) {
-            var files = Directory.GetFiles(directory, exeName, SearchOption.AllDirectories);
-            if (files.Length > 0) return files[0];
-        }
+		var browserExecutables = new[] { "chrome.exe", "firefox.exe", "msedge.exe", "brave.exe", "opera.exe" };
 
-        // Look for any .exe that might be a browser
-        var exeFiles = Directory.GetFiles(directory, "*.exe", SearchOption.AllDirectories);
-        return exeFiles.FirstOrDefault(f => {
-            var name = Path.GetFileNameWithoutExtension(f).ToLower();
-            return IsBrowserExecutable(name);
-        });
-    }
+		foreach (var path in pathVar.Split(';')) {
+			if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) continue;
 
-    private static bool IsBrowserExecutable(string exeName) {
-        return exeName.Contains("chrome") || exeName.Contains("firefox") || exeName.Contains("edge") ||
-               exeName.Contains("brave") || exeName.Contains("opera") || exeName.Contains("vivaldi") ||
-               exeName == "launcher" || exeName.Contains("browser");
-    }
+			try {
+				foreach (var exe in browserExecutables) {
+					var fullPath = Path.Combine(path, exe);
+					if (File.Exists(fullPath) && foundPaths.Add(fullPath)) {
+						var name = Path.GetFileNameWithoutExtension(exe);
+						var (type, engine) = DetermineBrowserInfo(name, fullPath);
+						var version = GetBrowserVersion(fullPath);
+						browsers.Add(new BrowserInfo(type, fullPath, version ?? "", engine));
+					}
+				}
+			} catch { }
+		}
+	}
+
+	private static string? GetPathFromCapabilities(string? capPath) {
+		if (string.IsNullOrEmpty(capPath)) return null;
+		try {
+			capPath = capPath.Replace("SOFTWARE\\", "");
+			using var capKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\{capPath}");
+			using var urlKey = capKey?.OpenSubKey("URLAssociations");
+			var handler = urlKey?.GetValue("https") ?? urlKey?.GetValue("http");
+			if (handler == null) return null;
+
+			using var cmdKey = Registry.ClassesRoot.OpenSubKey($@"{handler}\shell\open\command");
+			var cmd = cmdKey?.GetValue("") as string;
+			if (cmd == null) return null;
+
+			var match = Regex.Match(cmd, @"^""([^""]+)""");
+			return File.Exists(match.Groups[1].Value) ? match.Groups[1].Value : null;
+		} catch {
+			return null;
+		}
+	}
+
+	private static bool IsBrowserEntry(string? displayName) {
+		if (string.IsNullOrEmpty(displayName)) return false;
+		var lower = displayName.ToLower();
+		return lower.Contains("chrome") || lower.Contains("firefox") || lower.Contains("edge") ||
+					 lower.Contains("brave") || lower.Contains("opera") || lower.Contains("vivaldi") ||
+					 lower.Contains("browser") && !lower.Contains("flash");
+	}
+
+	private static bool IsBrowserDirectory(string dirName) {
+		return dirName.Contains("chrome") || dirName.Contains("firefox") || dirName.Contains("edge") ||
+					 dirName.Contains("brave") || dirName.Contains("opera") || dirName.Contains("vivaldi") ||
+					 dirName.Contains("mozilla") || dirName.Contains("browser");
+	}
+
+	private static string? FindBrowserExecutable(string directory) {
+		if (!Directory.Exists(directory)) return null;
+
+		var commonExeNames = new[] { "chrome.exe", "firefox.exe", "msedge.exe", "brave.exe", "opera.exe", "vivaldi.exe", "launcher.exe" };
+
+		// First, look for common browser executables in the directory and subdirectories
+		foreach (var exeName in commonExeNames) {
+			var files = Directory.GetFiles(directory, exeName, SearchOption.AllDirectories);
+			if (files.Length > 0) return files[0];
+		}
+
+		// Look for any .exe that might be a browser
+		var exeFiles = Directory.GetFiles(directory, "*.exe", SearchOption.AllDirectories);
+		return exeFiles.FirstOrDefault(f => {
+			var name = Path.GetFileNameWithoutExtension(f).ToLower();
+			return IsBrowserExecutable(name);
+		});
+	}
+
+	private static bool IsBrowserExecutable(string exeName) {
+		return exeName.Contains("chrome") || exeName.Contains("firefox") || exeName.Contains("edge") ||
+					 exeName.Contains("brave") || exeName.Contains("opera") || exeName.Contains("vivaldi") ||
+					 exeName == "launcher" || exeName.Contains("browser");
+	}
 }
 
 // macOS implementation
 [SupportedOSPlatform("macos")]
 public class MacOSBrowserDetector : BrowserDetectorBase {
-    private static readonly string[] ApplicationDirectories = {
-        "/Applications",
-        "/System/Applications",
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications")
-    };
+	private static readonly string[] ApplicationDirectories = {
+				"/Applications",
+				"/System/Applications",
+				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications")
+		};
 
-    public override List<BrowserInfo> DetectBrowsers() {
-        var browsers = new List<BrowserInfo>();
-        var foundPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+	public override List<BrowserInfo> DetectBrowsers() {
+		var browsers = new List<BrowserInfo>();
+		var foundPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var appDir in ApplicationDirectories) {
-            if (!Directory.Exists(appDir)) continue;
-            
-            try {
-                foreach (var app in Directory.GetDirectories(appDir, "*.app")) {
-                    if (IsBrowserApp(app)) {
-                        var execPath = GetMacExecutable(app);
-                        if (execPath != null && File.Exists(execPath) && foundPaths.Add(execPath)) {
-                            var appName = Path.GetFileNameWithoutExtension(app);
-                            var (type, engine) = DetermineBrowserInfo(appName, execPath);
-                            var version = GetBrowserVersion(execPath) ?? GetMacAppVersion(app);
-                            browsers.Add(new BrowserInfo(type, execPath, version ?? "", engine));
-                        }
-                    }
-                }
-            } catch { }
-        }
+		foreach (var appDir in ApplicationDirectories) {
+			if (!Directory.Exists(appDir)) continue;
 
-        return browsers.OrderBy(b => b.Type.ToString()).ToList();
-    }
+			try {
+				foreach (var app in Directory.GetDirectories(appDir, "*.app")) {
+					if (IsBrowserApp(app)) {
+						var execPath = GetMacExecutable(app);
+						if (execPath != null && File.Exists(execPath) && foundPaths.Add(execPath)) {
+							var appName = Path.GetFileNameWithoutExtension(app);
+							var (type, engine) = DetermineBrowserInfo(appName, execPath);
+							var version = GetBrowserVersion(execPath) ?? GetMacAppVersion(app);
+							browsers.Add(new BrowserInfo(type, execPath, version ?? "", engine));
+						}
+					}
+				}
+			} catch { }
+		}
 
-    private static bool IsBrowserApp(string appPath) {
-        var appName = Path.GetFileNameWithoutExtension(appPath).ToLower();
-        return appName.Contains("chrome") || appName.Contains("firefox") || appName.Contains("safari") ||
-               appName.Contains("edge") || appName.Contains("brave") || appName.Contains("opera") ||
-               appName.Contains("vivaldi") || appName.Contains("browser");
-    }
+		return browsers.OrderBy(b => b.Type.ToString()).ToList();
+	}
 
-    private static string? GetMacExecutable(string appPath) {
-        var appName = Path.GetFileNameWithoutExtension(appPath);
-        var execPath = Path.Combine(appPath, "Contents", "MacOS", appName);
+	private static bool IsBrowserApp(string appPath) {
+		var appName = Path.GetFileNameWithoutExtension(appPath).ToLower();
+		return appName.Contains("chrome") || appName.Contains("firefox") || appName.Contains("safari") ||
+					 appName.Contains("edge") || appName.Contains("brave") || appName.Contains("opera") ||
+					 appName.Contains("vivaldi") || appName.Contains("browser");
+	}
 
-        if (File.Exists(execPath)) return execPath;
+	private static string? GetMacExecutable(string appPath) {
+		var appName = Path.GetFileNameWithoutExtension(appPath);
+		var execPath = Path.Combine(appPath, "Contents", "MacOS", appName);
 
-        // Try to find any executable in MacOS directory
-        var macOSDir = Path.Combine(appPath, "Contents", "MacOS");
-        if (Directory.Exists(macOSDir)) {
-            var executables = Directory.GetFiles(macOSDir)
-                .Where(f => new FileInfo(f).UnixFileMode.HasFlag(UnixFileMode.UserExecute))
-                .ToList();
-            return executables.FirstOrDefault();
-        }
+		if (File.Exists(execPath)) return execPath;
 
-        return null;
-    }
+		// Try to find any executable in MacOS directory
+		var macOSDir = Path.Combine(appPath, "Contents", "MacOS");
+		if (Directory.Exists(macOSDir)) {
+			var executables = Directory.GetFiles(macOSDir)
+					.Where(f => new FileInfo(f).UnixFileMode.HasFlag(UnixFileMode.UserExecute))
+					.ToList();
+			return executables.FirstOrDefault();
+		}
 
-    private static string? GetMacAppVersion(string appPath) {
-        try {
-            var plistPath = Path.Combine(appPath, "Contents", "Info.plist");
-            if (!File.Exists(plistPath)) return null;
+		return null;
+	}
 
-            var content = File.ReadAllText(plistPath);
-            var versionMatch = Regex.Match(content, @"<key>CFBundleShortVersionString</key>\s*<string>([^<]+)</string>");
-            return versionMatch.Success ? versionMatch.Groups[1].Value : null;
-        } catch {
-            return null;
-        }
-    }
+	private static string? GetMacAppVersion(string appPath) {
+		try {
+			var plistPath = Path.Combine(appPath, "Contents", "Info.plist");
+			if (!File.Exists(plistPath)) return null;
+
+			var content = File.ReadAllText(plistPath);
+			var versionMatch = Regex.Match(content, @"<key>CFBundleShortVersionString</key>\s*<string>([^<]+)</string>");
+			return versionMatch.Success ? versionMatch.Groups[1].Value : null;
+		} catch {
+			return null;
+		}
+	}
 }
-
-
-// public static class BrowserInfo {
-//   public record class Info(string Name, string Path) {
-//     public override string ToString() {
-//       return Name ?? Path;
-//     }
-//     public bool Exists => !string.IsNullOrEmpty(Path) && File.Exists(Path);
-//   }
-
-//   [SupportedOSPlatform("windows")]
-//   private static (bool Installed, string FilePath) CheckApplication(string executable) {
-//     // Check common installation paths
-//     string[] commonPaths = [
-//        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), executable),
-//          Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), executable)
-//     ];
-
-//     foreach (var path in commonPaths) {
-//       if (File.Exists(path)) return (true, path);
-//     }
-
-//     // Check registry
-//     string[] registryKeys = [
-//        @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
-//         @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths"
-//     ];
-
-//     foreach (var registryKey in registryKeys) {
-//       using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executable));
-//       if (key != null) {
-//         var path = key.GetValue(null) as string;
-//         if (!string.IsNullOrEmpty(path) && File.Exists(path)) return (true, path);
-//       }
-//     }
-
-//     // Check for user-specific installation
-//     var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-//     var userSpecificPaths = Directory.GetFiles(appDataPath, executable, SearchOption.AllDirectories);
-//     if (userSpecificPaths.Length != 0) return (true, userSpecificPaths.First());
-
-//     // Check uninstall registry keys
-//     string[] uninstallKeys = [
-//        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-//          @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-//     ];
-
-//     foreach (var uninstallKey in uninstallKeys) {
-//       using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(uninstallKey);
-//       if (key != null) {
-//         foreach (var subKeyName in key.GetSubKeyNames()) {
-//           using var subKey = key.OpenSubKey(subKeyName);
-//           var displayName = subKey?.GetValue("DisplayName") as string;
-//           if (
-//              !string.IsNullOrEmpty(displayName) &&
-//              displayName.Contains(Path.GetFileNameWithoutExtension(executable), StringComparison.OrdinalIgnoreCase)
-//           ) {
-//             var installLocation = subKey?.GetValue("InstallLocation") as string;
-//             if (!string.IsNullOrEmpty(installLocation)) {
-//               var fullPath = Path.Combine(installLocation, executable);
-//               if (File.Exists(fullPath)) return (true, fullPath);
-//             }
-//           }
-//         }
-//       }
-//     }
-
-//     return (false, string.Empty);
-//   }
-
-//   static Info FindByName(string executable) {
-//     if (OperatingSystem.IsMacOS()) {
-//       var chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-//       var bravePath = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
-//       var firefoxPath = "/Applications/firefox.app/Contents/MacOS/firefox";
-
-//       return executable switch {
-//         "chrome.exe" => File.Exists(chromePath) ? new Info("chrome", chromePath) : null,
-//         "brave.exe" => File.Exists(bravePath) ? new Info("brave", bravePath) : null,
-//         "firefox.exe" => File.Exists(firefoxPath) ? new Info("brave", firefoxPath) : null,
-//         _ => null
-//       } ?? throw new NotSupportedException(
-//       $"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
-//     } else if (OperatingSystem.IsWindows()) {
-//       var (installed, filepath) = CheckApplication(executable);
-//       if (installed && !string.IsNullOrWhiteSpace(filepath)) return new Info(executable, filepath);
-//     }
-
-//     throw new NotSupportedException(
-//     $"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
-//   }
-
-//   public static Info Find(BrowserType BrowserType) => BrowserType switch {
-//     BrowserType.Chrome => FindByName("chrome.exe"),
-//     BrowserType.Brave => FindByName("brave.exe"),
-//     BrowserType.Firefox => FindByName("firefox.exe"),
-//     _ => throw new NotSupportedException("Browser type not found."),
-//   };
-// }
 
 public class Browzio : IStartUp {
-  public static class State {
-    public static bool Staging { get; } = false && (Debugger.IsAttached || Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true");
-    public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value!); }
-  }
-  public static class Extensions {
-    public const string Version = "2025.7.17.4";
-    public static string AddonDevPath => OperatingSystem.IsMacOS()
-      ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons"
-      : @"C:\repos\Chameleon-lib\Chameleon.Assets\addons";
+	public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
+	public static class State {
+		public static bool Staging { get; } = false && IoC.Debug && Debugger.IsAttached;
+		public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value!); }
+	}
+	public static class Extensions {
+		public static string Version => IoC.Assembled; //"2025.7.17.4";
+		public static string ProdPath => Path.Combine(FilePaths.AppDataDir, "extensions");
+		public static string DevPath => OperatingSystem.IsMacOS()
+			? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons"
+			: @"C:\repos\Chameleon-lib\Chameleon.Assets\addons";
 
-    public static string Chromium => FilePaths.EnsureDirectoryExists(
-      FilePaths.AppDataDir, "extensions", "chromium"
-    );
-    public static string Chromeleon => Path.Combine(
-      State.Staging && Directory.Exists(AddonDevPath)
-      ? AddonDevPath
-      : Chromium, "chromeleon");
+		public static string Chromium => FilePaths.EnsureDirectoryExists(ProdPath, "chromium");
+		public static string Chromeleon => Path.Combine(State.Staging && Directory.Exists(DevPath) ? DevPath : Chromium, "chromeleon");
 
-    public static string Gecko => Resources.Assert(
-      FilePaths.AppDataDir, "extensions", "gecko"
-    );
-    public static string Geckoleon => Path.Combine(
-      State.Staging && Directory.Exists(AddonDevPath)
-      ? AddonDevPath
-      : Gecko, "geckoleon.xpi");
-  }
-  public static class Factory {
-    public static BrowserSetting Chrome(BrowserProfile profile) {
-      return new BrowserSetting(BrowserType.Chrome, profile) {
-        Port = Processez.NextFreePort(9613)
-      };
-    }
-    public static BrowserSetting Chrome(string url) {
-      return Chrome(new BrowserProfile {
-        StartPage = url,
-        Extensions = false,
-        Emulations = new(),
-      });
-    }
+		public static string Gecko => Resources.Assert(ProdPath, "gecko");
+		public static string Geckoleon => Path.Combine(State.Staging && Directory.Exists(DevPath) ? DevPath : Gecko, "geckoleon.xpi");
+	}
+	public static class Factory {
+		public static BrowserSetting Chrome(BrowserProfile profile) {
+			return new BrowserSetting(BrowserType.Chrome, profile) {
+				Port = Processez.NextFreePort(9613)
+			};
+		}
+		public static BrowserSetting Chrome(string url) {
+			return Chrome(new BrowserProfile {
+				StartPage = url,
+				Extensions = false,
+				Emulations = new(),
+			});
+		}
 
-    public static BrowserSetting Brave(BrowserProfile profile) {
-      return new BrowserSetting(BrowserType.Brave, profile);
-    }
+		public static BrowserSetting Brave(BrowserProfile profile) {
+			return new BrowserSetting(BrowserType.Brave, profile);
+		}
 
-    public static BrowserSetting Firefox(BrowserProfile profile) {
-      return new BrowserSetting(BrowserType.Firefox, profile);
-    }
+		public static BrowserSetting Firefox(BrowserProfile profile) {
+			return new BrowserSetting(BrowserType.Firefox, profile);
+		}
 
-    public static IBrowserDetector Create() {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return new WindowsBrowserDetector();
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            return new MacOSBrowserDetector();
-        else
-            throw new NotSupportedException("Unsupported operating system");
-    }
-  }
-  public static class Utilities {
-    private static readonly IBrowserDetector detector = Factory.Create();
+		public static IBrowserDetector Create() {
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+				return new WindowsBrowserDetector();
+			else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+				return new MacOSBrowserDetector();
+			else
+				throw new NotSupportedException("Unsupported operating system");
+		}
+	}
+	public static class Utilities {
+		private static readonly IBrowserDetector detector = Factory.Create();
 
-    public static List<BrowserInfo> DetectBrowsers() => detector.DetectBrowsers();
-    public static BrowserInfo? GetBrowser(BrowserType type) => detector.GetBrowser(type);
-    public static bool IsInstalled(BrowserType type) => detector.IsInstalled(type);
-    public static List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine) => detector.GetBrowsersByEngine(engine);
-    public static List<BrowserInfo> GetChromiumBrowsers() => detector.GetChromiumBrowsers();
-    public static List<BrowserInfo> GetGeckoBrowsers() => detector.GetGeckoBrowsers();
-  }
+		public static List<BrowserInfo> DetectBrowsers() => detector.DetectBrowsers();
+		public static BrowserInfo? GetBrowser(BrowserType type) => detector.GetBrowser(type);
+		public static bool IsInstalled(BrowserType type) => detector.IsInstalled(type);
+		public static List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine) => detector.GetBrowsersByEngine(engine);
+		public static List<BrowserInfo> GetChromiumBrowsers() => detector.GetChromiumBrowsers();
+		public static List<BrowserInfo> GetGeckoBrowsers() => detector.GetGeckoBrowsers();
+		
+		public static class Info {
+			public record class Information(string Name, string ExecutablePath) {
+				public override string ToString() {
+					return Name ?? ExecutablePath;
+				}
+				public bool Exists => !string.IsNullOrEmpty(ExecutablePath) && File.Exists(ExecutablePath);
+			}
 
-  public TaskCompletionSource<bool> Initialized { get; } = new();
+			[SupportedOSPlatform("windows")]
+			private static (bool Installed, string FilePath) CheckApplication(string executable) {
+				// Check common installation paths
+				string[] commonPaths = [
+					Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), executable),
+						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), executable)
+				];
 
-  public async Task Init() {
-    await AddonsServer.I.Initialized.Task;
-    await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
-    await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
+				foreach (var path in commonPaths) {
+					if (File.Exists(path)) return (true, path);
+				}
 
-    _ = Initialized.TrySetResult(true);
-  }
+				// Check registry
+				string[] registryKeys = [
+					@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
+						@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths"
+				];
 
-  Browzio() { }
-  public static Browzio I { get; } = new();
+				foreach (var registryKey in registryKeys) {
+					using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(Path.Combine(registryKey, executable));
+					if (key != null) {
+						var path = key.GetValue(null) as string;
+						if (!string.IsNullOrEmpty(path) && File.Exists(path)) return (true, path);
+					}
+				}
+
+				// Check for user-specific installation
+				var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+				var userSpecificPaths = Directory.GetFiles(appDataPath, executable, SearchOption.AllDirectories);
+				if (userSpecificPaths.Length != 0) return (true, userSpecificPaths.First());
+
+				// Check uninstall registry keys
+				string[] uninstallKeys = [
+					@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+						@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+				];
+
+				foreach (var uninstallKey in uninstallKeys) {
+					using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(uninstallKey);
+					if (key != null) {
+						foreach (var subKeyName in key.GetSubKeyNames()) {
+							using var subKey = key.OpenSubKey(subKeyName);
+							var displayName = subKey?.GetValue("DisplayName") as string;
+							if (
+								!string.IsNullOrEmpty(displayName) &&
+								displayName.Contains(Path.GetFileNameWithoutExtension(executable), StringComparison.OrdinalIgnoreCase)
+							) {
+								var installLocation = subKey?.GetValue("InstallLocation") as string;
+								if (!string.IsNullOrEmpty(installLocation)) {
+									var fullPath = Path.Combine(installLocation, executable);
+									if (File.Exists(fullPath)) return (true, fullPath);
+								}
+							}
+						}
+					}
+				}
+
+				return (false, string.Empty);
+			}
+
+			static Information FindByName(string executable) {
+				if (OperatingSystem.IsMacOS()) {
+					var chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+					var bravePath = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
+					var firefoxPath = "/Applications/firefox.app/Contents/MacOS/firefox";
+
+					return executable switch {
+						"chrome.exe" => File.Exists(chromePath) ? new Information("chrome", chromePath) : null,
+						"brave.exe" => File.Exists(bravePath) ? new Information("brave", bravePath) : null,
+						"firefox.exe" => File.Exists(firefoxPath) ? new Information("firefox", firefoxPath) : null,
+						_ => null
+					} ?? throw new NotSupportedException(
+					$"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
+				} else if (OperatingSystem.IsWindows()) {
+					var (installed, filepath) = CheckApplication(executable);
+					if (installed && filepath.IsNot()) return new (executable, filepath);
+				}
+
+				throw new NotSupportedException($"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
+			}
+
+			public static Information GetBrowser(BrowserType BrowserType) => BrowserType switch {
+				BrowserType.Chrome => FindByName("chrome.exe"),
+				BrowserType.Brave => FindByName("brave.exe"),
+				BrowserType.Firefox => FindByName("firefox.exe"),
+				_ => throw new NotSupportedException("Browser type not found."),
+			};
+		}
+	}
+
+	public TaskCompletionSource<bool> Initialized { get; } = new();
+
+	public async Task Init() {
+		await AddonsServer.I.Initialized.Task;
+		await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
+		await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
+
+		_ = Initialized.TrySetResult(true);
+	}
+
+	Browzio() { }
+	public static Browzio I { get; } = new();
 }
 
 
-    // public static void OpenUrl(string url, BrowserType type) {
-    //   var browser = GetBrowser(type);
-    //   if (browser == null) throw new InvalidOperationException($"{type} not installed");
+// public static void OpenUrl(string url, BrowserType type) {
+//   var browser = GetBrowser(type);
+//   if (browser == null) throw new InvalidOperationException($"{type} not installed");
 
-    //   if (IsMacOS) {
-    //     Process.Start("open", $"-a \"{browser.Name}\" \"{url}\"");
-    //   } else {
-    //     Process.Start(new ProcessStartInfo {
-    // FileName = browser.Path,
-    // Arguments = url,
-    // UseShellExecute = false
-    //     });
-    //   }
-    // }
-    // [DllImport("shell32.dll", CharSet = CharSet.Auto)]
-    // private static extern IntPtr ExtractIcon(IntPtr hInst, string lpszExeFileName, int nIconIndex);
+//   if (IsMacOS) {
+//     Process.Start("open", $"-a \"{browser.Name}\" \"{url}\"");
+//   } else {
+//     Process.Start(new ProcessStartInfo {
+// FileName = browser.Path,
+// Arguments = url,
+// UseShellExecute = false
+//     });
+//   }
+// }
+// [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+// private static extern IntPtr ExtractIcon(IntPtr hInst, string lpszExeFileName, int nIconIndex);
 
-    // [DllImport("user32.dll", SetLastError = true)]
-    // private static extern bool DestroyIcon(IntPtr hIcon);
+// [DllImport("user32.dll", SetLastError = true)]
+// private static extern bool DestroyIcon(IntPtr hIcon);
 
-    // private static byte[] ExtractIcon(string exePath)
-    // {
-    //     if (string.IsNullOrEmpty(exePath)) return null;
+// private static byte[] ExtractIcon(string exePath)
+// {
+//     if (string.IsNullOrEmpty(exePath)) return null;
 
-    //     try
-    //     {
-    //         if (IsWindows)
-    //         {
-    //          if (!File.Exists(exePath)) return null;
+//     try
+//     {
+//         if (IsWindows)
+//         {
+//          if (!File.Exists(exePath)) return null;
 
-    //          var hIcon = ExtractIcon(IntPtr.Zero, exePath, 0);
-    //          if (hIcon == IntPtr.Zero) return null;
+//          var hIcon = ExtractIcon(IntPtr.Zero, exePath, 0);
+//          if (hIcon == IntPtr.Zero) return null;
 
-    //          using var icon = Icon.FromHandle(hIcon);
-    //          using var bitmap = icon.ToBitmap();
-    //          using var stream = new MemoryStream();
-    //          bitmap.Save(stream, ImageFormat.Png);
-    //          DestroyIcon(hIcon);
-    //          return stream.ToArray();
-    //         }
-    //         else if (IsMacOS)
-    //         {
-    //          return ExtractMacIcon(exePath);
-    //         }
-    //     }
-    //     catch { }
+//          using var icon = Icon.FromHandle(hIcon);
+//          using var bitmap = icon.ToBitmap();
+//          using var stream = new MemoryStream();
+//          bitmap.Save(stream, ImageFormat.Png);
+//          DestroyIcon(hIcon);
+//          return stream.ToArray();
+//         }
+//         else if (IsMacOS)
+//         {
+//          return ExtractMacIcon(exePath);
+//         }
+//     }
+//     catch { }
 
-    //     return null;
-    // }
+//     return null;
+// }
 
-    // private static byte[] ExtractMacIcon(string appPath)
-    // {
-    //     try
-    //     {
-    //         // Get the app bundle path from executable path
-    //         var bundlePath = appPath;
-    //         if (appPath.Contains("/Contents/MacOS/"))
-    //         {
-    //          bundlePath = appPath.Substring(0, appPath.IndexOf("/Contents/MacOS/"));
-    //         }
+// private static byte[] ExtractMacIcon(string appPath)
+// {
+//     try
+//     {
+//         // Get the app bundle path from executable path
+//         var bundlePath = appPath;
+//         if (appPath.Contains("/Contents/MacOS/"))
+//         {
+//          bundlePath = appPath.Substring(0, appPath.IndexOf("/Contents/MacOS/"));
+//         }
 
-    //         // Read Info.plist to get icon name
-    //         var plistPath = Path.Combine(bundlePath, "Contents", "Info.plist");
-    //         if (!File.Exists(plistPath)) return null;
+//         // Read Info.plist to get icon name
+//         var plistPath = Path.Combine(bundlePath, "Contents", "Info.plist");
+//         if (!File.Exists(plistPath)) return null;
 
-    //         var iconName = "AppIcon"; // Default
-    //         var plistContent = File.ReadAllText(plistPath);
-    //         var iconMatch = Regex.Match(plistContent, @"<key>CFBundleIconFile</key>\s*<string>([^<]+)</string>");
-    //         if (iconMatch.Success)
-    //          iconName = iconMatch.Groups[1].Value.Replace(".icns", "");
+//         var iconName = "AppIcon"; // Default
+//         var plistContent = File.ReadAllText(plistPath);
+//         var iconMatch = Regex.Match(plistContent, @"<key>CFBundleIconFile</key>\s*<string>([^<]+)</string>");
+//         if (iconMatch.Success)
+//          iconName = iconMatch.Groups[1].Value.Replace(".icns", "");
 
-    //         // Try to find the icns file
-    //         var icnsPath = Path.Combine(bundlePath, "Contents", "Resources", $"{iconName}.icns");
-    //         if (!File.Exists(icnsPath))
-    //          icnsPath = Path.Combine(bundlePath, "Contents", "Resources", "AppIcon.icns");
+//         // Try to find the icns file
+//         var icnsPath = Path.Combine(bundlePath, "Contents", "Resources", $"{iconName}.icns");
+//         if (!File.Exists(icnsPath))
+//          icnsPath = Path.Combine(bundlePath, "Contents", "Resources", "AppIcon.icns");
 
-    //         if (File.Exists(icnsPath))
-    //         {
-    //          // Use sips to convert icns to png
-    //          var tempFile = Path.GetTempFileName() + ".png";
-    //          var process = Process.Start(new ProcessStartInfo
-    //          {
-    //              FileName = "sips",
-    //              Arguments = $"-s format png \"{icnsPath}\" --out \"{tempFile}\"",
-    //              UseShellExecute = false,
-    //              CreateNoWindow = true
-    //          });
-    //          process.WaitForExit();
+//         if (File.Exists(icnsPath))
+//         {
+//          // Use sips to convert icns to png
+//          var tempFile = Path.GetTempFileName() + ".png";
+//          var process = Process.Start(new ProcessStartInfo
+//          {
+//              FileName = "sips",
+//              Arguments = $"-s format png \"{icnsPath}\" --out \"{tempFile}\"",
+//              UseShellExecute = false,
+//              CreateNoWindow = true
+//          });
+//          process.WaitForExit();
 
-    //          if (File.Exists(tempFile))
-    //          {
-    //              var data = File.ReadAllBytes(tempFile);
-    //              File.Delete(tempFile);
-    //              return data;
-    //          }
-    //         }
-    //     }
-    //     catch { }
+//          if (File.Exists(tempFile))
+//          {
+//              var data = File.ReadAllBytes(tempFile);
+//              File.Delete(tempFile);
+//              return data;
+//          }
+//         }
+//     }
+//     catch { }
 
-    //     return null;
-    // }
+//     return null;
+// }
 // TDODOZ
 // namespace BrowserUtilities
 // {

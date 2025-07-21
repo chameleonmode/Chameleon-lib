@@ -18,6 +18,12 @@ namespace Chameleon.lib;
 public class IoC {
 	public const string AppName = "Chameleon";
 	public const string SettingFile = "appsettings.json";
+	public const bool Debug = // Environment.GetEnvironmentVariable("CHAMELEON_DEV_MODE") == "true" ||
+#if DEBUG
+		true;
+#else
+		false;
+#endif
 	public static readonly string Assembled = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0";
 
 	/// <summary>

@@ -70,39 +70,23 @@ public class AddonsServer : IStartUp {
 		);
 
 		app.MapGet("/init", ([FromQuery] int instanceId, [FromQuery] string sessionId) => {
-			if (sessionId.Is()) return Results.BadRequest("Missing sessionId parameter");
-			else if (sessions.TryGetValue((sessionId, instanceId), out var instance)) return Results.Content(JSON.Serialize(instance.config), "application/json");
-
-			// Log the missing session for debugging
-			Debug.WriteLine($"Session {sessionId} not found in AddonInstances. Available sessions: {string.Join(", ", sessions.Keys)}");
-			return Results.NotFound($"Session {sessionId} not found");
+			if (
+				sessionId.Is() ||
+				!sessions.TryGetValue((sessionId, instanceId), out var instance)
+			) return Results.NotFound(new { error = "Session not found" });
+			else return Results.Content(JSON.Serialize(instance.config), "application/json");
 		});
-
-		// Get application state endpoint
-		app.MapGet("/app/state", () =>
-			Results.Json(new {
-				appName = "Chameleon",
-				version = "1.0.0",
-				status = "running",
-				timestamp = DateTime.Now
-			})
-		);
 
 		// endpoint to receive data from extensions
 		app.MapPost("/app/data", (HttpContext context, [FromBody] JsonElement body) => {
 			try {
-				var instanceId = int.TryParse(context.Request.Headers["X-Instance-ID"].ToString(), out var id) ? id : 0;
+				var instanceId = int.Parse(context.Request.Headers["X-Instance-ID"].ToString());
 				var sessionId = context.Request.Headers["X-Session-ID"].ToString();
-				var gotSession = sessions.TryGetValue((sessionId, instanceId), out var instance);
-				IBrowserInstance? browser = null; // Ensure browser is initialized  
-				if (gotSession) _ = Browzers.I.Browsers.TryGetValue((instance.bt, instanceId), out browser);
 				return body.GetProperty("type").GetString() switch {
-					"init" => gotSession ? Results.Json(new { instance.config, instance.port }) : Results.NotFound(new { error = "Session not found" }),
-					"port" => Results.Ok(new { port = browser?.Settings.Port }),
-					// @TODO: Implement proper handling for "init" type
-					//"port" when body.TryGetProperty("port", out var ele) && ele.TryGetInt32(out var port) && browser != null =>
-					//	Results.Ok(new { status = "ok", port = browser.Settings.Profile.Port = port }),
-					"event" or "action" => Results.Ok(new { status = "ok" }),
+					"init" => sessions.TryGetValue((sessionId, instanceId), out var instance)
+						? Results.Json(new { instance.config, instance.port }) 
+						: Results.Json(new { error = "Session not found" }),
+					// @TODO: Implement proper handling for "port" type
 					_ => Results.BadRequest(new { error = "Invalid type" })
 				};
 			} catch (Exception e) {

@@ -1,7 +1,7 @@
 ﻿using System.IO.Compression;
 
 namespace Chameleon.lib.Util;
-public static class IOU {
+public static class IO {
 	public static Task<string> DC(string dir) => Task.Run(() => {
 		DeleteDir(dir);
 		return EnsureDirectoryExists(dir);
