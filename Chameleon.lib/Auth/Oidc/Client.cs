@@ -58,7 +58,7 @@ public class Client {
 		return token;
 	}
 	private void SaveToken(TokenResponse token) {
-		IoC.SetJsonVal(token, nameof(TokenResponse));
+		IoC.SetJsonValue(nameof(TokenResponse), token, null);
 	}
 	private async Task<TokenResponse> GetNewToken(string code) {
 		using var client = new HttpClient();

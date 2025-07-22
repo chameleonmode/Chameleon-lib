@@ -34,7 +34,8 @@ public class CodesVerifyAPI : PVAInstance {
 	}
 
 	public override async Task Save() {
-		await IoC.SetValue<string>(ApiKey ?? "", string.Join('_', nameof(CodesVerifyAPI), nameof(ApiKey)));
+		await Task.CompletedTask;
+		IoC.SetValue(string.Join('_', nameof(CodesVerifyAPI), nameof(ApiKey)), ApiKey);
 	}
 
 	public override async Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app) {

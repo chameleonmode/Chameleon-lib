@@ -524,7 +524,7 @@ public class MacOSBrowserDetector : BrowserDetector {
 public class Browzio : IStartUp {
 	public static class State {
 		public static bool Staging { get; } = true && IoC.Debug && Debugger.IsAttached;
-		public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value!); }
+		public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value, null); }
 	}
 	public static class Extensions {
 		public static string Version => IoC.Assembled; //"2025.7.17.4";

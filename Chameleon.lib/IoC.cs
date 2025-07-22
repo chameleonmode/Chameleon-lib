@@ -79,33 +79,32 @@ public class IoC {
 
 	//
 	public static string? GetValue(string key) => I.Config?.GetValue<string>(key);
-	public static void SetValue(string key, string value) => I.Config?.SetValue(key, value);
-	public static Task SetValue<T>(T value, string key) => Task.Run(() => {
+	public static void SetValue<T>(string key, T? value, string? message = null) {
 		if (
 			I.Config is null ||
 			EqualityComparer<T>.Default.Equals(I.Config.GetValue<T>(key), value)
 		) return; // Value is unchanged; no update required.
 
-		I.Config.SetValue(key, value, "Settings saved");
-	});
+		I.Config.SetValue(key, value, message);
+	}
+	public static void SetValue(string key, string? value) => SetValue(key, value, "Settings saved");
 
 	public static T? GetJsonValue<T>(string key) => JSON.Deserialize<T>(GetValue(key) ?? "");
-	public static void SetJsonVal<T>(T value, string key, string? message = null) {
+	public static void SetJsonValue<T>(string key, T value, string? message = null) {
 		if (
-			I.Config is null ||
 			JSON.Stringify(value) is not { } nv ||
-			string.Equals(nv, I.Config.GetValue<string>(key), StringComparison.Ordinal)
+			string.Equals(nv, I.Config?.GetValue<string>(key), StringComparison.Ordinal)
 		) return;
-		I.Config.SetValue(key, nv, message);
+		I.Config?.SetValue(key, nv, message);
 	}
-	public static void SetJsonValue<T>(T value, string key) => SetJsonVal(value, key, "Settings saved");
+	public static void SetJsonValue<T>(string key, T value) => SetJsonValue(key, value, "Settings saved");
 
 
 	//
 	public static void ClearValue(string key) {
 		if (I.Config is null) return;
 		_ = I.Config.overrides.TryRemove(key, out _);
-		SetValue(key, "null");
+		SetValue(key, null);
 	}
 
 	//Singleton pattern

@@ -28,7 +28,7 @@ public interface IPlaywrightBrowser : IDisposable {
 
 public static class Project {
 	public static class Plugins {
-		public static string? Version { get => IoC.GetValue(nameof(Plugins)); set => IoC.SetValue(nameof(Plugins), value!); }
+		public static string? Version { get => IoC.GetValue(nameof(Plugins)); set => IoC.SetValue(nameof(Plugins), value, null); }
 		public static string DotPlaywright { get; } = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
 			IoC.Debug || OperatingSystem.IsWindows() ? ".playwright" : "../Resources/.playwright"
 		);

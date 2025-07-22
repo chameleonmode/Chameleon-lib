@@ -11,7 +11,7 @@ public class Session {
 	Session() { }
 
 	public void Save(LoginSettings settings) {
-		IoC.SetJsonValue(settings, nameof(LoginSettings));
+		IoC.SetJsonValue(nameof(LoginSettings), settings, null);
 	}
 
 	public async Task Login(LoginSettings login) {
