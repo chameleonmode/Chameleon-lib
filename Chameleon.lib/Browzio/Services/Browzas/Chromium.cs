@@ -124,7 +124,7 @@ public class Chromium : Browza {
 			//Settings.WithExtensions ? $"--load-extension=\"{(Browzio.State.Staging ? Browzio.Extensions.Chromeleon : Settings.ExtensionsPath)}\"" : null,
 			//Settings.Profile.Extensions ? $"--load-extension=\"{Settings.ExtensionsPath}\"" : null,
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
-			url ??= Settings.WithExtensions? InitUrl : Settings.Profile.StartPage
+			Settings.WithExtensions ? InitUrl : Settings.Profile.StartPage
 		}.Where(x => x != null));
 	}
 
