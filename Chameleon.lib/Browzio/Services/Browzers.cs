@@ -7,6 +7,21 @@ using static Chameleon.lib.Browzio.Browzio;
 
 namespace Chameleon.lib.Browzio.Services;
 
+public interface IBrowserInstance {
+	public record EventArgs(BrowserSetting Settings, Event Event);
+	Process? Brocess { get; set; }
+	BrowserSetting Settings { get; init; }
+	string SessionId { get; }
+	void InvokeEvent(Event @event);
+	void Close();
+	Task Closee();
+	Task Ensure();
+	Process Brocessor(string url);
+	TaskCompletionSource<bool> LoadedTCS { get; }
+	Task Initialize(object? param = null);
+	event Action<object, EventArgs>? OnEvent;
+}
+
 public abstract class Browzer : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public Process? Brocess { get; set; }
@@ -18,11 +33,10 @@ public abstract class Browzer : IBrowserInstance {
 
 	public void InvokeEvent(Event @event) {
 		var args = new IBrowserInstance.EventArgs(Settings, @event);
-		if (@event == Event.Foreground){
+		if (@event == Event.Foreground) {
 			Browzers.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, args)));
-			if(Brocess is not null) Brocessor().Start();
-		}
-		else if (@event == Event.Opened) Browzers.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, new(Settings, Event.Foreground))));
+			if (Brocess is not null) Brocessor().Start();
+		} else if (@event == Event.Opened) Browzers.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, new(Settings, Event.Foreground))));
 		else OnEvent?.Invoke(this, args);
 	}
 
@@ -56,7 +70,7 @@ public abstract class Browzer : IBrowserInstance {
 		};
 
 		Brocess.HasExited.ThrowTrue("Browser process has already exited");
-		 _ = LoadedTCS.TrySetResult(true);
+		_ = LoadedTCS.TrySetResult(true);
 		InvokeEvent(Event.Opened);
 	}
 

@@ -43,20 +43,7 @@ public interface IBrowserDetector {
 	List<BrowserInfo> GetChromiumBrowsers();
 	List<BrowserInfo> GetGeckoBrowsers();
 }
-public interface IBrowserInstance {
-	public record EventArgs(BrowserSetting Settings, Event Event);
-	Process? Brocess { get; set; }
-	BrowserSetting Settings { get; init; }
-	string SessionId { get; }
-	void InvokeEvent(Event @event);
-	void Close();
-	Task Closee();
-	Task Ensure();
-	Process Brocessor(string url);
-	TaskCompletionSource<bool> LoadedTCS { get; }
-	Task Initialize(object? param = null);
-	event Action<object, EventArgs>? OnEvent;
-}
+
 public record BrowserOption(BrowserType Option) {
 	public string IconName { get; } = Option.ToString().ToLower();
 }
