@@ -60,12 +60,12 @@ public class SMSPVAPI : PVAInstance {
 	private List<KeyValuePair<string, string>> ApiKeyHeaders => [new("apikey", ApiKey!)];
 
 	public override Task Init() {
-		ApiKey = IoC.GetValue(nameof(SMSPVAPI), nameof(ApiKey));
+		ApiKey = IoC.GetValue(string.Join('_', nameof(SMSPVAPI), nameof(ApiKey)));
 		return Task.CompletedTask;
 	}
 
 	public override async Task Save() {
-		await IoC.SetValue(ApiKey, nameof(SMSPVAPI), nameof(ApiKey));
+		await IoC.SetValue<string>(ApiKey ?? "", string.Join('_', nameof(SMSPVAPI), nameof(ApiKey)));
 	}
 
 	public override Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app)

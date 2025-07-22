@@ -63,7 +63,7 @@ public class SMSPoolAPI : PVAInstance {
 	private AuthenticationHeaderValue Authorization => new("Token", ApiKey);
 
 	public override async Task Init() {
-		ApiKey = IoC.GetValue(nameof(SMSPoolAPI), nameof(ApiKey));
+		ApiKey = IoC.GetValue(string.Join('_', nameof(SMSPoolAPI), nameof(ApiKey)));
 
 		var getCountriesUrl = $"https://api.smspool.net/country/retrieve_all";
 		var countriesResponse = await GetAsync(getCountriesUrl);
@@ -77,7 +77,7 @@ public class SMSPoolAPI : PVAInstance {
 	}
 
 	public override async Task Save() {
-		await IoC.SetValue(ApiKey, nameof(SMSPoolAPI), nameof(ApiKey));
+		await IoC.SetValue<string>(ApiKey ?? "", string.Join('_', nameof(SMSPoolAPI), nameof(ApiKey)));
 	}
 
 	public override Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app)

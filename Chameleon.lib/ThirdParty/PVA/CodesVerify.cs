@@ -29,12 +29,12 @@ public class CodesVerifyAPI : PVAInstance {
 	public record class Country(string Name) : RCountry(Name);
 	public record AppData(string Name, string Price) : RService(Name);
 	public override Task Init() {
-		ApiKey = IoC.GetValue(nameof(CodesVerifyAPI), nameof(ApiKey));
+		ApiKey = IoC.GetValue(string.Join('_', nameof(CodesVerifyAPI), nameof(ApiKey)));
 		return Task.CompletedTask;
 	}
 
 	public override async Task Save() {
-		await IoC.SetValue(ApiKey, nameof(CodesVerifyAPI), nameof(ApiKey));
+		await IoC.SetValue<string>(ApiKey ?? "", string.Join('_', nameof(CodesVerifyAPI), nameof(ApiKey)));
 	}
 
 	public override async Task<Tuple<string, string>> GetNumberAsync(RCountry country, RService app) {

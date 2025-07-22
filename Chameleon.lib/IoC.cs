@@ -78,10 +78,9 @@ public class IoC {
 	public static object? GetService(Type t) => I.Services?.GetService(t);
 
 	//
-	public static string? GetValue(params string[] keys) => I.Config?.GetValue<string>(string.Join('_', keys));
+	public static string? GetValue(string key) => I.Config?.GetValue<string>(key);
 	public static void SetValue(string key, string value) => I.Config?.SetValue(key, value);
-	public static Task SetValue<T>(T value, params string[] keys) => Task.Run(() => {
-		var key = string.Join('_', keys).Replace(' ', '_');
+	public static Task SetValue<T>(T value, string key) => Task.Run(() => {
 		if (
 			I.Config is null ||
 			EqualityComparer<T>.Default.Equals(I.Config.GetValue<T>(key), value)
@@ -90,7 +89,7 @@ public class IoC {
 		I.Config.SetValue(key, value, "Settings saved");
 	});
 
-	public static T? GetJsonValue<T>(params string[] keys) => JSON.Deserialize<T>(GetValue(keys) ?? "");
+	public static T? GetJsonValue<T>(string key) => JSON.Deserialize<T>(GetValue(key) ?? "");
 	public static void SetJsonVal<T>(T value, string key, string? message = null) {
 		if (
 			I.Config is null ||
@@ -99,15 +98,14 @@ public class IoC {
 		) return;
 		I.Config.SetValue(key, nv, message);
 	}
-	public static void SetJsonValue<T>(T value, params string[] keys) => SetJsonVal(value, string.Join('_', keys).Replace(' ', '_'), "Settings saved");
+	public static void SetJsonValue<T>(T value, string key) => SetJsonVal(value, key, "Settings saved");
 
 
 	//
-	public static void ClearValue(params string[] keys) {
+	public static void ClearValue(string key) {
 		if (I.Config is null) return;
-		var key = string.Join('_', keys).Replace(' ', '_');
 		_ = I.Config.overrides.TryRemove(key, out _);
-		_ = SetValue("null", keys);
+		SetValue(key, "null");
 	}
 
 	//Singleton pattern
