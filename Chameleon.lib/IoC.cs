@@ -91,7 +91,6 @@ public class IoC {
 	});
 
 	public static T? GetJsonValue<T>(params string[] keys) => JSON.Deserialize<T>(GetValue(keys) ?? "");
-	public static void SetJsonValue<T>(T value, params string[] keys) => SetJsonVal(value, string.Join('_', keys).Replace(' ', '_'), "Settings saved");
 	public static void SetJsonVal<T>(T value, string key, string? message = null) {
 		if (
 			I.Config is null ||
@@ -100,6 +99,8 @@ public class IoC {
 		) return;
 		I.Config.SetValue(key, nv, message);
 	}
+	public static void SetJsonValue<T>(T value, params string[] keys) => SetJsonVal(value, string.Join('_', keys).Replace(' ', '_'), "Settings saved");
+
 
 	//
 	public static void ClearValue(params string[] keys) {
