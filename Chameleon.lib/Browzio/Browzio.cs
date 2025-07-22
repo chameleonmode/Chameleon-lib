@@ -253,8 +253,52 @@ public class WindowsBrowserDetector : BrowserDetector {
 		// Detect from PATH environment variable
 		DetectFromPath(browsers, foundPaths);
 
-		return browsers.OrderBy(b => b.Type.ToString()).ToList();
+		var uniqueBrowsers = browsers
+			.GroupBy(b => b.Type)
+			.Select(typeGroup => {
+
+				var versionGroups = typeGroup.GroupBy(b => b.Version);
+				var bestPerVersion = versionGroups.Select(versionGroup => {
+					if (versionGroup.Count() == 1) {
+						return versionGroup.First();
+					}
+					return versionGroup
+						.OrderBy(b => GetPathPriority(b.ExecutablePath))
+						.First();
+				});
+
+				return bestPerVersion
+					.OrderByDescending(b => ParseVersion(b.Version))
+					.First();
+			})
+			.ToList();
+
+		return [.. uniqueBrowsers.OrderBy(b => b.Type.ToString())];
 	}
+
+	private static int GetPathPriority(string path) {
+		var lowerPath = path.ToLowerInvariant();
+
+		if (lowerPath.Contains("webview")) return 10;
+		if (lowerPath.Contains("application\\")) return 5;
+		return lowerPath.Contains("program files") ? 1 : 3;
+	}
+
+	private static Version ParseVersion(string versionString) {
+		try {
+			var cleanVersion = versionString?.Trim();
+			if (string.IsNullOrEmpty(cleanVersion)) return new Version(0, 0);
+
+			// Remove any non-version characters (like build info)
+			var match = Regex.Match(cleanVersion, @"(\d+(?:\.\d+){0,3})");
+			return match.Success
+				? new Version(match.Groups[1].Value)
+				: new Version(0, 0);
+		} catch {
+			return new Version(0, 0);
+		}
+	}
+
 
 	private void DetectFromRegistry(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
 		// Check registered applications
