@@ -52,6 +52,7 @@ public abstract class Browza : IBrowserInstance {
 	public async Task Initialize(object? param = null) {
 		if (Brocess is not null) return;
 
+		Settings.Port = Processez.NextFreePort(9613);
 		await Ensure();
 		await InitializeExtensions();
 
@@ -96,7 +97,7 @@ public abstract class Browza : IBrowserInstance {
 		await Task.Delay(600);
 	}
 	protected virtual async Task InitializeExtensions() {
-		if (!Settings.Profile.Extensions) return;
+		if (Settings.Profile.Id > 0) return;
 
 		// set the extension settings
 		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
@@ -152,55 +153,55 @@ public abstract class Browza : IBrowserInstance {
 
 public class Browzers {
 	private readonly SemaphoreSlim semaphore = new(1, 1);
-	public int TimeOut { get; } = 18;
 	public ConcurrentDictionary<(BrowserType bt, int id), IBrowserInstance> Browsers { get; } = [];
 	public ConcurrentDictionary<int, List<Action<object, IBrowserInstance.EventArgs>>> Observers { get; } = [];
 	Browzers() { }
 
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
-		if (!settings.Profile.Extensions) {
+		if (settings.Profile.Id > 0) {
+			await AddonsServer.I.Initialized.Task;
+			settings.Browser.OnEvent += (sender, args) => {
+				if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+				if (Observers.TryGetValue(settings.Profile.Id, out var observer))
+					observer.ForEach(x => x.Invoke(sender, args));
+			};
+			await settings.Browser.Initialize();
+			return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
+		} else {
 			_ = settings.Browser.Initialize();
 			await settings.Browser.LoadedTCS.Task;
 			return settings.Browser;
 		}
-		await AddonsServer.I.Initialized.Task;
-		settings.Port = Processez.NextFreePort(9613);
-		settings.Browser.OnEvent += (sender, args) => {
-			if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-			if (Observers.TryGetValue(settings.Profile.Id, out var observer))
-				observer.ForEach(x => x.Invoke(sender, args));
-		};
-		await settings.Browser.Initialize();
-		return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
 	}
 
 	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
+		await semaphore.WaitAsync();
+		// To wait
+		if (
+			Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) &&
+			browser != null
+		) return browser;
 		try {
-			await semaphore.WaitAsync();
-			// To wait
-			if (!Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) || browser == null) {
-				return await EX.Catch(
-					async () => browser = await Launch(settings),
-					e => {
-						if (settings.Profile.Extensions) Toaster.Error(e.Message);
-						_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-						settings.Browser.InvokeEvent(Event.Error);
-					}) ?? throw new InvalidOperationException();
-			}
-			return browser;
+			return await EX.Catch(
+				async () => browser = await Launch(settings),
+				e => {
+					if (settings.Profile.Id > 0) Toaster.Error(e.Message);
+					_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+					settings.Browser.InvokeEvent(Event.Error);
+				}) ?? throw new InvalidOperationException();
 		} finally {
-			// To signal
+			// Signal
 			_ = semaphore.Release();
 		}
 	}
 
-	public IEnumerable<BrowserType> HasInstanceOf(int id, Action<object, IBrowserInstance.EventArgs> action) {
+	public void AddObserver(int id, Action<object, IBrowserInstance.EventArgs> action) {
 		if (Observers.TryGetValue(id, out var value)) value.Add(action);
 		else Observers[id] = [action];
 
-		return Browsers
-			.Where(x => x.Value.Settings.Profile.Id == id)
-			.Select(b => b.Value.Settings.BrowserType);
+		// return Browsers
+		// 	.Where(x => x.Value.Settings.Profile.Id == id)
+		// 	.Select(b => b.Value.Settings.BrowserType);
 	}
 
 	public void CleanupStaleInstances() {

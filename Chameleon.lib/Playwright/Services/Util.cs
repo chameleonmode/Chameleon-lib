@@ -43,7 +43,7 @@ public static class Util {
 	public static async Task<string> GetBrowseExecutablePath(Browzio.BrowserType browserType) {
 		return browserType == Browzio.BrowserType.Firefox
 				? await InstallPlaywrightsFirefoxIfNecessary() ?? throw new InvalidOperationException("Failed to install Firefox")
-				: lib.Browzio.Browzio.Utilities.Info.GetBrowser(browserType).ExecutablePath ??
+				: lib.Browzio.Browzio.Utilities.GetBrowser(browserType)?.ExecutablePath ??
 				  throw new InvalidOperationException("Browser executable path not found.");
 	}
 

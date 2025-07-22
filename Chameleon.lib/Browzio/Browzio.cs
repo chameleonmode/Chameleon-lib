@@ -40,20 +40,7 @@ public record BrowserOption(BrowserType Option) {
 	public string IconName { get; } = Option.ToString().ToLower();
 }
 public class BrowserProxy {
-	public string? HostForRequest => Host?.Contains("proxy.chameleonmode.com") == true ?
-		"proxy.packetstream.io"
-		: Host;
-	public string? Server => CanUse ? $"{Host}:{Port}" : null;
-	public string? ServerForRequest => CanUse ? $"http://{Server}" : null;
-	public WebProxy? WebProxy => CanUse ? new WebProxy(Server) {
-		Credentials = new NetworkCredential(UserName, Password)
-	} : null;
-
-	public bool CanUse => Host.IsNot() && Port > 0;
-	public bool HasLogin => UserName.IsNot() && Password.IsNot();
-
 	private string? _host;
-	private int _port = 80;
 	private string? _userName;
 	private string? _password;
 
@@ -61,41 +48,40 @@ public class BrowserProxy {
 		get => _host;
 		set => _host = value?.Trim();
 	}
-
 	public string? UserName {
 		get => _userName;
 		set => _userName = value?.Trim();
 	}
-
 	public string? Password {
 		get => _password;
 		set => _password = value?.Trim();
 	}
-
+	private int _port = 80;
 	public int Port {
 		get => _port;
-		set {
-			if (value is < 0 or > 65535) value = 0;
-			_port = value;
-		}
+		set => _port = value is < 0 or > 65535 ? 0 : value;
 	}
+	public bool CanUse => Host.IsNot() && Port > 0;
+	public bool HasLogin => UserName.IsNot() && Password.IsNot();
+	public string? Server => CanUse ? $"{Host}:{Port}" : null;
+	public string? ServerForRequest => CanUse ? $"http://{Server}" : null;
+	public string? HostForRequest => Host.IsNot() && Host.Contains("proxy.chameleonmode.com") ? "proxy.packetstream.io" : Host;
+	public WebProxy? WebProxy => CanUse ? new WebProxy(Server) {
+		Credentials = new NetworkCredential(UserName, Password)
+	} : null;
 }
-public class BrowserProfile {
+public class BrowserProfile(string? url = null) {
 	public int Id { get; init; } = -1; // -1 is a special value for the default profile
-	public bool Extensions { get; init; } = true;
 	public BrowserProxy Proxy { get; set; } = new();
-	public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 
+	public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 	public string[] Bookmarks { get; init; } = IoC.GetJsonValue<string[]>(nameof(Bookmarks)) ?? [];
 
-	public string StartPage { get; set; } = IoC.GetValue(nameof(StartPage))
-		.Let(url =>
-			url.Is()
-				? "about:blank"
-				: Uri.TryCreate(url, UriKind.Absolute, out var uriResult) &&
-		(uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps)
-			? uriResult.AbsoluteUri
-			: "http://" + url
+	public string StartPage => url ?? IoC.GetValue(nameof(StartPage))
+		.Let(url => url.IsNot() && Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
+					? uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps
+						? uriResult.AbsoluteUri : "http://" + url
+					: "about:blank"
 		);
 }
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
@@ -128,7 +114,7 @@ public record EmulationOptions(
 #endregion
 
 // Abstract base class with common functionality
-public abstract class BrowserDetectorBase : IBrowserDetector {
+public abstract class BrowserDetector : IBrowserDetector {
 	// Known browser identifiers and their types/engines
 	protected static readonly Dictionary<string, (BrowserType Type, BrowserEngine Engine)> KnownBrowsers = new(StringComparer.OrdinalIgnoreCase) {
 		// Chromium-based
@@ -192,7 +178,7 @@ public abstract class BrowserDetectorBase : IBrowserDetector {
 		var lowerPath = executablePath.ToLower();
 		var lowerName = browserName.ToLower();
 
-		if (lowerPath.Contains("chrome") && !lowerPath.Contains("chromium") || lowerName.Contains("chrome")) {
+		if (lowerPath.Contains("chrome") && (!lowerPath.Contains("chromium") || lowerName.Contains("chrome"))) {
 			return (BrowserType.Chrome, BrowserEngine.Chromium);
 		}
 		if (lowerPath.Contains("edge") || lowerName.Contains("edge")) {
@@ -243,7 +229,7 @@ public abstract class BrowserDetectorBase : IBrowserDetector {
 
 // Windows implementation
 [SupportedOSPlatform("windows")]
-public class WindowsBrowserDetector : BrowserDetectorBase {
+public class WindowsBrowserDetector : BrowserDetector {
 	// Common installation directories to scan
 	private static readonly string[] SearchDirectories = {
 				@"C:\Program Files",
@@ -463,7 +449,7 @@ public class WindowsBrowserDetector : BrowserDetectorBase {
 
 // macOS implementation
 [SupportedOSPlatform("macos")]
-public class MacOSBrowserDetector : BrowserDetectorBase {
+public class MacOSBrowserDetector : BrowserDetector {
 	private static readonly string[] ApplicationDirectories = {
 				"/Applications",
 				"/System/Applications",
@@ -554,38 +540,23 @@ public class Browzio : IStartUp {
 		public static string Geckoleon => Path.Combine(State.Staging && Directory.Exists(DevPath) ? DevPath : Gecko, "geckoleon.xpi");
 	}
 	public static class Factory {
-		public static BrowserSetting Chrome(BrowserProfile profile) {
-			return new BrowserSetting(BrowserType.Chrome, profile) {
-				Port = Processez.NextFreePort(9613)
-			};
-		}
-		public static BrowserSetting Chrome(string url) {
-			return Chrome(new BrowserProfile {
-				StartPage = url,
-				Extensions = false,
-				Emulations = new(),
-			});
-		}
+		public static BrowserSetting BrowserSettings(BrowserType bt, BrowserProfile profile) => new (bt, profile) {
+			Port = Processez.NextFreePort(9613)
+		};
+		public static BrowserSetting Chrome(BrowserProfile profile) => BrowserSettings (BrowserType.Chrome, profile);
+		public static BrowserSetting Brave(BrowserProfile profile) => BrowserSettings (BrowserType.Brave, profile);
+		public static BrowserSetting Firefox(BrowserProfile profile) => BrowserSettings (BrowserType.Firefox, profile);
 
-		public static BrowserSetting Brave(BrowserProfile profile) {
-			return new BrowserSetting(BrowserType.Brave, profile);
-		}
-
-		public static BrowserSetting Firefox(BrowserProfile profile) {
-			return new BrowserSetting(BrowserType.Firefox, profile);
-		}
-
-		public static IBrowserDetector Create() {
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-				return new WindowsBrowserDetector();
-			else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-				return new MacOSBrowserDetector();
-			else
-				throw new NotSupportedException("Unsupported operating system");
+		public static IBrowserDetector CreateDetector() {
+			return OperatingSystem.IsWindows()
+				? new WindowsBrowserDetector()
+				: OperatingSystem.IsMacOS()
+				? new MacOSBrowserDetector()
+				: throw new NotSupportedException("Unsupported operating system");
 		}
 	}
 	public static class Utilities {
-		private static readonly IBrowserDetector detector = Factory.Create();
+		private static readonly IBrowserDetector detector = Factory.CreateDetector();
 
 		public static List<BrowserInfo> DetectBrowsers() => detector.DetectBrowsers();
 		public static BrowserInfo? GetBrowser(BrowserType type) => detector.GetBrowser(type);
@@ -594,6 +565,7 @@ public class Browzio : IStartUp {
 		public static List<BrowserInfo> GetChromiumBrowsers() => detector.GetChromiumBrowsers();
 		public static List<BrowserInfo> GetGeckoBrowsers() => detector.GetGeckoBrowsers();
 		
+		[Obsolete("Use IBrowserDetector instead.")]
 		public static class Info {
 			public record class Information(string Name, string ExecutablePath) {
 				public override string ToString() {
@@ -677,7 +649,7 @@ public class Browzio : IStartUp {
 					$"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
 				} else if (OperatingSystem.IsWindows()) {
 					var (installed, filepath) = CheckApplication(executable);
-					if (installed && filepath.IsNot()) return new (executable, filepath);
+					if (installed && filepath.IsNot()) return new(executable, filepath);
 				}
 
 				throw new NotSupportedException($"{char.ToUpper(executable[0]) + executable[1..]} browser is not installed.");
