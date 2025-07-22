@@ -104,13 +104,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (
     app.server === null ||
     app.state.loaded !== true ||
-    changeInfo.status !== "complete" ||
+    changeInfo.status === "loading" ||
     tab.url.startsWith("http://127.0.0.1") === false
   ) return;
-
-  const tabs = await chrome.tabs.query({});
-  if (tabs.length == 1) await chrome.tabs.update(tabId, { url: app.config.urls.start });
-  else chrome.tabs.remove(tabId);
+  chrome.tabs.remove(tabId);
 });
 
 // Listen for messages from popup or content scripts
