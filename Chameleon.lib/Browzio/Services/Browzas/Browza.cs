@@ -1,28 +1,27 @@
-﻿using Chameleon.lib.Util;
+﻿using System.Diagnostics;
+using Chameleon.lib.Util;
 using Chameleon.lib.ThirdParty.GeoIp;
-using System.Diagnostics;
-using Chameleon.lib.Helpers;
-using System.Collections.Concurrent;
 using static Chameleon.lib.Browzio.Browzio;
 
 namespace Chameleon.lib.Browzio.Services.Browzas;
 
 public interface IBrowserInstance {
 	public record EventArgs(BrowserSetting Settings, Event Event);
-	Process? Brocess { get; set; }
+	event Action<object, EventArgs>? OnEvent;
 	BrowserSetting Settings { get; init; }
+	Process? Brocess { get; set; }
 	string SessionId { get; }
-	void InvokeEvent(Event @event);
 	void Close();
 	Task Closee();
 	Task Ensure();
 	Process Brocessor(string url);
-	TaskCompletionSource<bool> LoadedTCS { get; }
+	void InvokeEvent(Event @event);
 	Task Initialize(object? param = null);
-	event Action<object, EventArgs>? OnEvent;
+	TaskCompletionSource<bool> LoadedTCS { get; }
 }
 
 public abstract class Browza : IBrowserInstance {
+	public event Action<object, IBrowserInstance.EventArgs>? OnEvent;
 	public Process? Brocess { get; set; }
 	public required BrowserSetting Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
@@ -32,9 +31,9 @@ public abstract class Browza : IBrowserInstance {
 	public void InvokeEvent(Event @event) {
 		var args = new IBrowserInstance.EventArgs(Settings, @event);
 		if (@event == Event.Foreground) {
-			Browzers.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, args)));
+			Browzio.I.Browzas.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, args)));
 			if (Brocess is not null) Brocessor().Start();
-		} else if (@event == Event.Opened) Browzers.I.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, new(Settings, Event.Foreground))));
+		} else if (@event == Event.Opened) Browzio.I.Browzas.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, new(Settings, Event.Foreground))));
 		else OnEvent?.Invoke(this, args);
 	}
 
@@ -115,9 +114,9 @@ public abstract class Browza : IBrowserInstance {
 			},
 			tz = new {
 				enabled = Settings.Profile.Emulations.AutoTimezone,
-				zone = ipapi.timezone,
-				system = ipapi.tzSystem,
 				locale = "en-" + ipapi.countryCode,
+				system = ipapi.tzSystem,
+				zone = ipapi.timezone,
 			},
 			geo = new {
 				enabled = Settings.Profile.Emulations.SpoofGeoLocation,
@@ -126,10 +125,10 @@ public abstract class Browza : IBrowserInstance {
 			},
 			canvas = new { enabled = Settings.Profile.Emulations.SpoofCanvasFingerprint },
 			webgl = new { enabled = Settings.Profile.Emulations.SpoofWebGLFingerprint },
-			rects = new { enabled = Settings.Profile.Emulations.SpoofClientRects },
 			fonts = new { enabled = Settings.Profile.Emulations.SpoofFontFingerprint },
-			audio = new { enabled = Settings.Profile.Emulations.SpoofAudio },
+			rects = new { enabled = Settings.Profile.Emulations.SpoofClientRects },
 			navi = new { enabled = Settings.Profile.Emulations.SpoofNavigator },
+			audio = new { enabled = Settings.Profile.Emulations.SpoofAudio },
 		});
 	}
 	protected virtual async Task WaitForWinHandle() {
@@ -145,83 +144,5 @@ public abstract class Browza : IBrowserInstance {
 	}
 
 	protected abstract string GetCommandLineArguments(string? url);
-
-	public event Action<object, IBrowserInstance.EventArgs>? OnEvent;
 }
 
-public class Browzers {
-	private readonly SemaphoreSlim semaphore = new(1, 1);
-	public ConcurrentDictionary<(BrowserType bt, int id), IBrowserInstance> Browsers { get; } = [];
-	public ConcurrentDictionary<int, List<Action<object, IBrowserInstance.EventArgs>>> Observers { get; } = [];
-	Browzers() { }
-
-	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
-		if (settings.WithExtensions) {
-			await AddonsServer.I.Initialized.Task;
-			settings.Browser.OnEvent += (sender, args) => {
-				if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-				if (Observers.TryGetValue(settings.Profile.Id, out var observer))
-					observer.ForEach(x => x.Invoke(sender, args));
-			};
-			await settings.Browser.Initialize();
-			return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
-		} else {
-			_ = settings.Browser.Initialize();
-			await settings.Browser.LoadedTCS.Task;
-			return settings.Browser;
-		}
-	}
-
-	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
-		await semaphore.WaitAsync();
-		// To wait
-		if (
-			Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) &&
-			browser != null
-		) return browser;
-		try {
-			return await EX.Catch(
-				async () => browser = await Launch(settings),
-				e => {
-					if (settings.WithExtensions) Toaster.Error(e.Message);
-					_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-					settings.Browser.InvokeEvent(Event.Error);
-				}) ?? throw new InvalidOperationException();
-		} finally {
-			// Signal
-			_ = semaphore.Release();
-		}
-	}
-
-	public void AddObserver(int id, Action<object, IBrowserInstance.EventArgs> action) {
-		if (Observers.TryGetValue(id, out var value)) value.Add(action);
-		else Observers[id] = [action];
-
-		// return Browsers
-		// 	.Where(x => x.Value.Settings.Profile.Id == id)
-		// 	.Select(b => b.Value.Settings.BrowserType);
-	}
-
-	public void CleanupStaleInstances() {
-		var staleBrowsers = new List<(BrowserType, int)>();
-
-		foreach (var (key, browser) in Browsers) {
-			if (
-				browser.Brocess != null && (
-				browser.Brocess.HasExited == false || (
-				OperatingSystem.IsWindows() &&
-				browser.Brocess.MainWindowHandle == IntPtr.Zero)
-			)) continue;
-			staleBrowsers.Add(key);
-		}
-
-		foreach (var options in staleBrowsers) {
-			if (Browsers.TryRemove(options, out var staleBrowser)) {
-				EX.Try(staleBrowser.Close);
-			}
-		}
-	}
-
-	// Singleton
-	public static Browzers I { get; } = new();
-}

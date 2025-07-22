@@ -114,7 +114,7 @@ public static class ListsExtensions {
   }
 
   public static void AddOrRemove<T>(this IList<T> list, T item, Func<bool> predicate) {
-    if (predicate() ) list.AddIfNot(item);
+    if (predicate()) list.AddIfNot(item);
     else list.Remove(item);
   }
   public static void AddIfNot<T>(this IList<T> list, T item) {

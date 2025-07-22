@@ -1,11 +1,12 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 using chameleon.assets;
 using Chameleon.lib.Browzio.Services;
 using Chameleon.lib.Browzio.Services.Browzas;
+using Chameleon.lib.Helpers;
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
 using Microsoft.Win32;
@@ -521,7 +522,6 @@ public class MacOSBrowserDetector : BrowserDetector {
 }
 
 public class Browzio : IStartUp {
-	public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
 	public static class State {
 		public static bool Staging { get; } = true && IoC.Debug && Debugger.IsAttached;
 		public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value!); }
@@ -664,8 +664,81 @@ public class Browzio : IStartUp {
 		}
 	}
 
-	public TaskCompletionSource<bool> Initialized { get; } = new();
+	public Browzers Browzas { get; } = new();
+	public class Browzers {
+		private readonly SemaphoreSlim semaphore = new(1, 1);
+		public ConcurrentDictionary<(BrowserType bt, int id), IBrowserInstance> Browsers { get; } = [];
+		public ConcurrentDictionary<int, List<Action<object, IBrowserInstance.EventArgs>>> Observers { get; } = [];
+		internal Browzers() { }
 
+		public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
+			if (settings.WithExtensions) {
+				await AddonsServer.I.Initialized.Task;
+				settings.Browser.OnEvent += (sender, args) => {
+					if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+					if (Observers.TryGetValue(settings.Profile.Id, out var observer))
+						observer.ForEach(x => x.Invoke(sender, args));
+				};
+				await settings.Browser.Initialize();
+				return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
+			} else {
+				_ = settings.Browser.Initialize();
+				await settings.Browser.LoadedTCS.Task;
+				return settings.Browser;
+			}
+		}
+
+		public async Task<IBrowserInstance> Open(BrowserSetting settings) {
+			await semaphore.WaitAsync();
+			// To wait
+			if (
+				Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) &&
+				browser != null
+			) return browser;
+			try {
+				return await EX.Catch(
+					async () => browser = await Launch(settings),
+					e => {
+						if (settings.WithExtensions) Toaster.Error(e.Message);
+						_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+						settings.Browser.InvokeEvent(Event.Error);
+					}) ?? throw new InvalidOperationException();
+			} finally {
+				// Signal
+				_ = semaphore.Release();
+			}
+		}
+
+		public void AddObserver(int id, Action<object, IBrowserInstance.EventArgs> action) {
+			if (Observers.TryGetValue(id, out var value)) value.Add(action);
+			else Observers[id] = [action];
+		}
+
+		public void CleanupStaleInstances() {
+			var staleBrowsers = new List<(BrowserType, int)>();
+
+			foreach (var (key, browser) in Browsers) {
+				if (
+					browser.Brocess != null && (
+					browser.Brocess.HasExited == false || (
+					OperatingSystem.IsWindows() &&
+					browser.Brocess.MainWindowHandle == IntPtr.Zero)
+				)) continue;
+				staleBrowsers.Add(key);
+			}
+
+			foreach (var options in staleBrowsers) {
+				if (Browsers.TryRemove(options, out var staleBrowser)) {
+					EX.Try(staleBrowser.Close);
+				}
+			}
+		}
+
+		// Singleton
+		// public static Browzers I { get; } = new();
+	}
+
+	public TaskCompletionSource<bool> Initialized { get; } = new();
 	public async Task Init() {
 		await AddonsServer.I.Initialized.Task;
 		await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
@@ -676,8 +749,8 @@ public class Browzio : IStartUp {
 
 	Browzio() { }
 	public static Browzio I { get; } = new();
+	public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
 }
-
 
 // public static void OpenUrl(string url, BrowserType type) {
 //   var browser = GetBrowser(type);
