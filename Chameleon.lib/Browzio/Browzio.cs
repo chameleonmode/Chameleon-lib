@@ -4,13 +4,11 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
 using chameleon.assets;
-using Chameleon.lib.Browzio.Browsers;
 using Chameleon.lib.Browzio.Services;
+using Chameleon.lib.Browzio.Services.Browzas;
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
 using Microsoft.Win32;
-using static Chameleon.lib.Browzio.Browzio;
-using static Chameleon.lib.Browzio.IBrowserDetector;
 
 namespace Chameleon.lib.Browzio;
 
@@ -21,13 +19,7 @@ public enum BrowserType {
 	Firefox, Waterfox, LibreWolf,
 	Safari, Yandex, Arc, InternetExplorer
 }
-public enum BrowserEngine {
-	Unknown,
-	Chromium,
-	Gecko,
-	WebKit,
-	Other
-}
+public enum BrowserEngine { Unknown, Chromium, Gecko, WebKit, Other }
 
 public record BrowserInfo(BrowserType Type, string ExecutablePath, string Version, BrowserEngine Engine) {
 	public string Name => Type.ToString();

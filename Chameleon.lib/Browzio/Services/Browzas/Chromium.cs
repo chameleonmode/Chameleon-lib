@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics;
-using Chameleon.lib.Browzio;
-using Chameleon.lib.Browzio.Services;
 using Chameleon.lib.Util;
 
-namespace Chameleon.lib.Browzio.Browsers;
+namespace Chameleon.lib.Browzio.Services.Browzas;
 
-public abstract class Chromium : Browzer {
+public abstract class Chromium : Browza {
 	public override string PrefsFile => Path.Combine(
 		Settings.CachePath,
 		"Default",

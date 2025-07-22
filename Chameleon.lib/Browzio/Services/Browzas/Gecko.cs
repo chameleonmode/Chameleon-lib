@@ -1,13 +1,12 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using chameleon.assets;
-using Chameleon.lib.Browzio.Services;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Util;
 
-namespace Chameleon.lib.Browzio.Browsers;
+namespace Chameleon.lib.Browzio.Services.Browzas;
 
-public class Gecko : Browzer {
+public class Gecko : Browza {
 
 	public override string PrefsFile => Path.Combine(Settings.CachePath, "prefs.js");
 	public override string ExeDir { get; } = OperatingSystem.IsMacOS()

@@ -5,7 +5,7 @@ using Chameleon.lib.Helpers;
 using System.Collections.Concurrent;
 using static Chameleon.lib.Browzio.Browzio;
 
-namespace Chameleon.lib.Browzio.Services;
+namespace Chameleon.lib.Browzio.Services.Browzas;
 
 public interface IBrowserInstance {
 	public record EventArgs(BrowserSetting Settings, Event Event);
@@ -22,7 +22,7 @@ public interface IBrowserInstance {
 	event Action<object, EventArgs>? OnEvent;
 }
 
-public abstract class Browzer : IBrowserInstance {
+public abstract class Browza : IBrowserInstance {
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public Process? Brocess { get; set; }
 	public required BrowserSetting Settings { get; init; }
