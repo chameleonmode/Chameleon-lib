@@ -23,13 +23,11 @@ public interface IBrowserInstance {
 }
 
 public abstract class Browza : IBrowserInstance {
-	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public Process? Brocess { get; set; }
 	public required BrowserSetting Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
-
-	public string InitUrl =>
-		$"http://127.0.0.1:{AddonsServer.I.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
+	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
+	public string InitUrl => $"http://127.0.0.1:{AddonsServer.I.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
 
 	public void InvokeEvent(Event @event) {
 		var args = new IBrowserInstance.EventArgs(Settings, @event);
@@ -97,7 +95,7 @@ public abstract class Browza : IBrowserInstance {
 		await Task.Delay(600);
 	}
 	protected virtual async Task InitializeExtensions() {
-		if (Settings.Profile.Id > 0) return;
+		if (!Settings.WithExtensions) return;
 
 		// set the extension settings
 		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
@@ -158,7 +156,7 @@ public class Browzers {
 	Browzers() { }
 
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
-		if (settings.Profile.Id > 0) {
+		if (settings.WithExtensions) {
 			await AddonsServer.I.Initialized.Task;
 			settings.Browser.OnEvent += (sender, args) => {
 				if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
@@ -185,7 +183,7 @@ public class Browzers {
 			return await EX.Catch(
 				async () => browser = await Launch(settings),
 				e => {
-					if (settings.Profile.Id > 0) Toaster.Error(e.Message);
+					if (settings.WithExtensions) Toaster.Error(e.Message);
 					_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
 					settings.Browser.InvokeEvent(Event.Error);
 				}) ?? throw new InvalidOperationException();

@@ -3,7 +3,7 @@ using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Browzio.Services.Browzas;
 
-public abstract class Chromium : Browza {
+public class Chromium : Browza {
 	public override string PrefsFile => Path.Combine(
 		Settings.CachePath,
 		"Default",
@@ -120,10 +120,11 @@ public abstract class Chromium : Browza {
 			$"--user-data-dir=\"{Settings.CachePath}\"",
 			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
 			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
-			Settings.Profile.Id > 0 ? $"--load-extension=\"{(Browzio.State.Staging ? Browzio.Extensions.Chromeleon : Settings.ExtensionsPath)}\"" : null,
+			Settings.WithExtensions ? $"--load-extension=\"{Browzio.Extensions.Chromeleon}\"" : null,
+			//Settings.WithExtensions ? $"--load-extension=\"{(Browzio.State.Staging ? Browzio.Extensions.Chromeleon : Settings.ExtensionsPath)}\"" : null,
 			//Settings.Profile.Extensions ? $"--load-extension=\"{Settings.ExtensionsPath}\"" : null,
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
-			url ??= Settings.Profile.Id > 0 ? InitUrl : Settings.Profile.StartPage
+			url ??= Settings.WithExtensions? InitUrl : Settings.Profile.StartPage
 		}.Where(x => x != null));
 	}
 
@@ -149,21 +150,17 @@ public abstract class Chromium : Browza {
 					process.ExtractArgs<int?>(
 						@"--remote-debugging-port=(\d+)",
 						(@"--user-data-dir=(""?([^""]+)""?)", Settings.CachePath)
-					) is { }
-			) await Processez.TryKillProcess(process);
+					) is not { }
+			) continue;
+			await Processez.TryKillProcess(process);
+			await Task.Delay(900);
 		}
 
-		if (Settings.Profile.Id < 0 || Directory.Exists(Settings.ExtensionsPath)) return;
-		await IO.CopyDirectory(Browzio.Extensions.Chromeleon, Settings.ExtensionsPath);
+		// if (!Settings.WithExtensions || Directory.Exists(Settings.ExtensionsPath)) return;
+		// await IO.CopyDirectory(Browzio.Extensions.Chromeleon, Settings.ExtensionsPath);
 		// Settings.Profile.StartPage = "about:blank";
 	}
 
-	public abstract string ProcessName { get; }
-}
-
-public class Brave : Chromium {
-	public override string ProcessName => OperatingSystem.IsWindows() ? "brave" : "Brave Browser";
-}
-public class Chrome : Chromium {
-	public override string ProcessName => OperatingSystem.IsWindows() ? "chrome" : "Google Chrome";
+	public string ProcessName => Browzio.Utilities.GetBrowser(Settings.BrowserType)?.ExecutableName
+		?? Path.GetFileName(ExePath).Replace(".exe", "", StringComparison.OrdinalIgnoreCase);
 }

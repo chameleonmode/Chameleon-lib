@@ -24,7 +24,8 @@ public enum BrowserEngine { Unknown, Chromium, Gecko, WebKit, Other }
 public record BrowserInfo(BrowserType Type, string ExecutablePath, string Version, BrowserEngine Engine) {
 	public string Name => Type.ToString();
 	public string DisplayName => !string.IsNullOrEmpty(Version) ? $"{Name} {Version}" : Name;
-	//public byte[]? IconData { get; } = IconExtractor.ExtractIcon(ExecutablePath);
+	public string? IconData { get; } = null;//IconExtractor.ExtractIcon(ExecutablePath);
+	public string ExecutableName => Path.GetFileName(ExecutablePath).Replace(".exe", "", StringComparison.OrdinalIgnoreCase);
 }
 
 public interface IBrowserDetector {
@@ -78,14 +79,15 @@ public class BrowserProfile(string? url = null) {
 	public string[] Bookmarks { get; init; } = IoC.GetJsonValue<string[]>(nameof(Bookmarks)) ?? [];
 
 	public string StartPage => url ?? IoC.GetValue(nameof(StartPage))
-		.Let(url => url.IsNot() && Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
-					? uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps
-						? uriResult.AbsoluteUri : "http://" + url
-					: "about:blank"
-		);
+		.Let(l => l.Is()
+			? "about:blank"
+			: Uri.TryCreate(l, UriKind.Absolute, out var uriResult)
+				? uriResult.AbsoluteUri
+				: "http://" + l);
 }
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
 	public int Port { get; set; } = 0;
+	public bool WithExtensions => Profile.Id > 0;
 	public string CachePath => FilePaths.EnsureDirectoryExists(
 		FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()
 	);
@@ -94,10 +96,8 @@ public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
 
 	private IBrowserInstance? browser;
 	public IBrowserInstance Browser => browser ??= BrowserType switch {
-		BrowserType.Brave => new Brave() { Settings = this },
-		BrowserType.Chrome => new Chrome() { Settings = this },
 		BrowserType.Firefox => new Firefox() { Settings = this },
-		_ => throw new NotImplementedException(),
+		_ => new Chromium() { Settings = this }
 	};
 }
 public record EmulationOptions(
@@ -523,7 +523,7 @@ public class MacOSBrowserDetector : BrowserDetector {
 public class Browzio : IStartUp {
 	public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
 	public static class State {
-		public static bool Staging { get; } = false && IoC.Debug && Debugger.IsAttached;
+		public static bool Staging { get; } = true && IoC.Debug && Debugger.IsAttached;
 		public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value!); }
 	}
 	public static class Extensions {

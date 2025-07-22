@@ -47,6 +47,7 @@ const on = async () => {
   await startup();
   await proxy(app.config.proxy);
   app.discoverServer().then(async () => {
+    const inactive = [];
     const tabs = await chrome.tabs.query({});
     for (const tab of tabs) {
       if (!tab.url.startsWith("http://127.0.0.1")) continue;
@@ -56,7 +57,7 @@ const on = async () => {
       const instanceId = url.searchParams.get("instanceId");
       const init = await app.sendData({ type: "init" }, { instanceId, sessionId });
       if (!init || !init.config || !init.port) {
-        chrome.tabs.remove(tab.id);
+        inactive.push(tab.id);
         continue;
       }
       app.session = { sessionId, instanceId };
@@ -80,6 +81,16 @@ const on = async () => {
       // });
       break;
     }
+    if(inactive.length > 1) {
+      log.warn("Some tabs were inactive and removed:", inactive);
+      for (const tabId of inactive) {
+        try {
+          await chrome.tabs.remove(tabId);
+        } catch (error) {
+          log.error(`Failed to remove tab ${tabId}:`, error);
+        }
+      }
+    }
 
     app.state.loaded = true;
     log.info("Geckoleon started successfully");
@@ -95,8 +106,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     app.state.loaded !== true ||
     changeInfo.status !== "complete" ||
     tab.url.startsWith("http://127.0.0.1") === false
-  )
-    return;
+  ) return;
 
   const tabs = await chrome.tabs.query({});
   if (tabs.length == 1) await chrome.tabs.update(tabId, { url: app.config.urls.start });

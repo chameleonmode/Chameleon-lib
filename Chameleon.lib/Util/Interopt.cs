@@ -1,11 +1,353 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text.RegularExpressions;
 
 namespace Chameleon.lib.Util;
+// Icon extraction utilities
+public static class IconExtractor {
+    public static string? ExtractIcon(string executablePath) {
+        if (string.IsNullOrEmpty(executablePath) || !File.Exists(executablePath)) 
+            return null;
+
+        try {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return ExtractWindowsIcon(executablePath);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                return ExtractMacIcon(executablePath);
+            }
+        } catch {
+            // Ignore errors and return null
+        }
+
+        return null;
+    }
+
+		private static string? ExtractWindowsIcon(string executablePath) {
+			// Try to get a larger, higher quality icon first
+			var hIcon = WindowsIconExtractor.ExtractLargeIcon(executablePath);
+			if (hIcon == IntPtr.Zero) return null;
+
+			try {
+				var pngData = WindowsIconExtractor.ConvertIconToPng(hIcon);
+				if (pngData == null) return null;
+
+				// Create a temporary file for the PNG
+				var tempPath = Path.Combine(Path.GetTempPath(), $"icon_{Guid.NewGuid():N}.png");
+				File.WriteAllBytes(tempPath, pngData);
+				return tempPath;
+			} finally {
+				WindowsIconExtractor.DestroyIcon(hIcon);
+			}
+		}
+
+	private static string? ExtractMacIcon(string executablePath) {
+				// For macOS app bundles, look for the icon in the bundle
+				var appPath = GetMacAppBundlePath(executablePath);
+				if (appPath == null) return null;
+
+				var iconPath = GetMacAppIconPath(appPath);
+				if (iconPath != null && File.Exists(iconPath)) {
+					return iconPath;
+				}
+
+				return null;
+	}
+
+	private static string? ConvertIcnsToPng(string icnsPath) {
+		try {
+			// Create a temporary PNG file path
+			var tempPath = Path.Combine(Path.GetTempPath(), $"icon_{Guid.NewGuid():N}.png");
+			
+			// Use macOS built-in sips command to convert ICNS to PNG
+			var process = Process.Start(new ProcessStartInfo {
+				FileName = "sips",
+				Arguments = $"-s format png \"{icnsPath}\" --out \"{tempPath}\"",
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				UseShellExecute = false,
+				CreateNoWindow = true
+			});
+			
+			if (process == null) return null;
+			
+			process.WaitForExit();
+			
+			// Check if conversion was successful
+			if (process.ExitCode == 0 && File.Exists(tempPath)) {
+				return tempPath;
+			}
+		} catch {
+			// Ignore errors and return null
+		}
+		
+		return null;
+	}
+
+    private static string? GetMacAppBundlePath(string executablePath) {
+        var path = executablePath;
+        while (!string.IsNullOrEmpty(path) && path != "/") {
+            if (path.EndsWith(".app", StringComparison.OrdinalIgnoreCase)) {
+                return path;
+            }
+            path = Path.GetDirectoryName(path);
+        }
+        return null;
+    }
+
+    private static string? GetMacAppIconPath(string appBundlePath) {
+        try {
+            var plistPath = Path.Combine(appBundlePath, "Contents", "Info.plist");
+            if (!File.Exists(plistPath)) return null;
+
+            var content = File.ReadAllText(plistPath);
+            var iconMatch = Regex.Match(content, @"<key>CFBundleIconFile</key>\s*<string>([^<]+)</string>");
+            
+            if (iconMatch.Success) {
+                var iconFileName = iconMatch.Groups[1].Value;
+                if (!iconFileName.EndsWith(".icns", StringComparison.OrdinalIgnoreCase)) {
+                    iconFileName += ".icns";
+                }
+                
+                var iconPath = Path.Combine(appBundlePath, "Contents", "Resources", iconFileName);
+                if (File.Exists(iconPath)) return iconPath;
+            }
+
+            // Fallback: look for any .icns file in Resources
+            var resourcesDir = Path.Combine(appBundlePath, "Contents", "Resources");
+            if (Directory.Exists(resourcesDir)) {
+                var icnsFiles = Directory.GetFiles(resourcesDir, "*.icns");
+                return icnsFiles.FirstOrDefault();
+            }
+        } catch {
+            // Ignore errors
+        }
+
+        return null;
+    }
+}
 
 #region windows
+
+// Windows-specific icon extraction (.NET 8 compatible)
+internal static class WindowsIconExtractor {
+    [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+    public static extern IntPtr ExtractIcon(IntPtr hInst, string lpszExeFileName, int nIconIndex);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool DestroyIcon(IntPtr hIcon);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+    public static extern IntPtr ExtractAssociatedIcon(IntPtr hInst, string lpIconPath, out ushort lpiIcon);
+
+    [DllImport("shell32.dll")]
+    public static extern int ExtractIconEx(string szFileName, int nIconIndex, 
+        IntPtr[] phiconLarge, IntPtr[] phiconSmall, int nIcons);
+
+    [DllImport("user32.dll")]
+    public static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO piconinfo);
+
+    [DllImport("gdi32.dll")]
+    public static extern bool DeleteObject(IntPtr hObject);
+
+    [DllImport("user32.dll")]
+    public static extern int GetDIBits(IntPtr hdc, IntPtr hbmp, uint uStartScan, uint cScanLines, 
+        byte[]? lpvBits, ref BITMAPINFO lpbmi, uint uUsage);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetDC(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ICONINFO {
+        public bool fIcon;
+        public int xHotspot;
+        public int yHotspot;
+        public IntPtr hbmMask;
+        public IntPtr hbmColor;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BITMAPINFOHEADER {
+        public uint biSize;
+        public int biWidth;
+        public int biHeight;
+        public ushort biPlanes;
+        public ushort biBitCount;
+        public uint biCompression;
+        public uint biSizeImage;
+        public int biXPelsPerMeter;
+        public int biYPelsPerMeter;
+        public uint biClrUsed;
+        public uint biClrImportant;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BITMAPINFO {
+        public BITMAPINFOHEADER bmiHeader;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1024)]
+        public uint[] bmiColors;
+    }
+
+    public static IntPtr ExtractLargeIcon(string filePath) {
+        var large = new IntPtr[1];
+        var small = new IntPtr[1];
+        
+        try {
+            int count = ExtractIconEx(filePath, 0, large, small, 1);
+            if (count > 0 && large[0] != IntPtr.Zero) {
+                // Clean up small icon if extracted
+                if (small[0] != IntPtr.Zero) {
+                    DestroyIcon(small[0]);
+                }
+                return large[0];
+            }
+        } catch {
+            // Cleanup on error
+            if (large[0] != IntPtr.Zero) DestroyIcon(large[0]);
+            if (small[0] != IntPtr.Zero) DestroyIcon(small[0]);
+        }
+
+        // Fallback to basic extraction
+        return ExtractIcon(IntPtr.Zero, filePath, 0);
+    }
+
+    public static byte[]? ConvertIconToPng(IntPtr hIcon) {
+        if (hIcon == IntPtr.Zero) return null;
+
+        try {
+            // Get icon information
+            if (!GetIconInfo(hIcon, out var iconInfo)) return null;
+
+            IntPtr hdc = GetDC(IntPtr.Zero);
+            try {
+                // Get bitmap dimensions
+                var bmpInfo = new BITMAPINFO();
+                bmpInfo.bmiHeader.biSize = (uint)Marshal.SizeOf<BITMAPINFOHEADER>();
+                
+                // First call to get bitmap info
+                GetDIBits(hdc, iconInfo.hbmColor, 0, 0, null, ref bmpInfo, 0);
+                
+                int width = Math.Abs(bmpInfo.bmiHeader.biWidth);
+                int height = Math.Abs(bmpInfo.bmiHeader.biHeight);
+                
+                // Prepare for RGBA data
+                bmpInfo.bmiHeader.biBitCount = 32;
+                bmpInfo.bmiHeader.biCompression = 0; // BI_RGB
+                bmpInfo.bmiHeader.biSizeImage = (uint)(width * height * 4);
+                
+                byte[] bitmapData = new byte[bmpInfo.bmiHeader.biSizeImage];
+                
+                // Get the bitmap data
+                if (GetDIBits(hdc, iconInfo.hbmColor, 0, (uint)height, bitmapData, ref bmpInfo, 0) == 0) {
+                    return null;
+                }
+
+                // Convert BGRA to RGBA and create PNG
+                return CreatePngFromBgra(bitmapData, width, height);
+            } finally {
+                ReleaseDC(IntPtr.Zero, hdc);
+                if (iconInfo.hbmColor != IntPtr.Zero) DeleteObject(iconInfo.hbmColor);
+                if (iconInfo.hbmMask != IntPtr.Zero) DeleteObject(iconInfo.hbmMask);
+            }
+        } catch {
+            return null;
+        }
+    }
+
+    private static byte[] CreatePngFromBgra(byte[] bgraData, int width, int height) {
+        // Convert BGRA to RGBA
+        for (int i = 0; i < bgraData.Length; i += 4) {
+            (bgraData[i], bgraData[i + 2]) = (bgraData[i + 2], bgraData[i]); // Swap B and R
+        }
+
+        // Create a simple PNG using a basic implementation
+        // For production use, consider using a library like ImageSharp or SkiaSharp
+        return CreateSimplePng(bgraData, width, height);
+    }
+
+    private static byte[] CreateSimplePng(byte[] rgbaData, int width, int height) {
+        using var stream = new MemoryStream();
+        
+        // PNG signature
+        stream.Write(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+
+        // IHDR chunk
+        WriteChunk(stream, "IHDR", writer => {
+            writer.Write(SwapEndian((uint)width));
+            writer.Write(SwapEndian((uint)height));
+            writer.Write((byte)8); // bit depth
+            writer.Write((byte)6); // color type (RGBA)
+            writer.Write((byte)0); // compression
+            writer.Write((byte)0); // filter
+            writer.Write((byte)0); // interlace
+        });
+
+        // IDAT chunk
+        var imageData = new List<byte>();
+        for (int y = height - 1; y >= 0; y--) { // PNG stores top to bottom, bitmap is bottom to top
+            imageData.Add(0); // filter type for this scanline
+            for (int x = 0; x < width; x++) {
+                int idx = (y * width + x) * 4;
+                imageData.AddRange(new[] { rgbaData[idx], rgbaData[idx + 1], rgbaData[idx + 2], rgbaData[idx + 3] });
+            }
+        }
+
+        var compressedData = CompressData(imageData.ToArray());
+        WriteChunk(stream, "IDAT", writer => writer.Write(compressedData));
+
+        // IEND chunk
+        WriteChunk(stream, "IEND", _ => { });
+
+        return stream.ToArray();
+    }
+
+    private static void WriteChunk(Stream stream, string type, Action<BinaryWriter> writeData) {
+        using var dataStream = new MemoryStream();
+        using var dataWriter = new BinaryWriter(dataStream);
+        
+        writeData(dataWriter);
+        var data = dataStream.ToArray();
+        
+        var writer = new BinaryWriter(stream);
+        writer.Write(SwapEndian((uint)data.Length));
+        writer.Write(System.Text.Encoding.ASCII.GetBytes(type));
+        writer.Write(data);
+        
+        // Calculate CRC32
+        var crcData = new byte[type.Length + data.Length];
+        System.Text.Encoding.ASCII.GetBytes(type).CopyTo(crcData, 0);
+        data.CopyTo(crcData, type.Length);
+        writer.Write(SwapEndian(CalculateCrc32(crcData)));
+    }
+
+    private static uint SwapEndian(uint value) {
+        return ((value & 0xFF) << 24) | ((value & 0xFF00) << 8) | ((value & 0xFF0000) >> 8) | ((value & 0xFF000000) >> 24);
+    }
+
+    private static byte[] CompressData(byte[] data) {
+        // Simple deflate compression - for production, use System.IO.Compression.DeflateStream
+        using var output = new MemoryStream();
+        using var deflate = new System.IO.Compression.DeflateStream(output, System.IO.Compression.CompressionMode.Compress);
+        deflate.Write(data, 0, data.Length);
+        deflate.Close();
+        return output.ToArray();
+    }
+
+    private static uint CalculateCrc32(byte[] data) {
+        // Simple CRC32 implementation
+        uint crc = 0xFFFFFFFF;
+        foreach (byte b in data) {
+            crc ^= b;
+            for (int i = 0; i < 8; i++) {
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+            }
+        }
+        return crc ^ 0xFFFFFFFF;
+    }
+}
 
 [StructLayout(LayoutKind.Sequential)]
 public struct PROCESS_BASIC_INFORMATION {
