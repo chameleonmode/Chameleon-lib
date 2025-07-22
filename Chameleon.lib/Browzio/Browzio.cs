@@ -276,14 +276,6 @@ public class WindowsBrowserDetector : BrowserDetector {
 		return [.. uniqueBrowsers.OrderBy(b => b.Type.ToString())];
 	}
 
-	private static string NormalizePath(string path) {
-		try {
-			return Path.GetFullPath(path).ToLowerInvariant().Replace('/', '\\');
-		} catch {
-			return path.ToLowerInvariant();
-		}
-	}
-
 	private static int GetPathPriority(string path) {
 		var lowerPath = path.ToLowerInvariant();
 
