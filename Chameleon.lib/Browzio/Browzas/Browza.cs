@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Chameleon.lib.Util;
 using Chameleon.lib.ThirdParty.GeoIp;
-using static Chameleon.lib.Browzio.Browzio;
+using static Chameleon.lib.Browzio.Browzers;
 
 namespace Chameleon.lib.Browzio.Services.Browzas;
 
@@ -26,7 +26,7 @@ public abstract class Browza : IBrowserInstance {
 	public required BrowserSetting Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
-	public string InitUrl => $"http://127.0.0.1:{AddonsServer.I.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
+	public string InitUrl => $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
 
 	public void InvokeEvent(Event @event) {
 		var args = new IBrowserInstance.EventArgs(Settings, @event);
@@ -98,7 +98,7 @@ public abstract class Browza : IBrowserInstance {
 
 		// set the extension settings
 		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
-		AddonsServer.I.AddSession(SessionId, Settings, new {
+		Browzio.I.Loopback.AddSession(SessionId, Settings, new {
 			proxy = new {
 				type = "http",
 				enabled = Settings.Profile.Proxy.CanUse,

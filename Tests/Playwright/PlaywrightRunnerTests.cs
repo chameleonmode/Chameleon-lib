@@ -1,7 +1,6 @@
 using Chameleon.lib.AIR.Scripts.Reddit.Post;
 using Chameleon.lib.AIR.Scripts.Reddit.Subreddit;
-using Chameleon.lib.Browzer;
-using Chameleon.lib.Browzer.Services;
+using Chameleon.lib.Browzio;
 using Chameleon.lib.Playwright.Scripts.CS;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Util;
@@ -20,8 +19,19 @@ public class PlaywrightRunnerTests : TestSetup {
 
 	async Task<int> OpenBrowser(BrowserType bt = BrowserType.Chrome, int id = 28296) {
 		var port = Processez.NextFreePort(9613);
-		var browser = await browserService.Launch(
-			new(bt, new() { Id = id})
+		var browser = await browserService.Browzas.Launch(
+			Browzio.Factory.BrowserSettings(bt, new BrowserProfile {
+				Id = id,
+				Emulations = new EmulationOptions {
+					DisableWebRTC = true,
+					SpoofClientRects = true,
+					SpoofFontFingerprint = true,
+					SpoofCanvasFingerprint = true,
+					SpoofWebGLFingerprint = true,
+					SpoofGeoLocation = true,
+					AutoTimezone = true
+				}
+			}, port)
 		);
 		Assert.NotNull(browser);
 		_ = await browser.LoadedTCS.Task;
@@ -39,7 +49,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await Run.Script(new() {
 			Port = port,
-			Script = repo.BundledCSScripts[nameof(URLsexplorer)],
+			Script = repo.CsharpScripts[nameof(URLsexplorer)],
 			Description = new(
 				Parameters: new() {
 					{"urls", "example.com, example.org"},
@@ -54,7 +64,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await Run.Script(new() {
 			Port = port,
-			Script = repo.BundledCSScripts[nameof(KeepGmailAlive)]
+			Script = repo.CsharpScripts[nameof(KeepGmailAlive)]
 		});
 	}
 
@@ -63,7 +73,7 @@ public class PlaywrightRunnerTests : TestSetup {
 		var port = await OpenBrowser();
 		await Run.Script(new() {
 			Port = port,
-			Script = repo.BundledCSScripts[nameof(GoogleCTR)],
+			Script = repo.CsharpScripts[nameof(GoogleCTR)],
 			Description = new(
 				Parameters: new() {
 					{"search", "example.com"},

@@ -12,10 +12,10 @@ public abstract class TestSetup : IAsyncLifetime {
 		}, (services) => {
 			_ = services;
 		});
-			IoC.SetJsonValue(new LoginSettings(
+			IoC.SetJsonValue(nameof(LoginSettings), new LoginSettings(
 				Environment.Directory[dictionary].email,
 				Environment.Directory[dictionary].license
-				), nameof(LoginSettings));
+				));
 			_tcs.SetResult(true);
 
 	}

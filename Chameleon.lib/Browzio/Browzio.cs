@@ -3,13 +3,19 @@ using System.Diagnostics;
 using System.Net;
 using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
+using System.Net.Sockets;
+using System.Text.Json;
+using Microsoft.Win32;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using chameleon.assets;
-using Chameleon.lib.Browzio.Services;
 using Chameleon.lib.Browzio.Services.Browzas;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
-using Microsoft.Win32;
 
 namespace Chameleon.lib.Browzio;
 
@@ -565,6 +571,169 @@ public class MacOSBrowserDetector : BrowserDetector {
 	}
 }
 
+#region services
+public class AddonsServer {
+	private WebApplication? app;
+
+	public TaskCompletionSource? IsBusy { get; private set; }
+
+	public int Port { get; }
+	public string RedirectUri { get; }
+
+	public TaskCompletionSource<bool> Initialized { get; } = new();
+	private readonly ConcurrentDictionary<(string sessionId, int instanceId), (object config, int port, BrowserType bt)> sessions = [];
+
+	internal AddonsServer() {
+		foreach (var port in new[] { 3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696 }) {
+			try {
+				// Create a listener to check if the port is available
+				var listener = new TcpListener(IPAddress.Loopback, port);
+				listener.Start();
+				listener.Stop();
+				Port = port;
+				break;
+			} catch (SocketException) {
+				// Port is in use, try the next one
+			}
+		}
+
+		RedirectUri = $"http://127.0.0.1:{Port}/callback";
+	}
+
+	public void AddSession(string sessionId, BrowserSetting settings, object config) {
+		IsBusy = new TaskCompletionSource();
+		sessions[(sessionId, settings.Profile.Id)] = (config, settings.Port, settings.BrowserType);
+	}
+
+	public async Task Init() {
+		if (app != null) return;
+
+		// builder configuration
+		var builder = WebApplication.CreateBuilder();
+
+		// Add minimal required services
+		_ = builder.Services.AddEndpointsApiExplorer()
+		 .AddCors(o => o.AddPolicy("AllowAnyOrigin", p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+
+		// Configure to listen on all available interfaces, not just localhost
+		_ = builder.WebHost.ConfigureKestrel(options => {
+			options.Listen(IPAddress.Loopback, Port);
+		});
+		app = builder.Build();
+		// Use minimal middleware
+		_ = app.UseRouting().UseCors("AllowAnyOrigin");
+
+		#region routes
+		// Health check endpoint
+		app.MapGet("/ping", () =>
+			Results.Json(new { status = "ok", time = DateTime.Now })
+		);
+
+		app.MapGet("/init", ([FromQuery] int instanceId, [FromQuery] string sessionId) => {
+			if (
+				sessionId.Is() ||
+				!sessions.TryGetValue((sessionId, instanceId), out var instance)
+			) return Results.NotFound(new { error = "Session not found" });
+			else return Results.Content(JSON.Serialize(instance.config), "application/json");
+		});
+
+		// endpoint to receive data from extensions
+		app.MapPost("/app/data", (HttpContext context, [FromBody] JsonElement body) => {
+			try {
+				var instanceId = int.Parse(context.Request.Headers["X-Instance-ID"].ToString());
+				var sessionId = context.Request.Headers["X-Session-ID"].ToString();
+				return body.GetProperty("type").GetString() switch {
+					"init" => sessions.TryGetValue((sessionId, instanceId), out var instance)
+						? Results.Json(new { instance.config, instance.port })
+						: Results.Json(new { error = "Session not found" }),
+					// @TODO: Implement proper handling for "port" type
+					_ => Results.BadRequest(new { error = "Invalid type" })
+				};
+			} catch (Exception e) {
+				return Results.BadRequest(new { error = "Invalid", e });
+			}
+		});
+
+		#endregion
+
+		// Start the server
+		await app.StartAsync();
+
+		// Wait for the server to be ready
+		do await Task.Delay(100);
+		while (await EX.Poly(async () => {
+			// Wait for the server to be ready
+			if (app == null) throw new InvalidOperationException("AddonsServer is not initialized");
+			using var httpClient = new HttpClient();
+			httpClient.Timeout = TimeSpan.FromMilliseconds(500);
+			var response = await httpClient.GetAsync($"http://127.0.0.1:{Port}/ping");
+			return response.EnsureSuccessStatusCode().StatusCode != HttpStatusCode.OK;
+		}));
+		// Signal that the server has started successfully
+		Console.WriteLine($"AddonsServer started successfully on port {Port}");
+		_ = Initialized.TrySetResult(true);
+	}
+
+	public async Task Stop() {
+		if (app == null) return;
+		await app.StopAsync();
+		await app.DisposeAsync();
+		app = null;
+	}
+}
+
+public class Browzers {
+	public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
+	private readonly SemaphoreSlim semaphore = new(1, 1);
+	public ConcurrentDictionary<(BrowserType bt, int id), IBrowserInstance> Browsers { get; } = [];
+	public ConcurrentDictionary<int, List<Action<object, IBrowserInstance.EventArgs>>> Observers { get; } = [];
+	internal Browzers() { }
+
+	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
+		if (settings.WithExtensions) {
+			settings.Browser.OnEvent += (sender, args) => {
+				if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+				if (Observers.TryGetValue(settings.Profile.Id, out var observer))
+					observer.ForEach(x => x.Invoke(sender, args));
+			};
+			await settings.Browser.Initialize();
+			return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
+		} else {
+			_ = settings.Browser.Initialize();
+			await settings.Browser.LoadedTCS.Task;
+			return settings.Browser;
+		}
+	}
+
+	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
+		await semaphore.WaitAsync();
+		// To wait
+		if (
+			Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) &&
+			browser?.Brocess?.HasExited == false
+		) return browser;
+		try {
+			if (browser != null) await browser.Closee();
+			return await EX.Catch(
+				async () => browser = await Launch(settings),
+				e => {
+					if (settings.WithExtensions) Toaster.Error(e.Message);
+					_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
+					settings.Browser.InvokeEvent(Event.Error);
+				}) ?? throw new InvalidOperationException();
+		} finally {
+			// Signal
+			_ = semaphore.Release();
+		}
+	}
+
+	public void AddObserver(int id, Action<object, IBrowserInstance.EventArgs> action) {
+		if (Observers.TryGetValue(id, out var value)) value.Add(action);
+		else Observers[id] = [action];
+	}
+}
+#endregion
+
 public class Browzio : IStartUp {
 	public static class State {
 		public static bool Staging { get; } = true && IoC.Debug && Debugger.IsAttached;
@@ -584,12 +753,12 @@ public class Browzio : IStartUp {
 		public static string Geckoleon => Path.Combine(State.Staging && Directory.Exists(DevPath) ? DevPath : Gecko, "geckoleon.xpi");
 	}
 	public static class Factory {
-		public static BrowserSetting BrowserSettings(BrowserType bt, BrowserProfile profile) => new (bt, profile) {
-			Port = Processez.NextFreePort(9613)
+		public static BrowserSetting BrowserSettings(BrowserType bt, BrowserProfile profile, int? port = null) => new(bt, profile) {
+			Port = port ?? Processez.NextFreePort(9613)
 		};
-		public static BrowserSetting Chrome(BrowserProfile profile) => BrowserSettings (BrowserType.Chrome, profile);
-		public static BrowserSetting Brave(BrowserProfile profile) => BrowserSettings (BrowserType.Brave, profile);
-		public static BrowserSetting Firefox(BrowserProfile profile) => BrowserSettings (BrowserType.Firefox, profile);
+		public static BrowserSetting Chrome(BrowserProfile profile) => BrowserSettings(BrowserType.Chrome, profile);
+		public static BrowserSetting Brave(BrowserProfile profile) => BrowserSettings(BrowserType.Brave, profile);
+		public static BrowserSetting Firefox(BrowserProfile profile) => BrowserSettings(BrowserType.Firefox, profile);
 
 		public static IBrowserDetector CreateDetector() {
 			return OperatingSystem.IsWindows()
@@ -608,7 +777,7 @@ public class Browzio : IStartUp {
 		public static List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine) => detector.GetBrowsersByEngine(engine);
 		public static List<BrowserInfo> GetChromiumBrowsers() => detector.GetChromiumBrowsers();
 		public static List<BrowserInfo> GetGeckoBrowsers() => detector.GetGeckoBrowsers();
-		
+
 		[Obsolete("Use IBrowserDetector instead.")]
 		public static class Info {
 			public record class Information(string Name, string ExecutablePath) {
@@ -709,82 +878,12 @@ public class Browzio : IStartUp {
 	}
 
 	public Browzers Browzas { get; } = new();
-	public class Browzers {
-		private readonly SemaphoreSlim semaphore = new(1, 1);
-		public ConcurrentDictionary<(BrowserType bt, int id), IBrowserInstance> Browsers { get; } = [];
-		public ConcurrentDictionary<int, List<Action<object, IBrowserInstance.EventArgs>>> Observers { get; } = [];
-		internal Browzers() { }
-
-		public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
-			if (settings.WithExtensions) {
-				await AddonsServer.I.Initialized.Task;
-				settings.Browser.OnEvent += (sender, args) => {
-					if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-					if (Observers.TryGetValue(settings.Profile.Id, out var observer))
-						observer.ForEach(x => x.Invoke(sender, args));
-				};
-				await settings.Browser.Initialize();
-				return Browsers[(settings.BrowserType, settings.Profile.Id)] = settings.Browser;
-			} else {
-				_ = settings.Browser.Initialize();
-				await settings.Browser.LoadedTCS.Task;
-				return settings.Browser;
-			}
-		}
-
-		public async Task<IBrowserInstance> Open(BrowserSetting settings) {
-			await semaphore.WaitAsync();
-			// To wait
-			if (
-				Browsers.TryGetValue((settings.BrowserType, settings.Profile.Id), out var browser) &&
-				browser != null
-			) return browser;
-			try {
-				return await EX.Catch(
-					async () => browser = await Launch(settings),
-					e => {
-						if (settings.WithExtensions) Toaster.Error(e.Message);
-						_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
-						settings.Browser.InvokeEvent(Event.Error);
-					}) ?? throw new InvalidOperationException();
-			} finally {
-				// Signal
-				_ = semaphore.Release();
-			}
-		}
-
-		public void AddObserver(int id, Action<object, IBrowserInstance.EventArgs> action) {
-			if (Observers.TryGetValue(id, out var value)) value.Add(action);
-			else Observers[id] = [action];
-		}
-
-		public void CleanupStaleInstances() {
-			var staleBrowsers = new List<(BrowserType, int)>();
-
-			foreach (var (key, browser) in Browsers) {
-				if (
-					browser.Brocess != null && (
-					browser.Brocess.HasExited == false || (
-					OperatingSystem.IsWindows() &&
-					browser.Brocess.MainWindowHandle == IntPtr.Zero)
-				)) continue;
-				staleBrowsers.Add(key);
-			}
-
-			foreach (var options in staleBrowsers) {
-				if (Browsers.TryRemove(options, out var staleBrowser)) {
-					EX.Try(staleBrowser.Close);
-				}
-			}
-		}
-
-		// Singleton
-		// public static Browzers I { get; } = new();
-	}
+	public AddonsServer Loopback { get; } = new();
 
 	public TaskCompletionSource<bool> Initialized { get; } = new();
 	public async Task Init() {
-		await AddonsServer.I.Initialized.Task;
+		await Loopback.Init();
+		await Loopback.Initialized.Task;
 		await Resources.CopyFile("addons", "geckoleon.xpi", Extensions.Gecko);
 		await Resources.LoadExtension(ExtensionType.chromeleon, Extensions.Chromium);
 
@@ -793,7 +892,6 @@ public class Browzio : IStartUp {
 
 	Browzio() { }
 	public static Browzio I { get; } = new();
-	public enum Event { Unknown, Error, Closed, Opened, Foreground, Background }
 }
 
 // public static void OpenUrl(string url, BrowserType type) {
