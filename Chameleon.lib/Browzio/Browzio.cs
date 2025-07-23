@@ -718,7 +718,7 @@ public class Browzers {
 }
 #endregion
 
-public class Browzio : IStartUp {
+public class Browzio : IInit {
 	public static class State {
 		public static bool Staging { get; } = true && IoC.Debug && Debugger.IsAttached;
 		public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value, null); }

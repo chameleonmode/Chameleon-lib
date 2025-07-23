@@ -57,8 +57,8 @@ public static class Util {
 			Toaster.Info("Installing Firefox Sync Update...");
 			using var process = new Process {
 				StartInfo = new ProcessStartInfo {
-					FileName = Project.Plugins.Node,
-					Arguments = $"{Project.Plugins.CLI} install firefox",
+					FileName = Playwrightio.Plugins.Node,
+					Arguments = $"{Playwrightio.Plugins.CLI} install firefox",
 					RedirectStandardOutput = true,
 					RedirectStandardError = true,
 					UseShellExecute = false,

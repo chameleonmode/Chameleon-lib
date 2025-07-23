@@ -6,6 +6,7 @@ using Chameleon.lib.Helpers;
 using Chameleon.lib.Playwright.Services;
 using Chameleon.lib.Util;
 using Chameleon.lib.AIR.Scripts;
+using Chameleon.lib.Services;
 
 namespace Chameleon.lib.Playwright;
 
@@ -26,7 +27,8 @@ public interface IPlaywrightBrowser : IDisposable {
 }
 #endregion
 
-public static class Project {
+public class Playwrightio : IInit {
+	public static bool Staging { get; } = IoC.Debug && Debugger.IsAttached;
 	public static class Plugins {
 		public static string? Version { get => IoC.GetValue(nameof(Plugins)); set => IoC.SetValue(nameof(Plugins), value, null); }
 		public static string DotPlaywright { get; } = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
@@ -40,16 +42,17 @@ public static class Project {
 		public static string CLI { get; } = Path.Combine(DotPlaywright, "package", "cli.js");
 	}
 
-	public static TaskCompletionSource<bool> Initialized { get; } = new();
-	public static async Task<bool> Init() {
-    if (Plugins.Version != IoC.Assembled) {
+	public TaskCompletionSource<bool> Initialized { get; } = new();
+	public async Task Init() {
+		if (Plugins.Version != IoC.Assembled) {
 			Toaster.Info("Installing updates...");
 
 			var success = await Resources.Mapped("plugins", FilePaths.AppDataDir);
 			if (success) Plugins.Version = IoC.Assembled;
 			else Toaster.Error("Failed to install updates.");
 		}
-		return Initialized.TrySetResult(true);
+		Initialized.TrySetResult(true);
 	}
-	public static bool Staging { get; } = IoC.Debug && Debugger.IsAttached;
+	Playwrightio() { }
+	public static Playwrightio I { get; } = new();
 }

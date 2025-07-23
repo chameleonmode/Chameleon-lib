@@ -1,6 +1,6 @@
 namespace Chameleon.lib.Services;
 
-public interface IStartUp {
+public interface IInit {
 	TaskCompletionSource<bool> Initialized { get; }
   Task Init();
 }

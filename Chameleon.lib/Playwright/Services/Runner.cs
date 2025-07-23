@@ -18,8 +18,8 @@ public class Runner : IDisposable {
 		this.onMessageReceived = onMessageReceived;
 		nodeProcess = new Process { 
 			StartInfo = new ProcessStartInfo {
-				FileName = OperatingSystem.IsWindows() ? $"\"{Project.Plugins.Node}\"" : Project.Plugins.Node,
-				Arguments = $"\"{Project.Plugins.App}\"",
+				FileName = OperatingSystem.IsWindows() ? $"\"{Playwrightio.Plugins.Node}\"" : Playwrightio.Plugins.Node,
+				Arguments = $"\"{Playwrightio.Plugins.App}\"",
 				RedirectStandardInput = true,
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,
