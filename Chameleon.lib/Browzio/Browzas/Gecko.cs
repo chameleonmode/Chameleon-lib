@@ -288,7 +288,7 @@ public class Gecko : Browza {
 
 		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.CachePath);
 	}
-	protected override string GetCommandLineArguments(string? url) {
+	protected override string GetCommandLineArguments() {
 		return string.Join(" ", new[]{
 			"-allow-downgrade",
 			"-no-remote",

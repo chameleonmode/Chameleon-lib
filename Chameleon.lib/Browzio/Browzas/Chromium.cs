@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Browzio.Services.Browzas;
@@ -13,18 +14,101 @@ public class Chromium : Browza {
 	public override string ExePath => Browzio.Utilities.GetBrowser(Settings.BrowserType)?.ExecutablePath ??
 		throw new InvalidOperationException("Browser executable path not found.");
 
-	// ...
-	protected override string GetCommandLineArguments(string? url) {
+	/**
+	 * Returns the command line arguments for launching the browser.
+	 *	 --user-data-dir=<dir>
+	 *	Use a custom profile directory (isolates extensions, cookies, etc.).
+	 *	
+	 *	--load-extension=<path>
+	 *	Load an unpacked extension from the specified folder.
+	 *	
+	 *	--pack-extension=<dir>
+	 *	Package an extension folder into a .crx file.
+	 *	
+	 *	--pack-extension-key=<pem_file>
+	 *	Specify an existing private key when packing an extension.
+	 *	
+	 *	--enable-experimental-extension-apis
+	 *	Unlock extension APIs marked “experimental.”
+	 *	
+	 *	--allow-legacy-extension-manifests
+	 *	Permit loading of older (legacy) manifest versions.
+	 *	
+	 *	--allowlisted-extension-id=<ID>
+	 *	Treat a given extension ID as if it’s on Chrome’s internal allowlists.
+	 *	
+	 *	--enable-logging & --v=1
+	 *	Turn on verbose logging (creates chrome_debug.log with errors, console output, etc.).
+	 *	
+	 *	--enable-extension-activity-logging
+	 *	Record each extension API call/content-script injection in the Extensions Activity Log.
+	 *	
+	 *	--enable-extension-activity-log-testing
+	 *	Enable activity-log features specifically for automated tests.
+	 *	
+	 *	--remote-debugging-port=<port>
+	 *	Open a DevTools debugging port for inspection (can debug extensions).
+	 *	
+	 *	--remote-debugging-pipe
+	 *	Use a pipe instead of TCP port for DevTools remote debugging.
+	 *	
+	 *	--enable-unsafe-extension-debugging
+	 *	Allow the DevTools Protocol to install/remove extensions at runtime.
+	 *	
+	 *	--error-console
+	 *	Force-enable the extension Error Console in chrome://extensions.
+	 *	
+	 *	--disable-extensions
+	 *	Launch with all extensions disabled.
+	 *	
+	 *	--disable-extensions-except=<path>
+	 *	Disable every extension except the one at the given path.
+	 *	
+	 *	--extensions-on-chrome-urls
+	 *	Let extensions run on chrome:// pages (requires matching permissions).
+	 *	
+	 *	--disable-extensions-file-access-check
+	 *	Bypass the “Allow access to file URLs” prompt for all extensions.
+	 *	
+	 *	--disable-extensions-http-throttling
+	 *	Turn off Chrome’s throttling of background HTTP requests made by extensions.
+	 *	
+	 *	--disable-component-extensions-with-background-pages
+	 *	Prevent built-in component extensions (PDF viewer, etc.) that have background pages from loading.
+	 *	
+	 *	--extensions-update-frequency=<seconds>
+	 *	Set how often (in seconds) Chrome checks for extension updates.
+	 *	
+	 *	--enable-extension-actor-api
+	 *	Unlock the experimental “Actor” extension API.
+	 *	
+	 *	--enable-extension-ai-data-collection
+	 *	Enable the experimental AI Data Collection API for extensions.
+	 *	
+	 *	--enable-extension-assets-sharing
+	 *	Allow sharing of assets among installed extensions.
+	 *	
+	 *	--extension-content-verification=<mode>
+	 *	Control extension file-integrity checking (enforce, bootstrap, none, etc.).
+	 *	
+	 *	--disable-app-content-verification
+	 *	Disable content verification for Chrome Apps (mostly deprecated).
+	 */
+	protected override string GetCommandLineArguments() {
+		var proxy = Settings.Profile.Proxy.WebProxy?.Address == null ? null :
+				$"--proxy-server={Settings.Profile.Proxy.WebProxy.Address?.Scheme}://{(
+							Settings.Profile.Proxy.WebProxy.Credentials is NetworkCredential credz ? $"{credz.UserName}:{credz.Password}@" : ""
+						)}{Settings.Profile.Proxy.WebProxy.Address?.Authority}";
 		return string.Join(" ", new string?[] {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
-				//"NetworkQualityEstimatorWebHoldback",
-				//"StrictOriginIsolation",
+				"StrictOriginIsolation",
 				"ReduceUserAgentMinorVersion",
 				"ReduceUserAgentPlatformOsCpu",
 				"ReduceAcceptLanguage",
 			]),
 			"--disable-features=" + string.Join(",", [
+				"NetworkQualityEstimatorWebHoldback",
 				"PreciseMemoryInfo",
 				"SharedArrayBuffer",
 				"WebBluetooth",
@@ -58,10 +142,17 @@ public class Chromium : Browza {
 				// "WebRtcHWEncoding",
 				"DisableLoadExtensionCommandLineSwitch"
 			]),
-			// Disable all chrome extensions
-			//"--disable-extensions",
-			// Disable some extensions that aren't affected by --disable-extensions
-			//"--disable-component-extensions-with-background-pages",
+
+			"--allowlisted-extension-id=bogkgkfhakiibpkgfcjdbcnmlepchiio",
+			"--disable-extensions-file-access-check",
+			"--disable-extensions-http-throttling",
+			"--extension-content-verification=none",
+			"--disable-component-extensions-with-background-pages",
+			"--disable-web-security",
+			$"--remote-debugging-port={Settings.Port}",
+			$"--user-data-dir=\"{Settings.CachePath}\"",
+			$"{proxy}",
+			"--proxy-bypass-list=<loopback>",
 			// Disable various background network services, including extension updating,
 			//   safe browsing service, upgrade detector, translate, UMA
 			"--disable-background-networking",
@@ -108,7 +199,6 @@ public class Chromium : Browza {
 			// The id of the extension which you intend to debug. Attaching to an extension background page is only possible when the --silent-debugger-extension-api command-line switch is used.
 			"--silent-debugger-extension-api",
 			// Additional flags 
-			// @TODO: test"--proxy-bypass-list=<loopback>",
 			"--bypass-app-banner-engagement-checks",
 			"--disable-field-trial-config",
 			"--disable-session-crashed-bubble",
@@ -116,15 +206,8 @@ public class Chromium : Browza {
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
 			// "--restore-last-session",
-			$"--remote-debugging-port={Settings.Port}",
-			$"--user-data-dir=\"{Settings.CachePath}\"",
-			// Settings.Profile.Proxy.Server != null ? $"--proxy-server={Settings.Profile.Proxy.Server}" : "",
-			// $"--load-extension=\"{(Debugger.IsAttached ? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons/chromeleon" : Project.Extensions.Chromeleon)}\"",
-			Settings.WithExtensions ? $"--load-extension=\"{Browzio.Extensions.Chromeleon}\"" : null,
-			//Settings.WithExtensions ? $"--load-extension=\"{(Browzio.State.Staging ? Browzio.Extensions.Chromeleon : Settings.ExtensionsPath)}\"" : null,
-			//Settings.Profile.Extensions ? $"--load-extension=\"{Settings.ExtensionsPath}\"" : null,
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
-			Settings.WithExtensions ? InitUrl : Settings.Profile.StartPage
+			Settings.WithExtensions ? $"--load-extension=\"{Browzio.Extensions.Chromeleon}\" {InitUrl}" : Settings.Profile.StartPage,
 		}.Where(x => x != null));
 	}
 

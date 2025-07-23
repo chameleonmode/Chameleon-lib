@@ -2,6 +2,7 @@
 using Chameleon.lib.Util;
 using Chameleon.lib.ThirdParty.GeoIp;
 using static Chameleon.lib.Browzio.Browzers;
+using System.Net;
 
 namespace Chameleon.lib.Browzio.Services.Browzas;
 
@@ -14,7 +15,7 @@ public interface IBrowserInstance {
 	void Close();
 	Task Closee();
 	Task Ensure();
-	Process Brocessor(string url);
+	Process Brocessor();
 	void InvokeEvent(Event @event);
 	Task Initialize(object? param = null);
 	TaskCompletionSource<bool> LoadedTCS { get; }
@@ -72,11 +73,11 @@ public abstract class Browza : IBrowserInstance {
 		InvokeEvent(Event.Opened);
 	}
 
-	public Process Brocessor(string? url = null) {
+	public Process Brocessor() {
 		Process process = new() {
 			StartInfo = new() {
 				FileName = ExePath,
-				Arguments = GetCommandLineArguments(url),
+				Arguments = GetCommandLineArguments(),
 				UseShellExecute = false,
 				CreateNoWindow = true,
 			},
@@ -99,15 +100,7 @@ public abstract class Browza : IBrowserInstance {
 		// set the extension settings
 		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
 		Browzio.I.Loopback.AddSession(SessionId, Settings, new {
-			proxy = new {
-				type = "http",
-				enabled = Settings.Profile.Proxy.CanUse,
-				server = Settings.Profile.Proxy.Server,
-				host = Settings.Profile.Proxy.Host,
-				port = Settings.Profile.Proxy.Port,
-				username = Settings.Profile.Proxy.UserName,
-				password = Settings.Profile.Proxy.Password,
-			},
+			proxy = Settings.Profile.Proxy.AddonObject,
 			urls = new {
 				start = Settings.Profile.StartPage,
 				homePages = Settings.Profile.Bookmarks,
@@ -143,6 +136,6 @@ public abstract class Browza : IBrowserInstance {
 		new(sleep: 96, retries: 3));
 	}
 
-	protected abstract string GetCommandLineArguments(string? url);
+	protected abstract string GetCommandLineArguments();
 }
 

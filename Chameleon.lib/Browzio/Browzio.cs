@@ -47,36 +47,20 @@ public interface IBrowserDetector {
 public record BrowserOption(BrowserType Option) {
 	public string IconName { get; } = Option.ToString().ToLower();
 }
-public class BrowserProxy {
-	private string? _host;
-	private string? _userName;
-	private string? _password;
-
-	public string? Host {
-		get => _host;
-		set => _host = value?.Trim();
-	}
-	public string? UserName {
-		get => _userName;
-		set => _userName = value?.Trim();
-	}
-	public string? Password {
-		get => _password;
-		set => _password = value?.Trim();
-	}
-	private int _port = 80;
-	public int Port {
-		get => _port;
-		set => _port = value is < 0 or > 65535 ? 0 : value;
-	}
-	public bool CanUse => Host.IsNot() && Port > 0;
-	public bool HasLogin => UserName.IsNot() && Password.IsNot();
-	public string? Server => CanUse ? $"{Host}:{Port}" : null;
-	public string? ServerForRequest => CanUse ? $"http://{Server}" : null;
-	public string? HostForRequest => Host.IsNot() && Host.Contains("proxy.chameleonmode.com") ? "proxy.packetstream.io" : Host;
-	public WebProxy? WebProxy => CanUse ? new WebProxy(Server) {
-		Credentials = new NetworkCredential(UserName, Password)
+public class BrowserProxy(string? host = null, int port = 0, string? userName = null, string? password = null) {
+	public NetworkCredential Credentials => new(userName, password);
+	public WebProxy? WebProxy => host.IsNot() && port > 0 ? new WebProxy($"{host}:{port}") {
+		Credentials = Credentials
 	} : null;
+	public object AddonObject => new {
+		enabled = WebProxy != null,
+		type = WebProxy?.Address?.Scheme,
+		server = WebProxy?.Address?.Authority,
+		host = WebProxy?.Address?.Host,
+		port = WebProxy?.Address?.Port,
+		username = (WebProxy?.Credentials as NetworkCredential)?.UserName,
+		password = (WebProxy?.Credentials as NetworkCredential)?.Password,
+	};
 }
 public class BrowserProfile(string? url = null) {
 	public int Id { get; init; } = -1; // -1 is a special value for the default profile

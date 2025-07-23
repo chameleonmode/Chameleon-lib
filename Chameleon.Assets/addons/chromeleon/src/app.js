@@ -62,6 +62,7 @@ export const config = {
   },
 };
 const app = {
+  name: "Chromeleon",
   config,
   observers: {},
   state: { loaded: false, server: null, port: null },

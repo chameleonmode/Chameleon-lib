@@ -8,11 +8,11 @@ using Microsoft.Playwright;
 namespace Chameleon.lib.Playwright.Services;
 
 public record Options(BrowserSetting Browser, int? Port) {
-	public Proxy? Proxy => Browser.Profile.Proxy.Server == null ? null
+	public Proxy? Proxy => Browser.Profile.Proxy.WebProxy?.Address?.Authority == null ? null
 	 : new() {
-		 Server = Browser.Profile.Proxy.Server,
-		 Username = Browser.Profile.Proxy.UserName,
-		 Password = Browser.Profile.Proxy.Password,
+		 Server = Browser.Profile.Proxy.WebProxy.Address!.Authority,
+		 Username = (Browser.Profile.Proxy.WebProxy.Credentials as System.Net.NetworkCredential)?.UserName,
+		 Password = (Browser.Profile.Proxy.WebProxy.Credentials as System.Net.NetworkCredential)?.Password,
 	 };
 
 	public string Dir => Path.Combine(FilePaths.AppDataLocalDir, Browser.BrowserType.ToString(), Browser.Profile.Id.ToString());

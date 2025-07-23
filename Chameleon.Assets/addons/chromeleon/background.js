@@ -72,7 +72,7 @@ const on = async () => {
       await proxy(app.config.proxy);
 
       await chrome.storage.local.set({ session: app.session, config: app.config });
-      await addUrlsAsBookmarks("Chromeleon", app.config.urls.homePages);
+      await addUrlsAsBookmarks(app.name, app.config.urls.homePages);
       await chrome.tabs.update(tab.id, { url: app.config.urls.start });
       // @TODO: Get page content ?
       // const results = await chrome.scripting.executeScript({
@@ -93,21 +93,27 @@ const on = async () => {
     }
 
     app.state.loaded = true;
-    log.info("Geckoleon started successfully");
+    log.info("started successfully");
   });
 };
 
-chrome.runtime.onInstalled.addListener(on);
-chrome.runtime.onStartup.addListener(on);
+chrome.runtime.onInstalled.addListener(() =>{
+  log.info("installed or updated");
+  on();
+});
+chrome.runtime.onStartup.addListener(() =>{
+  log.info("startup");
+  on();
+});
 
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (
     app.server === null ||
     app.state.loaded !== true ||
     changeInfo.status === "loading" ||
     tab.url.startsWith("http://127.0.0.1") === false
   ) return;
-  chrome.tabs.remove(tabId);
+  // chrome.tabs.remove(tabId);
 });
 
 // Listen for messages from popup or content scripts

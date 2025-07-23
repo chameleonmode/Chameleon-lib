@@ -32,40 +32,39 @@ public class BrowserLauncherTests : TestSetup {
 	// N2Vb4Jvy
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
-		var bi = await Browzio.I.Browzas.Open(Browzio.Factory.Chrome(new ("https://example.com") {
+		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Chrome(new ("https://example.com") {
 			Id = 22,
-			Proxy = new BrowserProxy() {
-				Host = "proxy.chameleonmode.com",
-				Port = 31112,
-				UserName = "elimdadia_gmail_com",
-				Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
-			},
-			Emulations = new() {
-				AutoTimezone = true,
-				SpoofGeoLocation = true,
-				SpoofWebGLFingerprint = true,
-				SpoofCanvasFingerprint = true,
-				SpoofFontFingerprint = true,
-				SpoofAudio = true,
-				SpoofClientRects = true
-			},
+			Proxy = new (
+				"proxy.chameleonmode.com",
+				31112,
+				"elimdadia_gmail_com",
+				"gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
+			),
 		}));
 		Assert.NotNull(bi);
-		await Task.Delay(1000 * 3); // Wait for the browser to load
-		await bi.Closee(); // Close the browser instance after testing
-		// KeepAlive(bi);
+		KeepAlive(bi);
+	}
+
+	[Fact]
+	public async Task Test_LaunchBrowserInstance_Vivaldi() {
+		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.BrowserSettings(BrowserType.Vivaldi, new ("https://example.com") {
+			Id = 23,
+			Proxy = new (
+				host: "proxy.chameleonmode.com",
+				port: 31112,
+				userName: "elimdadia_gmail_com",
+				password: "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
+			),
+		}));
+		Assert.NotNull(bi);
+		KeepAlive(bi);
 	}
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Brave() {
 		var bi = await Browzio.I.Browzas.Open(Browzio.Factory.Brave(new ("https://example.com") {
 			Id = 22,
-			Proxy = new BrowserProxy() {
-				Host = "proxy.chameleonmode.com",
-				Port = 31112,
-				UserName = "elimdadia_gmail_com",
-				Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
-			},
+			Proxy = new BrowserProxy("proxy.chameleonmode.com", 31112, "elimdadia_gmail_com", "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"),
 			Emulations = new() {
 				AutoTimezone = true,
 				SpoofGeoLocation = true,
@@ -84,12 +83,7 @@ public class BrowserLauncherTests : TestSetup {
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await Browzio.I.Browzas.Open(Browzio.Factory.Firefox(new ("https://example.com") {
 			Id = 22,
-			Proxy = new BrowserProxy() {
-				Host = "proxy.chameleonmode.com",
-				Port = 31112,
-				UserName = "elimdadia_gmail_com",
-				Password = "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
-			},
+			Proxy = new BrowserProxy("proxy.chameleonmode.com", 31112, "elimdadia_gmail_com", "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"),
 			Emulations = new() {
 				AutoTimezone = true,
 				SpoofGeoLocation = true,
