@@ -747,7 +747,11 @@ public class AddonsServer {
 					<div class='loading'></div>
 					
 					{(instance.bt == BrowserType.Vivaldi ? 
-						"<div class='extensions-note'>If the Chromeleon extension is not installed. While keeping this tab open. Right click this link to open it in a New Tab and flip the switch to enable Developer Mode <a href='chrome://extensions' target='_blank' rel='noopener noreferrer' style='color: #4ecdc4;' onclick='return false;' onmousedown='window.open(this.href, \"_blank\", \"noopener,noreferrer\"); return false;'>chrome://extensions</a></div>" 
+						"<div class='extensions-note'>If the Chromeleon extension is not installed. While keeping this tab open." +
+						" Right click this link to open it in a New Tab and flip the switch to enable Developer Mode. " +
+						"Refresh the extension on that tab if this page persists<br />" +
+						"<a href='chrome://extensions' target='_blank' rel='noopener noreferrer' style='color: #4ecdc4;' onclick='return false;' " +
+						"onmousedown='window.open(this.href, \"_blank\", \"noopener,noreferrer\"); return false;'>chrome://extensions</a></div>" 
 						: "<div class='extensions-note'>Extensions and privacy features are being initialized...</div>")}
 				</div>
 				
