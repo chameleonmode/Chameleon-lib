@@ -483,7 +483,8 @@ async function checkForExtensionUpdate() {
     // If versions don't match, reload the extension
     if (currentVersion && newVersion !== currentVersion) {
       await chrome.storage.local.set({ currentVersion: newVersion });
-      chrome.runtime.reload();
+      // chrome.runtime.reload();
+      chrome.runtime.sendMessage('reload-extension');
       // console.log('New version detected, reloading extension...');
       // await chrome.storage.local.set({ currentVersion: newVersion });
       

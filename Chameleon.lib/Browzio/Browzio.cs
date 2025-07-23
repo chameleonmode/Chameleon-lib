@@ -618,7 +618,156 @@ public class AddonsServer {
 				sessionId.Is() ||
 				!sessions.TryGetValue((sessionId, instanceId), out var instance)
 			) return Results.NotFound(new { error = "Session not found" });
-			else return Results.Content(JSON.Serialize(instance.config), "application/json");
+			return Results.Content($@"
+			<!DOCTYPE html>
+			<html lang='en'>
+			<head>
+				<meta charset='UTF-8'>
+				<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+				<title>Chameleon Browser</title>
+				<style>
+					* {{
+						margin: 0;
+						padding: 0;
+						box-sizing: border-box;
+					}}
+					
+					body {{
+						font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+						background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+						height: 100vh;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						color: white;
+					}}
+					
+					.splash-container {{
+						text-align: center;
+						max-width: 600px;
+						padding: 40px;
+						background: rgba(255, 255, 255, 0.1);
+						border-radius: 20px;
+						backdrop-filter: blur(10px);
+						border: 1px solid rgba(255, 255, 255, 0.2);
+						box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+					}}
+					
+    		  @keyframes glow {{
+            0%, 100% {{ filter: drop-shadow(0 0 10px rgba(255, 107, 107, 0.5)); }}
+            25% {{ filter: drop-shadow(0 0 15px rgba(78, 205, 196, 0.5)); }}
+            50% {{ filter: drop-shadow(0 0 20px rgba(69, 183, 209, 0.5)); }}
+            75% {{ filter: drop-shadow(0 0 15px rgba(150, 206, 180, 0.5)); }}
+        	}}
+        
+        	.logo {{
+        	  font-size: 4rem;
+        	  margin-bottom: 20px;
+        	  animation: glow 3s ease infinite;
+        	  cursor: pointer;
+        	  transition: transform 0.3s ease;
+        	}}
+					
+					.title {{
+						font-size: 2.5rem;
+						font-weight: 300;
+						margin-bottom: 15px;
+						opacity: 0.9;
+					}}
+					
+					.subtitle {{
+						font-size: 1.2rem;
+						opacity: 0.7;
+						margin-bottom: 30px;
+					}}
+					
+					.browser-info {{
+						background: rgba(255, 255, 255, 0.05);
+						padding: 20px;
+						border-radius: 10px;
+						margin: 20px 0;
+						border-left: 4px solid #4ecdc4;
+					}}
+					
+					.browser-name {{
+						font-size: 1.1rem;
+						font-weight: 600;
+						color: #4ecdc4;
+						margin-bottom: 5px;
+					}}
+					
+					.status {{
+						font-size: 0.9rem;
+						opacity: 0.8;
+					}}
+					
+					.loading {{
+						display: inline-block;
+						width: 40px;
+						height: 40px;
+						border: 3px solid rgba(255, 255, 255, 0.3);
+						border-radius: 50%;
+						border-top-color: #4ecdc4;
+						animation: spin 1s ease-in-out infinite;
+						margin: 20px 0;
+					}}
+					
+					@keyframes gradientShift {{
+						0%, 100% {{ background-position: 0% 50%; }}
+						50% {{ background-position: 100% 50%; }}
+					}}
+					
+					@keyframes spin {{
+						to {{ transform: rotate(360deg); }}
+					}}
+					
+					.fade-in {{
+						animation: fadeIn 0.8s ease-out;
+					}}
+					
+					@keyframes fadeIn {{
+						from {{ opacity: 0; transform: translateY(20px); }}
+						to {{ opacity: 1; transform: translateY(0); }}
+					}}
+					
+					.extensions-note {{
+						font-size: 0.9rem;
+						opacity: 0.6;
+						margin-top: 20px;
+						font-style: italic;
+					}}
+				</style>
+			</head>
+			<body>
+				<div class='splash-container fade-in'>
+					<div class='logo'>😎</div>
+					<h1 class='title'>{(instance.bt == BrowserType.Firefox ? "Geckoleon" : "Chromeleon")}</h1>
+					<p class='subtitle'>Advanced Browser Management</p>
+					
+					<div class='loading'></div>
+					
+					{(instance.bt == BrowserType.Vivaldi ? 
+						"<div class='extensions-note'>While keeping this tab open. In a New Tab enable Developer Mode in <a href='chrome://extensions' target='_blank' style='color: #4ecdc4;'>chrome://extensions</a></div>" 
+						: "<div class='extensions-note'>Extensions and privacy features are being initialized...</div>")}
+				</div>
+				
+				<script>
+					// Auto-close after 3 seconds for non-Vivaldi browsers
+					// {(instance.bt == BrowserType.Vivaldi ? @"setTimeout(function() {{
+					// 	window.open('chrome://extensions', '_blank');
+					// }}, 10000);" : "")}
+					
+					// Add some interactivity
+					document.addEventListener('DOMContentLoaded', function() {{
+						const container = document.querySelector('.splash-container');
+						container.addEventListener('click', function() {{
+							this.style.transform = 'scale(0.98)';
+							setTimeout(() => this.style.transform = 'scale(1)', 100);
+						}});
+					}});
+				</script>
+			</body>
+			</html>", "text/html");
 		});
 
 		// endpoint to receive data from extensions

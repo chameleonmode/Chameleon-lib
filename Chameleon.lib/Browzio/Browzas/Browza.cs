@@ -3,6 +3,8 @@ using Chameleon.lib.Util;
 using Chameleon.lib.ThirdParty.GeoIp;
 using static Chameleon.lib.Browzio.Browzers;
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 
 namespace Chameleon.lib.Browzio.Services.Browzas;
 
@@ -27,14 +29,18 @@ public abstract class Browza : IBrowserInstance {
 	public required BrowserSetting Settings { get; init; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
-	public string InitUrl => $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}";
+	public string InitUrl => Settings.WithExtensions
+		? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}" 
+		: Settings.Profile.StartPage;
 
 	public void InvokeEvent(Event @event) {
 		var args = new IBrowserInstance.EventArgs(Settings, @event);
 		if (@event == Event.Foreground) {
 			Browzio.I.Browzas.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, args)));
 			if (Brocess is not null) Brocessor().Start();
-		} else if (@event == Event.Opened) Browzio.I.Browzas.Observers.ForEach(kvp => kvp.Value.ForEach(x => x.Invoke(this, new(Settings, Event.Foreground))));
+		} else if (@event == Event.Opened) Browzio.I.Browzas.Observers.ForEach(
+			kvp => kvp.Value.ForEach(x => x.Invoke(this, new(Settings, Event.Foreground)))
+		);
 		else OnEvent?.Invoke(this, args);
 	}
 
@@ -53,10 +59,9 @@ public abstract class Browza : IBrowserInstance {
 		Settings.Port = Processez.NextFreePort(9613);
 		await Ensure();
 		await InitializeExtensions();
-
 		// StartProcess
 		Brocess = Brocessor();
-		EX.Try(() => Brocess.Start(), e => throw e);
+		Brocess.Start();
 
 		await WaitForWinHandle();
 		await Task.Delay(1000);
@@ -73,20 +78,15 @@ public abstract class Browza : IBrowserInstance {
 		InvokeEvent(Event.Opened);
 	}
 
-	public Process Brocessor() {
-		Process process = new() {
-			StartInfo = new() {
-				FileName = ExePath,
-				Arguments = GetCommandLineArguments(),
-				UseShellExecute = false,
-				CreateNoWindow = true,
-			},
-			EnableRaisingEvents = true,
-		};
-
-		return process;
-	}
-
+	public Process Brocessor() => new() {
+		EnableRaisingEvents = true,
+		StartInfo = new() {
+			FileName = ExePath,
+			Arguments = GetCommandLineArguments(),
+			UseShellExecute = false,
+		  CreateNoWindow = true,
+		},
+	};
 	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
 	public abstract string PrefsFile { get; }
 	public abstract string ExePath { get; }
@@ -125,7 +125,7 @@ public abstract class Browza : IBrowserInstance {
 		});
 	}
 	protected virtual async Task WaitForWinHandle() {
-		await Task.Delay(1000);
+		await Task.Delay(600);
 		if (OperatingSystem.IsWindows()) return;
 		await EX.Poly(async () => {
 			await Task.Delay(54);

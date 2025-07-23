@@ -32,8 +32,6 @@ const startup = async () => {
   }
 };
 const on = async () => {
-  log.info("On installed or started");
-
   // Reset the state
   app.state.loaded = false;
   await new Promise((resolve) => setTimeout(resolve, 300)); // Wait for 0.3 second
@@ -74,14 +72,10 @@ const on = async () => {
       await chrome.storage.local.set({ session: app.session, config: app.config });
       await addUrlsAsBookmarks(app.name, app.config.urls.homePages);
       await chrome.tabs.update(tab.id, { url: app.config.urls.start });
-      // @TODO: Get page content ?
-      // const results = await chrome.scripting.executeScript({
-      // 	target: { tabId: tab.id },
-      // 	func: () => document.body.textContent,
-      // });
       break;
     }
-    if(inactive.length > 1) {
+    await new Promise((resolve) => setTimeout(resolve, 900)); // Wait for .9 second before removing tabs
+    if (inactive.length > 1) {
       log.warn("Some tabs were inactive and removed:", inactive);
       for (const tabId of inactive) {
         try {
@@ -94,26 +88,26 @@ const on = async () => {
 
     app.state.loaded = true;
     log.info("started successfully");
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      if (
+        app.state.server === null ||
+        app.state.loaded !== true ||
+        changeInfo.status === "loading" ||
+        changeInfo.status !== "complete" ||
+        tab.url.startsWith("http://127.0.0.1") === false
+      ) return;
+      chrome.tabs.remove(tabId);
+    });
   });
 };
 
-chrome.runtime.onInstalled.addListener(() =>{
+chrome.runtime.onInstalled.addListener(() => {
   log.info("installed or updated");
   on();
 });
-chrome.runtime.onStartup.addListener(() =>{
+chrome.runtime.onStartup.addListener(() => {
   log.info("startup");
   on();
-});
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (
-    app.server === null ||
-    app.state.loaded !== true ||
-    changeInfo.status === "loading" ||
-    tab.url.startsWith("http://127.0.0.1") === false
-  ) return;
-  // chrome.tabs.remove(tabId);
 });
 
 // Listen for messages from popup or content scripts

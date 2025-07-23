@@ -108,6 +108,9 @@ public class Chromium : Browza {
 				"ReduceAcceptLanguage",
 			]),
 			"--disable-features=" + string.Join(",", [
+				"AcceptCHFrame",
+				"AutoExpandDetailsElement",
+				"AvoidUnnecessaryBeforeUnloadCheckSync",
 				"NetworkQualityEstimatorWebHoldback",
 				"PreciseMemoryInfo",
 				"SharedArrayBuffer",
@@ -118,41 +121,39 @@ public class Chromium : Browza {
 				// Disable the default browser check, do not prompt to set it as such
 				"InstalledApp",
 				"InstalledAppProvider",
-        // Disable built-in Google Translate service
-				"Translate",
-        // Disable the Chrome Optimization Guide background networking
-				"OptimizationHints",
-        //  Disable the Chrome Media Router (cast target discovery) background networking
-				"MediaRouter",
-        /// Avoid the startup dialog for _Do you want the application “Chromium.app” to accept incoming network connections?_. This is a sub-component of the MediaRouter.
-				"DialMediaRouteProvider",
-        // Disable the feature of: Calculate window occlusion on Windows will be used in the future to throttle and potentially unload foreground tabs in occluded windows.
-				"CalculateNativeWinOcclusion",
-        // Disables the Discover feed on NTP
-				"InterestFeedContentSuggestions",
-        // Don't update the CT lists
-				"CertificateTransparencyComponentUpdater",
-        // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
-				"AutofillServerCommunication",
-        // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
-				"PrivacySandboxSettings4",
-				// webrtc-hw-decoding Enables HW decode acceleration for WebRTC. ✅
-				// webrtc-hw-encoding	Enables HW encode acceleration for WebRTC. ✅
+				"Translate", // Disable built-in Google Translate service
+				"OptimizationHints", // Disable the Chrome Optimization Guide background networking
+				"MediaRouter", // Disable the Chrome Media Router (cast target discovery) background networking
+				"DialMediaRouteProvider", // Avoid the startup dialog for _Do you want the application "Chromium.app" to accept incoming network connections?_. This is a sub-component of the MediaRouter.
+				"CalculateNativeWinOcclusion", // Disable the feature of: Calculate window occlusion on Windows will be used in the future to throttle and potentially unload foreground tabs in occluded windows.
+				"InterestFeedContentSuggestions", // Disables the Discover feed on NTP and Android.
+				"CertificateTransparencyComponentUpdater", // Don't update the CT lists
+				"AutofillServerCommunication", // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
+				"PrivacySandboxSettings4", // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
+				"DeferRendererTasksAfterInput",
+				// "DestroyProfileOnBrowserClose",
+				"ExtensionManifestV2Disabled",
+				"GlobalMediaControls",
+				"HttpsUpgrades",
+				"ImprovedCookieControls",
+				"LazyFrameLoading",
+				"LensOverlay",
+				"PaintHolding",
+				"ThirdPartyStoragePartitioning",
 				// "WebRtcHWDecoding",
 				// "WebRtcHWEncoding",
 				"DisableLoadExtensionCommandLineSwitch"
 			]),
-
 			"--allowlisted-extension-id=bogkgkfhakiibpkgfcjdbcnmlepchiio",
 			"--disable-extensions-file-access-check",
 			"--disable-extensions-http-throttling",
 			"--extension-content-verification=none",
 			"--disable-component-extensions-with-background-pages",
-			"--disable-web-security",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.CachePath}\"",
 			$"{proxy}",
 			"--proxy-bypass-list=<loopback>",
+			Settings.WithExtensions ? $"--load-extension=\"{Browzio.Extensions.Chromeleon}\"" : null,
 			// Disable various background network services, including extension updating,
 			//   safe browsing service, upgrade detector, translate, UMA
 			"--disable-background-networking",
@@ -205,14 +206,38 @@ public class Chromium : Browza {
 			"--disable-hyperlink-auditing",
 			"--profile-directory=Default",
 			"--hide-crash-restore-bubble",
+			// "--enable-automation",
+			"--disable-back-forward-cache",
+			"--disable-breakpad",
+			"--disable-dev-shm-usage",
+			"--allow-pre-commit-input",
+			"--disable-popup-blocking",
+			"--force-color-profile=srgb",
+			"--no-service-autorun",
+			"--export-tagged-pdf",
+			"--disable-search-engine-choice-screen",
+			"--unsafely-disable-devtools-self-xss-warnings",
+			"--enable-use-zoom-for-dsf=false",
+			"--enable-extensions",
+			// "--disable-web-security",
+			// "--no-sandbox",
+			// "--no-startup-window",
+			// "--remote-debugging-pipe",
 			// "--restore-last-session",
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
-			Settings.WithExtensions ? $"--load-extension=\"{Browzio.Extensions.Chromeleon}\" {InitUrl}" : Settings.Profile.StartPage,
+			InitUrl
+			//"about:blank" // Use about:blank to avoid loading any page initially
 		}.Where(x => x != null));
 	}
 
 	// ...
 	protected override async Task WaitForWinHandle() {
+		// using var Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+		// var browser = await Playwright.Chromium.ConnectOverCDPAsync($"http://localhost:{Settings.Port}");
+		// var context = browser.Contexts[0];
+		// var page = context.Pages[0];
+		// var cdpSession = await context.NewCDPSessionAsync(page);
+
 		await base.WaitForWinHandle();
 		if (!OperatingSystem.IsWindows()) return;
 

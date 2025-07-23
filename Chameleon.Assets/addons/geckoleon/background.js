@@ -31,11 +31,9 @@ const startup = async () => {
   }
 };
 const on = async () => {
-  log.info("On installed or started");
-
   // Reset the state
   app.state.loaded = false;
-  await new Promise((resolve) => setTimeout(resolve, 900)); // Wait for 0.9 second
+  await new Promise((resolve) => setTimeout(resolve, 300)); // Wait for 0.3 second
   await checkForExtensionUpdate();
 
   // First load the config from sync storage
@@ -45,61 +43,70 @@ const on = async () => {
   // Common startup operations
   await startup();
   await proxy(app.config.proxy);
-  await app.discoverServer();
+  app.discoverServer().then(async () => {
+    const inactive = [];
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (!tab.url.startsWith("http://127.0.0.1")) continue;
 
-  const tabs = await chrome.tabs.query({});
-  for (const tab of tabs) {
-    if (!tab.url.startsWith("http://127.0.0.1")) continue;
+      const url = new URL(tab.url);
+      const sessionId = url.searchParams.get("sessionId");
+      const instanceId = url.searchParams.get("instanceId");
+      const init = await app.sendData({ type: "init" }, { instanceId, sessionId });
+      if (!init || !init.config || !init.port) {
+        inactive.push(tab.id);
+        continue;
+      }
+      app.session = { sessionId, instanceId };
+      app.state.port = init.port;
 
-    const url = new URL(tab.url);
-    const sessionId = url.searchParams.get("sessionId");
-    const instanceId = url.searchParams.get("instanceId");
-    const init = await app.sendData({ type: "init" }, { instanceId, sessionId });
-    if (!init || !init.config || !init.port) {
-      chrome.tabs.remove(tab.id);
-      continue;
+      for (const [key, value] of Object.entries(init.config)) {
+        app.config[key] =
+          app.config.sync || key === "proxy"
+            ? { ...app.config[key], ...value }
+            : { ...value, ...app.config[key] };
+      }
+      await proxy(app.config.proxy);
+
+      await chrome.storage.local.set({ session: app.session, config: app.config });
+      await addUrlsAsBookmarks(app.name, app.config.urls.homePages);
+      await chrome.tabs.update(tab.id, { url: app.config.urls.start });
+      break;
     }
-    app.session = { sessionId, instanceId };
-    app.state.port = init.port;
-
-    for (const [key, value] of Object.entries(init.config)) {
-      app.config[key] =
-        app.config.sync || key === "proxy"
-          ? { ...app.config[key], ...value }
-          : { ...value, ...app.config[key] };
+    await new Promise((resolve) => setTimeout(resolve, 900)); // Wait for .9 second before removing tabs
+    if (inactive.length > 1) {
+      log.warn("Some tabs were inactive and removed:", inactive);
+      for (const tabId of inactive) {
+        try {
+          await chrome.tabs.remove(tabId);
+        } catch (error) {
+          log.error(`Failed to remove tab ${tabId}:`, error);
+        }
+      }
     }
-    await proxy(app.config.proxy);
 
-    await chrome.storage.local.set({ session: app.session, config: app.config });
-    await addUrlsAsBookmarks("Chromeleon", app.config.urls.homePages);
-    await chrome.tabs.update(tab.id, { url: app.config.urls.start });
-    // @TODO: Get page content ?
-    // const results = await chrome.scripting.executeScript({
-    // 	target: { tabId: tab.id },
-    // 	func: () => document.body.textContent,
-    // });
-    break;
-  }
-
-  app.state.loaded = true;
-  log.info("Geckoleon started successfully");
+    app.state.loaded = true;
+    log.info("started successfully");
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      if (
+        app.state.server === null ||
+        app.state.loaded !== true ||
+        changeInfo.status === "loading" ||
+        changeInfo.status !== "complete" ||
+        tab.url.startsWith("http://127.0.0.1") === false
+      ) return;
+      chrome.tabs.remove(tabId);
+    });
+  });
 };
 
-chrome.runtime.onInstalled.addListener(on);
-chrome.runtime.onStartup.addListener(on);
-
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (
-    app.server === null ||
-    app.state.loaded !== true ||
-    changeInfo.status !== "complete" ||
-    tab.url.startsWith("http://127.0.0.1") === false
-  )
-    return;
-
-  const tabs = await chrome.tabs.query({});
-  if (tabs.length == 1) await chrome.tabs.update(tabId, { url: app.config.urls.start });
-  else chrome.tabs.remove(tabId);
+chrome.runtime.onInstalled.addListener(() => {
+  log.info("installed or updated");
+  on();
+});
+chrome.runtime.onStartup.addListener(() => {
+  log.info("startup");
+  on();
 });
 
 // Listen for messages from popup or content scripts
