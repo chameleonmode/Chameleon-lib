@@ -108,6 +108,7 @@ public class Chromium : Browza {
 				"ReduceAcceptLanguage",
 			]),
 			"--disable-features=" + string.Join(",", [
+				"msImplicitSignin",
 				"AcceptCHFrame",
 				"AutoExpandDetailsElement",
 				"AvoidUnnecessaryBeforeUnloadCheckSync",
@@ -162,7 +163,7 @@ public class Chromium : Browza {
 			// Disables client-side phishing detection.
 			"--disable-client-side-phishing-detection",
 			// Disable syncing to a Google account
-			//"--disable-sync",
+			"--disable-sync",
 			// Disable reporting to UMA, but allows for collection
 			"--metrics-recording-only",
 			// Disable installation of default apps on first run
