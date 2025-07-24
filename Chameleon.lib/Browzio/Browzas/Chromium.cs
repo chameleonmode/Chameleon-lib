@@ -100,7 +100,7 @@ public class Chromium : Browza {
 		// 					Settings.Profile.Proxy.WebProxy.Credentials is NetworkCredential credz ? $"{credz.UserName}:{credz.Password}@" : ""
 		// 				)}{Settings.Profile.Proxy.WebProxy.Address?.Authority}";
 		var proxy = Settings.Profile.Proxy.WebProxy is not null
-			? $"--proxy-server=127.0.0.1:{Browzio.I.Loopback.Proxio.Port}" // Use the loopback proxy for local requests
+			? $"--proxy-server=127.0.0.1:{Settings.ProxioPort}" // Use the loopback proxy for local requests
 			: null;
 		return string.Join(" ", new string?[] {
 			"--enable-features=" + string.Join(",", [

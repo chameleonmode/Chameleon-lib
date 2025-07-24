@@ -4,6 +4,18 @@ import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import "./src/services/executions.js";
 
 // Startup
+// const proxio = (port = 33333) => {
+//   const bypass = ["127.0.0.1:3363", "127.0.0.1:3993", "127.0.0.1:3963", "127.0.0.1:3693"];
+//   browser.proxy.onRequest.addListener(
+//     (details) => {
+//       const { hostname, port: urlPort } = new URL(details.url);
+//       return !app.config.proxy.enabled || bypass.some((host) => host == `${hostname}:${urlPort}`)
+//         ? { type: "direct" }
+//         : { type: "http", host: "127.0.0.1", port };
+//     },
+//     { urls: ["<all_urls>"] }
+//   );
+// };
 const proxio = (port = 33333) =>
   browser.proxy.onRequest.addListener(
     () => ({ type: "http", host: "127.0.0.1", port }),
@@ -29,7 +41,6 @@ const startup = async () => {
 const on = async () => {
   // Reset the state
   app.state.loaded = false;
-  proxio();
 
   // First load the config from sync storage
   const { config = {} } = await chrome.storage.sync.get(["config"]);
@@ -44,11 +55,6 @@ const on = async () => {
   let found = false;
   for (const tab of tabs) {
     if (!tab.url.startsWith("http://127.0.0.1")) continue;
-    if (found) {
-      await chrome.tabs.remove(tab.id);
-      continue;
-    }
-
     const url = new URL(tab.url);
     const sessionId = url.searchParams.get("sessionId");
     const instanceId = url.searchParams.get("instanceId");
@@ -56,9 +62,8 @@ const on = async () => {
     if (!proxioPort) {
       await chrome.tabs.remove(tab.id);
       continue;
-    } else if (proxioPort !== 33333) {
-      proxio(proxioPort);
-    }
+    } 
+    proxio(proxioPort);
     const init = await app.sendData({ type: "init" }, { instanceId, sessionId });
     if (!init || !init.config || !init.port) {
       await chrome.tabs.remove(tab.id);
@@ -93,15 +98,13 @@ chrome.runtime.onStartup.addListener(() => {
   log.info("startup");
   on();
 });
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (
-    app.state.server === null ||
-    app.state.loaded !== true ||
-    app.state.tabId === tabId ||
-    tab.url.startsWith("http://127.0.0.1") === false
-  ) return;
-  log.info(changeInfo, tab);
-  chrome.tabs.remove(tabId);
+chrome.tabs.onUpdated.addListener((_, __, tab) => {
+  const remove =
+    app.state.loaded === false ||
+    app.state.tabId === tab.id ||
+    tab.url.startsWith("http://127.0.0.1") === false;
+  if (remove) return;
+  else chrome.tabs.remove(tab.id);
 });
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

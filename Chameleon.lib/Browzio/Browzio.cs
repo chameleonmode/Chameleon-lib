@@ -79,6 +79,7 @@ public class BrowserProfile(string? url = null) {
 }
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
 	public required int Port { get; set; }
+	public int ProxioPort { get; set; }
 	public bool WithExtensions => Profile.Id > 0;
 	public string CachePath => FilePaths.EnsureDirectoryExists(
 		FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()
@@ -559,31 +560,22 @@ public class MacOSBrowserDetector : BrowserDetector {
 #region services
 public class Serverio {
 	public class ProxyHandler {
-		private readonly ConcurrentDictionary<BrowserSetting, byte> settings = [];
-		private readonly ConcurrentDictionary<int, CancellationTokenSource> cancellationTokens = [];
+		private readonly ConcurrentDictionary<int, (BrowserSetting setting, CancellationTokenSource cts)> settings = [];
 
-		public int Port { get; }
-		public TcpListener Listener { get; }
-
-		public ProxyHandler() {
-			Port = Processez.NextFreePort(33333);
-			Listener = new TcpListener(IPAddress.Loopback, Port);
-			Listener.Start();
-			Debug.WriteLine($"Proxy listener started on port {Port}");
-		}
-
-		public void AssignProxy(BrowserSetting setting) {
-			settings.TryAdd(setting, 0);
+		public int AssignProxy(BrowserSetting setting) {
+			var port = Processez.NextFreePort(33333);
+			var listener = new TcpListener(IPAddress.Loopback, port);
+			listener.Start();
 
 			var cts = new CancellationTokenSource();
-			cancellationTokens[setting.Profile.Id] = cts;
+			settings[port] = (setting, cts);
 
 			// Start accepting connections for this browser setting
 			_ = Task.Run(async () => {
 				while (!cts.Token.IsCancellationRequested) {
 					try {
 						// Accept a new client connection
-						var client = await Listener.AcceptTcpClientAsync();
+						var client = await listener.AcceptTcpClientAsync();
 
 						// Handle this connection in a separate task
 						_ = Task.Run(async () => await HandleProxyConnection(client, setting, cts.Token));
@@ -595,14 +587,15 @@ public class Serverio {
 					}
 				}
 			});
+
+			return port;
 		}
 
 		public void Remove(BrowserSetting setting) {
-			if (cancellationTokens.TryRemove(setting.Profile.Id, out var cts)) {
-				cts.Cancel();
-				cts.Dispose();
+			if (settings.TryRemove(setting.ProxioPort, out var value)) {
+				value.cts.Cancel();
+				value.cts.Dispose();
 			}
-			settings.TryRemove(setting, out _);
 		}
 
 		private async Task HandleProxyConnection(TcpClient client, BrowserSetting settings, CancellationToken cancellationToken) {
@@ -786,16 +779,17 @@ public class Serverio {
 	}
 
 	public async Task AddSession(string sessionId, BrowserSetting settings) {
-		Proxio.AssignProxy(settings);
+		settings.ProxioPort = Proxio.AssignProxy(settings);
 		var ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
 		sessions[(sessionId, settings.Profile.Id)] = (
 			config: new {
 				// proxy = Settings.Profile.Proxy.AddonObject,
 				proxy = new {
+					enabled = settings.Profile.Proxy.WebProxy != null,
 					type = "http",
-					server = "127.0.0.1:" + Proxio.Port,
+					server = "127.0.0.1:" + settings.ProxioPort,
 					host = "127.0.0.1",
-					port = Proxio.Port,
+					port = settings.ProxioPort,
 				},
 				urls = new {
 					start = settings.Profile.StartPage,
