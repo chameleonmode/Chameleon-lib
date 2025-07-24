@@ -85,16 +85,17 @@ public static class EX {
 	), "exceptions.log");
 	public static string? LogContent => File.Exists(LogFile) ? File.ReadAllText(LogFile) : null;
 
-	private static async void PrintException(Exception? e) {
+	public static async void PrintException(Exception? e) {
 		if (e == null) return;
 		var logMessage = $"Message: {e.Message}\nStackTrace:\n{e.StackTrace}";
 		var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {logMessage}{Environment.NewLine}";
 		Debug.WriteLine(logEntry);
-		try {
-			await File.AppendAllTextAsync(LogFile, logEntry);
-		} catch {
-			Debug.WriteLine("Failed to log exception to file");
-		}
+		await Task.CompletedTask; // Simulate async operation
+		// try {
+		// 	await File.AppendAllTextAsync(LogFile, logEntry);
+		// } catch {
+		// 	Debug.WriteLine("Failed to log exception to file");
+		// } // TODO activate when users report issues to debug log
 		PrintException(e.InnerException);
 	}
 }

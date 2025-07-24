@@ -468,6 +468,7 @@ function matchesPattern(value, patterns, options = {}) {
 // Function to check if extension needs reloading based on version
 async function checkForExtensionUpdate() {
   if(detectBrowser() === 'Firefox') return;
+  await new Promise((resolve) => setTimeout(resolve, 300)); // Wait for 0.3 second
   try {
     // Fetch the current manifest.json file to get the latest version
     const manifestResponse = await fetch(chrome.runtime.getURL('manifest.json'));

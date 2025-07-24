@@ -111,10 +111,18 @@ public static class Processez {
 	/// <param name="port"></param>
 	/// <returns></returns>
 	public static bool IsFree(int port) {
-		var properties = IPGlobalProperties.GetIPGlobalProperties();
-		var listeners = properties.GetActiveTcpListeners();
-		var openPorts = listeners.Select(item => item.Port).ToArray<int>();
-		return openPorts.All(openPort => openPort != port);
+		// var properties = IPGlobalProperties.GetIPGlobalProperties();
+		// var listeners = properties.GetActiveTcpListeners();
+		// var openPorts = listeners.Select(item => item.Port).ToArray<int>();
+		// return openPorts.All(openPort => openPort != port);
+		try {
+			using var listener = new TcpListener(IPAddress.Loopback, port);
+			listener.Start();
+			listener.Stop();
+			return true;
+		} catch (SocketException) {
+			return false;
+		}
 	}
 
 	/// <summary>
@@ -122,24 +130,11 @@ public static class Processez {
 	/// </summary>
 	/// <param name="port"></param>
 	/// <returns></returns>
-	public static int NextFreePort(int port = 0, int max = 65535) {
-		port = (port > 0) ? port : new Random().Next(1, 65535);
+	public static int NextFreePort(int start, int max = 65535) {
+		var port = (start > 0) ? start : new Random().Next(1, 65535);
 		while (!IsFree(port)) {
-			port += 1;
-			if (port > max)
-				throw new Exception("No free ports available");
+			if (++port > max) port = start;
 		}
-		return port;
-	}
-
-	/// <summary>
-	/// Get a random unused port
-	/// </summary>
-	public static int GetRandomUnusedPort() {
-		var listener = new TcpListener(IPAddress.Loopback, 0);
-		listener.Start();
-		var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-		listener.Stop();
 		return port;
 	}
 }

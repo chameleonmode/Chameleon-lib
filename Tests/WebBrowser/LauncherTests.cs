@@ -32,7 +32,7 @@ public class BrowserLauncherTests : TestSetup {
 	// N2Vb4Jvy
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
-		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Chrome(new("https://example.com") {
+		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Chrome(new("https://browserleaks.com/ip") {
 			Id = 24,
 			Proxy = new(
 				"proxy.chameleonmode.com",
@@ -47,14 +47,14 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Vivaldi() {
-		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.BrowserSettings(BrowserType.Vivaldi, new("https://example.com") {
+		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.BrowserSettings(BrowserType.Vivaldi, new("https://browserleaks.com/ip") {
 			Id = 26,
-			// Proxy = new(
-			// 	host: "proxy.chameleonmode.com",
-			// 	port: 31112,
-			// 	userName: "elimdadia_gmail_com",
-			// 	password: "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
-			// ),
+			Proxy = new(
+				host: "proxy.chameleonmode.com",
+				port: 31112,
+				userName: "elimdadia_gmail_com",
+				password: "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"
+			),
 		}));
 		Assert.NotNull(bi);
 		KeepAlive(bi);
@@ -62,7 +62,7 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Brave() {
-		var bi = await Browzio.I.Browzas.Open(Browzio.Factory.Brave(new("https://example.com") {
+		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Brave(new("https://browserleaks.com/ip") {
 			Id = 22,
 			Proxy = new BrowserProxy("proxy.chameleonmode.com", 31112, "elimdadia_gmail_com", "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"),
 		}));
@@ -72,7 +72,7 @@ public class BrowserLauncherTests : TestSetup {
 
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
-		var bi = await Browzio.I.Browzas.Open(Browzio.Factory.Firefox(new("https://example.com") {
+		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Firefox(new("https://browserleaks.com/ip") {
 			Id = 22,
 			Proxy = new BrowserProxy("proxy.chameleonmode.com", 31112, "elimdadia_gmail_com", "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"),
 		}));

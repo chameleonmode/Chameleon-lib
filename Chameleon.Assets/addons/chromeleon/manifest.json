@@ -1,7 +1,7 @@
 {
   "name": "Chromeleon",
   "description": "A Chromeleon can change its behavior to blend into the environment of any website troller.",
-  "version": "2025.7.24.1",
+  "version": "2025.7.24.6",
   "manifest_version": 3,
   "permissions": [
     "activeTab",
@@ -34,6 +34,5 @@
     "32": "data/icons/16x16_2x.png",
     "64": "data/icons/32x32_2x.png",
     "128": "data/icons/128x128.png"
-  },
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7DL841M/IArnPZhjqitnyyQqSxtZofxAaTbiP9LHivAF119xU1uPdFpAYhpewoOxH0BgIYjlIYkuOscHIFrKx6n6otkGhekn3EuJZgJanErmrfbFcajlTAIWS2j1CCEc6+5fht/jSY1kKKu1vKuOK8Mca1/ytDLdJ4xvwdpzPLAds4YljGnhyHZLzMhbGntAVTTDyqS6HRTFaebOYKyF+G/2XoJc6jfL8P8OH5qNe+M54etWlD8AP0lIbB2nK/C+V9AhxyXNEE83okwL+EHf+JJSYl0u2AUAkYYKVmNMtW2XLi1tfiyq2HzNx0vpBICrFhvB09Q7eDuJ3nexRzXIzQIDAQAB"
+  }
 }

@@ -7,7 +7,7 @@ using Microsoft.Playwright;
 
 namespace Chameleon.lib.Playwright.Services;
 
-public record Options(BrowserSetting Browser, int? Port) {
+public record Options(BrowserSetting Browser) {
 	public Proxy? Proxy => Browser.Profile.Proxy.WebProxy?.Address?.Authority == null ? null
 	 : new() {
 		 Server = Browser.Profile.Proxy.WebProxy.Address!.Authority,
@@ -88,20 +88,20 @@ public sealed class Sync {
 		}
 	}
 
-	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(Options options)
-		=> await EX.Poly(async () => await ExecuteCookieAction(options)) ?? 
+	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> GetCookies(BrowserSetting setting)
+		=> await EX.Poly(async () => await ExecuteCookieAction(setting)) ?? 
 			throw new InvalidOperationException("Failed to retrieve cookies");
 
-	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> SetCookies(Options options, IEnumerable<Cookie> cookies)
-		=> await EX.Poly(async () => await ExecuteCookieAction(options, [.. cookies])) ??
+	public static async Task<IReadOnlyList<BrowserContextCookiesResult>> SetCookies(BrowserSetting setting, IEnumerable<Cookie> cookies)
+		=> await EX.Poly(async () => await ExecuteCookieAction(setting, [.. cookies])) ??
 			throw new InvalidOperationException("Failed to set cookies");
 
-	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> ExecuteCookieAction(Options options, List<Cookie>? cookiesToSet = null) {
+	private static async Task<IReadOnlyList<BrowserContextCookiesResult>> ExecuteCookieAction(BrowserSetting setting, List<Cookie>? cookiesToSet = null) {
 		using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-		var playwrightBrowser = options.Browser.BrowserType == Browzio.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
+		var playwrightBrowser = setting.BrowserType == Browzio.BrowserType.Firefox ? playwright.Firefox : playwright.Chromium;
 		try {
-			if (options.Port != null) {
-				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{options.Port}");
+			if (setting.Port > 0) {
+				await using var browser = await playwrightBrowser.ConnectOverCDPAsync($"http://localhost:{setting.Port}");
 				var context = browser.Contexts.Count > 0 ? browser.Contexts[0] : await browser.NewContextAsync();
 				if (cookiesToSet == null) {
 					return await context.CookiesAsync();
@@ -111,12 +111,18 @@ public sealed class Sync {
 				}
 			} else {
 				await using var context = await playwrightBrowser.LaunchPersistentContextAsync(
-						options.Dir,
+						setting.CachePath,
 						new() {
 							Headless = true,
 							Args = ["--allow-downgrade"],
-							Proxy = options.Proxy,
-							ExecutablePath = await Util.GetBrowseExecutablePath(options.Browser.BrowserType),
+							Proxy =
+								setting.Profile.Proxy.WebProxy?.Address?.Authority == null ? null
+	 							: new() {
+									 Server = setting.Profile.Proxy.WebProxy.Address.Authority,
+									 Username = (setting.Profile.Proxy.WebProxy.Credentials as System.Net.NetworkCredential)?.UserName,
+									 Password = (setting.Profile.Proxy.WebProxy.Credentials as System.Net.NetworkCredential)?.Password,
+	 							},
+							ExecutablePath = await Util.GetBrowseExecutablePath(setting.BrowserType),
 							// ExecutablePath = Browzio.Browzio.Utilities.GetBrowser(options.Browser.BrowserType)?.ExecutablePath ??
 							// 	throw new InvalidOperationException("Browser executable path not found."),
 						}

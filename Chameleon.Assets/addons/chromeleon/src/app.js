@@ -65,7 +65,7 @@ const app = {
   name: "Chromeleon",
   config,
   observers: {},
-  state: { loaded: false, server: null, port: null },
+  state: { loaded: false, server: null, port: null, tabId: null },
   session: { sessionId: null, instanceId: null },
 
   // Find the app server

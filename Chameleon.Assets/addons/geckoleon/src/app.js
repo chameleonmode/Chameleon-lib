@@ -62,16 +62,15 @@ export const config = {
   },
 };
 const app = {
-  name: "Geckoleon",
+  name: "Chromeleon",
   config,
   observers: {},
-  state: { loaded: false, server: null, port: null },
+  state: { loaded: false, server: null, port: null, tabId: null },
   session: { sessionId: null, instanceId: null },
 
   // Find the app server
   async discoverServer() {
     while (!this.state.server) {
-      await new Promise((resolve) => setTimeout(resolve, 600)); // Wait for 0.6 second
       // Try each port in the list
       for (const port of [3663, 3993, 3693, 3963]) {
         //, 6969, 6996, 9669, 9696]) {

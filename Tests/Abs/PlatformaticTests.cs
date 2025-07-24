@@ -184,7 +184,7 @@ public class PlatformaticTests : TestSetup {
 
 	[Fact]
 	public async Task DB_Routes_Cooky() {
-		var cookies = await Sync.GetCookies(new(new(Chameleon.lib.Browzio.BrowserType.Chrome, new() { Id = 25541 }), null));
+		var cookies = await Sync.GetCookies(new(Chameleon.lib.Browzio.BrowserType.Chrome, new() { Id = 25541, }) { Port = 8080 });
 		var email = "elimdadia@gmail.com";
 		//var email = "ezexerael@gmail.com";
 		await DB.I.Cooky.SendCookies(25541, email, cookies ?? throw new InvalidOperationException("Failed to get cookies from browser profile"));

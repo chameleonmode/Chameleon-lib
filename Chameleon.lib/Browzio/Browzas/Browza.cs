@@ -30,7 +30,7 @@ public abstract class Browza : IBrowserInstance {
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public string InitUrl => Settings.WithExtensions
-		? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}" 
+		? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}&proxio={Browzio.I.Loopback.Proxio.Port}" 
 		: Settings.Profile.StartPage;
 
 	public void InvokeEvent(Event @event) {
@@ -46,7 +46,8 @@ public abstract class Browza : IBrowserInstance {
 
 	public async Task Closee() => await Processez.TryKillProcess(Brocess);
 	public void Close() {
-		_ = LoadedTCS.TrySetResult(false);
+		LoadedTCS.TrySetResult(false);
+		Browzio.I.Loopback.Proxio.Remove(Settings);
 		InvokeEvent(Event.Closed);
 		MacOSWindowListener.Instance.RemPid(Brocess?.Id);
 		Brocess?.Dispose();
@@ -56,9 +57,9 @@ public abstract class Browza : IBrowserInstance {
 	public async Task Initialize(object? param = null) {
 		if (Brocess is not null) return;
 
-		Settings.Port = Processez.NextFreePort(9613);
 		await Ensure();
 		await InitializeExtensions();
+		
 		// StartProcess
 		Brocess = Brocessor();
 		Brocess.Start();
@@ -98,31 +99,7 @@ public abstract class Browza : IBrowserInstance {
 		if (!Settings.WithExtensions) return;
 
 		// set the extension settings
-		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
-		Settings.ProxioPort = Browzio.I.Loopback.AddSession(SessionId, Settings, new {
-			proxy = Settings.Profile.Proxy.AddonObject,
-			urls = new {
-				start = Settings.Profile.StartPage,
-				homePages = Settings.Profile.Bookmarks,
-			},
-			tz = new {
-				enabled = Settings.Profile.Emulations.Timezone,
-				locale = "en-" + ipapi.countryCode,
-				system = ipapi.tzSystem,
-				zone = ipapi.timezone,
-			},
-			geo = new {
-				enabled = Settings.Profile.Emulations.Geo,
-				ipapi.lat,
-				ipapi.lon,
-			},
-			canvas = new { enabled = Settings.Profile.Emulations.Canvas },
-			webgl = new { enabled = Settings.Profile.Emulations.WebGL },
-			fonts = new { enabled = Settings.Profile.Emulations.Font },
-			rects = new { enabled = Settings.Profile.Emulations.Rects },
-			navi = new { enabled = Settings.Profile.Emulations.Navigator },
-			audio = new { enabled = Settings.Profile.Emulations.Audio },
-		});
+		await Browzio.I.Loopback.AddSession(SessionId, Settings);
 	}
 	protected virtual async Task WaitForWinHandle() {
 		await Task.Delay(600);
