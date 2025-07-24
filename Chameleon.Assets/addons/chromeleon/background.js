@@ -71,7 +71,7 @@ const on = async () => {
     }
     app.session = { sessionId, instanceId };
     app.state.port = init.port;
-    app.state.initedTabId = tab.id;
+    app.state.tabId = tab.id;
 
     for (const [key, value] of Object.entries(init.config)) {
       app.config[key] =

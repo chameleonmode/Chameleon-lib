@@ -1,8 +1,6 @@
 import app, { noises } from "./src/app.js";
-import proxy from "./src/services/proxy.js";
 import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
-import { checkForExtensionUpdate } from "./src/lib/util.js";
 import "./src/services/executions.js";
 
 // Startup
@@ -68,7 +66,7 @@ const on = async () => {
     }
     app.session = { sessionId, instanceId };
     app.state.port = init.port;
-    app.state.initedTabId = tab.id;
+    app.state.tabId = tab.id;
 
     for (const [key, value] of Object.entries(init.config)) {
       app.config[key] =
@@ -102,6 +100,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     app.state.tabId === tabId ||
     tab.url.startsWith("http://127.0.0.1") === false
   ) return;
+  log.info(changeInfo, tab);
   chrome.tabs.remove(tabId);
 });
 // Listen for messages from popup or content scripts
