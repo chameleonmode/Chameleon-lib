@@ -31,15 +31,7 @@ public class IOCTest {
 		Assert.True(customSetting == "CustomSetting");
 
 		// Set a new Type value
-		IoC.SetJsonValue( nameof(EmulationOptions),new EmulationOptions {
-			DisableWebRTC = true,
-			SpoofClientRects = true,
-			SpoofFontFingerprint = true,
-			SpoofCanvasFingerprint = true,
-			SpoofWebGLFingerprint = true,
-			SpoofGeoLocation = true,
-			AutoTimezone = true,
-		});
+		IoC.SetJsonValue(nameof(EmulationOptions), new EmulationOptions());
 		var emulations = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions));
 		Assert.NotNull(emulations);
 	}

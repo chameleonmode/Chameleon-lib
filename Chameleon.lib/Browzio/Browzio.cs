@@ -16,6 +16,9 @@ using Chameleon.lib.Browzio.Services.Browzas;
 using Chameleon.lib.Helpers;
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
+using System.Text;
+using Microsoft.Playwright;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace Chameleon.lib.Browzio;
 
@@ -78,6 +81,7 @@ public class BrowserProfile(string? url = null) {
 }
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
 	public int Port { get; set; } = 0;
+	public int ProxioPort { get; set; } = 0;
 	public bool WithExtensions => Profile.Id > 0;
 	public string CachePath => FilePaths.EnsureDirectoryExists(
 		FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()
@@ -92,15 +96,15 @@ public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
 	};
 }
 public record EmulationOptions(
-	bool AutoTimezone = true,
-	bool SpoofGeoLocation = true,
-	bool SpoofWebGLFingerprint = true,
-	bool SpoofCanvasFingerprint = true,
-	bool SpoofClientRects = true,
-	bool SpoofFontFingerprint = true,
-	bool SpoofAudio = true,
-	bool DisableWebRTC = true,
-	bool SpoofNavigator = false
+	bool Canvas = true,
+	bool WebGL = true,
+	bool Rects = true,
+	bool Font = true,
+	bool Audio = true,
+	bool Geo = true,
+	bool Timezone = true,
+	bool WebRTC = true,
+	bool Navigator = false
 );
 #endregion
 
@@ -556,9 +560,197 @@ public class MacOSBrowserDetector : BrowserDetector {
 }
 
 #region services
-public class AddonsServer {
+public class ProxyMiddleware(RequestDelegate next) {
+	public async Task InvokeAsync(HttpContext context) {
+		// Get the port from the connection
+		var localPort = context.Connection.LocalPort;
+
+		// Check if this port is a proxy port
+		var settings = Browzio.I.Loopback.Proxio.GetSettingsByPort(localPort);
+		if (settings == null) {
+			// Not a proxy port, pass to next middleware
+			await next(context);
+			return;
+		}
+		Debug.WriteLine($"Proxy request on port {localPort} for {context.Request.Method} {context.Request.Path}");
+
+		// Get proxy configuration
+		var proxy = settings.Profile.Proxy;
+		if (proxy.WebProxy == null) {
+			context.Response.StatusCode = 503;
+			await context.Response.WriteAsync("Proxy not configured");
+			return;
+		}
+
+		// Handle CONNECT method for HTTPS tunneling
+		if (context.Request.Method == "CONNECT") {
+			await HandleConnectAsync(context, proxy);
+		} else {
+			await HandleHttpRequestAsync(context, proxy);
+		}
+	}
+
+	private async Task HandleConnectAsync(HttpContext context, BrowserProxy proxy) {
+		var targetHost = context.Request.Host.Host;
+		var targetPort = context.Request.Host.Port ?? 443;
+
+		try {
+			// Connect to the external proxy
+			using var proxyClient = new TcpClient();
+			await proxyClient.ConnectAsync(proxy.WebProxy!.Address!.Host, proxy.WebProxy.Address.Port);
+			var proxyStream = proxyClient.GetStream();
+
+			// Send CONNECT request to external proxy with authentication
+			var authHeader = CreateProxyAuthorizationHeader(proxy.Credentials.UserName, proxy.Credentials.Password);
+			var connectRequest = $"CONNECT {targetHost}:{targetPort} HTTP/1.1\r\n" +
+												 $"Host: {targetHost}:{targetPort}\r\n" +
+												 $"Proxy-Authorization: {authHeader}\r\n" +
+												 $"Connection: keep-alive\r\n\r\n";
+
+			var requestBytes = Encoding.ASCII.GetBytes(connectRequest);
+			await proxyStream.WriteAsync(requestBytes, 0, requestBytes.Length);
+
+			// Read the response from the external proxy
+			var buffer = new byte[4096];
+			var bytesRead = await proxyStream.ReadAsync(buffer, 0, buffer.Length);
+			var response = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+
+			if (!response.StartsWith("HTTP/1.1 200") && !response.StartsWith("HTTP/1.0 200")) {
+				context.Response.StatusCode = 502;
+				await context.Response.WriteAsync("External proxy rejected connection");
+				return;
+			}
+
+			// Send 200 Connection Established to the browser
+			context.Response.StatusCode = 200;
+			context.Response.Headers["Content-Length"] = "0";
+			await context.Response.StartAsync();
+
+			// Get the underlying connection stream
+			if (context.Features.Get<IHttpResponseBodyFeature>()?.Stream is not { } browserStream) return;
+
+			// Start bidirectional data relay
+			var cts = new CancellationTokenSource();
+			var relayTask1 = RelayDataAsync(browserStream, proxyStream, "Browser->Proxy", cts.Token);
+			var relayTask2 = RelayDataAsync(proxyStream, browserStream, "Proxy->Browser", cts.Token);
+
+			await Task.WhenAny(relayTask1, relayTask2);
+			cts.Cancel();
+		} catch (Exception ex) {
+			if (!context.Response.HasStarted) {
+				context.Response.StatusCode = 502;
+				await context.Response.WriteAsync("Proxy error");
+			}
+		}
+	}
+
+	private async Task HandleHttpRequestAsync(HttpContext context, BrowserProxy proxy) {
+		try {
+			// Create HttpClient with proxy settings
+			var handler = new HttpClientHandler {
+				Proxy = proxy.WebProxy,
+				UseProxy = true,
+				ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+			};
+
+			using var httpClient = new HttpClient(handler);
+			httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+			// Build the target URL
+			var targetUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}";
+
+			// Create the request message
+			var requestMessage = new HttpRequestMessage {
+				Method = new HttpMethod(context.Request.Method),
+				RequestUri = new Uri(targetUrl)
+			};
+
+			// Copy headers from the original request
+			foreach (var header in context.Request.Headers) {
+				if (!header.Key.StartsWith("Host", StringComparison.OrdinalIgnoreCase) &&
+						!header.Key.Equals("Connection", StringComparison.OrdinalIgnoreCase)) {
+					requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+				}
+			}
+
+			// Copy the request body if present
+			if (context.Request.ContentLength > 0) {
+				requestMessage.Content = new StreamContent(context.Request.Body);
+				foreach (var header in context.Request.Headers) {
+					if (header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase)) {
+						requestMessage.Content.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+					}
+				}
+			}
+
+			// Send the request
+			var response = await httpClient.SendAsync(requestMessage);
+
+			// Copy the response status
+			context.Response.StatusCode = (int)response.StatusCode;
+
+			// Copy response headers
+			foreach (var header in response.Headers) {
+				context.Response.Headers[header.Key] = header.Value.ToArray();
+			}
+
+			foreach (var header in response.Content.Headers) {
+				context.Response.Headers[header.Key] = header.Value.ToArray();
+			}
+
+			// Copy the response body
+			await response.Content.CopyToAsync(context.Response.Body);
+		} catch (Exception ex) {
+			if (!context.Response.HasStarted) {
+				context.Response.StatusCode = 502;
+				await context.Response.WriteAsync("Proxy error");
+			}
+		}
+	}
+
+	private async Task RelayDataAsync(Stream from, Stream to, string direction, CancellationToken cancellationToken) {
+		try {
+			var buffer = new byte[4096];
+			int bytesRead;
+			while (!cancellationToken.IsCancellationRequested &&
+						 (bytesRead = await from.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0) {
+				await to.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+				await to.FlushAsync(cancellationToken);
+			}
+		} catch (Exception ex) when (cancellationToken.IsCancellationRequested) {
+		} catch (Exception ex) {
+		}
+	}
+
+	private string CreateProxyAuthorizationHeader(string username, string password) {
+		var credentials = $"{username}:{password}";
+		var credentialsBytes = Encoding.UTF8.GetBytes(credentials);
+		var base64Credentials = Convert.ToBase64String(credentialsBytes);
+		return $"Basic {base64Credentials}";
+	}
+}
+public class Serverio {
+	public class ProxyHandler {
+		private readonly ConcurrentDictionary<int, BrowserSetting> _portToSettings = new();
+
+		public int AssignProxyPort(BrowserSetting settings) {
+			var port = Processez.NextFreePort(9000);
+			_portToSettings[port] = settings;
+			return port;
+		}
+
+		public BrowserSetting? GetSettingsByPort(int port) {
+			return _portToSettings.TryGetValue(port, out var settings) ? settings : null;
+		}
+
+		public void RemovePort(int port) {
+			_portToSettings.TryRemove(port, out _);
+		}
+	}
+
 	private WebApplication? app;
 
+	public ProxyHandler Proxio { get; } = new();
 	public TaskCompletionSource? IsBusy { get; private set; }
 
 	public int Port { get; }
@@ -567,8 +759,8 @@ public class AddonsServer {
 	public TaskCompletionSource<bool> Initialized { get; } = new();
 	private readonly ConcurrentDictionary<(string sessionId, int instanceId), (object config, int port, BrowserType bt)> sessions = [];
 
-	internal AddonsServer() {
-		foreach (var port in new[] { 3663, 3993, 3693, 3963, 6969, 6996, 9669, 9696 }) {
+	internal Serverio() {
+		foreach (var port in new[] { 3663, 3993, 3693, 3963 }) { // ,6969, 6996, 9669, 9696
 			try {
 				// Create a listener to check if the port is available
 				var listener = new TcpListener(IPAddress.Loopback, port);
@@ -584,9 +776,10 @@ public class AddonsServer {
 		RedirectUri = $"http://127.0.0.1:{Port}/callback";
 	}
 
-	public void AddSession(string sessionId, BrowserSetting settings, object config) {
+	public int AddSession(string sessionId, BrowserSetting settings, object config) {
 		IsBusy = new TaskCompletionSource();
 		sessions[(sessionId, settings.Profile.Id)] = (config, settings.Port, settings.BrowserType);
+		return Proxio.AssignProxyPort(settings);
 	}
 
 	public async Task Init() {
@@ -596,16 +789,21 @@ public class AddonsServer {
 		var builder = WebApplication.CreateBuilder();
 
 		// Add minimal required services
-		_ = builder.Services.AddEndpointsApiExplorer()
-		 .AddCors(o => o.AddPolicy("AllowAnyOrigin", p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+		builder.Services.AddControllers();
+		builder.Services.AddEndpointsApiExplorer();
+		builder.Services.AddCors(o => o.AddPolicy("AllowAnyOrigin", p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
 		// Configure to listen on all available interfaces, not just localhost
-		_ = builder.WebHost.ConfigureKestrel(options => {
+		builder.WebHost.ConfigureKestrel(options => {
+			// Main API port
+			options.ListenLocalhost(5000);
 			options.Listen(IPAddress.Loopback, Port);
 		});
 		app = builder.Build();
 		// Use minimal middleware
-		_ = app.UseRouting().UseCors("AllowAnyOrigin");
+		app.UseMiddleware<ProxyMiddleware>()
+			.UseRouting()
+			.UseCors("AllowAnyOrigin");
 
 		#region routes
 		// Health check endpoint
@@ -613,6 +811,7 @@ public class AddonsServer {
 			Results.Json(new { status = "ok", time = DateTime.Now })
 		);
 
+		// Endpoint to get browser profile info
 		app.MapGet("/init", ([FromQuery] int instanceId, [FromQuery] string sessionId) => {
 			if (
 				sessionId.Is() ||
@@ -746,12 +945,12 @@ public class AddonsServer {
 					
 					<div class='loading'></div>
 					
-					{(instance.bt == BrowserType.Vivaldi ? 
+					{(instance.bt == BrowserType.Vivaldi ?
 						"<div class='extensions-note'>If the Chromeleon extension is not installed. While keeping this tab open." +
 						" Right click this link to open it in a New Tab and flip the switch to enable Developer Mode. " +
 						"Refresh the extension on that tab if this page persists<br />" +
 						"<a href='chrome://extensions' target='_blank' rel='noopener noreferrer' style='color: #4ecdc4;' onclick='return false;' " +
-						"onmousedown='window.open(this.href, \"_blank\", \"noopener,noreferrer\"); return false;'>chrome://extensions</a></div>" 
+						"onmousedown='window.open(this.href, \"_blank\", \"noopener,noreferrer\"); return false;'>chrome://extensions</a></div>"
 						: "<div class='extensions-note'>Extensions and privacy features are being initialized...</div>")}
 				</div>
 				
@@ -1015,7 +1214,7 @@ public class Browzio : IInit {
 	}
 
 	public Browzers Browzas { get; } = new();
-	public AddonsServer Loopback { get; } = new();
+	public Serverio Loopback { get; } = new();
 
 	public TaskCompletionSource<bool> Initialized { get; } = new();
 	public async Task Init() {
@@ -1030,753 +1229,3 @@ public class Browzio : IInit {
 	Browzio() { }
 	public static Browzio I { get; } = new();
 }
-
-// public static void OpenUrl(string url, BrowserType type) {
-//   var browser = GetBrowser(type);
-//   if (browser == null) throw new InvalidOperationException($"{type} not installed");
-
-//   if (IsMacOS) {
-//     Process.Start("open", $"-a \"{browser.Name}\" \"{url}\"");
-//   } else {
-//     Process.Start(new ProcessStartInfo {
-// FileName = browser.Path,
-// Arguments = url,
-// UseShellExecute = false
-//     });
-//   }
-// }
-// [DllImport("shell32.dll", CharSet = CharSet.Auto)]
-// private static extern IntPtr ExtractIcon(IntPtr hInst, string lpszExeFileName, int nIconIndex);
-
-// [DllImport("user32.dll", SetLastError = true)]
-// private static extern bool DestroyIcon(IntPtr hIcon);
-
-// private static byte[] ExtractIcon(string exePath)
-// {
-//     if (string.IsNullOrEmpty(exePath)) return null;
-
-//     try
-//     {
-//         if (IsWindows)
-//         {
-//          if (!File.Exists(exePath)) return null;
-
-//          var hIcon = ExtractIcon(IntPtr.Zero, exePath, 0);
-//          if (hIcon == IntPtr.Zero) return null;
-
-//          using var icon = Icon.FromHandle(hIcon);
-//          using var bitmap = icon.ToBitmap();
-//          using var stream = new MemoryStream();
-//          bitmap.Save(stream, ImageFormat.Png);
-//          DestroyIcon(hIcon);
-//          return stream.ToArray();
-//         }
-//         else if (IsMacOS)
-//         {
-//          return ExtractMacIcon(exePath);
-//         }
-//     }
-//     catch { }
-
-//     return null;
-// }
-
-// private static byte[] ExtractMacIcon(string appPath)
-// {
-//     try
-//     {
-//         // Get the app bundle path from executable path
-//         var bundlePath = appPath;
-//         if (appPath.Contains("/Contents/MacOS/"))
-//         {
-//          bundlePath = appPath.Substring(0, appPath.IndexOf("/Contents/MacOS/"));
-//         }
-
-//         // Read Info.plist to get icon name
-//         var plistPath = Path.Combine(bundlePath, "Contents", "Info.plist");
-//         if (!File.Exists(plistPath)) return null;
-
-//         var iconName = "AppIcon"; // Default
-//         var plistContent = File.ReadAllText(plistPath);
-//         var iconMatch = Regex.Match(plistContent, @"<key>CFBundleIconFile</key>\s*<string>([^<]+)</string>");
-//         if (iconMatch.Success)
-//          iconName = iconMatch.Groups[1].Value.Replace(".icns", "");
-
-//         // Try to find the icns file
-//         var icnsPath = Path.Combine(bundlePath, "Contents", "Resources", $"{iconName}.icns");
-//         if (!File.Exists(icnsPath))
-//          icnsPath = Path.Combine(bundlePath, "Contents", "Resources", "AppIcon.icns");
-
-//         if (File.Exists(icnsPath))
-//         {
-//          // Use sips to convert icns to png
-//          var tempFile = Path.GetTempFileName() + ".png";
-//          var process = Process.Start(new ProcessStartInfo
-//          {
-//              FileName = "sips",
-//              Arguments = $"-s format png \"{icnsPath}\" --out \"{tempFile}\"",
-//              UseShellExecute = false,
-//              CreateNoWindow = true
-//          });
-//          process.WaitForExit();
-
-//          if (File.Exists(tempFile))
-//          {
-//              var data = File.ReadAllBytes(tempFile);
-//              File.Delete(tempFile);
-//              return data;
-//          }
-//         }
-//     }
-//     catch { }
-
-//     return null;
-// }
-// TDODOZ
-// namespace BrowserUtilities
-// {
-//     /// <summary>
-//     /// Supported browser types
-//     /// </summary>
-//     public enum BrowserType
-//     {
-//         Unknown,
-//         Chrome,
-//         Edge,
-//         Firefox,
-//         Safari,
-//         Brave,
-//         Opera,
-//         Vivaldi,
-//         Chromium,
-//         Waterfox,
-//         LibreWolf,
-//         Tor,
-//         Yandex,
-//         Arc,
-//         SRWareIron,
-//         Maxthon,
-//         Palemoon,
-//         IceCat,
-//         SeaMonkey,
-//         InternetExplorer
-//     }
-
-//     /// <summary>
-//     /// Browser engine types
-//     /// </summary>
-//     public enum BrowserEngine
-//     {
-//         Unknown,
-//         Chromium,
-//         Gecko,
-//         WebKit,
-//         EdgeHTML,
-//         Trident
-//     }
-
-//     /// <summary>
-//     /// Browser information
-//     /// </summary>
-//     public class BrowserInfo
-//     {
-//         public BrowserType Type { get; set; }
-//         public string Name { get; set; }
-//         public string ExecutablePath { get; set; }
-//         public string ProcessName { get; set; }
-//         public BrowserEngine Engine { get; set; }
-//         public string Version { get; set; }
-//         public bool IsDefault { get; set; }
-//         public bool IsRunning => BrowserUtility.IsBrowserRunning(this);
-//     }
-
-//     /// <summary>
-//     /// Simplified browser detection and management utility
-//     /// </summary>
-//     public static class BrowserUtility
-//     {
-//         #region Browser Configurations
-
-//         private static readonly Dictionary<BrowserType, BrowserConfig> BrowserConfigs = new()
-//         {
-//          [BrowserType.Chrome] = new BrowserConfig
-//          {
-//              DisplayName = "Google Chrome",
-//              ProcessNames = new[] { "chrome", "Google Chrome" },
-//              Engine = BrowserEngine.Chromium,
-//              WindowsPaths = new[]
-//              {
-//               @"C:\Program Files\Google\Chrome\Application\chrome.exe",
-//               @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-//               Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Google\Chrome\Application\chrome.exe")
-//              },
-//              MacPaths = new[] { "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" },
-//              LinuxPaths = new[] { "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/opt/google/chrome/chrome" }
-//          },
-//          [BrowserType.Edge] = new BrowserConfig
-//          {
-//              DisplayName = "Microsoft Edge",
-//              ProcessNames = new[] { "msedge", "Microsoft Edge" },
-//              Engine = BrowserEngine.Chromium,
-//              WindowsPaths = new[]
-//              {
-//               @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-//               @"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
-//              },
-//              MacPaths = new[] { "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" },
-//              LinuxPaths = new[] { "/usr/bin/microsoft-edge", "/opt/microsoft/edge/microsoft-edge" }
-//          },
-//          [BrowserType.Firefox] = new BrowserConfig
-//          {
-//              DisplayName = "Mozilla Firefox",
-//              ProcessNames = new[] { "firefox", "firefox-bin" },
-//              Engine = BrowserEngine.Gecko,
-//              WindowsPaths = new[]
-//              {
-//               @"C:\Program Files\Mozilla Firefox\firefox.exe",
-//               @"C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
-//              },
-//              MacPaths = new[] { "/Applications/Firefox.app/Contents/MacOS/firefox" },
-//              LinuxPaths = new[] { "/usr/bin/firefox", "/snap/bin/firefox", "/usr/lib/firefox/firefox" }
-//          },
-//          [BrowserType.Brave] = new BrowserConfig
-//          {
-//              DisplayName = "Brave Browser",
-//              ProcessNames = new[] { "brave", "Brave Browser" },
-//              Engine = BrowserEngine.Chromium,
-//              WindowsPaths = new[]
-//              {
-//               @"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
-//               @"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
-//               Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"BraveSoftware\Brave-Browser\Application\brave.exe")
-//              },
-//              MacPaths = new[] { "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" },
-//              LinuxPaths = new[] { "/usr/bin/brave-browser", "/opt/brave.com/brave/brave", "/snap/bin/brave" }
-//          },
-//          [BrowserType.Opera] = new BrowserConfig
-//          {
-//              DisplayName = "Opera",
-//              ProcessNames = new[] { "opera", "launcher" },
-//              Engine = BrowserEngine.Chromium,
-//              WindowsPaths = new[]
-//              {
-//               @"C:\Program Files\Opera\launcher.exe",
-//               @"C:\Program Files (x86)\Opera\launcher.exe",
-//               Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Programs\Opera\launcher.exe")
-//              },
-//              MacPaths = new[] { "/Applications/Opera.app/Contents/MacOS/Opera" },
-//              LinuxPaths = new[] { "/usr/bin/opera", "/usr/lib/opera/opera" }
-//          },
-//          [BrowserType.Vivaldi] = new BrowserConfig
-//          {
-//              DisplayName = "Vivaldi",
-//              ProcessNames = new[] { "vivaldi", "vivaldi-bin" },
-//              Engine = BrowserEngine.Chromium,
-//              WindowsPaths = new[]
-//              {
-//               @"C:\Program Files\Vivaldi\Application\vivaldi.exe",
-//               @"C:\Program Files (x86)\Vivaldi\Application\vivaldi.exe",
-//               Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Vivaldi\Application\vivaldi.exe")
-//              },
-//              MacPaths = new[] { "/Applications/Vivaldi.app/Contents/MacOS/Vivaldi" },
-//              LinuxPaths = new[] { "/usr/bin/vivaldi", "/opt/vivaldi/vivaldi" }
-//          },
-//          [BrowserType.Safari] = new BrowserConfig
-//          {
-//              DisplayName = "Safari",
-//              ProcessNames = new[] { "Safari", "com.apple.Safari" },
-//              Engine = BrowserEngine.WebKit,
-//              MacPaths = new[] { "/Applications/Safari.app/Contents/MacOS/Safari" }
-//          },
-//          [BrowserType.Chromium] = new BrowserConfig
-//          {
-//              DisplayName = "Chromium",
-//              ProcessNames = new[] { "chromium", "chromium-browser" },
-//              Engine = BrowserEngine.Chromium,
-//              WindowsPaths = new[]
-//              {
-//               @"C:\Program Files\Chromium\Application\chrome.exe",
-//               @"C:\Program Files (x86)\Chromium\Application\chrome.exe"
-//              },
-//              LinuxPaths = new[] { "/usr/bin/chromium", "/usr/bin/chromium-browser", "/snap/bin/chromium" }
-//          },
-//          [BrowserType.Waterfox] = new BrowserConfig
-//          {
-//              DisplayName = "Waterfox",
-//              ProcessNames = new[] { "waterfox", "waterfox-bin" },
-//              Engine = BrowserEngine.Gecko
-//          },
-//          [BrowserType.LibreWolf] = new BrowserConfig
-//          {
-//              DisplayName = "LibreWolf",
-//              ProcessNames = new[] { "librewolf" },
-//              Engine = BrowserEngine.Gecko
-//          },
-//          [BrowserType.Tor] = new BrowserConfig
-//          {
-//              DisplayName = "Tor Browser",
-//              ProcessNames = new[] { "firefox", "tor" },
-//              Engine = BrowserEngine.Gecko
-//          },
-//          [BrowserType.Arc] = new BrowserConfig
-//          {
-//              DisplayName = "Arc",
-//              ProcessNames = new[] { "Arc" },
-//              Engine = BrowserEngine.Chromium
-//          }
-//         };
-
-//         private class BrowserConfig
-//         {
-//          public string DisplayName { get; set; }
-//          public string[] ProcessNames { get; set; }
-//          public BrowserEngine Engine { get; set; }
-//          public string[] WindowsPaths { get; set; } = Array.Empty<string>();
-//          public string[] MacPaths { get; set; } = Array.Empty<string>();
-//          public string[] LinuxPaths { get; set; } = Array.Empty<string>();
-//         }
-
-//         #endregion
-
-//         #region Public Methods
-
-//         /// <summary>
-//         /// Detects all installed browsers on the system
-//         /// </summary>
-//         public static List<BrowserInfo> DetectInstalledBrowsers()
-//         {
-//          var browsers = new List<BrowserInfo>();
-
-//          if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-//              browsers = DetectWindowsBrowsers();
-//          else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-//              browsers = DetectMacOSBrowsers();
-//          else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-//              browsers = DetectLinuxBrowsers();
-
-//          // Mark default browser
-//          var defaultBrowser = GetDefaultBrowser();
-//          if (defaultBrowser != null)
-//          {
-//              var matchingBrowser = browsers.FirstOrDefault(b => 
-//               b.ExecutablePath == defaultBrowser.ExecutablePath);
-//              if (matchingBrowser != null)
-//               matchingBrowser.IsDefault = true;
-//          }
-
-//          return browsers;
-//         }
-
-//         /// <summary>
-//         /// Gets a specific browser by type
-//         /// </summary>
-//         public static BrowserInfo GetBrowser(BrowserType type)
-//         {
-//          var browsers = DetectInstalledBrowsers();
-//          return browsers.FirstOrDefault(b => b.Type == type);
-//         }
-
-//         /// <summary>
-//         /// Checks if a specific browser is installed
-//         /// </summary>
-//         public static bool IsBrowserInstalled(BrowserType type)
-//         {
-//          return GetBrowser(type) != null;
-//         }
-
-//         /// <summary>
-//         /// Checks if a browser is currently running
-//         /// </summary>
-//         public static bool IsBrowserRunning(BrowserInfo browser)
-//         {
-//          if (browser == null || string.IsNullOrEmpty(browser.ProcessName))
-//              return false;
-
-//          try
-//          {
-//              var processes = Process.GetProcessesByName(browser.ProcessName);
-//              return processes.Length > 0;
-//          }
-//          catch
-//          {
-//              return false;
-//          }
-//         }
-
-//         /// <summary>
-//         /// Checks if a specific browser type is running
-//         /// </summary>
-//         public static bool IsBrowserRunning(BrowserType type)
-//         {
-//          var browser = GetBrowser(type);
-//          return browser != null && IsBrowserRunning(browser);
-//         }
-
-//         /// <summary>
-//         /// Gets all currently running browsers
-//         /// </summary>
-//         public static List<BrowserInfo> GetRunningBrowsers()
-//         {
-//          var browsers = DetectInstalledBrowsers();
-//          return browsers.Where(b => b.IsRunning).ToList();
-//         }
-
-//         /// <summary>
-//         /// Opens a URL in a specific browser
-//         /// </summary>
-//         public static void OpenUrl(string url, BrowserType type)
-//         {
-//          var browser = GetBrowser(type);
-//          if (browser == null)
-//              throw new InvalidOperationException($"Browser {type} is not installed");
-
-//          OpenUrl(url, browser);
-//         }
-
-//         /// <summary>
-//         /// Opens a URL in a specific browser
-//         /// </summary>
-//         public static void OpenUrl(string url, BrowserInfo browser)
-//         {
-//          if (browser == null || !File.Exists(browser.ExecutablePath))
-//              throw new ArgumentException("Invalid browser or browser not found");
-
-//          Process.Start(new ProcessStartInfo
-//          {
-//              FileName = browser.ExecutablePath,
-//              Arguments = url,
-//              UseShellExecute = false
-//          });
-//         }
-
-//         /// <summary>
-//         /// Opens a URL in the default browser
-//         /// </summary>
-//         public static void OpenUrlInDefaultBrowser(string url)
-//         {
-//          Process.Start(new ProcessStartInfo
-//          {
-//              FileName = url,
-//              UseShellExecute = true
-//          });
-//         }
-
-//         /// <summary>
-//         /// Terminates all instances of a browser
-//         /// </summary>
-//         public static void TerminateBrowser(BrowserType type, bool force = false)
-//         {
-//          var browser = GetBrowser(type);
-//          if (browser != null)
-//              TerminateBrowser(browser, force);
-//         }
-
-//         /// <summary>
-//         /// Terminates all instances of a browser
-//         /// </summary>
-//         public static void TerminateBrowser(BrowserInfo browser, bool force = false)
-//         {
-//          if (browser == null || string.IsNullOrEmpty(browser.ProcessName))
-//              return;
-
-//          try
-//          {
-//              var processes = Process.GetProcessesByName(browser.ProcessName);
-//              foreach (var process in processes)
-//              {
-//               try
-//               {
-//                   if (force)
-//                       process.Kill();
-//                   else
-//                       process.CloseMainWindow();
-//               }
-//               catch { }
-//              }
-//          }
-//          catch { }
-//         }
-
-//         /// <summary>
-//         /// Gets all browsers of a specific engine type
-//         /// </summary>
-//         public static List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine)
-//         {
-//          var browsers = DetectInstalledBrowsers();
-//          return browsers.Where(b => b.Engine == engine).ToList();
-//         }
-
-//         #endregion
-
-//         #region Platform-Specific Detection
-
-//         private static List<BrowserInfo> DetectWindowsBrowsers()
-//         {
-//          var browsers = new List<BrowserInfo>();
-
-//          // Check each browser type
-//          foreach (var config in BrowserConfigs)
-//          {
-//              // Check file paths
-//              foreach (var path in config.Value.WindowsPaths)
-//              {
-//               if (File.Exists(path))
-//               {
-//                   browsers.Add(CreateBrowserInfo(config.Key, path));
-//                   break; // Found this browser, move to next
-//               }
-//              }
-//          }
-
-//          // Also check registry for additional browsers
-//          DetectFromWindowsRegistry(browsers);
-
-//          return browsers;
-//         }
-
-//         private static List<BrowserInfo> DetectMacOSBrowsers()
-//         {
-//          var browsers = new List<BrowserInfo>();
-
-//          foreach (var config in BrowserConfigs)
-//          {
-//              foreach (var path in config.Value.MacPaths)
-//              {
-//               if (File.Exists(path))
-//               {
-//                   browsers.Add(CreateBrowserInfo(config.Key, path));
-//                   break;
-//               }
-//              }
-//          }
-
-//          return browsers;
-//         }
-
-//         private static List<BrowserInfo> DetectLinuxBrowsers()
-//         {
-//          var browsers = new List<BrowserInfo>();
-
-//          foreach (var config in BrowserConfigs)
-//          {
-//              foreach (var path in config.Value.LinuxPaths)
-//              {
-//               if (File.Exists(path))
-//               {
-//                   browsers.Add(CreateBrowserInfo(config.Key, path));
-//                   break;
-//               }
-//              }
-//          }
-
-//          return browsers;
-//         }
-
-//         private static void DetectFromWindowsRegistry(List<BrowserInfo> browsers)
-//         {
-//          try
-//          {
-//              using var regKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\RegisteredApplications");
-//              if (regKey == null) return;
-
-//              foreach (var appName in regKey.GetValueNames())
-//              {
-//               var capPath = regKey.GetValue(appName) as string;
-//               if (string.IsNullOrEmpty(capPath)) continue;
-
-//               // Remove "SOFTWARE\" prefix if present
-//               capPath = capPath.Replace("SOFTWARE\\", "");
-
-//               using var capKey = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\{capPath}");
-//               if (capKey == null) continue;
-
-//               using var urlAssocKey = capKey.OpenSubKey("URLAssociations");
-//               if (urlAssocKey == null) continue;
-
-//               var httpHandler = urlAssocKey.GetValue("http") as string;
-//               var httpsHandler = urlAssocKey.GetValue("https") as string;
-
-//               if (string.IsNullOrEmpty(httpHandler) && string.IsNullOrEmpty(httpsHandler))
-//                   continue;
-
-//               var handler = httpsHandler ?? httpHandler;
-//               var execPath = GetExecutableFromHandler(handler);
-
-//               if (!string.IsNullOrEmpty(execPath) && File.Exists(execPath))
-//               {
-//                   var browserType = DetermineBrowserType(appName, execPath);
-//                   if (!browsers.Any(b => b.ExecutablePath == execPath))
-//                   {
-//                       browsers.Add(CreateBrowserInfo(browserType, execPath));
-//                   }
-//               }
-//              }
-//          }
-//          catch { }
-//         }
-
-//         private static string GetExecutableFromHandler(string handler)
-//         {
-//          try
-//          {
-//              using var handlerKey = Registry.ClassesRoot.OpenSubKey($@"{handler}\shell\open\command");
-//              if (handlerKey == null) return null;
-
-//              var command = handlerKey.GetValue("") as string;
-//              if (string.IsNullOrEmpty(command)) return null;
-
-//              // Extract executable path from command
-//              var match = Regex.Match(command, @"^""([^""]+)""");
-//              if (match.Success)
-//               return match.Groups[1].Value;
-
-//              // Try without quotes
-//              var parts = command.Split(' ');
-//              if (parts.Length > 0 && File.Exists(parts[0]))
-//               return parts[0];
-//          }
-//          catch { }
-
-//          return null;
-//         }
-
-//         #endregion
-
-//         #region Helper Methods
-
-//         private static BrowserInfo CreateBrowserInfo(BrowserType type, string executablePath)
-//         {
-//          var config = BrowserConfigs.GetValueOrDefault(type);
-//          var processName = GetProcessName(executablePath);
-
-//          return new BrowserInfo
-//          {
-//              Type = type,
-//              Name = config?.DisplayName ?? type.ToString(),
-//              ExecutablePath = executablePath,
-//              ProcessName = processName,
-//              Engine = config?.Engine ?? BrowserEngine.Unknown,
-//              Version = GetBrowserVersion(executablePath)
-//          };
-//         }
-
-//         private static string GetProcessName(string executablePath)
-//         {
-//          if (string.IsNullOrEmpty(executablePath))
-//              return null;
-
-//          return Path.GetFileNameWithoutExtension(executablePath);
-//         }
-
-//         private static string GetBrowserVersion(string executablePath)
-//         {
-//          if (!File.Exists(executablePath))
-//              return "Unknown";
-
-//          try
-//          {
-//              var versionInfo = FileVersionInfo.GetVersionInfo(executablePath);
-//              if (!string.IsNullOrEmpty(versionInfo.ProductVersion))
-//               return versionInfo.ProductVersion;
-//          }
-//          catch { }
-
-//          return "Unknown";
-//         }
-
-//         private static BrowserType DetermineBrowserType(string name, string path)
-//         {
-//          var combined = (name + " " + path).ToLower();
-
-//          if (combined.Contains("chrome") && !combined.Contains("chromium"))
-//              return BrowserType.Chrome;
-//          if (combined.Contains("edge") || combined.Contains("msedge"))
-//              return BrowserType.Edge;
-//          if (combined.Contains("firefox"))
-//              return BrowserType.Firefox;
-//          if (combined.Contains("brave"))
-//              return BrowserType.Brave;
-//          if (combined.Contains("opera"))
-//              return BrowserType.Opera;
-//          if (combined.Contains("vivaldi"))
-//              return BrowserType.Vivaldi;
-//          if (combined.Contains("safari"))
-//              return BrowserType.Safari;
-//          if (combined.Contains("chromium"))
-//              return BrowserType.Chromium;
-
-//          return BrowserType.Unknown;
-//         }
-
-//         private static BrowserInfo GetDefaultBrowser()
-//         {
-//          if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-//              return GetWindowsDefaultBrowser();
-//          // Add macOS and Linux default browser detection if needed
-//          return null;
-//         }
-
-//         private static BrowserInfo GetWindowsDefaultBrowser()
-//         {
-//          try
-//          {
-//              using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice");
-//              if (key == null) return null;
-
-//              var progId = key.GetValue("ProgId") as string;
-//              if (string.IsNullOrEmpty(progId)) return null;
-
-//              var execPath = GetExecutableFromHandler(progId);
-//              if (string.IsNullOrEmpty(execPath) || !File.Exists(execPath))
-//               return null;
-
-//              var browserType = DetermineBrowserType(progId, execPath);
-//              return CreateBrowserInfo(browserType, execPath);
-//          }
-//          catch { }
-
-//          return null;
-//         }
-
-//         #endregion
-//     }
-
-//     // Example usage
-//     class Program
-//     {
-//         static void Main()
-//         {
-//          // Detect all browsers
-//          var browsers = BrowserUtility.DetectInstalledBrowsers();
-
-//          Console.WriteLine("Installed Browsers:");
-//          foreach (var browser in browsers)
-//          {
-//              Console.WriteLine($"- {browser.Name} ({browser.Type})");
-//              Console.WriteLine($"  Path: {browser.ExecutablePath}");
-//              Console.WriteLine($"  Engine: {browser.Engine}");
-//              Console.WriteLine($"  Running: {browser.IsRunning}");
-//              Console.WriteLine($"  Default: {browser.IsDefault}");
-//              Console.WriteLine();
-//          }
-
-//          // Check specific browser
-//          if (BrowserUtility.IsBrowserInstalled(BrowserType.Chrome))
-//          {
-//              Console.WriteLine("Chrome is installed!");
-
-//              if (BrowserUtility.IsBrowserRunning(BrowserType.Chrome))
-//              {
-//               Console.WriteLine("Chrome is currently running.");
-//              }
-//          }
-
-//          // Get all Chromium-based browsers
-//          var chromiumBrowsers = BrowserUtility.GetBrowsersByEngine(BrowserEngine.Chromium);
-//          Console.WriteLine($"\nFound {chromiumBrowsers.Count} Chromium-based browsers");
-
-//          // Open URL in specific browser
-//          // BrowserUtility.OpenUrl("https://example.com", BrowserType.Firefox);
-//         }
-//     }
-// }

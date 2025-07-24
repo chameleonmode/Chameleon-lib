@@ -95,10 +95,13 @@ public class Chromium : Browza {
 	 *	Disable content verification for Chrome Apps (mostly deprecated).
 	 */
 	protected override string GetCommandLineArguments() {
-		var proxy = Settings.Profile.Proxy.WebProxy?.Address == null ? null :
-				$"--proxy-server={Settings.Profile.Proxy.WebProxy.Address?.Scheme}://{(
-							Settings.Profile.Proxy.WebProxy.Credentials is NetworkCredential credz ? $"{credz.UserName}:{credz.Password}@" : ""
-						)}{Settings.Profile.Proxy.WebProxy.Address?.Authority}";
+		// var proxy = Settings.Profile.Proxy.WebProxy?.Address == null ? null :
+		// 		$"--proxy-server={Settings.Profile.Proxy.WebProxy.Address?.Scheme}://{(
+		// 					Settings.Profile.Proxy.WebProxy.Credentials is NetworkCredential credz ? $"{credz.UserName}:{credz.Password}@" : ""
+		// 				)}{Settings.Profile.Proxy.WebProxy.Address?.Authority}";
+		var proxy = Settings.Profile.Proxy.WebProxy is not null
+			? $"--proxy-server=127.0.0.1:{Settings.ProxioPort}"
+			: null;
 		return string.Join(" ", new string?[] {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",

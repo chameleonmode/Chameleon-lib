@@ -122,7 +122,7 @@ public static class Processez {
 	/// </summary>
 	/// <param name="port"></param>
 	/// <returns></returns>
-	public static int NextFreePort(int port = 0, int max = 99999) {
+	public static int NextFreePort(int port = 0, int max = 65535) {
 		port = (port > 0) ? port : new Random().Next(1, 65535);
 		while (!IsFree(port)) {
 			port += 1;

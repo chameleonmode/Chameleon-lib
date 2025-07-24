@@ -43,7 +43,7 @@ const on = async () => {
 
   // Common startup operations
   await startup();
-  await proxy(app.config.proxy);
+  // await proxy(app.config.proxy);
   app.discoverServer().then(async () => {
     const inactive = [];
     const tabs = await chrome.tabs.query({});
@@ -67,7 +67,7 @@ const on = async () => {
             ? { ...app.config[key], ...value }
             : { ...value, ...app.config[key] };
       }
-      await proxy(app.config.proxy);
+      // await proxy(app.config.proxy);
 
       await chrome.storage.local.set({ session: app.session, config: app.config });
       await addUrlsAsBookmarks(app.name, app.config.urls.homePages);

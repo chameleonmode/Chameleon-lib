@@ -71,7 +71,6 @@ const app = {
   // Find the app server
   async discoverServer() {
     while (!this.state.server) {
-      await new Promise((resolve) => setTimeout(resolve, 600)); // Wait for 0.6 second
       // Try each port in the list
       for (const port of [3663, 3993, 3693, 3963]) {
         //, 6969, 6996, 9669, 9696]) {

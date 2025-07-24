@@ -25,8 +25,8 @@ public interface IBrowserInstance {
 
 public abstract class Browza : IBrowserInstance {
 	public event Action<object, IBrowserInstance.EventArgs>? OnEvent;
-	public Process? Brocess { get; set; }
 	public required BrowserSetting Settings { get; init; }
+	public Process? Brocess { get; set; }
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public string InitUrl => Settings.WithExtensions
@@ -99,29 +99,29 @@ public abstract class Browza : IBrowserInstance {
 
 		// set the extension settings
 		var ipapi = await Api.GeoIp(Settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
-		Browzio.I.Loopback.AddSession(SessionId, Settings, new {
+		Settings.ProxioPort = Browzio.I.Loopback.AddSession(SessionId, Settings, new {
 			proxy = Settings.Profile.Proxy.AddonObject,
 			urls = new {
 				start = Settings.Profile.StartPage,
 				homePages = Settings.Profile.Bookmarks,
 			},
 			tz = new {
-				enabled = Settings.Profile.Emulations.AutoTimezone,
+				enabled = Settings.Profile.Emulations.Timezone,
 				locale = "en-" + ipapi.countryCode,
 				system = ipapi.tzSystem,
 				zone = ipapi.timezone,
 			},
 			geo = new {
-				enabled = Settings.Profile.Emulations.SpoofGeoLocation,
+				enabled = Settings.Profile.Emulations.Geo,
 				ipapi.lat,
 				ipapi.lon,
 			},
-			canvas = new { enabled = Settings.Profile.Emulations.SpoofCanvasFingerprint },
-			webgl = new { enabled = Settings.Profile.Emulations.SpoofWebGLFingerprint },
-			fonts = new { enabled = Settings.Profile.Emulations.SpoofFontFingerprint },
-			rects = new { enabled = Settings.Profile.Emulations.SpoofClientRects },
-			navi = new { enabled = Settings.Profile.Emulations.SpoofNavigator },
-			audio = new { enabled = Settings.Profile.Emulations.SpoofAudio },
+			canvas = new { enabled = Settings.Profile.Emulations.Canvas },
+			webgl = new { enabled = Settings.Profile.Emulations.WebGL },
+			fonts = new { enabled = Settings.Profile.Emulations.Font },
+			rects = new { enabled = Settings.Profile.Emulations.Rects },
+			navi = new { enabled = Settings.Profile.Emulations.Navigator },
+			audio = new { enabled = Settings.Profile.Emulations.Audio },
 		});
 	}
 	protected virtual async Task WaitForWinHandle() {

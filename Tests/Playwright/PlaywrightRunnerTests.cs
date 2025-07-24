@@ -18,24 +18,18 @@ public class PlaywrightRunnerTests : TestSetup {
 	}
 
 	async Task<int> OpenBrowser(BrowserType bt = BrowserType.Chrome, int id = 28296) {
-		var port = Processez.NextFreePort(9613);
 		var browser = await browserService.Browzas.Launch(
-			Browzio.Factory.BrowserSettings(bt, new BrowserProfile {
-				Id = id,
-				Emulations = new EmulationOptions {
-					DisableWebRTC = true,
-					SpoofClientRects = true,
-					SpoofFontFingerprint = true,
-					SpoofCanvasFingerprint = true,
-					SpoofWebGLFingerprint = true,
-					SpoofGeoLocation = true,
-					AutoTimezone = true
+			Browzio.Factory.BrowserSettings(
+				bt,
+				new() {
+					Id = id,
+					Emulations = new(),
 				}
-			}, port)
+			)
 		);
 		Assert.NotNull(browser);
 		_ = await browser.LoadedTCS.Task;
-		return port;
+		return browser.Settings.Port;
 	}
 
 	[Fact]

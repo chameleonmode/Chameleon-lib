@@ -33,7 +33,7 @@ public class BrowserLauncherTests : TestSetup {
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Chrome() {
 		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Chrome(new("https://example.com") {
-			Id = 22,
+			Id = 24,
 			Proxy = new(
 				"proxy.chameleonmode.com",
 				31112,
@@ -65,15 +65,6 @@ public class BrowserLauncherTests : TestSetup {
 		var bi = await Browzio.I.Browzas.Open(Browzio.Factory.Brave(new("https://example.com") {
 			Id = 22,
 			Proxy = new BrowserProxy("proxy.chameleonmode.com", 31112, "elimdadia_gmail_com", "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"),
-			Emulations = new() {
-				AutoTimezone = true,
-				SpoofGeoLocation = true,
-				SpoofWebGLFingerprint = true,
-				SpoofCanvasFingerprint = true,
-				SpoofFontFingerprint = true,
-				SpoofAudio = true,
-				SpoofClientRects = true
-			},
 		}));
 		Assert.NotNull(bi);
 		KeepAlive(bi);
@@ -84,15 +75,6 @@ public class BrowserLauncherTests : TestSetup {
 		var bi = await Browzio.I.Browzas.Open(Browzio.Factory.Firefox(new("https://example.com") {
 			Id = 22,
 			Proxy = new BrowserProxy("proxy.chameleonmode.com", 31112, "elimdadia_gmail_com", "gb0Q1sXdTDZTlR2J_country-UnitedStates_session-SGP6J3fr"),
-			Emulations = new() {
-				AutoTimezone = true,
-				SpoofGeoLocation = true,
-				SpoofWebGLFingerprint = true,
-				SpoofCanvasFingerprint = true,
-				SpoofFontFingerprint = true,
-				SpoofAudio = true,
-				SpoofClientRects = true
-			},
 		}));
 		Assert.NotNull(bi);
 		KeepAlive(bi);
