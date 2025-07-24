@@ -98,6 +98,14 @@ const on = async () => {
   await new Promise((resolve) => setTimeout(resolve, 300)); // Wait for .3 second before removing tabs
   app.state.loaded = true;
   log.info("started successfully");
+  chrome.tabs.onUpdated.addListener((_, __, tab) => {
+    const remove =
+      app.state.loaded === false ||
+      app.state.tabId === tab.id ||
+      tab.url.startsWith("http://127.0.0.1") === false;
+    if (remove) return;
+    else chrome.tabs.remove(tab.id);
+  });
 };
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -107,14 +115,6 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
   log.info("startup");
   on();
-});
-chrome.tabs.onUpdated.addListener((_, __, tab) => {
-  const remove =
-    app.state.loaded === false ||
-    app.state.tabId === tab.id ||
-    tab.url.startsWith("http://127.0.0.1") === false;
-  if (remove) return;
-  else chrome.tabs.remove(tab.id);
 });
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
