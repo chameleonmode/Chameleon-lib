@@ -62,7 +62,7 @@ export const config = {
   },
 };
 const app = {
-  name: "Chromeleon",
+  name: "Geckoleon",
   config,
   observers: {},
   state: { loaded: false, server: null, port: null, tabId: null },

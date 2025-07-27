@@ -1,15 +1,12 @@
 ﻿using System.Diagnostics;
 using System.Net;
+using System.Text;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Browzio.Services.Browzas;
 
 public class Chromium : Browza {
-	public override string PrefsFile => Path.Combine(
-		Settings.CachePath,
-		"Default",
-		"Preferences"
-	);
+	public override string PrefsFile => Path.Combine(Settings.CachePath, "Default", "Preferences");
 
 	public override string ExePath => Browzio.Utilities.GetBrowser(Settings.BrowserType)?.ExecutablePath ??
 		throw new InvalidOperationException("Browser executable path not found.");
@@ -95,13 +92,9 @@ public class Chromium : Browza {
 	 *	Disable content verification for Chrome Apps (mostly deprecated).
 	 */
 	protected override string GetCommandLineArguments() {
-		// var proxy = Settings.Profile.Proxy.WebProxy?.Address == null ? null :
-		// 		$"--proxy-server={Settings.Profile.Proxy.WebProxy.Address?.Scheme}://{(
-		// 					Settings.Profile.Proxy.WebProxy.Credentials is NetworkCredential credz ? $"{credz.UserName}:{credz.Password}@" : ""
-		// 				)}{Settings.Profile.Proxy.WebProxy.Address?.Authority}";
-		var proxy = Settings.Profile.Proxy.WebProxy is not null
-			? $"--proxy-server=127.0.0.1:{Settings.ProxioPort}" // Use the loopback proxy for local requests
-			: null;
+		var proxy = Settings.Profile.Proxy.WebProxy is null
+			? null // Use the loopback proxy for local requests
+			: $"--proxy-server=127.0.0.1:{Settings.ProxioPort} --proxy-bypass-list=127.0.0.1:{Browzio.I.Loopback.Port},localhost:{Settings.Port}";
 		return string.Join(" ", new string?[] {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
@@ -111,6 +104,8 @@ public class Chromium : Browza {
 				"ReduceAcceptLanguage",
 			]),
 			"--disable-features=" + string.Join(",", [
+        // Disable built-in Google Translate service
+        // "Translate",
 				"msImplicitSignin",
 				"AcceptCHFrame",
 				"AutoExpandDetailsElement",
@@ -135,7 +130,6 @@ public class Chromium : Browza {
 				"AutofillServerCommunication", // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
 				"PrivacySandboxSettings4", // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
 				"DeferRendererTasksAfterInput",
-				// "DestroyProfileOnBrowserClose",
 				"ExtensionManifestV2Disabled",
 				"GlobalMediaControls",
 				"HttpsUpgrades",
@@ -148,16 +142,19 @@ public class Chromium : Browza {
 				// "WebRtcHWEncoding",
 				"DisableLoadExtensionCommandLineSwitch"
 			]),
-			"--allowlisted-extension-id=bogkgkfhakiibpkgfcjdbcnmlepchiio",
+			"--allowlisted-extension-id=dcelnbkcchhhmjalfimdgfkbapknjgfm", // Chameleon extension ID
 			"--disable-extensions-file-access-check",
 			"--disable-extensions-http-throttling",
 			"--extension-content-verification=none",
 			"--disable-component-extensions-with-background-pages",
+			"--enable-unsafe-extension-debugging",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.CachePath}\"",
-			$"{proxy}",
-			$"--proxy-bypass-list=127.0.0.1:{Browzio.I.Loopback.Port},localhost:{Settings.Port}",
-			Settings.WithExtensions ? $"--load-extension=\"{Browzio.Extensions.Chromeleon}\"" : null,
+			Settings.WithExtensions ? $"{proxy}" : null,
+			Settings.WithExtensions ? $"--load-extension=\"{Browzio.Extensions.Chromeleon}\"" : null, // dcelnbkcchhhmjalfimdgfkbapknjgfm
+			// "--disable-extensions", // Disable all extensions except the one loaded above
+  		// Disable some extensions that aren't affected by --disable-extensions
+  		// "--disable-component-extensions-with-background-pages",
 			// Disable various background network services, including extension updating,
 			//   safe browsing service, upgrade detector, translate, UMA
 			"--disable-background-networking",
@@ -222,11 +219,10 @@ public class Chromium : Browza {
 			"--disable-search-engine-choice-screen",
 			"--unsafely-disable-devtools-self-xss-warnings",
 			"--enable-use-zoom-for-dsf=false",
-			"--enable-extensions",
+			// "--enable-extensions",
 			// "--disable-web-security",
 			// "--no-sandbox",
 			// "--no-startup-window",
-			// "--remote-debugging-pipe",
 			// "--restore-last-session",
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
 			InitUrl
@@ -241,7 +237,20 @@ public class Chromium : Browza {
 		// var context = browser.Contexts[0];
 		// var page = context.Pages[0];
 		// var cdpSession = await context.NewCDPSessionAsync(page);
+		// await EX.Poly(async () => {
+		// 	using var client = new TcpClient();
+		// 	await client.ConnectAsync("127.0.0.1", Settings.Port);
+		// 	// Send the request
+		// 	var request = new {
+		// 		id = 1337,
+		// 		method = "Extensions.loadUnpacked",
+		// 		@params = new { path = $"file:///{Browzio.Extensions.Chromeleon.Replace("\\", "/")}" }
+		// 	};
 
+		// 	// Wait for the response
+		// 	return true;
+		// },
+		// new(sleep: 36, retries: 9));
 		await base.WaitForWinHandle();
 		if (!OperatingSystem.IsWindows()) return;
 
@@ -257,6 +266,11 @@ public class Chromium : Browza {
 
 	public override async Task Ensure() {
 		await base.Ensure();
+		if(File.Exists(PrefsFile)) {
+			// Read existing file
+			var fileContent = File.ReadAllText(PrefsFile, Encoding.UTF8);
+			var existingContent = JSON.Deserialize<Dictionary<string, object>>(fileContent);
+		}
 		foreach (var process in Process.GetProcessesByName(ProcessName)) {
 			if (
 					process.ExtractArgs<int?>(

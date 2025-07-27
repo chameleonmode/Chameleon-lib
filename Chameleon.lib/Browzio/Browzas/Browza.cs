@@ -30,7 +30,7 @@ public abstract class Browza : IBrowserInstance {
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public string InitUrl => Settings.WithExtensions
-		? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}&proxio={Settings.ProxioPort}" 
+		? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}&proxio={Settings.ProxioPort}"
 		: Settings.Profile.StartPage;
 
 	public void InvokeEvent(Event @event) {
@@ -59,7 +59,7 @@ public abstract class Browza : IBrowserInstance {
 
 		await Ensure();
 		await InitializeExtensions();
-		
+
 		// StartProcess
 		Brocess = Brocessor();
 		Brocess.Start();
@@ -84,8 +84,8 @@ public abstract class Browza : IBrowserInstance {
 		StartInfo = new() {
 			FileName = ExePath,
 			Arguments = GetCommandLineArguments(),
+			CreateNoWindow = true,
 			UseShellExecute = false,
-		  CreateNoWindow = true,
 		},
 	};
 	public virtual string ExeDir => Path.GetDirectoryName(ExePath) ?? string.Empty;
@@ -93,7 +93,7 @@ public abstract class Browza : IBrowserInstance {
 	public abstract string ExePath { get; }
 
 	public virtual async Task Ensure() {
-		await Task.Delay(600);
+		await Task.Delay(300);
 	}
 	protected virtual async Task InitializeExtensions() {
 		if (!Settings.WithExtensions) return;

@@ -1,7 +1,7 @@
 {
   "name": "Chromeleon",
   "description": "A Chromeleon can change its behavior to blend into the environment of any website troller.",
-  "version": "2025.7.26.4",
+  "version": "2025.7.26.129429",
   "manifest_version": 3,
   "permissions": [
     "activeTab",
@@ -11,7 +11,6 @@
     "geolocation",
     "management",
     "privacy",
-    "proxy",
     "scripting",
     "storage",
     "tabs",
@@ -34,5 +33,6 @@
     "32": "data/icons/16x16_2x.png",
     "64": "data/icons/32x32_2x.png",
     "128": "data/icons/128x128.png"
-  }
+  },
+  "key": "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC1mBFDbXdk4JKIAbm8WX3mn8cXF8KWxxx3TfEMdAM4Xg61HVVDIRJoqYPCHIY5RaLgUWoN7dPOLHGD6p71AZ7apRY/aQETZT0NPNTqyFkUWBfldN1+F5EkAD4rERyzU7t3z6/b0civRIFWdj9fSJ15tFmhkAgIkP0R9Jl+3Gc0WeZwAld0Qr0ChqmEQnP1Bk3C0NHupEArma7Bi+zaMEQeuALqNpWU2eRG6snIZTvsSXxmhXFU5dIOTbKXg45bMiZbOYNiNqANkADAQHgAa2hl/Bbitvf//li09g/vP3859d/w9p117xnFQZDQOyGuX63lFeTalJNH/rTYYFaltdAzAgMBAAECggEAWbToek2+WGgUGvn3PhNbfa1alY7YQtHTvyASvxskaBkW3OPDtejFhkyPWTnsGKjM4FF3ua/OHSCZZxhlNBV72vkIt4Rw0psFgN+XMvCMCN/H1kNYE60itw0jqPTIH9JyXqqLbmUA5YxK9GJvxetCV9f/Gy/iuBCf49nYZfINTa9v+ZFyDNFP97PBxZKn1n83nKRU/UWCvE9i06KLUM+lBby3VYNHLhaAuNCZBgTBDcrxeisuUwDzPYw9IeskTeygOci4EIF1nOjDS07NVHwabqXVtwXYoL8NMHNtQGwtk0cquoIcLoyF/TPr+7214IiDE2wdsHaxsReYKd2juuJMmQKBgQD7cfrZySbYWVyiEQL5mA696IsiufSIz5O5F9ZqBZxyLWQQ/4wq0u0Zyni6+bBjs2J1E5J9bH8dIMZ7PoXudNGGVjgKI+zDSCb0gt2jNnW3fpXwgpaGnHychEeBUO/2kEw74yHQ1Ct4PLaiLo1bCPqehgq6wQXObEVZDKgahyev3wKBgQC44isbyhA1NnRizRBi9MucsfwaBW+kntjjAF7Y1/REZfqfhz/0gBtXy6ytG4EVJuG0cD2SBX14VHpYeF9tvj+OL23WQWpqe8Y13xEMaiy8Ei76QPGUMzQR3LeGwHWFTGvgZ8dJxKdXmhkCe0yM5Zlo4gDeQ471IFl87omHhwjaLQKBgBgIdOmMCGJ1aB01cwtYNVCBgYr4Kx9Id94hISVRE/r1y7K0Ojl9n5vvdkqowutEogx+qmnCjQPDtjThbPu1vrEQXJrbhC3GH7MPLxACjI3VU4+Ba9HB80cifZMmoUj30dGHjBvhq6X6Z5poyKoC2bF9LllbSarJPnecdhTTBkARAoGAf7Knd9A/FaIBDWT6Fn9iS16b9BUhIaEdyNyupjOy4bNWQe2W/Pem6yMgp4hBxixO5ORJgpwMJ5qhzo2FzDUFjN2xjbUtHVNUek0SZ3LGZzhf/jXxJh2fr1613Hr+MQ2xzROhEJClzNoAwDgNjZvgNBM16k7bZO/tH19a2qMoOBkCgYEAm/ryH3ADijjzwZE1WbgKcZYPMB1VS6DY849lCqmUZAnN8Xggx+n3bDXBl9G99pu1aYWMsiNexz6i3pBRzpzd3WSPXkIJYSeknD8crRJ+YJwZb8gTJ2xABQsWIBJD9C9OuXsndIelGu3x4F3VFnQMzzSLkCty4BiTSOoN6a7axA8="
 }
