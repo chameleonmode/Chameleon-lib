@@ -14,8 +14,7 @@ const proxio = async ({ scheme = "http", host = "127.0.0.1", port = 33333 } = {}
 
 // Update check
 const checkForUpdates = async () => {
-  // Fetch the manifest file from the extension directory
-  //  if (typeof browser !== "undefined" && browser.runtime && browser.runtime.getBrowserInfo) return; // Skip if using Firefox
+  // Skip if using Firefox
   const response = await fetch(chrome.runtime.getURL("manifest.json"));
   const data = await response.json();
   const { version } = await chrome.storage.local.get(["version"]);

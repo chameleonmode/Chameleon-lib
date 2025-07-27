@@ -17,6 +17,7 @@ using Chameleon.lib.Helpers;
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
 using System.Text;
+using Chameleon.lib.Playwright;
 
 namespace Chameleon.lib.Browzio;
 
@@ -1065,6 +1066,7 @@ public class Browzers {
 
 	public async Task<IBrowserInstance> Launch(BrowserSetting settings) {
 		if (settings.WithExtensions) {
+			await Playwrightio.I.Initialized.Task;
 			settings.Browser.OnEvent += (sender, args) => {
 				if (args.Event == Event.Closed) Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
 				if (Observers.TryGetValue(settings.Profile.Id, out var observer))

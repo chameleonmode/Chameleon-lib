@@ -3,31 +3,18 @@ import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import "./src/services/executions.js";
 
-// Startup
-// const proxio = (port = 33333) => {
-//   const bypass = ["127.0.0.1:3363", "127.0.0.1:3993", "127.0.0.1:3963", "127.0.0.1:3693"];
-//   browser.proxy.onRequest.addListener(
-//     (details) => {
-//       const { hostname, port: urlPort } = new URL(details.url);
-//       return !app.config.proxy.enabled || bypass.some((host) => host == `${hostname}:${urlPort}`)
-//         ? { type: "direct" }
-//         : { type: "http", host: "127.0.0.1", port };
-//     },
-//     { urls: ["<all_urls>"] }
-//   );
-// };
-const proxio = (port = 33333) =>
+const proxio = (port) =>
   browser.proxy.onRequest.addListener(
-    () => ({ type: "http", host: "127.0.0.1", port }),
+    () => (port ? { type: "http", host: "127.0.0.1", port } : { type: "direct" }),
     { urls: ["<all_urls>"] }
   );
 
+// Startup
 const startup = async () => {
-  const { config = {}, noise, hash } = await chrome.storage.local.get(["config", "noise", "hash"]);
-  for (const [key, value] of Object.entries(config)) {
-    app.config[key] =
-      typeof value === "object" && !Array.isArray(value) ? { ...app.config[key], ...value } : value;
-  }
+  // Then load the config from local storage, merging with syncConfig
+  const { config: local = {}, noise, hash } = await chrome.storage.local.get(["config", "noise", "hash"]);
+  app.config = { ...app.config, ...local };
+
   if (!noise || !hash) {
     app.config.noise = noises[Math.floor(Math.random() * noises.length)];
     app.config.hash = Math.random() * (100 - 1.5) + 1.5; // Random number between 1.5 and 100
@@ -38,35 +25,34 @@ const startup = async () => {
     app.config.hash = hash;
   }
 };
+
 const on = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 second
   // Reset the state
   app.state.loaded = false;
-
-  // First load the config from sync storage
-  const { config = {} } = await chrome.storage.sync.get(["config"]);
-  app.config = { ...app.config, ...config };
-
-  // Common startup operations
   await startup();
-  if (config) await chrome.storage.sync.set({ config: app.config });
 
-  await app.discoverServer();
-  const tabs = await chrome.tabs.query({});
-  let found = false;
-  for (const tab of tabs) {
-    if (!tab.url.startsWith("http://127.0.0.1")) continue;
+  // Check for existing tabs
+  const allTabs = await chrome.tabs.query({});
+  const localTabs = allTabs.filter(
+    (tab) => tab.url.startsWith("http://127.0.0.1") && new URL(tab.url).searchParams.has("proxio")
+  );
+  if (!localTabs.length) return;
+  allTabs.filter((tab) => !localTabs.includes(tab)).forEach((tab) => chrome.tabs.remove(tab.id));
+  for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
+    if (app.state.loaded) {
+      chrome.tabs.remove(tab.id);
+      continue;
+    }
+
     const url = new URL(tab.url);
     const sessionId = url.searchParams.get("sessionId");
     const instanceId = url.searchParams.get("instanceId");
-    const proxioPort = Number(url.searchParams.get("proxio"));
-    if (!proxioPort) {
-      await chrome.tabs.remove(tab.id);
-      continue;
-    } 
-    proxio(proxioPort);
+    const proxioPort = url.searchParams.get("proxio");
+    await app.discoverServer();
     const init = await app.sendData({ type: "init" }, { instanceId, sessionId });
     if (!init || !init.config || !init.port) {
-      await chrome.tabs.remove(tab.id);
+      chrome.tabs.remove(tab.id);
       continue;
     }
     app.session = { sessionId, instanceId };
@@ -79,33 +65,46 @@ const on = async () => {
           ? { ...app.config[key], ...value }
           : { ...value, ...app.config[key] };
     }
-
+    proxio(app.config.proxy.enabled ? proxioPort : null);
     await chrome.storage.local.set({ session: app.session, config: app.config });
     await addUrlsAsBookmarks(app.name, app.config.urls.homePages);
     await chrome.tabs.update(tab.id, { url: app.config.urls.start });
-    found = true;
+    app.state.loaded = true;
   }
-  await new Promise((resolve) => setTimeout(resolve, 300)); // Wait for .3 second before removing tabs
-  app.state.loaded = true;
-  log.info("started successfully");
 };
 
+const onInstalledOrStartup = async (type = "onyx") => {
+  log.info(`${type} event`);
+  await on()
+    .then(() => {
+      log.info("Extension started successfully");
+    })
+    .catch((error) => {
+      log.error("Error during startup:", error);
+    });
+
+  chrome.tabs.onUpdated.addListener(async (_, status, tab) => {
+    const remove =
+      app.state.loaded &&
+      app.state.tabId !== tab.id &&
+      tab.url.startsWith("http://127.0.0.1") &&
+      status.status === "loading";
+    if (remove) {
+      // Don't remove if there are no other tabs open
+      await chrome.tabs.query({}).then(async (tabs) => {
+        if (tabs.length === 1) await chrome.tabs.update(tab.id, { url: "about:blank" });
+        else await chrome.tabs.remove(tab.id);
+      });
+    }
+  });
+};
 chrome.runtime.onInstalled.addListener(() => {
-  log.info("installed or updated");
-  on();
+  onInstalledOrStartup("onInstalled");
 });
 chrome.runtime.onStartup.addListener(() => {
-  log.info("startup");
-  on();
+  onInstalledOrStartup("onStartup");
 });
-chrome.tabs.onUpdated.addListener((_, __, tab) => {
-  const remove =
-    app.state.loaded === false ||
-    app.state.tabId === tab.id ||
-    tab.url.startsWith("http://127.0.0.1") === false;
-  if (remove) return;
-  else chrome.tabs.remove(tab.id);
-});
+
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   log.info("Received message:", message);
@@ -118,10 +117,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       app.notify("configUpdated");
 
       // Save the updated config to both local and sync storage in parallel
-      Promise.all([
-        chrome.storage.local.set({ config: app.config }),
-        chrome.storage.sync.set({ config: app.config }),
-      ])
+      chrome.storage.local
+        .set({ config: app.config })
         .then(() => {
           log.info("Config saved to both local and sync storage");
           sendResponse({ success: true });
