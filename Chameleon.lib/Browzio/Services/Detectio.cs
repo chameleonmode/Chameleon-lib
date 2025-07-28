@@ -6,7 +6,7 @@ using Microsoft.Win32;
 namespace Chameleon.lib.Browzio.Services;
 
 public interface IBrowserDetector {
-  List<BrowserInfo> DetectBrowsers();
+  List<BrowserInfo> DetectedBrowsers { get; }
   BrowserInfo? GetBrowser(BrowserType name);
   bool IsInstalled(BrowserType name);
   List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine);
@@ -44,6 +44,8 @@ public abstract class BrowserDetector : IBrowserDetector {
 		["internet explorer"] = (BrowserType.InternetExplorer, BrowserEngine.Other)
 	};
 
+	private List<BrowserInfo>? detectedBrowsers;
+	public virtual List<BrowserInfo> DetectedBrowsers { get { return detectedBrowsers ??= DetectBrowsers(); } }
 	public abstract List<BrowserInfo> DetectBrowsers();
 
 	public virtual BrowserInfo? GetBrowser(BrowserType type) =>

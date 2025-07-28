@@ -30,19 +30,10 @@ public record BrowserInfo(BrowserType Type, string ExecutablePath, string Versio
 	public string ExecutableName => Path.GetFileName(ExecutablePath).Replace(".exe", "", StringComparison.OrdinalIgnoreCase);
 }
 public class BrowserProxy(string? host = null, int port = 0, string? userName = null, string? password = null) {
-	public NetworkCredential Credentials => new(userName, password);
-	public WebProxy? WebProxy => host.IsNot() && port > 0 ? new WebProxy($"{host}:{port}") {
-		Credentials = Credentials
-	} : null;
-	public object AddonObject => new {
-		enabled = WebProxy != null,
-		type = WebProxy?.Address?.Scheme,
-		server = WebProxy?.Address?.Authority,
-		host = WebProxy?.Address?.Host,
-		port = WebProxy?.Address?.Port,
-		username = (WebProxy?.Credentials as NetworkCredential)?.UserName,
-		password = (WebProxy?.Credentials as NetworkCredential)?.Password,
-	};
+	public NetworkCredential? Credentials => userName.Is() || password.Is() ? null : new(userName, password);
+	public WebProxy? WebProxy => host.Is() || port <= 0
+		? null
+		: new WebProxy($"{host}:{port}") { Credentials = Credentials };
 }
 public class BrowserProfile(string? url = null) {
 	public int Id { get; init; } = -1; // -1 is a special value for the default profile
@@ -60,7 +51,7 @@ public class BrowserProfile(string? url = null) {
 }
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
 	public required int Port { get; set; }
-	public int ProxioPort { get; set; }
+	public (string host, int port)? Proxio { get; set; }
 	public bool WithExtensions => Profile.Id > 0;
 	public string CachePath => FilePaths.EnsureDirectoryExists(
 		FilePaths.AppDataLocalDir, BrowserType.ToString(), Profile.Id.ToString()
@@ -121,7 +112,7 @@ public class Browzio : IInit {
 	public static class Utilities {
 		private static readonly IBrowserDetector detector = Factory.CreateDetector();
 
-		public static List<BrowserInfo> DetectBrowsers() => detector.DetectBrowsers();
+		public static List<BrowserInfo> DetectBrowsers() => detector.DetectedBrowsers;
 		public static BrowserInfo? GetBrowser(BrowserType type) => detector.GetBrowser(type);
 		public static bool IsInstalled(BrowserType type) => detector.IsInstalled(type);
 		public static List<BrowserInfo> GetBrowsersByEngine(BrowserEngine engine) => detector.GetBrowsersByEngine(engine);

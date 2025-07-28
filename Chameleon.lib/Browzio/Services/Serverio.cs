@@ -47,7 +47,8 @@ public class Serverio {
 		}
 
 		public void Remove(BrowserSetting setting) {
-			if (settings.TryRemove(setting.ProxioPort, out var value)) {
+			if(setting.Proxio?.port == null) return;
+			if (settings.TryRemove(setting.Proxio.Value.port, out var value)) {
 				value.cts.Cancel();
 				value.cts.Dispose();
 			}
@@ -98,7 +99,7 @@ public class Serverio {
 				var proxyStream = proxyClient.GetStream();
 
 				// Send CONNECT with auth to external proxy
-				var authHeader = CreateProxyAuthorizationHeader(proxy.Credentials.UserName, proxy.Credentials.Password);
+				var authHeader = CreateProxyAuthorizationHeader(proxy.Credentials!.UserName, proxy.Credentials.Password);
 				var proxyConnect = $"CONNECT {targetHost}:{targetPort} HTTP/1.1\r\n" +
 												 $"Host: {targetHost}:{targetPort}\r\n" +
 												 $"Proxy-Authorization: {authHeader}\r\n" +
@@ -168,7 +169,7 @@ public class Serverio {
 
 		private string AddProxyAuthentication(string request, BrowserProxy proxy) {
 			var lines = request.Split(["\r\n"], StringSplitOptions.None).ToList();
-			var authHeader = $"Proxy-Authorization: {CreateProxyAuthorizationHeader(proxy.Credentials.UserName, proxy.Credentials.Password)}";
+			var authHeader = $"Proxy-Authorization: {CreateProxyAuthorizationHeader(proxy.Credentials!.UserName, proxy.Credentials.Password)}";
 
 			// Insert auth header before the empty line
 			for (var i = 0; i < lines.Count; i++) {
@@ -233,18 +234,22 @@ public class Serverio {
 	}
 
 	public async Task AddSession(string sessionId, BrowserSetting settings) {
-		settings.ProxioPort = Proxio.AssignProxy(settings);
+		settings.Proxio = settings.Profile.Proxy.WebProxy == null
+			? null 
+			: settings.Profile.Proxy.Credentials == null && settings.Profile.Proxy.WebProxy?.Address != null
+				? (host: settings.Profile.Proxy.WebProxy.Address.Host, port: settings.Profile.Proxy.WebProxy.Address.Port)
+				: (host: "127.0.0.1", port: Proxio.AssignProxy(settings));
 		var ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
 		sessions[(sessionId, settings.Profile.Id)] = (
 			config: new {
 				// proxy = Settings.Profile.Proxy.AddonObject,
-				proxy = new {
-					enabled = settings.Profile.Proxy.WebProxy != null,
-					type = "http",
-					server = "127.0.0.1:" + settings.ProxioPort,
-					host = "127.0.0.1",
-					port = settings.ProxioPort,
-				},
+				// proxy = new {
+				// 	enabled = settings.Profile.Proxy.WebProxy != null,
+				// 	type = "http",
+				// 	server = $"{settings.Proxio.host}:{settings.Proxio.port}",
+				// 	settings.Proxio.host,
+				// 	settings.Proxio.port,
+				// },
 				urls = new {
 					start = settings.Profile.StartPage,
 					homePages = settings.Profile.Bookmarks,

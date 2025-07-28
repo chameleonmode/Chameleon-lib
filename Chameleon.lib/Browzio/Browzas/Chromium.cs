@@ -92,9 +92,9 @@ public class Chromium : Browza {
 	 *	Disable content verification for Chrome Apps (mostly deprecated).
 	 */
 	protected override string GetCommandLineArguments() {
-		var proxy = Settings.Profile.Proxy.WebProxy is null
+		var proxy = Settings.Proxio is null
 			? null // Use the loopback proxy for local requests
-			: $"--proxy-server=127.0.0.1:{Settings.ProxioPort} --proxy-bypass-list=127.0.0.1:{Browzio.I.Loopback.Port},localhost:{Settings.Port}";
+			: $"--proxy-server={Settings.Proxio.Value.host}:{Settings.Proxio.Value.port} --proxy-bypass-list=127.0.0.1:{Browzio.I.Loopback.Port},localhost:{Settings.Port}";
 		return string.Join(" ", new string?[] {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",

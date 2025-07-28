@@ -26,7 +26,7 @@ public abstract class Browza : IBrowserInstance {
 	public string SessionId { get; } = Guid.NewGuid().ToString();
 	public TaskCompletionSource<bool> LoadedTCS { get; } = new();
 	public string InitUrl => Settings.WithExtensions
-		? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}&proxio={Settings.ProxioPort}"
+		? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}&proxio={Settings.Proxio?.port}"
 		: Settings.Profile.StartPage;
 
 	public void InvokeEvent(Event @event) {
