@@ -193,7 +193,6 @@ public class WindowsBrowserDetector : BrowserDetector {
 		}
 	}
 
-
 	private void DetectFromRegistry(List<BrowserInfo> browsers, HashSet<string> foundPaths) {
 		// Check registered applications
 		CheckRegisteredApplications(browsers, foundPaths);

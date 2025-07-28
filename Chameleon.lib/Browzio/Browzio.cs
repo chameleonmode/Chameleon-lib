@@ -1,15 +1,9 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
-using System.Runtime.Versioning;
-using System.Text.RegularExpressions;
-using Microsoft.Win32;
 using chameleon.assets;
 using Chameleon.lib.Browzio.Services.Browzas;
-using Chameleon.lib.Helpers;
 using Chameleon.lib.Services;
 using Chameleon.lib.Util;
-using Chameleon.lib.Playwright;
 using Chameleon.lib.Browzio.Services;
 
 namespace Chameleon.lib.Browzio;
@@ -38,16 +32,19 @@ public class BrowserProxy(string? host = null, int port = 0, string? userName = 
 public class BrowserProfile(string? url = null) {
 	public int Id { get; init; } = -1; // -1 is a special value for the default profile
 	public BrowserProxy Proxy { get; set; } = new();
-
-	public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 	public string[] Bookmarks { get; init; } = IoC.GetJsonValue<string[]>(nameof(Bookmarks)) ?? [];
+	public EmulationOptions Emulations { get; init; } = IoC.GetJsonValue<EmulationOptions>(nameof(EmulationOptions)) ?? new();
 
-	public string StartPage => url ?? IoC.GetValue(nameof(StartPage))
-		.Let(l => l.Is()
-			? "about:blank"
-			: Uri.TryCreate(l, UriKind.Absolute, out var uriResult)
-				? uriResult.AbsoluteUri
-				: "http://" + l);
+	public string StartPage {
+		get {
+			url ??= IoC.GetValue(nameof(StartPage));
+			return url.Is()
+				? "about:blank" 
+				: Uri.TryCreate(url, UriKind.Absolute, out var uri)
+					? uri.AbsoluteUri
+					: "http://" + url;
+		}
+	}
 }
 public record BrowserSetting(BrowserType BrowserType, BrowserProfile Profile) {
 	public required int Port { get; set; }

@@ -234,43 +234,35 @@ public class Serverio {
 	}
 
 	public async Task AddSession(string sessionId, BrowserSetting settings) {
-		settings.Proxio = settings.Profile.Proxy.WebProxy == null
+		var ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
+		settings.Proxio = settings.Profile.Proxy.WebProxy?.Address == null
 			? null 
-			: settings.Profile.Proxy.Credentials == null && settings.Profile.Proxy.WebProxy?.Address != null
+			: settings.Profile.Proxy.Credentials == null
 				? (host: settings.Profile.Proxy.WebProxy.Address.Host, port: settings.Profile.Proxy.WebProxy.Address.Port)
 				: (host: "127.0.0.1", port: Proxio.AssignProxy(settings));
-		var ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
 		sessions[(sessionId, settings.Profile.Id)] = (
 			config: new {
-				// proxy = Settings.Profile.Proxy.AddonObject,
-				// proxy = new {
-				// 	enabled = settings.Profile.Proxy.WebProxy != null,
-				// 	type = "http",
-				// 	server = $"{settings.Proxio.host}:{settings.Proxio.port}",
-				// 	settings.Proxio.host,
-				// 	settings.Proxio.port,
-				// },
 				urls = new {
 					start = settings.Profile.StartPage,
 					homePages = settings.Profile.Bookmarks,
 				},
 				tz = new {
 					enabled = settings.Profile.Emulations.Timezone,
-					locale = "en-" + ipapi.countryCode,
-					system = ipapi.tzSystem,
-					zone = ipapi.timezone,
+					ipapi.zone,
+					ipapi.locale,
+					ipapi.system,
 				},
 				geo = new {
 					enabled = settings.Profile.Emulations.Geo,
 					ipapi.lat,
 					ipapi.lon,
 				},
+				navi = new { enabled = settings.Profile.Emulations.Navigator },
 				canvas = new { enabled = settings.Profile.Emulations.Canvas },
+				rects = new { enabled = settings.Profile.Emulations.Rects },
+				audio = new { enabled = settings.Profile.Emulations.Audio },
 				webgl = new { enabled = settings.Profile.Emulations.WebGL },
 				fonts = new { enabled = settings.Profile.Emulations.Font },
-				rects = new { enabled = settings.Profile.Emulations.Rects },
-				navi = new { enabled = settings.Profile.Emulations.Navigator },
-				audio = new { enabled = settings.Profile.Emulations.Audio },
 			},
 			port: settings.Port,
 			bt: settings.BrowserType
