@@ -1,14 +1,13 @@
 {
   "name": "Geckoleon",
   "description": "A Geckoleon can change its behavior to blend into the environment of any website troller.",
-  "version": "2025.7.28.2",
+  "version": "2025.7.28.3",
   "manifest_version": 3,
   "permissions": [
     "activeTab",
     "bookmarks",
     "declarativeNetRequest",
     "geolocation",
-    "proxy",
     "scripting",
     "storage",
     "tabs",
