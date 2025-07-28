@@ -142,7 +142,7 @@ public class Chromium : Browza {
 				// "WebRtcHWEncoding",
 				"DisableLoadExtensionCommandLineSwitch"
 			]),
-			"--allowlisted-extension-id=dcelnbkcchhhmjalfimdgfkbapknjgfm", // Chameleon extension ID
+			"--allowlisted-extension-id=cjemdhglmmgbdogklfgoofcoifgdmflf", // Chameleon extension ID
 			"--disable-extensions-file-access-check",
 			"--disable-extensions-http-throttling",
 			"--extension-content-verification=none",
