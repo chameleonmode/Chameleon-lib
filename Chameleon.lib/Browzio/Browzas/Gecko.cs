@@ -44,12 +44,6 @@ public class Gecko : Browza {
 				OperatingSystem.IsMacOS() ? system : Path.GetDirectoryName(system)!, ExeDir
 			);
 		}
-
-		// if (!Settings.Profile.Extensions || Directory.Exists(Settings.ExtensionsPath)) return;
-		// Directory.CreateDirectory(Settings.ExtensionsPath);
-		// // Copy the Geckoleon extension to the extensions path
-		// File.Copy(Browzio.Extensions.Geckoleon, Path.Combine(Settings.ExtensionsPath, "geckoleon.xpi"), true);
-		// await Task.Delay(30);
 	}
 
 	protected override async Task InitializeExtensions() {

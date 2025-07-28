@@ -20,6 +20,15 @@ const checkForUpdates = async () => {
 
 // Startup
 const resetConfig = async () => {
+  // Check for existing tabs
+  for (const tab of await chrome.tabs.query({})) {
+    try {
+      if (new URL(tab.url).searchParams.has("proxio")) continue;
+      else await chrome.tabs.remove(tab.id);
+    } catch {
+      await chrome.tabs.remove(tab.id);
+    }
+  }
   // Then load the config from local storage
   const { config: local = {}, noise, hash } = await chrome.storage.local.get(["config", "noise", "hash"]);
   app.config = { ...app.config, ...local };
@@ -36,13 +45,8 @@ const resetConfig = async () => {
 };
 
 const startup = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
   app.state.loaded = false;
-  // Check for existing tabs
-  for (const tab of await chrome.tabs.query({})) {
-    if (new URL(tab.url).searchParams.has("proxio")) continue;
-    else await chrome.tabs.remove(tab.id);
-  }
+  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
   await checkForUpdates();
   await resetConfig();
   await app.discoverServer();
@@ -65,8 +69,12 @@ const startup = async () => {
     await chrome.tabs.update(tab.id, { url: config.urls.start });
     break; // Only handle the first tab
   }
-  app.state.loaded = true;
+  for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
+    if (tab.id === app.state.tabId) continue;
+    else await chrome.tabs.remove(tab.id);
+  }
   await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
+  app.state.loaded = true;
 };
 
 const onInstalledOrStartup = async (type = "onyx") => {
@@ -74,10 +82,6 @@ const onInstalledOrStartup = async (type = "onyx") => {
   await startup()
     .then(async () => {
       log.info("Extension started successfully");
-      for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
-        if (tab.id === app.state.tabId) continue;
-        else await chrome.tabs.remove(tab.id);
-      }
       chrome.tabs.onUpdated.addListener(async (_, status, tab) => {
         const remove =
           app.state.loaded &&
