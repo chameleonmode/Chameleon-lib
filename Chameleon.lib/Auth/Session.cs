@@ -25,9 +25,14 @@ public class Session {
 	}
 
 	public async Task Logout() {
-		await EX.Try(Auth0Client.Logout);
-		IoC.ClearValue(nameof(TokenResponse));
-		Save(Settings with { AutoLogin = false });
+		try {
+			await Auth0Client.Logout();
+		} catch (Exception e) {
+			EX.PrintException(e);
+		} finally {
+			IoC.ClearValue(nameof(TokenResponse));
+			Save(Settings with { AutoLogin = false });
+		}
 	}
 
 	// singleton	

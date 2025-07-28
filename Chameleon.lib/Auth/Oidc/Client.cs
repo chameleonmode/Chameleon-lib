@@ -51,7 +51,7 @@ public class Client {
 	}
 
 	private TokenResponse DeserializeToken(string res) {
-		var token = JsonSerializer.Deserialize<TokenResponse>(res, JSON.CaseInsensitiveOptions);
+		var token = JSON.Deserialize<TokenResponse>(res, JSON.CaseInsensitiveOptions);
 		ArgumentNullException.ThrowIfNull(token, "Token not found in response");
 
 		SaveToken(token);
@@ -109,7 +109,7 @@ public class Client {
 				new FormUrlEncodedContent(new Dictionary<string, string> {
 					 { "grant_type", "refresh_token" },
 					 { "client_id", ClientId },
-					 { "refresh_token", Token!.refresh_token }
+					 { "refresh_token", Token.refresh_token }
 				})
 		);
 

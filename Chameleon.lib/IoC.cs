@@ -99,12 +99,11 @@ public class IoC {
 	}
 	public static void SetJsonValue<T>(string key, T value) => SetJsonValue(key, value, "Settings saved");
 
-
 	//
 	public static void ClearValue(string key) {
 		if (I.Config is null) return;
 		_ = I.Config.overrides.TryRemove(key, out _);
-		SetValue(key, null);
+		SetValue(key, "null");
 	}
 
 	//Singleton pattern

@@ -6,7 +6,13 @@ using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Auth.Oidc;
 public class Browser(Client oidcClient) {
-	public Func<string, Task> Open { get; set; } = url => Task.Run(() => Processez.OpenBrowser(url));
+	public Func<string, Task> Open { get; set; } = async url => {
+			var browser = await EX.Catch(
+				async () => await Browzio.Browzio.I.Browzas.Open(Browzio.Browzio.Factory.Chrome(new(url))),
+				ex => { if (!Browzio.Browzio.Utilities.IsInstalled(Browzio.BrowserType.Chrome)) Processez.OpenBrowser(url); }
+			);
+			Session.I.Auth0Client.OidcBrowser.TaskCompletion?.Task.ContinueWith(_ => browser?.Closee());
+		};
 	public TaskCompletionSource? TaskCompletion { get; private set; }
 	const string authResponseHtml = @"
 		<!DOCTYPE html>
