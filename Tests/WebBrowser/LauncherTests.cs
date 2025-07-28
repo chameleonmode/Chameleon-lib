@@ -1,5 +1,6 @@
 ﻿using Chameleon.lib.Browzio;
 using Chameleon.lib.Browzio.Services.Browzas;
+using Chameleon.lib.Playwright;
 
 namespace Tests.WebBrowser;
 
@@ -7,12 +8,13 @@ public class BrowserLauncherTests : TestSetup {
 	public override async Task InitializeAsync() {
 		await base.InitializeAsync();
 		await Browzio.I.Init();
+		await Playwrightio.I.Init();
 	}
 
 	readonly ManualResetEventSlim testCompletionEvent = new(false);
 	void KeepAlive(IBrowserInstance bi) {
 		// Start a monitoring task that will complete when the signal file is deleted
-		_ = Task.Run(() => {
+		Task.Run(() => {
 			try {
 				while (bi.Brocess?.HasExited == false) {
 					Thread.Sleep(1000 * 6);
@@ -48,7 +50,7 @@ public class BrowserLauncherTests : TestSetup {
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_Vivaldi() {
 		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.BrowserSettings(BrowserType.Vivaldi, new("https://browserleaks.com/ip") {
-			Id = 22,
+			Id = 2,
 			Proxy = new(
 				host: "proxy.chameleonmode.com",
 				port: 31112,
@@ -78,7 +80,7 @@ public class BrowserLauncherTests : TestSetup {
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Firefox(new("https://browserleaks.com/ip") {
-			Id = 22,
+			Id = 2,
 			Proxy = new(
 				host: "proxy.chameleonmode.com",
 				port: 31112,

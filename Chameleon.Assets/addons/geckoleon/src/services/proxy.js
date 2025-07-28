@@ -1,3 +1,8 @@
+const proxio = (port) =>
+  browser.proxy.onRequest.addListener(
+    () => (port ? { type: "http", host: "127.0.0.1", port } : { type: "direct" }),
+    { urls: ["<all_urls>"] }
+  );
 export default async function (config = {}) {
   const { enabled, host, port, username, password, type } = config;
   const bypass = ["<local>", "localhost", "127.0.0.1", "com.mode.chameleon"];

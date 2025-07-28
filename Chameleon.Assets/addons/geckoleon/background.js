@@ -3,15 +3,23 @@ import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import "./src/services/executions.js";
 
-const proxio = (port) =>
-  browser.proxy.onRequest.addListener(
-    () => (port ? { type: "http", host: "127.0.0.1", port } : { type: "direct" }),
-    { urls: ["<all_urls>"] }
-  );
+// Update check. Skip if using Firefox!
+const checkForUpdates = async () => {
+  if (app.name === "Geckoleon") return; // Skip if using Geckoleon
+
+  const response = await fetch(chrome.runtime.getURL("manifest.json"));
+  const data = await response.json();
+  const { version } = await chrome.storage.local.get(["version"]);
+  if (version === data.version) return; // No update needed
+  log.info(`Extension updated from version ${version} to ${data.version}`);
+  await chrome.storage.local.set({ version: data.version });
+  chrome.runtime.reload();
+  return true; // Indicate that an update was found
+};
 
 // Startup
-const startup = async () => {
-  // Then load the config from local storage, merging with syncConfig
+const resetConfig = async () => {
+  // Then load the config from local storage
   const { config: local = {}, noise, hash } = await chrome.storage.local.get(["config", "noise", "hash"]);
   app.config = { ...app.config, ...local };
 
@@ -26,77 +34,67 @@ const startup = async () => {
   }
 };
 
-const on = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 second
-  // Reset the state
+const startup = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
   app.state.loaded = false;
-  await startup();
-
   // Check for existing tabs
-  const allTabs = await chrome.tabs.query({});
-  const localTabs = allTabs.filter(
-    (tab) => tab.url.startsWith("http://127.0.0.1") && new URL(tab.url).searchParams.has("proxio")
-  );
-  if (!localTabs.length) return;
-  allTabs.filter((tab) => !localTabs.includes(tab)).forEach((tab) => chrome.tabs.remove(tab.id));
-  for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
-    if (app.state.loaded) {
-      chrome.tabs.remove(tab.id);
-      continue;
-    }
+  for (const tab of await chrome.tabs.query({})) {
+    if (new URL(tab.url).searchParams.has("proxio")) continue;
+    else await chrome.tabs.remove(tab.id);
+  }
+  await checkForUpdates();
+  await resetConfig();
+  await app.discoverServer();
 
+  for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
     const url = new URL(tab.url);
     const sessionId = url.searchParams.get("sessionId");
     const instanceId = url.searchParams.get("instanceId");
-    const proxioPort = url.searchParams.get("proxio");
-    await app.discoverServer();
-    const init = await app.sendData({ type: "init" }, { instanceId, sessionId });
-    if (!init || !init.config || !init.port) {
-      chrome.tabs.remove(tab.id);
-      continue;
-    }
-    app.session = { sessionId, instanceId };
-    app.state.port = init.port;
-    app.state.tabId = tab.id;
+    const { config, port } = await app.sendData({ type: "init" }, { instanceId, sessionId });
+    if (!config || !port) continue;
 
-    for (const [key, value] of Object.entries(init.config)) {
-      app.config[key] =
-        app.config.sync || key === "proxy"
-          ? { ...app.config[key], ...value }
-          : { ...value, ...app.config[key] };
+    app.session = { sessionId, instanceId };
+    app.state.port = port;
+    app.state.tabId = tab.id;
+    if (app.config.sync) {
+      app.config = { ...app.config, ...config };
+      await chrome.storage.local.set({ session: app.session, config: app.config });
     }
-    proxio(app.config.proxy.enabled ? proxioPort : null);
-    await chrome.storage.local.set({ session: app.session, config: app.config });
-    await addUrlsAsBookmarks(app.name, app.config.urls.homePages);
-    await chrome.tabs.update(tab.id, { url: app.config.urls.start });
-    app.state.loaded = true;
+    await addUrlsAsBookmarks(app.name, config.urls.homePages);
+    await chrome.tabs.update(tab.id, { url: config.urls.start });
+    break; // Only handle the first tab
   }
+  app.state.loaded = true;
+  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
 };
 
 const onInstalledOrStartup = async (type = "onyx") => {
   log.info(`${type} event`);
-  await on()
-    .then(() => {
+  await startup()
+    .then(async () => {
       log.info("Extension started successfully");
+      for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
+        if (tab.id === app.state.tabId) continue;
+        else await chrome.tabs.remove(tab.id);
+      }
+      chrome.tabs.onUpdated.addListener(async (_, status, tab) => {
+        const remove =
+          app.state.loaded &&
+          app.state.tabId !== tab.id &&
+          tab.url.startsWith("http://127.0.0.1") &&
+          status.status === "loading";
+        if (remove) {
+          // Don't remove if there are no other tabs open
+          await chrome.tabs.query({}).then(async (tabs) => {
+            if (tabs.length === 1) await chrome.tabs.update(tab.id, { url: "about:blank" });
+            else await chrome.tabs.remove(tab.id);
+          });
+        }
+      });
     })
     .catch((error) => {
       log.error("Error during startup:", error);
     });
-
-  chrome.tabs.onUpdated.addListener(async (_, status, tab) => {
-    const remove =
-      app.state.loaded &&
-      app.state.tabId !== tab.id &&
-      tab.url.startsWith("http://127.0.0.1") &&
-      status.status === "loading";
-    if (remove) {
-      // Don't remove if there are no other tabs open
-      await chrome.tabs.query({}).then(async (tabs) => {
-        if (tabs.length === 1) await chrome.tabs.update(tab.id, { url: "about:blank" });
-        else await chrome.tabs.remove(tab.id);
-      });
-    }
-  });
 };
 chrome.runtime.onInstalled.addListener(() => {
   onInstalledOrStartup("onInstalled");
@@ -133,7 +131,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: false, error: "Unknown message type" });
       break;
   }
-
   // Return true to indicate that sendResponse will be called asynchronously and keep channel open
   return true;
 });

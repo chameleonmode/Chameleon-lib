@@ -1,10 +1,6 @@
 ﻿using System.Diagnostics;
 using Chameleon.lib.Util;
-using Chameleon.lib.ThirdParty.GeoIp;
-using static Chameleon.lib.Browzio.Browzers;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
+using static Chameleon.lib.Browzio.Services.Browzers;
 
 namespace Chameleon.lib.Browzio.Services.Browzas;
 

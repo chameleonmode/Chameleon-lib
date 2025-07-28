@@ -386,15 +386,15 @@ function getAllSupportedLocales(
  *
  * // Simple text matching
  * // matchesPattern("hello world", ["hello", "test"]); // true
- * 
+ *
  * // Wildcard pattern matching
  * // matchesPattern("hello world", ["hello*"]); // true
  * // matchesPattern("hello world", ["*world"]); // true
- * 
+ *
  * // URL domain matching
  * // matchesPattern("https://sub.example.com/page", ["example.com"], { treatAsUrl: true }); // true
  * // matchesPattern("https://example.com/page", ["*://example.com/*"]); // true
- * 
+ *
  * // Case-sensitive matching
  * // matchesPattern("Hello World", ["hello world"], { caseSensitive: true }); // false
  * // matchesPattern("Hello World", ["Hello World"], { caseSensitive: true }); // true
@@ -410,90 +410,87 @@ function matchesPattern(value, patterns, options = {}) {
   const opts = {
     caseSensitive: false,
     url: true,
-    ...options
+    ...options,
   };
 
   // Convert single pattern to array for consistent handling
   const patternArray = Array.isArray(patterns) ? patterns : [patterns];
   if (patternArray.length === 0) return false;
-  
+
   // Normalize value for case-insensitive matching
   const normalizedValue = opts.caseSensitive ? value : value.toLowerCase();
-  
-  return patternArray.some(pattern => {
+
+  return patternArray.some((pattern) => {
     // Normalize pattern for case-insensitive matching
     const normalizedPattern = opts.caseSensitive ? pattern : pattern.toLowerCase();
-    
+
     // Wildcard pattern matching
-    if (normalizedPattern.includes('*')) {
+    if (normalizedPattern.includes("*")) {
       // Convert wildcard pattern to regex
       const regexPattern = normalizedPattern
-        .replace(/\./g, '\\.')       // Escape dots
-        .replace(/\//g, '\\/')       // Escape slashes
-        .replace(/\*/g, '.*');       // Convert * to .*
-      
+        .replace(/\./g, "\\.") // Escape dots
+        .replace(/\//g, "\\/") // Escape slashes
+        .replace(/\*/g, ".*"); // Convert * to .*
+
       const regex = new RegExp(`^${regexPattern}$`);
       return regex.test(normalizedValue);
     }
-    
+
     // URL domain matching (if enabled)
     if (opts.url) {
       try {
         const urlObj = new URL(value);
         const hostname = urlObj.hostname;
-        
+
         // Check if hostname matches pattern or ends with .pattern (subdomain matching)
-        return hostname === normalizedPattern || 
-               hostname.endsWith(`.${normalizedPattern}`);
+        return hostname === normalizedPattern || hostname.endsWith(`.${normalizedPattern}`);
       } catch (error) {
         // Fallback to simple includes if URL parsing fails
         return normalizedValue.includes(normalizedPattern);
       }
     }
-    
+
     // Simple exact or substring matching
-    return normalizedValue === normalizedPattern || 
-           normalizedValue.includes(normalizedPattern);
+    return normalizedValue === normalizedPattern || normalizedValue.includes(normalizedPattern);
   });
 }
 
 // Example usage of UUID generation
-    // this.uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    //   const r = (Math.random() * 16) | 0;
-    //   const v = c === "x" ? r : (r & 0x3) | 0x8;
-    //   return v.toString(16);
-    // });
-
+// this.uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+//   const r = (Math.random() * 16) | 0;
+//   const v = c === "x" ? r : (r & 0x3) | 0x8;
+//   return v.toString(16);
+// });
 
 // Function to check if extension needs reloading based on version
 async function checkForExtensionUpdate() {
-  if(detectBrowser() === 'Firefox') return;
+  if (detectBrowser() === "Firefox") return;
   await new Promise((resolve) => setTimeout(resolve, 300)); // Wait for 0.3 second
   try {
     // Fetch the current manifest.json file to get the latest version
-    const manifestResponse = await fetch(chrome.runtime.getURL('manifest.json'));
+    const manifestResponse = await fetch(chrome.runtime.getURL("manifest.json"));
     const manifestData = await manifestResponse.json();
     const newVersion = manifestData.version;
 
     const { currentVersion } = await chrome.storage.local.get(["currentVersion"]);
-    
+
     // Get the currently running version
-    
+
     console.log(`Current version: ${currentVersion}, New version: ${newVersion}`);
-    
+
     // If versions don't match, reload the extension
     if (currentVersion && newVersion !== currentVersion) {
       await chrome.storage.local.set({ currentVersion: newVersion });
       // chrome.runtime.reload();
-      chrome.runtime.sendMessage('reload-extension');
+      chrome.runtime.sendMessage("reload-extension");
       // console.log('New version detected, reloading extension...');
       // await chrome.storage.local.set({ currentVersion: newVersion });
-      
+
       // // For unpacked extensions, we can use the Extension Management API
       // // Note: This requires the management permission in your manifest.json
       // if (chrome.management && chrome.management.getSelf && chrome.management.setEnabled) {
       //   const extensionInfo = await chrome.management.getSelf();
-        
+
       //   // Disable and then re-enable the extension to force a reload
       //   await chrome.management.setEnabled(extensionInfo.id, false);
       //   await chrome.management.setEnabled(extensionInfo.id, true);
@@ -501,11 +498,11 @@ async function checkForExtensionUpdate() {
       //   // Fallback for older Chrome versions or when management API is not available
       //   chrome.runtime.reload();
       // }
-    }else {
+    } else {
       await chrome.storage.local.set({ currentVersion: newVersion });
     }
   } catch (error) {
-    console.error('Error checking for extension update:', error);
+    console.error("Error checking for extension update:", error);
   }
 }
 
@@ -515,50 +512,50 @@ async function checkForExtensionUpdate() {
 function detectBrowser() {
   // Modern extensions use a global "browser" object in Firefox
   // and a global "chrome" object in Chrome
-  if (typeof browser !== 'undefined') {
+  if (typeof browser !== "undefined") {
     // Additional check to confirm it's Firefox
     if (browser.runtime && browser.runtime.getBrowserInfo) {
-      return 'Firefox';
+      return "Firefox";
     }
   }
-  
+
   // Chrome doesn't have browser.runtime.getBrowserInfo but does have chrome.runtime
-  if (typeof chrome !== 'undefined' && chrome.runtime) {
+  if (typeof chrome !== "undefined" && chrome.runtime) {
     // Further differentiate between Chrome and Edge
     if (navigator.userAgent.indexOf("Edg") !== -1) {
-      return 'Edge';
+      return "Edge";
     }
-    return 'Chrome';
+    return "Chrome";
   }
-  
+
   // Fallback detection based on user agent (less reliable)
   const userAgent = navigator.userAgent.toLowerCase();
-  if (userAgent.indexOf('firefox') > -1) {
-    return 'Firefox';
-  } else if (userAgent.indexOf('chrome') > -1) {
-    return 'Chrome';
+  if (userAgent.indexOf("firefox") > -1) {
+    return "Firefox";
+  } else if (userAgent.indexOf("chrome") > -1) {
+    return "Chrome";
   }
-  
-  return 'Unknown';
+
+  return "Unknown";
 }
 
 // Create a browser-agnostic API
-const browserAPI = (function() {
-  const isFirefox = typeof browser !== 'undefined';
-  
+const browserAPI = (function () {
+  const isFirefox = typeof browser !== "undefined";
+
   return {
     // Returns the appropriate browser API object
-    getRuntimeAPI: function() {
+    getRuntimeAPI: function () {
       return isFirefox ? browser.runtime : chrome.runtime;
     },
-    
+
     // Example of a wrapped function
-    sendMessage: function(message) {
+    sendMessage: function (message) {
       if (isFirefox) {
         return browser.runtime.sendMessage(message);
       } else {
         return new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage(message, response => {
+          chrome.runtime.sendMessage(message, (response) => {
             if (chrome.runtime.lastError) {
               reject(chrome.runtime.lastError);
             } else {
@@ -567,7 +564,7 @@ const browserAPI = (function() {
           });
         });
       }
-    }
+    },
   };
 })();
 

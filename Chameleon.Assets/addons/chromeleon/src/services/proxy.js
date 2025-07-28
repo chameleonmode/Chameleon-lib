@@ -1,3 +1,10 @@
+const proxio = async ({ scheme = "http", host = "127.0.0.1", port = 33333 } = {}) =>
+  await chrome.proxy.settings.set({
+    value: {
+      mode: "fixed_servers",
+      rules: { singleProxy: { scheme, host, port } },
+    },
+  });
 export default async function (config = {}) {
   const { enabled, host, port, username, password, type } = config;
   const bypass = ["<local>", "localhost", "127.0.0.1", "com.mode.chameleon"];

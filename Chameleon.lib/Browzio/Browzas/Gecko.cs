@@ -54,10 +54,16 @@ public class Gecko : Browza {
 
 	protected override async Task InitializeExtensions() {
 		await base.InitializeExtensions();
+		var policies = Path.Combine(
+			await IO.DC(
+				OperatingSystem.IsMacOS()
+					? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
+					: Path.Combine(ExeDir, "distribution")
+			),
+			"policies.json"
+		);
 		await File.WriteAllTextAsync(
-			Path.Combine(await IO.DC(OperatingSystem.IsMacOS()
-			? Path.Combine(ExeDir, "Contents", "Resources", "distribution")
-			: Path.Combine(ExeDir, "distribution")), "policies.json"),
+			policies,
 			JSON.Serialize(new {
 				policies = new {
 					AppAutoUpdate = false,
@@ -286,7 +292,17 @@ public class Gecko : Browza {
 			}
 		}
 
-		_ = await Resources.CopyFile("js.firefox", "user.js", Settings.CachePath);
+		var userJS = await Resources.CopyFile("js.firefox", "user.js", Settings.CachePath);
+		// Append the proxy to user.js file to the prefs.js file
+		if (Settings.Profile.Proxy.WebProxy?.Address != null && File.Exists(userJS)) await File.AppendAllLinesAsync(userJS, [
+			$"user_pref(\"network.proxy.type\", 1);",
+			$"user_pref(\"network.proxy.http\", \"127.0.0.1\");",
+			$"user_pref(\"network.proxy.http_port\", {Settings.ProxioPort});",
+			$"user_pref(\"network.proxy.ssl\", \"127.0.0.1\");",
+			$"user_pref(\"network.proxy.ssl_port\", {Settings.ProxioPort});",
+			$"user_pref(\"network.proxy.share_proxy_settings\", true);",
+			$"user_pref(\"network.proxy.no_proxies_on\", \"127.0.0.1:{Browzio.I.Loopback.Port}\");"
+		]);
 	}
 	protected override string GetCommandLineArguments() {
 		return string.Join(" ", new[]{
