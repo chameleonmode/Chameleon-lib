@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using Chameleon.lib.Util;
 
@@ -252,12 +253,20 @@ public class Chromium : Browza {
 		// },
 		// new(sleep: 36, retries: 9));
 		await base.WaitForWinHandle();
+		await EX.Poly(async () => {
+			using var client = new TcpClient();
+			await client.ConnectAsync("127.0.0.1", Settings.Port);
+			return client.Connected.ThrowIfFalse(
+				$"Failed to connect to the browser at 127.0.0.1:{Settings.Port}");
+		}, new(sleep: 36, retries: 3));
 		if (!OperatingSystem.IsWindows()) return;
 
 		await EX.Poly(async () => {
 			await Task.Delay(60);
+			using var client = new TcpClient();
+			await client.ConnectAsync("127.0.0.1", Settings.Port);
 			return (Brocess!.HasExited || Brocess.MainWindowHandle == IntPtr.Zero).ThrowIfTrue();
-		}, new(sleep: 96, retries: 3));
+		}, new(sleep: 96, retries: 6));
 	}
 
 	protected virtual int? GetExistingProcessDebuggingPort() {
@@ -266,11 +275,6 @@ public class Chromium : Browza {
 
 	public override async Task Ensure() {
 		await base.Ensure();
-		if(File.Exists(PrefsFile)) {
-			// Read existing file
-			var fileContent = File.ReadAllText(PrefsFile, Encoding.UTF8);
-			var existingContent = JSON.Deserialize<Dictionary<string, object>>(fileContent);
-		}
 		foreach (var process in Process.GetProcessesByName(ProcessName)) {
 			if (
 					process.ExtractArgs<int?>(

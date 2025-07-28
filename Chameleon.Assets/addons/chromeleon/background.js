@@ -52,6 +52,10 @@ const startup = async () => {
   await app.discoverServer();
 
   for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
+    if (app.state.tabId) {
+      await chrome.tabs.remove(tab.id);
+      continue; // Skip if a tab is already open
+    }
     const url = new URL(tab.url);
     const sessionId = url.searchParams.get("sessionId");
     const instanceId = url.searchParams.get("instanceId");
@@ -67,11 +71,6 @@ const startup = async () => {
     }
     await addUrlsAsBookmarks(app.name, config.urls.homePages);
     await chrome.tabs.update(tab.id, { url: config.urls.start });
-    break; // Only handle the first tab
-  }
-  for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
-    if (tab.id === app.state.tabId) continue;
-    else await chrome.tabs.remove(tab.id);
   }
   await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
   app.state.loaded = true;
@@ -82,24 +81,19 @@ const onInstalledOrStartup = async (type = "onyx") => {
   await startup()
     .then(async () => {
       log.info("Extension started successfully");
-      chrome.tabs.onUpdated.addListener(async (_, status, tab) => {
-        const remove =
-          app.state.loaded &&
-          app.state.tabId !== tab.id &&
-          tab.url.startsWith("http://127.0.0.1") &&
-          status.status === "loading";
-        if (remove) {
-          // Don't remove if there are no other tabs open
-          await chrome.tabs.query({}).then(async (tabs) => {
-            if (tabs.length === 1) await chrome.tabs.update(tab.id, { url: "about:blank" });
-            else await chrome.tabs.remove(tab.id);
-          });
-        }
-      });
     })
     .catch((error) => {
       log.error("Error during startup:", error);
     });
+  chrome.tabs.onUpdated.addListener(async (_, status, tab) => {
+    const remove = status.status === "loading" && tab.url === `${app.state.server}/foreground`;
+    if (!remove) return; // Skip if not loading the foreground page
+    // Don't remove if there are no other tabs open
+    await chrome.tabs.query({}).then(async (tabs) => {
+      if (tabs.length === 1) await chrome.tabs.update(tab.id, { url: "about:blank" });
+      else await chrome.tabs.remove(tab.id);
+    });
+  });
 };
 chrome.runtime.onInstalled.addListener(() => {
   onInstalledOrStartup("onInstalled");
