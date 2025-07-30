@@ -36,7 +36,6 @@ public class IoC {
 	/// </summary>
 	public Configz? Config { get; private set; }
 
-
 	/// <summary>
 	/// Configures the services for the application.
 	/// </summary>

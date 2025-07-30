@@ -57,43 +57,68 @@ const resetConfig = async () => {
 };
 
 const startup = async () => {
-  if (app.name === "Chromeleon") {
-    await checkForUpdates(); // Update check. Skip if using Firefox!
-    // Discard all inactive tabs
-    await chrome.tabs.query({ active: false }, async (tabs) => {
-      for (let i = tabs.length - 1; i >= 0; i--) {
-        await chrome.tabs.remove(tabs[i].id);
+  await checkForUpdates(); // Update check. Skip if using Firefox!
+  // Discard all inactive tabs
+  const discarded = [];
+  await chrome.tabs.query({ active: false }, async (tabs) => {
+    if (tabs.length <= 1) return; // Skip if no inactive tabs
+    for (const tab of tabs) {
+      if (tab.url?.startsWith("http://127.0.0.1")) {
+        discarded.push(tab.id); // Store tab ID for later removal
+      } else await chrome.tabs.discard(tab.id).catch(() => false); // Discard inactive tabs
+    }
+  });
+  await resetConfig();
+  await app.discoverServer();
+
+  while (!app.state.tabId) {
+    await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
+    await chrome.tabs.query({ active: true }, async (tabs) => {
+      for (let i = 0; i < tabs.length; i++) {
+        const tab = tabs[i];
+        log.info("Processing tab:", tab);
+        if (!tab.url) break; // Skip if no URL or ID
+        const url = new URL(tab.url);
+        const sessionId = url.searchParams.get("sessionId");
+        const instanceId = url.searchParams.get("instanceId");
+        const { config, port } = await app
+          .sendData({ type: "init" }, { instanceId, sessionId })
+          .catch((error) => {
+            log.error("Error sending data:", error);
+            return {}; // Return an empty object on error
+          });
+        if (!config || !port) continue;
+
+        app.session = { sessionId, instanceId };
+        app.state.port = port;
+        app.state.tabId = tab.id;
+        if (app.config.sync) {
+          app.config = { ...app.config, ...config };
+          await chrome.storage.local.set({ session: app.session, config: app.config });
+        }
+        app.config.proxy = config.proxy;
+        await proxio({
+          scheme: app.config.proxy.scheme,
+          host: app.config.proxy.host,
+          port: app.config.proxy.port,
+          username: app.config.proxy.username,
+          password: app.config.proxy.password,
+        });
+        await addUrlsAsBookmarks(app.name, config.urls.homePages);
+        await chrome.tabs.update(tab.id, { url: config.urls.start });
+        break; // Exit after processing the first active tab
       }
     });
   }
-  await resetConfig();
-  await app.discoverServer();
-  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
-
-  for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
-    const url = new URL(tab.url);
-    const sessionId = url.searchParams.get("sessionId");
-    const instanceId = url.searchParams.get("instanceId");
-    const { config, port } = await app.sendData({ type: "init" }, { instanceId, sessionId });
-    if (!config || !port) continue;
-
-    app.session = { sessionId, instanceId };
-    app.state.port = port;
-    app.state.tabId = tab.id;
-    if (app.config.sync) {
-      app.config = { ...app.config, ...config };
-      await chrome.storage.local.set({ session: app.session, config: app.config });
+  for (const tabId of discarded) {
+    if (tabId === app.state.tabId) continue; // Skip if it's the current tab
+    try {
+      // Check if tab still exists before attempting to remove
+      await chrome.tabs.remove(tabId); // Remove discarded tabs
+    } catch (error) {
+      // Tab may have already been closed or doesn't exist, which is expected
+      log.debug("Tab already removed or doesn't exist:", tabId);
     }
-    app.config.proxy = config.proxy;
-    await proxio({
-      scheme: app.config.proxy.scheme,
-      host: app.config.proxy.host,
-      port: app.config.proxy.port,
-      username: app.config.proxy.username,
-      password: app.config.proxy.password,
-    });
-    await addUrlsAsBookmarks(app.name, config.urls.homePages);
-    await chrome.tabs.update(tab.id, { url: config.urls.start });
   }
 };
 

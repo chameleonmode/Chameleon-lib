@@ -33,7 +33,7 @@ public class Ipapi {
 }
 
 public class Api {
-	public static async Task<Ipapi?> GeoIp(WebProxy? proxy) {
+	public static async Task<Ipapi> GeoIp(WebProxy? proxy) {
 		Toaster.Info($"Requesting timezone/geo data for {proxy?.Address?.Host ?? "local"}");
 		var timeout = 3;
 		var response = await EX.Poly(
@@ -52,11 +52,11 @@ public class Api {
 			}, retries: 2)
 		);
 		if (JSON.Deserialize<Ipapi>(response ?? "") is not { } ipapi)
-			throw new Exception("Failed to retrieve IP data.");
+			throw new InvalidTimeZoneException("Failed to retrieve IP data.");
 
 		Toaster.Info(
-			$"IP {ipapi.query}: {ipapi.city} {ipapi.country} ({ipapi.countryCode})\n" +
-			$"({ipapi.lat}, {ipapi.lon}) - {ipapi.timezone}");
+			$"{ipapi.query}: {ipapi.city}, {ipapi.country}\n" +
+			$"{ipapi.timezone} - ({ipapi.lat}, {ipapi.lon})");
 		return ipapi;
 	}
 }

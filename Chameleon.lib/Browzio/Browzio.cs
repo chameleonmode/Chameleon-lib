@@ -79,7 +79,7 @@ public class Browzio : IInit {
 		public static string? Version { get => IoC.GetValue(nameof(Extensions)); set => IoC.SetValue(nameof(Extensions), value, null); }
 	}
 	public static class Extensions {
-		public static string ProdPath => Path.Combine(FilePaths.AppDataDir, "extensions");
+		public static string ProdPath => Path.Combine(FilePaths.AppDataDir, "addons");
 		public static string DevPath => OperatingSystem.IsMacOS()
 			? "/Users/dev/src/Chameleon-lib/Chameleon.Assets/addons"
 			: @"C:\repos\Chameleon-lib\Chameleon.Assets\addons";
@@ -87,7 +87,7 @@ public class Browzio : IInit {
 		public static string Chromium => FilePaths.EnsureDirectoryExists(ProdPath, "chromium");
 		public static string Chromeleon => Path.Combine(State.Staging && Directory.Exists(DevPath) ? DevPath : Chromium, "chromeleon");
 
-		public static string Gecko => Resources.Assert(ProdPath, "gecko");
+		public static string Gecko => FilePaths.EnsureDirectoryExists(ProdPath, "gecko");
 		public static string Geckoleon => Path.Combine(State.Staging && Directory.Exists(DevPath) ? DevPath : Gecko, "geckoleon.xpi");
 	}
 	public static class Factory {

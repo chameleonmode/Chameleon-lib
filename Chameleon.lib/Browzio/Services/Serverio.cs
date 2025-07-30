@@ -234,7 +234,8 @@ public class Serverio {
 	}
 
 	public async Task AddSession(string sessionId, BrowserSetting settings) {
-		var ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
+		var ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy);
+		// @TODO: Handle proxio configuration
 		// settings.Proxio = settings.Profile.Proxy.WebProxy?.Address == null
 		// 	? null 
 		// 	: settings.Profile.Proxy.Credentials == null
