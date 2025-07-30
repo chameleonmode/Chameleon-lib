@@ -3,10 +3,28 @@ import { log } from "./src/services/logger.js";
 import { addUrlsAsBookmarks } from "./src/services/bookmarks.js";
 import "./src/services/executions.js";
 
-// Update check. Skip if using Firefox!
+const proxio = async ({
+  scheme = "http",
+  host = "127.0.0.1",
+  port = 33333,
+  username = null,
+  password = null,
+} = {}) => {
+  if (app.config.proxy.enabled) {
+    if (username && password)
+      chrome.webRequest.onAuthRequired.addListener(
+        (_) => ({ authCredentials: { username, password } }),
+        { urls: ["<all_urls>"] },
+        ["blocking"]
+      );
+    await browser.proxy.onRequest.addListener((_) => ({ type: scheme, host, port, username, password }), {
+      urls: ["<all_urls>"],
+    });
+  } else {
+    await browser.proxy.onRequest.addListener((_) => ({ type: "direct" }), { urls: ["<all_urls>"] });
+  }
+};
 const checkForUpdates = async () => {
-  if (app.name === "Geckoleon") return; // Skip if using Geckoleon
-
   const response = await fetch(chrome.runtime.getURL("manifest.json"));
   const data = await response.json();
   const { version } = await chrome.storage.local.get(["version"]);
@@ -19,15 +37,6 @@ const checkForUpdates = async () => {
 
 // Startup
 const resetConfig = async () => {
-  // Check for existing tabs
-  for (const tab of await chrome.tabs.query({})) {
-    try {
-      if (new URL(tab.url).searchParams.has("proxio")) continue;
-      else await chrome.tabs.remove(tab.id);
-    } catch {
-      await chrome.tabs.remove(tab.id);
-    }
-  }
   // Then load the config from local storage
   const { config: local = {}, noise, hash } = await chrome.storage.local.get(["config", "noise", "hash"]);
   app.config = { ...app.config, ...local };
@@ -44,17 +53,20 @@ const resetConfig = async () => {
 };
 
 const startup = async () => {
-  app.state.loaded = false;
-  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
-  await checkForUpdates();
+  if (app.name === "Chromeleon") {
+    await checkForUpdates(); // Update check. Skip if using Firefox!
+    // Discard all inactive tabs
+    await chrome.tabs.query({ active: false }, async (tabs) => {
+      for (let i = tabs.length - 1; i >= 0; i--) {
+        await chrome.tabs.remove(tabs[i].id);
+      }
+    });
+  }
   await resetConfig();
   await app.discoverServer();
+  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
 
   for (const tab of await chrome.tabs.query({ url: "http://127.0.0.1/*" })) {
-    if (app.state.tabId) {
-      await chrome.tabs.remove(tab.id);
-      continue; // Skip if a tab is already open
-    }
     const url = new URL(tab.url);
     const sessionId = url.searchParams.get("sessionId");
     const instanceId = url.searchParams.get("instanceId");
@@ -68,40 +80,30 @@ const startup = async () => {
       app.config = { ...app.config, ...config };
       await chrome.storage.local.set({ session: app.session, config: app.config });
     }
+    app.config.proxy = config.proxy;
+    await proxio({
+      scheme: app.config.proxy.scheme,
+      host: app.config.proxy.host,
+      port: app.config.proxy.port,
+      username: app.config.proxy.username,
+      password: app.config.proxy.password,
+    });
     await addUrlsAsBookmarks(app.name, config.urls.homePages);
     await chrome.tabs.update(tab.id, { url: config.urls.start });
   }
-  await new Promise((resolve) => setTimeout(resolve, 369)); // Wait for 0.369 seconds
-  app.state.loaded = true;
 };
 
 const onInstalledOrStartup = async (type = "onyx") => {
-  log.info(`${type} event`);
-  await startup()
-    .then(async () => {
-      log.info("Extension started successfully");
-    })
-    .catch((error) => {
-      log.error("Error during startup:", error);
-    });
-  chrome.tabs.onUpdated.addListener(async (_, status, tab) => {
-    const remove = status.status === "loading" && tab.url === `${app.state.server}/foreground`;
-    if (!remove) return; // Skip if not loading the foreground page
-    // Don't remove if there are no other tabs open
-    await chrome.tabs.query({}).then(async (tabs) => {
-      if (tabs.length === 1) await chrome.tabs.update(tab.id, { url: "about:blank" });
-      else await chrome.tabs.remove(tab.id);
-    });
+  log.info(`${type} event start`, app.state);
+  app.state.loaded = false;
+  await startup().catch((error) => {
+    log.error("Error during startup:", error);
   });
+  app.state.loaded = true;
+  log.info(`${type} event end`, app.state);
 };
-chrome.runtime.onInstalled.addListener(() => {
-  onInstalledOrStartup("onInstalled");
-});
-chrome.runtime.onStartup.addListener(() => {
-  onInstalledOrStartup("onStartup");
-});
-
-// Listen for messages from popup or content scripts
+chrome.runtime.onInstalled.addListener(() => onInstalledOrStartup("onInstalled"));
+chrome.runtime.onStartup.addListener(() => onInstalledOrStartup("onStartup"));
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   log.info("Received message:", message);
   switch (message.action) {
@@ -131,4 +133,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   // Return true to indicate that sendResponse will be called asynchronously and keep channel open
   return true;
+});
+
+chrome.tabs.onCreated.addListener(async (tab) => {
+  if (tab.index === 0) chrome.tabs.update(tab.id, { url: "about:blank" });
+  else if (tab.title.startsWith("127.0.0.1") && tab.title.endsWith("foreground"))
+    chrome.tabs.remove(tab.id);
 });

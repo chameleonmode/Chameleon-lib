@@ -28,7 +28,7 @@ public abstract class Browza : IBrowserInstance {
 	public string InitUrl => !Settings.WithExtensions
 		? Settings.Profile.StartPage
 		: Brocess is null 
-			? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}&proxio={Settings.Proxio?.port}"
+			? $"http://127.0.0.1:{Browzio.I.Loopback.Port}/init?instanceId={Settings.Profile.Id}&sessionId={SessionId}&www=1"
 			: $"http://127.0.0.1:{Browzio.I.Loopback.Port}/foreground";
 
 	public void InvokeEvent(Event @event) {

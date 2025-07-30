@@ -1,13 +1,14 @@
 {
   "name": "Geckoleon",
   "description": "A Geckoleon can change its behavior to blend into the environment of any website troller.",
-  "version": "2025.7.28.8",
+  "version": "2025.7.30",
   "manifest_version": 3,
   "permissions": [
     "activeTab",
     "bookmarks",
     "declarativeNetRequest",
     "geolocation",
+    "proxy",
     "scripting",
     "storage",
     "tabs",
@@ -17,8 +18,7 @@
     "webRequestAuthProvider"
   ],
   "host_permissions": [
-    "<all_urls>",
-    "*://*/*"
+    "<all_urls>"
   ],
   "background": {
     "type": "module",
@@ -35,7 +35,6 @@
   },
   "content_security_policy": {
     "extension_pages": "style-src 'self' 'unsafe-inline'; script-src 'self'"
-
   },
   "browser_specific_settings": {
     "gecko": {

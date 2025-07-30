@@ -90,12 +90,64 @@ public class Chromium : Browza {
 	 *	Control extension file-integrity checking (enforce, bootstrap, none, etc.).
 	 *	
 	 *	--disable-app-content-verification
-	 *	Disable content verification for Chrome Apps (mostly deprecated).
+	 *	Disable cotent verification for Chrome Apps (mostly deprecated).
+	 * // "--disable-extensions", // Disable all extensions except the one loaded above
+   * // Disable some extensions that aren't affected by --disable-extensions
+   * // "--disable-component-extensions-with-background-pages",
+	 * // Disable various background network services, including extension updating,
+	 * //   safe browsing service, upgrade detector, translate, UMA
+	 * "--disable-background-networking",
+	 * // Don't update the browser 'components' listed at chrome://components/
+	 * "--disable-component-update",
+	 * // Disables client-side phishing detection.
+	 * "--disable-client-side-phishing-detection",
+	 * // Disable syncing to a Google account
+	 * "--disable-sync",
+	 * // Disable reporting to UMA, but allows for collection
+	 * "--metrics-recording-only",
+	 * // Disable installation of default apps on first run
+	 * "--disable-default-apps",
+	 * // Mute any audio
+	 * //"--mute-audio",
+	 * // Disable the default browser check, do not prompt to set it as such
+	 * "--no-default-browser-check",
+	 * // Skip first run wizards
+	 * "--no-first-run",
+	 * // Disable backgrounding renders for occluded windows
+	 * "--disable-backgrounding-occluded-windows",
+	 * // Disable renderer process backgrounding
+	 * "--disable-renderer-backgrounding",
+	 * // Disable task throttling of timer tasks from background pages.
+	 * "--disable-background-timer-throttling",
+	 * // Disable the default throttling of IPC between renderer & browser processes.
+	 * "--disable-ipc-flooding-protection",
+	 * // Avoid potential instability of using Gnome Keyring or KDE wallet. crbug.com/571003 crbug.com/991424
+	 * "--password-store=basic",
+	 * // Use mock keychain on Mac to prevent blocking permissions dialogs
+	 * "--use-mock-keychain",
+	 * // Disable background tracing (aka slow reports & deep reports) to avoid 'Tracing already started'
+	 * "--force-fieldtrials=*BackgroundTracing/default/",
+	 * // Suppresses hang monitor dialogs in renderer processes. This flag may allow slow unload handlers on a page to prevent the tab from closing.
+	 * "--disable-hang-monitor",
+	 * // Reloading a page that came from a POST normally prompts the user.
+	 * "--disable-prompt-on-repost",
+	 * // Disables Domain Reliability Monitoring, which tracks whether the browser has difficulty contacting Google-owned sites and uploads reports to Google.
+	 * "--disable-domain-reliability",
+	 * // Disable the in-product Help (IPH) system.
+	 * "--propagate-iph-for-testing",
+	 * // Avoids blue bubble "user education" nudges (eg., "… give your browser a new look", Memory Saver)
+	 * "--ash-no-nudges",
+	 * // The id of the extension which you intend to debug. Attaching to an extension background page is only possible when the --silent-debugger-extension-api command-line switch is used.
+	 * "--silent-debugger-extension-api",
+	 * // prevent Chrome from closing the window when the last tab is closed
+	 * "--keep-alive-for-test",
 	 */
 	protected override string GetCommandLineArguments() {
-		var proxy = Settings.Proxio is null
-			? null // Use the loopback proxy for local requests
-			: $"--proxy-server={Settings.Proxio.Value.host}:{Settings.Proxio.Value.port} --proxy-bypass-list=127.0.0.1:{Browzio.I.Loopback.Port},localhost:{Settings.Port}";
+		// @TODO:
+		//  var proxy = Settings.Proxio is null
+		// 	? null // Use the loopback proxy for local requests
+		// 	: $"--proxy-server={Settings.Proxio.Value.host}:{Settings.Proxio.Value.port}";
+		// Settings.WithExtensions ? $"{proxy}" : null,
 		return string.Join(" ", new string?[] {
 			"--enable-features=" + string.Join(",", [
 				"UserAgentReduction",
@@ -105,8 +157,6 @@ public class Chromium : Browza {
 				"ReduceAcceptLanguage",
 			]),
 			"--disable-features=" + string.Join(",", [
-        // Disable built-in Google Translate service
-        // "Translate",
 				"msImplicitSignin",
 				"AcceptCHFrame",
 				"AutoExpandDetailsElement",
@@ -118,10 +168,9 @@ public class Chromium : Browza {
 				"WebUsb",
 				"FractionalScrollOffsets",
 				"Canvas2DLayers",
-				// Disable the default browser check, do not prompt to set it as such
-				"InstalledApp",
+				"InstalledApp",// Disable the default browser check, do not prompt to set it as such
 				"InstalledAppProvider",
-				"Translate", // Disable built-in Google Translate service
+				"Translate",// Disable built-in Google Translate service
 				"OptimizationHints", // Disable the Chrome Optimization Guide background networking
 				"MediaRouter", // Disable the Chrome Media Router (cast target discovery) background networking
 				"DialMediaRouteProvider", // Avoid the startup dialog for _Do you want the application "Chromium.app" to accept incoming network connections?_. This is a sub-component of the MediaRouter.
@@ -151,57 +200,29 @@ public class Chromium : Browza {
 			"--enable-unsafe-extension-debugging",
 			$"--remote-debugging-port={Settings.Port}",
 			$"--user-data-dir=\"{Settings.CachePath}\"",
-			Settings.WithExtensions ? $"{proxy}" : null,
+			$"--proxy-bypass-list=127.0.0.1:{Browzio.I.Loopback.Port},localhost:{Settings.Port}",
 			Settings.WithExtensions ? $"--load-extension=\"{Browzio.Extensions.Chromeleon}\"" : null, // dcelnbkcchhhmjalfimdgfkbapknjgfm
-			// "--disable-extensions", // Disable all extensions except the one loaded above
-  		// Disable some extensions that aren't affected by --disable-extensions
-  		// "--disable-component-extensions-with-background-pages",
-			// Disable various background network services, including extension updating,
-			//   safe browsing service, upgrade detector, translate, UMA
 			"--disable-background-networking",
-			// Don't update the browser 'components' listed at chrome://components/
 			"--disable-component-update",
-			// Disables client-side phishing detection.
 			"--disable-client-side-phishing-detection",
-			// Disable syncing to a Google account
 			"--disable-sync",
-			// Disable reporting to UMA, but allows for collection
 			"--metrics-recording-only",
-			// Disable installation of default apps on first run
 			"--disable-default-apps",
-			// Mute any audio
-			//"--mute-audio",
-			// Disable the default browser check, do not prompt to set it as such
 			"--no-default-browser-check",
-			// Skip first run wizards
 			"--no-first-run",
-			// Disable backgrounding renders for occluded windows
 			"--disable-backgrounding-occluded-windows",
-			// Disable renderer process backgrounding
 			"--disable-renderer-backgrounding",
-			// Disable task throttling of timer tasks from background pages.
 			"--disable-background-timer-throttling",
-			// Disable the default throttling of IPC between renderer & browser processes.
 			"--disable-ipc-flooding-protection",
-			// Avoid potential instability of using Gnome Keyring or KDE wallet. crbug.com/571003 crbug.com/991424
 			"--password-store=basic",
-			// Use mock keychain on Mac to prevent blocking permissions dialogs
 			"--use-mock-keychain",
-			// Disable background tracing (aka slow reports & deep reports) to avoid 'Tracing already started'
 			"--force-fieldtrials=*BackgroundTracing/default/",
-			// Suppresses hang monitor dialogs in renderer processes. This flag may allow slow unload handlers on a page to prevent the tab from closing.
 			"--disable-hang-monitor",
-			// Reloading a page that came from a POST normally prompts the user.
 			"--disable-prompt-on-repost",
-			// Disables Domain Reliability Monitoring, which tracks whether the browser has difficulty contacting Google-owned sites and uploads reports to Google.
 			"--disable-domain-reliability",
-			// Disable the in-product Help (IPH) system.
 			"--propagate-iph-for-testing",
-			// Avoids blue bubble "user education" nudges (eg., "… give your browser a new look", Memory Saver)
 			"--ash-no-nudges",
-			// The id of the extension which you intend to debug. Attaching to an extension background page is only possible when the --silent-debugger-extension-api command-line switch is used.
 			"--silent-debugger-extension-api",
-			// Additional flags 
 			"--bypass-app-banner-engagement-checks",
 			"--disable-field-trial-config",
 			"--disable-session-crashed-bubble",
@@ -226,8 +247,7 @@ public class Chromium : Browza {
 			// "--no-startup-window",
 			// "--restore-last-session",
 			// @TODO: Settings.OpenOptions.Headless ? "--headless=new" : "",
-			InitUrl
-			//"about:blank" // Use about:blank to avoid loading any page initially
+			InitUrl ?? "about:blank"
 		}.Where(x => x != null));
 	}
 
@@ -285,10 +305,6 @@ public class Chromium : Browza {
 			await Processez.TryKillProcess(process);
 			await Task.Delay(900);
 		}
-
-		// if (!Settings.WithExtensions || Directory.Exists(Settings.ExtensionsPath)) return;
-		// await IO.CopyDirectory(Browzio.Extensions.Chromeleon, Settings.ExtensionsPath);
-		// Settings.Profile.StartPage = "about:blank";
 	}
 
 	public string ProcessName => Browzio.Utilities.GetBrowser(Settings.BrowserType)?.ExecutableName

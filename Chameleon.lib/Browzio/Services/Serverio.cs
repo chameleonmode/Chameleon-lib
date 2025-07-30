@@ -235,13 +235,22 @@ public class Serverio {
 
 	public async Task AddSession(string sessionId, BrowserSetting settings) {
 		var ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy) ?? throw new InvalidTimeZoneException("Unable to get geo ip data");
-		settings.Proxio = settings.Profile.Proxy.WebProxy?.Address == null
-			? null 
-			: settings.Profile.Proxy.Credentials == null
-				? (host: settings.Profile.Proxy.WebProxy.Address.Host, port: settings.Profile.Proxy.WebProxy.Address.Port)
-				: (host: "127.0.0.1", port: Proxio.AssignProxy(settings));
+		// settings.Proxio = settings.Profile.Proxy.WebProxy?.Address == null
+		// 	? null 
+		// 	: settings.Profile.Proxy.Credentials == null
+		// 		? (host: settings.Profile.Proxy.WebProxy.Address.Host, port: settings.Profile.Proxy.WebProxy.Address.Port)
+		// 		: (host: "127.0.0.1", port: Proxio.AssignProxy(settings));
 		sessions[(sessionId, settings.Profile.Id)] = (
 			config: new {
+				proxy = new {
+					enabled = settings.Profile.Proxy.WebProxy?.Address != null,
+					scheme = settings.Profile.Proxy.WebProxy?.Address?.Scheme,
+					server = settings.Profile.Proxy.WebProxy?.Address?.Authority,
+					host = settings.Profile.Proxy.WebProxy?.Address?.Host,
+					port = settings.Profile.Proxy.WebProxy?.Address?.Port,
+					username = settings.Profile.Proxy.Credentials?.UserName,
+					password = settings.Profile.Proxy.Credentials?.Password,
+				},
 				urls = new {
 					start = settings.Profile.StartPage,
 					homePages = settings.Profile.Bookmarks,

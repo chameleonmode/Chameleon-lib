@@ -288,15 +288,15 @@ public class Gecko : Browza {
 
 		var userJS = await Resources.CopyFile("js.firefox", "user.js", Settings.CachePath);
 		// Append the proxy to user.js file to the prefs.js file
-		if (Settings.Proxio != null && File.Exists(userJS)) await File.AppendAllLinesAsync(userJS, [
-			$"user_pref(\"network.proxy.type\", 1);",
-			$"user_pref(\"network.proxy.http\", \"{Settings.Proxio.Value.host}\");",
-			$"user_pref(\"network.proxy.http_port\", {Settings.Proxio.Value.port});",
-			$"user_pref(\"network.proxy.ssl\", \"{Settings.Proxio.Value.host}\");",
-			$"user_pref(\"network.proxy.ssl_port\", {Settings.Proxio.Value.port});",
-			$"user_pref(\"network.proxy.share_proxy_settings\", true);",
-			$"user_pref(\"network.proxy.no_proxies_on\", \"127.0.0.1:{Browzio.I.Loopback.Port}\");"
-		]);
+		// if (Settings.Proxio != null && File.Exists(userJS)) await File.AppendAllLinesAsync(userJS, [
+		// 	$"user_pref(\"network.proxy.type\", 1);",
+		// 	$"user_pref(\"network.proxy.http\", \"{Settings.Proxio.Value.host}\");",
+		// 	$"user_pref(\"network.proxy.http_port\", {Settings.Proxio.Value.port});",
+		// 	$"user_pref(\"network.proxy.ssl\", \"{Settings.Proxio.Value.host}\");",
+		// 	$"user_pref(\"network.proxy.ssl_port\", {Settings.Proxio.Value.port});",
+		// 	$"user_pref(\"network.proxy.share_proxy_settings\", true);",
+		// 	$"user_pref(\"network.proxy.no_proxies_on\", \"127.0.0.1:{Browzio.I.Loopback.Port}\");"
+		// ]);
 	}
 	protected override string GetCommandLineArguments() {
 		return string.Join(" ", new[]{

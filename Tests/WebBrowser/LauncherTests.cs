@@ -40,7 +40,7 @@ public class BrowserLauncherTests : TestSetup {
 				"proxy.chameleonmode.com",
 				31112,
 				"elimdadia_gmail_com",
-				"gb0Q1sXdTDZTlR2J_country-UnitedStates_session-N2Vb4Jvy"
+				"gb0Q1sXdTDZTlR2J_country-UnitedStates_session-mzBorsdy"
 			), 
 		}));
 		Assert.NotNull(bi);
@@ -80,7 +80,7 @@ public class BrowserLauncherTests : TestSetup {
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Firefox(new("https://browserleaks.com/ip") {
-			Id = 2,
+			Id = 111,
 			Proxy = new(
 				host: "proxy.chameleonmode.com",
 				port: 31112,
