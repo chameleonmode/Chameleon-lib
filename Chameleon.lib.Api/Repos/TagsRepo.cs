@@ -5,6 +5,13 @@ using DynamicData;
 using System.Data;
 
 namespace Chameleon.lib.Api.Repos; 
+public class TagItemType {
+	public const string Folder = nameof(Folder);
+	public const string Profile = nameof(Profile);
+	public const string Settings = nameof(Settings);
+}
+public record TagDto(string Name, Dictionary<string,List<string>> Items);
+public record TagItemDto(string Type, List<string> Ids);
 public class TagsRepo {
 	TagsRepo() { }
 
@@ -24,104 +31,59 @@ public class TagsRepo {
 		});
 	}
 
-	public async Task<TagDto?> FindTagAsync(string tagName) {
-		var tag = await DB.I.GetTagBy(tagName);
-		return tag == null ? null
-			: new TagDto(tag.Name, JSON.Deserialize<Dictionary<string, List<string>>>(tag.Items) ?? []);
-	}
-
-	public async Task<IEnumerable<string>> SetTagsAsync(string tagItemType, string tagItemId, IEnumerable<string> tags) {
-		foreach (var tagName in tags) {
-			_ = await DB.I.GetItemTagBy(tagItemType, tagItemId, tagName) is null
-				? await DB.I.CreateItemTag(tagItemType, tagItemId, tagName)
-				: await DB.I.UpdateItemTagBy(tagItemType, tagItemId, tagName);
-		}
-		return tags;
-	}
-
 	public async Task<IEnumerable<string>> GetTagsAsync(string tagItemType, string tagItemId) {
 		return (await DB.I.GetItemTagsForItem(tagItemType, tagItemId))?.Select(it => it.TagName) ?? [];
 	}
 
-	public async Task<TagDto> SaveAsync(TagDto tag) {
-		var existing = await DB.I.GetTagBy(tag.Name);
-		var current = existing == null
-			? await DB.I.CreateTag(tag.Name, tag.Items)
-			: await DB.I.UpdateTag(existing.Id, tag.Name, tag.Items);
-		cache.Edit(updater => updater.AddOrUpdate(tag));
-		return cache.Lookup(tag.Name).Value;
-	}
-
-	public async Task<TagDto> SaveAsync(string tagName, TagItemDto tagItem) {
-		var tag = await FindTagAsync(tagName) ?? new TagDto(tagName, []);
-
-		if (!tag.Items.ContainsKey(tagItem.Type)) {
-			tag.Items[tagItem.Type] = [.. tagItem.Ids];
-		} else {
-			foreach (var newId in tagItem.Ids) {
-				if (!tag.Items[tagItem.Type].Contains(newId))
-					tag.Items[tagItem.Type].Add(newId);
-			}
-		}
-
-		return await SaveAsync(tag);
-	}
-
-	public async Task<TagDto> UpdateAsync(string tagName, string tagItemType, string id) {
-		var tag = await FindTagAsync(tagName) ?? new TagDto(tagName, []);
-
-		if (!tag.Items.ContainsKey(tagItemType)) {
-			tag.Items[tagItemType] = [id];
-		} else {
-			if (!tag.Items[tagItemType].Contains(id)) {
-				tag.Items[tagItemType].Add(id);
-			}
-		}
-
-		_ = await SaveAsync(tag);
-		return tag;
-	}
-
 	public async Task<IEnumerable<string>> SaveTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {
+		var existingTags = cache.Items.Where(x => !x.Items.Values.Any(t => t.Any(item => tags.Contains(item))));
+
+		// Remove the item from the tags that are no longer associated with it
+		foreach (var tag in existingTags) {
+			if (
+				Auther.AuthSession?.CreatorUserId == null &&
+				!UserProfilesRepo.Instance.ObservableCache.Keys.Any(i => tag.Items.Values.Any(values => values.Contains(i.ToString()))) &&
+				!UserProfilesFolderRepo.Instance.ObservableCache.Keys.Any(i => tag.Items.Values.Any(values => values.Contains(i.ToString()))) &&
+				await DB.I.GetTagBy(tag.Name) is { } entity
+			) {
+				// If the tag has no items left, delete it from the database and cache
+				await DB.I.DeleteTag(entity.Id);
+			}
+		}
+
+		// Ensure the tag is removed from the database
 		var currentTags = await GetTagsAsync(tagItemType, id);
-		var removedTags = currentTags.Except(tags);
-
-		await RemoveItemFromTagsAsync(tagItemType, id, removedTags);
-
-		foreach (var tagName in removedTags) {
-			await RemoveTagFromItemAsync(tagItemType, id, tagName);
+		foreach (var tagName in currentTags.Except(tags)) {
+			if(
+				await DB.I.GetTagBy(tagName) is { } entity &&
+				JSON.Deserialize<Dictionary<string, List<string>>>(entity.Items) is { } items &&
+				items.TryGetValue(tagItemType, out var itemIds) &&
+				itemIds.Remove(id)
+			) await DB.I.UpdateTag(entity.Id, tagName, items);
+			await DB.I.DeleteItemTagBy(tagItemType, id, tagName);
 		}
 
-		foreach (var tag in tags) {
-			_ = await UpdateAsync(tag, tagItemType, id);
-		}
-
-		_ = await SetTagsAsync(tagItemType, id, tags);
-
-		foreach (var tagName in removedTags) {
-			var tag = await FindTagAsync(tagName);
-			if (tag is not null && tag.Items.All(x => x.Value.Count == 0)) {
-				var tagEntity = await DB.I.GetTagBy(tag.Name);
-				await DB.I.DeleteTag(tagEntity!.Id);
-				cache.Edit(updater => updater.RemoveKey(tagEntity.Name));
-			}
-		}
-
-		return tags;
-	}
-
-	private static async Task RemoveTagFromItemAsync(string tagItemType, string tagItemId, string tagName) {
-		_ = await DB.I.DeleteItemTagBy(tagItemType, tagItemId, tagName);
-	}
-
-	public async Task RemoveItemFromTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {
 		foreach (var tagName in tags) {
-			var tag = await FindTagAsync(tagName);
-			if (tag is not null && tag.Items.TryGetValue(tagItemType, out var ids)) {
-				if (ids.Remove(id))
-					_ = await SaveAsync(tag);
-			}
+			// If the tag does not exist, create it // UpdateAsync
+			var existing = await DB.I.GetTagBy(tagName);
+			var tag = existing == null
+				? new TagDto(tagName, []) 
+				: new TagDto(existing.Name, JSON.Deserialize<Dictionary<string, List<string>>>(existing.Items) ?? []);
+			if (!tag.Items.TryGetValue(tagItemType, out var value)) tag.Items[tagItemType] = [id];
+			else if (!value.Contains(id)) value.Add(id);
+
+			_ = existing == null
+				? await DB.I.CreateTag(tag.Name, tag.Items)
+				: await DB.I.UpdateTag(existing.Id, tag.Name, tag.Items);
+
+			// Ensure the tag is created or updated in the database // SetTagsAsync
+			_ = await DB.I.GetItemTagBy(tagItemType, id, tagName) is null
+				? await DB.I.CreateItemTag(tagItemType, id, tagName)
+				: await DB.I.UpdateItemTagBy(tagItemType, id, tagName);
 		}
+
+		await Load(); // Reload the cache to reflect changes
+		return tags;
 	}
 
 	public static TagsRepo Instance { get; } = new();
