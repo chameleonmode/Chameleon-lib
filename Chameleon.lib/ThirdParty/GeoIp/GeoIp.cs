@@ -55,7 +55,7 @@ public class Api {
 			throw new InvalidTimeZoneException("Failed to retrieve IP data.");
 
 		Toaster.Info(
-			$"{ipapi.query}: {ipapi.city}, {ipapi.country}\n" +
+			$"{ipapi.query}: {ipapi.city}, {ipapi.country}",
 			$"{ipapi.timezone} - ({ipapi.lat}, {ipapi.lon})");
 		return ipapi;
 	}

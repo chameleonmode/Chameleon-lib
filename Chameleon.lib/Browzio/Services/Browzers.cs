@@ -30,7 +30,7 @@ public class Browzers {
 		}
 	}
 
-	public async Task<IBrowserInstance> Open(BrowserSetting settings) {
+	public async Task<IBrowserInstance?> Open(BrowserSetting settings) {
 		await semaphore.WaitAsync();
 		// To wait
 		if (
@@ -45,7 +45,7 @@ public class Browzers {
 					if (settings.WithExtensions) Toaster.Error(e.Message);
 					_ = Browsers.TryRemove((settings.BrowserType, settings.Profile.Id), out _);
 					settings.Browser.InvokeEvent(Event.Error);
-				}) ?? throw new InvalidOperationException();
+				});
 		} finally {
 			// Signal
 			_ = semaphore.Release();
