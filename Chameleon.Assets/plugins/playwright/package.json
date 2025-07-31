@@ -20,12 +20,13 @@
     "reddit:foll": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/user/addons/follow",
     "any:record": "node --loader ts-node/esm src/app.ts ../scripts/any/record",
     "scripts:download": "node .scripts/downode.cjs",
+    "examples:example": "node --loader ts-node/esm tests/examples/example.ts",
     "examples:ask:prompt": "node --loader ts-node/esm tests/examples/ask-prompt.ts",
     "examples:ask:genorate": "node --loader ts-node/esm tests/examples/ask-genorate.ts",
     "examples:ask:robot": "node --loader ts-node/esm tests/examples/ask-robot.ts"
   },
   "dependencies": {
-    "@playwright/test": "^1.50.1"
+    "@playwright/test": "^1.54.1"
   },
   "devDependencies": {
     "@types/node": "22.5.4",

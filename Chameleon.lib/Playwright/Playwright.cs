@@ -11,7 +11,7 @@ using Chameleon.lib.Services;
 namespace Chameleon.lib.Playwright;
 
 #region types
-public enum CookieOp { Import, Export }
+public enum CookieOp { Import, Export, Sync }
 public interface IBundledCSScript : IScript {
 	Task Run(IBrowserContext browserContext, IDictionary<string, string>? options = null);
 }

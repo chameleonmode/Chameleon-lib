@@ -22,8 +22,13 @@ public class MessageBox {
 	public record Options<TViewModel>(Func<TViewModel> Initialize, string Header,
 		 string? SubHeader = null, string Title = IoC.AppName, object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo
 	);
-	public record Options(string Header, string? SubHeader = null, string Title = IoC.AppName,
-		 object? Footer = null, Symbas Symbas = Symbas.Alert, MBoxButtons Btns = MBoxButtons.YesNo
+	public record Options(
+		string Header,
+		string? SubHeader = null,
+		string Title = IoC.AppName,
+		object? Footer = null,
+		Symbas Symbas = Symbas.Alert,
+		MBoxButtons Btns = MBoxButtons.YesNo
 	);
 	public static async Task<TViewModel?> Show<TView, TViewModel>(TViewModel vm, Options parameters) where TView : new() {
 		var result = await Instance.dispatcher.InvokeOnUiThread(async () => await Instance.MboxService.ShowTaskDialog(
@@ -38,6 +43,11 @@ public class MessageBox {
 		);
 		return result is TaskDialogResult.OK or TaskDialogResult.Yes ? vm : default;
 	}
+	public static async Task<TViewModel?> Show<TView, TViewModel>(Options parameters, Action<TViewModel>? onInitialized = null) where TView : new() where TViewModel : new() {
+		var vm = new TViewModel();
+		onInitialized?.Invoke(vm);
+		return await Show<TView, TViewModel>(vm, parameters);
+	}
 
 	public static Task<TaskDialogResult> ShowTaskDialog<TView, TViewModel>(Options<TViewModel> parameters) where TView : new() {
 		return Instance.MboxService.ShowTaskDialog(parameters.Initialize, new TView(), parameters.Header, parameters.SubHeader, parameters.Title, parameters.Footer, parameters.Symbas, parameters.Btns);
@@ -45,7 +55,12 @@ public class MessageBox {
 }
 public class DialogBox {
 	private readonly IShowWindowService WShowerService;
-	public static void ShowTopmost<TView, TViewModel>(Action<TViewModel> initialize, Action<TViewModel>? onClosed = null, string title = "TP", int width = 256) where TView : new() where TViewModel : new() {
+	public static void ShowTopmost<TView, TViewModel>(
+		Action<TViewModel> initialize,
+		Action<TViewModel>? onClosed = null,
+		string title = "TP",
+		int width = 256
+	) where TView : new() where TViewModel : new() {
 		Instance.WShowerService?.ShowTopmost<TView, TViewModel>(initialize, onClosed, title, width);
 	}
 	public static void ShowTopmost<TView, TViewModel>(TViewModel vm, Action<TViewModel>? initialize = default, Action<TViewModel>? onClosed = null, string title = "TP", int width = 256) where TView : new() {
