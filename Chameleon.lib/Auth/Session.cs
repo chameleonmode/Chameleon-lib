@@ -12,6 +12,7 @@ public class Session {
 
 	public void Save(LoginSettings settings) {
 		IoC.SetJsonValue(nameof(LoginSettings), settings, null);
+		Settings = settings;
 	}
 
 	public async Task Login(LoginSettings login) {
