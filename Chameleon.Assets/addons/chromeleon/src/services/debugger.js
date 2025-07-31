@@ -1,7 +1,8 @@
 // This file is responsible for managing the Chrome Debugger API
 
-import App from "../app.js";
+import app from "../app.js";
 import { log } from "./logger.js";
+import { matchesPattern } from "../lib/util.js";
 import PageMutations from "../modules/mutations.js";
 import PageEmulations from "../modules/emulations.js";
 
@@ -9,7 +10,7 @@ import PageEmulations from "../modules/emulations.js";
 const observers = new Map();
 
 // Subscribe to "dataUpdated" event
-App.subscribe("configUpdated", async (data) => {
+app.subscribe("configUpdated", async (data) => {
   log.log("Confg updated:", data);
 
   for (const [tabId, observer] of observers.entries()) {
@@ -60,9 +61,9 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     tab.url.startsWith("http://127.0.0.1") ||
     !tab.url.startsWith("http") 
   ) return;
-  
-  
-  if (!App.config.enabled || App.config.bypass.some((bypassUrl) => tab.url.startsWith(bypassUrl))) {
+
+
+  if (!app.config.enabled || matchesPattern(tab.url, app.config.bypass)) {
     log.log(`Tab ${tabId} is bypassed`);
     await detach(tabId);
     return;
@@ -74,4 +75,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   log.log(`Tab ${tabId} was removed`);
   await detach(tabId);
+});
+
+chrome.tabs.onCreated.addListener(async (tab) => {
+  if (tab.index === 0) chrome.tabs.update(tab.id, { url: "about:blank" });
+  else if (tab.pendingUrl?.startsWith("http://127.0.0.1") && tab.pendingUrl?.endsWith("foreground"))
+    chrome.tabs.remove(tab.id);
 });

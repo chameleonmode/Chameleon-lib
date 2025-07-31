@@ -1,7 +1,7 @@
 {
   "name": "Chromeleon",
   "description": "A Chromeleon can change its behavior to blend into the environment of any website troller.",
-  "version": "2025.7.30.369",
+  "version": "2025.7.30.369666",
   "manifest_version": 3,
   "permissions": [
     "activeTab",

@@ -103,7 +103,7 @@ async function getExistingBookmarks(folderId) {
  * @param {string} [parentId] - Optional parent folder ID
  * @returns {Promise<object>} - Result object with success status and created bookmarks
  */
-export async function addUrlsAsBookmarks(folderName, urlList, parentId = null) {
+export async function addBookmarks(folderName, urlList, parentId = null) {
   try {
     log.info(`Starting to add bookmarks to folder: ${folderName}`);
     log.debug(`URL list contains ${urlList.length} items`);

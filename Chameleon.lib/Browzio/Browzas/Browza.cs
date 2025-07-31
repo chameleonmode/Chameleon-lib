@@ -45,9 +45,8 @@ public abstract class Browza : IBrowserInstance {
 	public async Task Closee() => await Processez.TryKillProcess(Brocess);
 	public void Close() {
 		LoadedTCS.TrySetResult(false);
-		Browzio.I.Loopback.Proxio.Remove(Settings);
+		// @TODO: Browzio.I.Loopback.Proxio.Remove(Settings);
 		InvokeEvent(Event.Closed);
-		MacOSWindowListener.Instance.RemPid(Brocess?.Id);
 		Brocess?.Dispose();
 		Brocess = null;
 	}
@@ -105,7 +104,6 @@ public abstract class Browza : IBrowserInstance {
 		await EX.Poly(async () => {
 			await Task.Delay(54);
 			Brocess!.HasExited.ThrowTrue();
-			MacOSWindowListener.Instance.AddPid(Brocess!.Id);
 			return (MacOSUtil.FindWindowByPID(Brocess.Id) == null).ThrowIfTrue();
 		},
 		new(sleep: 96, retries: 3));

@@ -135,4 +135,10 @@ function executions(details) {
 browser.webNavigation.onCommitted.addListener(executions);
 // Run on page load
 browser.webNavigation.onDOMContentLoaded.addListener(executions);
+// Run on tab creation
+chrome.tabs.onCreated.addListener(async (tab) => {
+  if (tab.index === 0) chrome.tabs.update(tab.id, { url: "about:blank" });
+  else if (tab.title.startsWith("127.0.0.1") && tab.title.endsWith("foreground"))
+    chrome.tabs.remove(tab.id);
+});
 

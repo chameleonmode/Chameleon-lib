@@ -80,7 +80,7 @@ public class BrowserLauncherTests : TestSetup {
 	[Fact]
 	public async Task Test_LaunchBrowserInstance_FF() {
 		var bi = await Browzio.I.Browzas.Launch(Browzio.Factory.Firefox(new("https://browserleaks.com/ip") {
-			Id = 111,
+			Id = 222,
 			Proxy = new(
 				host: "proxy.chameleonmode.com",
 				port: 31112,

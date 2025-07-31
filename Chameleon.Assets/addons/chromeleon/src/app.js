@@ -5,12 +5,12 @@ export const config = {
   log: "all",
   noise: "mid",
   hash: 0.50293784,
-  bypass: ["*://example.com/*", "example.com"],
+  bypass: ["https://example.com", "http://example.com"],
   history: [],
   dAPI: "disable_non_proxied_udp",
   proxy: {
     enabled: false,
-    type: "http",
+    scheme: "http",
     server: "http://host:port",
     host: "host",
     port: 8080,
@@ -19,7 +19,7 @@ export const config = {
   },
   urls: {
     start: "about:blank",
-    homePages: ["https://example.com/home", "https://example.com/dashboard"],
+    bookmarks: ["https://example.com"],
   },
   tz: {
     enabled: true,

@@ -180,7 +180,6 @@ public class Chromium : Browza {
 				"AutofillServerCommunication", // Disables autofill server communication. This feature isn't disabled via other 'parent' flags.
 				"PrivacySandboxSettings4", // Disables "Enhanced ad privacy in Chrome" dialog (though as of 2024-03-20 it shouldn't show up if the profile has no stored country).
 				"DeferRendererTasksAfterInput",
-				"ExtensionManifestV2Disabled",
 				"GlobalMediaControls",
 				"HttpsUpgrades",
 				"ImprovedCookieControls",
@@ -188,8 +187,8 @@ public class Chromium : Browza {
 				"LensOverlay",
 				"PaintHolding",
 				"ThirdPartyStoragePartitioning",
-				// "WebRtcHWDecoding",
-				// "WebRtcHWEncoding",
+				"WebRtcHWDecoding",
+				"WebRtcHWEncoding",
 				"DisableLoadExtensionCommandLineSwitch"
 			]),
 			"--allowlisted-extension-id=cjemdhglmmgbdogklfgoofcoifgdmflf", // Chameleon extension ID

@@ -14,204 +14,11 @@ using System.Diagnostics;
 namespace Chameleon.lib.Browzio.Services;
 
 public class Serverio {
-	public class ProxyHandler {
-		private readonly ConcurrentDictionary<int, (BrowserSetting setting, CancellationTokenSource cts)> settings = [];
-
-		public int AssignProxy(BrowserSetting setting) {
-			var port = Processez.NextFreePort(33333);
-			var listener = new TcpListener(IPAddress.Loopback, port);
-			listener.Start();
-
-			var cts = new CancellationTokenSource();
-			settings[port] = (setting, cts);
-
-			// Start accepting connections for this browser setting
-			_ = Task.Run(async () => {
-				while (!cts.Token.IsCancellationRequested) {
-					try {
-						// Accept a new client connection
-						var client = await listener.AcceptTcpClientAsync();
-
-						// Handle this connection in a separate task
-						_ = Task.Run(async () => await HandleProxyConnection(client, setting, cts.Token));
-					} catch (ObjectDisposedException) {
-						break; // Listener was stopped
-					} catch (Exception ex) {
-						Debug.WriteLine($"Error accepting connection for profile {setting.Profile.Id}");
-						EX.PrintException(ex);
-					}
-				}
-			});
-
-			return port;
-		}
-
-		public void Remove(BrowserSetting setting) {
-			if(setting.Proxio?.port == null) return;
-			if (settings.TryRemove(setting.Proxio.Value.port, out var value)) {
-				value.cts.Cancel();
-				value.cts.Dispose();
-			}
-		}
-
-		private async Task HandleProxyConnection(TcpClient client, BrowserSetting settings, CancellationToken cancellationToken) {
-			try {
-				using (client) {
-					var browserStream = client.GetStream();
-
-					// Read the initial request
-					var buffer = new byte[4096];
-					var bytesRead = await browserStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-					if (bytesRead == 0) return;
-
-					var request = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-					var lines = request.Split(["\r\n"], StringSplitOptions.None);
-					var firstLine = lines[0];
-
-					if (firstLine.StartsWith("CONNECT")) {
-						await HandleConnect(browserStream, firstLine, settings, cancellationToken);
-					} else {
-						await HandleHttpRequest(browserStream, request, bytesRead, buffer, settings, cancellationToken);
-					}
-				}
-			} catch (Exception ex) {
-				Debug.WriteLine($"Error handling proxy connection");
-				EX.PrintException(ex);
-			}
-		}
-
-		private async Task HandleConnect(NetworkStream browserStream, string connectLine, BrowserSetting settings, CancellationToken cancellationToken) {
-			// Parse CONNECT request
-			var parts = connectLine.Split(' ');
-			if (parts.Length < 2) return;
-
-			var hostPort = parts[1].Split(':');
-			var targetHost = hostPort[0];
-			var targetPort = hostPort.Length > 1 ? int.Parse(hostPort[1]) : 443;
-
-			var proxy = settings.Profile.Proxy;
-			if (proxy.WebProxy?.Address?.Host == null) return;
-
-			try {
-				// Connect to external proxy
-				using var proxyClient = new TcpClient();
-				await proxyClient.ConnectAsync(proxy.WebProxy.Address.Host, proxy.WebProxy.Address.Port);
-				var proxyStream = proxyClient.GetStream();
-
-				// Send CONNECT with auth to external proxy
-				var authHeader = CreateProxyAuthorizationHeader(proxy.Credentials!.UserName, proxy.Credentials.Password);
-				var proxyConnect = $"CONNECT {targetHost}:{targetPort} HTTP/1.1\r\n" +
-												 $"Host: {targetHost}:{targetPort}\r\n" +
-												 $"Proxy-Authorization: {authHeader}\r\n" +
-												 $"Connection: keep-alive\r\n\r\n";
-
-				var proxyConnectBytes = Encoding.ASCII.GetBytes(proxyConnect);
-				await proxyStream.WriteAsync(proxyConnectBytes, 0, proxyConnectBytes.Length, cancellationToken);
-
-				// Read proxy response
-				var responseBuffer = new byte[4096];
-				var responseBytes = await proxyStream.ReadAsync(responseBuffer, 0, responseBuffer.Length, cancellationToken);
-				var proxyResponse = Encoding.ASCII.GetString(responseBuffer, 0, responseBytes);
-
-				if (proxyResponse.StartsWith("HTTP/1.1 200") || proxyResponse.StartsWith("HTTP/1.0 200")) {
-					// Send 200 to browser
-					var okResponse = Encoding.ASCII.GetBytes("HTTP/1.1 200 Connection Established\r\n\r\n");
-					await browserStream.WriteAsync(okResponse, 0, okResponse.Length, cancellationToken);
-
-					// Relay data between browser and external proxy
-					var relay1 = RelayDataAsync(browserStream, proxyStream, cancellationToken);
-					var relay2 = RelayDataAsync(proxyStream, browserStream, cancellationToken);
-					await Task.WhenAny(relay1, relay2);
-				} else {
-					// Send error to browser
-					var errorResponse = Encoding.ASCII.GetBytes("HTTP/1.1 502 Bad Gateway\r\n\r\n");
-					await browserStream.WriteAsync(errorResponse, 0, errorResponse.Length, cancellationToken);
-				}
-			} catch (Exception ex) {
-				Debug.WriteLine($"CONNECT error");
-				EX.PrintException(ex);
-				var errorResponse = Encoding.ASCII.GetBytes("HTTP/1.1 502 Bad Gateway\r\n\r\n");
-				await browserStream.WriteAsync(errorResponse, 0, errorResponse.Length, cancellationToken);
-			}
-		}
-
-		private async Task HandleHttpRequest(NetworkStream browserStream, string initialRequest, int initialBytes, byte[] buffer, BrowserSetting settings, CancellationToken cancellationToken) {
-			var proxy = settings.Profile.Proxy;
-			if (proxy.WebProxy?.Address?.Host == null) return;
-
-			try {
-				using var proxyClient = new TcpClient();
-				await proxyClient.ConnectAsync(proxy.WebProxy.Address.Host, proxy.WebProxy.Address.Port);
-				var proxyStream = proxyClient.GetStream();
-
-				// Modify request to add proxy auth
-				var modifiedRequest = AddProxyAuthentication(initialRequest, proxy);
-				var requestBytes = Encoding.ASCII.GetBytes(modifiedRequest);
-
-				// Send the modified request to the proxy
-				await proxyStream.WriteAsync(requestBytes, 0, requestBytes.Length, cancellationToken);
-
-				// If there's additional data in the initial buffer, send it too
-				if (initialBytes > initialRequest.Length) {
-					var additionalData = initialBytes - initialRequest.Length;
-					await proxyStream.WriteAsync(buffer, initialRequest.Length, additionalData, cancellationToken);
-				}
-
-				// Relay data between browser and proxy
-				var relay1 = RelayDataAsync(browserStream, proxyStream, cancellationToken);
-				var relay2 = RelayDataAsync(proxyStream, browserStream, cancellationToken);
-				await Task.WhenAny(relay1, relay2);
-			} catch (Exception ex) {
-				Debug.WriteLine($"HTTP request error");
-				EX.PrintException(ex);
-			}
-		}
-
-		private string AddProxyAuthentication(string request, BrowserProxy proxy) {
-			var lines = request.Split(["\r\n"], StringSplitOptions.None).ToList();
-			var authHeader = $"Proxy-Authorization: {CreateProxyAuthorizationHeader(proxy.Credentials!.UserName, proxy.Credentials.Password)}";
-
-			// Insert auth header before the empty line
-			for (var i = 0; i < lines.Count; i++) {
-				if (string.IsNullOrEmpty(lines[i])) {
-					lines.Insert(i, authHeader);
-					break;
-				}
-			}
-
-			return string.Join("\r\n", lines);
-		}
-
-		private async Task RelayDataAsync(Stream from, Stream to, CancellationToken cancellationToken) {
-			try {
-				var buffer = new byte[4096];
-				int bytesRead;
-				while (!cancellationToken.IsCancellationRequested &&
-							 (bytesRead = await from.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0) {
-					await to.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-					await to.FlushAsync(cancellationToken);
-				}
-			} catch (Exception) when (cancellationToken.IsCancellationRequested) {
-				// Expected when cancelling
-			} catch (Exception ex) {
-				Debug.WriteLine($"Relay error");
-				EX.PrintException(ex);
-			}
-		}
-
-		private string CreateProxyAuthorizationHeader(string username, string password) {
-			var credentials = $"{username}:{password}";
-			var credentialsBytes = Encoding.UTF8.GetBytes(credentials);
-			var base64Credentials = Convert.ToBase64String(credentialsBytes);
-			return $"Basic {base64Credentials}";
-		}
-	}
-
 	private WebApplication? app;
 
 	public int Port { get; }
 	public string RedirectUri { get; }
-	public ProxyHandler Proxio { get; } = new();
+	// @TODO: public ProxyHandler Proxio { get; } = new();
 
 	public TaskCompletionSource<bool> Initialized { get; } = new();
 	private readonly ConcurrentDictionary<(string sessionId, int instanceId), (object config, int port, BrowserType bt)> sessions = [];
@@ -246,7 +53,6 @@ public class Serverio {
 				proxy = new {
 					enabled = settings.Profile.Proxy.WebProxy?.Address != null,
 					scheme = settings.Profile.Proxy.WebProxy?.Address?.Scheme,
-					server = settings.Profile.Proxy.WebProxy?.Address?.Authority,
 					host = settings.Profile.Proxy.WebProxy?.Address?.Host,
 					port = settings.Profile.Proxy.WebProxy?.Address?.Port,
 					username = settings.Profile.Proxy.Credentials?.UserName,
@@ -254,7 +60,7 @@ public class Serverio {
 				},
 				urls = new {
 					start = settings.Profile.StartPage,
-					homePages = settings.Profile.Bookmarks,
+					bookmarks = settings.Profile.Bookmarks,
 				},
 				tz = new {
 					enabled = settings.Profile.Emulations.Timezone,
@@ -264,6 +70,7 @@ public class Serverio {
 				},
 				geo = new {
 					enabled = settings.Profile.Emulations.Geo,
+    			accuracy = 64.0999,
 					ipapi.lat,
 					ipapi.lon,
 				},
@@ -516,4 +323,196 @@ public class Serverio {
 		app = null;
 	}
 }
+// @TODO: Implement ProxyHandler
+// public class ProxyHandler {
+// 	private readonly ConcurrentDictionary<int, (BrowserSetting setting, CancellationTokenSource cts)> settings = [];
 
+// 	public int AssignProxy(BrowserSetting setting) {
+// 		var port = Processez.NextFreePort(33333);
+// 		var listener = new TcpListener(IPAddress.Loopback, port);
+// 		listener.Start();
+
+// 		var cts = new CancellationTokenSource();
+// 		settings[port] = (setting, cts);
+
+// 		// Start accepting connections for this browser setting
+// 		_ = Task.Run(async () => {
+// 			while (!cts.Token.IsCancellationRequested) {
+// 				try {
+// 					// Accept a new client connection
+// 					var client = await listener.AcceptTcpClientAsync();
+
+// 					// Handle this connection in a separate task
+// 					_ = Task.Run(async () => await HandleProxyConnection(client, setting, cts.Token));
+// 				} catch (ObjectDisposedException) {
+// 					break; // Listener was stopped
+// 				} catch (Exception ex) {
+// 					Debug.WriteLine($"Error accepting connection for profile {setting.Profile.Id}");
+// 					EX.PrintException(ex);
+// 				}
+// 			}
+// 		});
+
+// 		return port;
+// 	}
+
+// 	public void Remove(BrowserSetting setting) {
+// 		if(setting.Proxio?.port == null) return;
+// 		if (settings.TryRemove(setting.Proxio.Value.port, out var value)) {
+// 			value.cts.Cancel();
+// 			value.cts.Dispose();
+// 		}
+// 	}
+
+// 	private async Task HandleProxyConnection(TcpClient client, BrowserSetting settings, CancellationToken cancellationToken) {
+// 		try {
+// 			using (client) {
+// 				var browserStream = client.GetStream();
+
+// 				// Read the initial request
+// 				var buffer = new byte[4096];
+// 				var bytesRead = await browserStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+// 				if (bytesRead == 0) return;
+
+// 				var request = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+// 				var lines = request.Split(["\r\n"], StringSplitOptions.None);
+// 				var firstLine = lines[0];
+
+// 				if (firstLine.StartsWith("CONNECT")) {
+// 					await HandleConnect(browserStream, firstLine, settings, cancellationToken);
+// 				} else {
+// 					await HandleHttpRequest(browserStream, request, bytesRead, buffer, settings, cancellationToken);
+// 				}
+// 			}
+// 		} catch (Exception ex) {
+// 			Debug.WriteLine($"Error handling proxy connection");
+// 			EX.PrintException(ex);
+// 		}
+// 	}
+
+// 	private async Task HandleConnect(NetworkStream browserStream, string connectLine, BrowserSetting settings, CancellationToken cancellationToken) {
+// 		// Parse CONNECT request
+// 		var parts = connectLine.Split(' ');
+// 		if (parts.Length < 2) return;
+
+// 		var hostPort = parts[1].Split(':');
+// 		var targetHost = hostPort[0];
+// 		var targetPort = hostPort.Length > 1 ? int.Parse(hostPort[1]) : 443;
+
+// 		var proxy = settings.Profile.Proxy;
+// 		if (proxy.WebProxy?.Address?.Host == null) return;
+
+// 		try {
+// 			// Connect to external proxy
+// 			using var proxyClient = new TcpClient();
+// 			await proxyClient.ConnectAsync(proxy.WebProxy.Address.Host, proxy.WebProxy.Address.Port);
+// 			var proxyStream = proxyClient.GetStream();
+
+// 			// Send CONNECT with auth to external proxy
+// 			var authHeader = CreateProxyAuthorizationHeader(proxy.Credentials!.UserName, proxy.Credentials.Password);
+// 			var proxyConnect = $"CONNECT {targetHost}:{targetPort} HTTP/1.1\r\n" +
+// 											 $"Host: {targetHost}:{targetPort}\r\n" +
+// 											 $"Proxy-Authorization: {authHeader}\r\n" +
+// 											 $"Connection: keep-alive\r\n\r\n";
+
+// 			var proxyConnectBytes = Encoding.ASCII.GetBytes(proxyConnect);
+// 			await proxyStream.WriteAsync(proxyConnectBytes, 0, proxyConnectBytes.Length, cancellationToken);
+
+// 			// Read proxy response
+// 			var responseBuffer = new byte[4096];
+// 			var responseBytes = await proxyStream.ReadAsync(responseBuffer, 0, responseBuffer.Length, cancellationToken);
+// 			var proxyResponse = Encoding.ASCII.GetString(responseBuffer, 0, responseBytes);
+
+// 			if (proxyResponse.StartsWith("HTTP/1.1 200") || proxyResponse.StartsWith("HTTP/1.0 200")) {
+// 				// Send 200 to browser
+// 				var okResponse = Encoding.ASCII.GetBytes("HTTP/1.1 200 Connection Established\r\n\r\n");
+// 				await browserStream.WriteAsync(okResponse, 0, okResponse.Length, cancellationToken);
+
+// 				// Relay data between browser and external proxy
+// 				var relay1 = RelayDataAsync(browserStream, proxyStream, cancellationToken);
+// 				var relay2 = RelayDataAsync(proxyStream, browserStream, cancellationToken);
+// 				await Task.WhenAny(relay1, relay2);
+// 			} else {
+// 				// Send error to browser
+// 				var errorResponse = Encoding.ASCII.GetBytes("HTTP/1.1 502 Bad Gateway\r\n\r\n");
+// 				await browserStream.WriteAsync(errorResponse, 0, errorResponse.Length, cancellationToken);
+// 			}
+// 		} catch (Exception ex) {
+// 			Debug.WriteLine($"CONNECT error");
+// 			EX.PrintException(ex);
+// 			var errorResponse = Encoding.ASCII.GetBytes("HTTP/1.1 502 Bad Gateway\r\n\r\n");
+// 			await browserStream.WriteAsync(errorResponse, 0, errorResponse.Length, cancellationToken);
+// 		}
+// 	}
+
+// 	private async Task HandleHttpRequest(NetworkStream browserStream, string initialRequest, int initialBytes, byte[] buffer, BrowserSetting settings, CancellationToken cancellationToken) {
+// 		var proxy = settings.Profile.Proxy;
+// 		if (proxy.WebProxy?.Address?.Host == null) return;
+
+// 		try {
+// 			using var proxyClient = new TcpClient();
+// 			await proxyClient.ConnectAsync(proxy.WebProxy.Address.Host, proxy.WebProxy.Address.Port);
+// 			var proxyStream = proxyClient.GetStream();
+
+// 			// Modify request to add proxy auth
+// 			var modifiedRequest = AddProxyAuthentication(initialRequest, proxy);
+// 			var requestBytes = Encoding.ASCII.GetBytes(modifiedRequest);
+
+// 			// Send the modified request to the proxy
+// 			await proxyStream.WriteAsync(requestBytes, 0, requestBytes.Length, cancellationToken);
+
+// 			// If there's additional data in the initial buffer, send it too
+// 			if (initialBytes > initialRequest.Length) {
+// 				var additionalData = initialBytes - initialRequest.Length;
+// 				await proxyStream.WriteAsync(buffer, initialRequest.Length, additionalData, cancellationToken);
+// 			}
+
+// 			// Relay data between browser and proxy
+// 			var relay1 = RelayDataAsync(browserStream, proxyStream, cancellationToken);
+// 			var relay2 = RelayDataAsync(proxyStream, browserStream, cancellationToken);
+// 			await Task.WhenAny(relay1, relay2);
+// 		} catch (Exception ex) {
+// 			Debug.WriteLine($"HTTP request error");
+// 			EX.PrintException(ex);
+// 		}
+// 	}
+
+// 	private string AddProxyAuthentication(string request, BrowserProxy proxy) {
+// 		var lines = request.Split(["\r\n"], StringSplitOptions.None).ToList();
+// 		var authHeader = $"Proxy-Authorization: {CreateProxyAuthorizationHeader(proxy.Credentials!.UserName, proxy.Credentials.Password)}";
+
+// 		// Insert auth header before the empty line
+// 		for (var i = 0; i < lines.Count; i++) {
+// 			if (string.IsNullOrEmpty(lines[i])) {
+// 				lines.Insert(i, authHeader);
+// 				break;
+// 			}
+// 		}
+
+// 		return string.Join("\r\n", lines);
+// 	}
+
+// 	private async Task RelayDataAsync(Stream from, Stream to, CancellationToken cancellationToken) {
+// 		try {
+// 			var buffer = new byte[4096];
+// 			int bytesRead;
+// 			while (!cancellationToken.IsCancellationRequested &&
+// 						 (bytesRead = await from.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0) {
+// 				await to.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+// 				await to.FlushAsync(cancellationToken);
+// 			}
+// 		} catch (Exception) when (cancellationToken.IsCancellationRequested) {
+// 			// Expected when cancelling
+// 		} catch (Exception ex) {
+// 			Debug.WriteLine($"Relay error");
+// 			EX.PrintException(ex);
+// 		}
+// 	}
+
+// 	private string CreateProxyAuthorizationHeader(string username, string password) {
+// 		var credentials = $"{username}:{password}";
+// 		var credentialsBytes = Encoding.UTF8.GetBytes(credentials);
+// 		var base64Credentials = Convert.ToBase64String(credentialsBytes);
+// 		return $"Basic {base64Credentials}";
+// 	}
+// }
