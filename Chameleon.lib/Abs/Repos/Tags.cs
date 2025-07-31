@@ -1,22 +1,22 @@
 ﻿using Chameleon.lib.Abs.Platformatic;
-using Chameleon.lib.Api.Dto;
 using Chameleon.lib.Util;
 using DynamicData;
 using System.Data;
 
-namespace Chameleon.lib.Api.Repos; 
+namespace Chameleon.lib.Abs.Repos;
+
 public class TagItemType {
 	public const string Folder = nameof(Folder);
 	public const string Profile = nameof(Profile);
 	public const string Settings = nameof(Settings);
 }
-public record TagDto(string Name, Dictionary<string,List<string>> Items);
+public record TagDto(string Name, Dictionary<string, List<string>> Items);
 public record TagItemDto(string Type, List<string> Ids);
 public class TagsRepo {
 	TagsRepo() { }
 
-	readonly SourceCache<TagDto, string> cache = new(tag => tag.Name);
-	public IObservableCache<TagDto, string> Cache => cache;
+	public SourceCache<TagDto, string> SourceCache { get; } = new(tag => tag.Name);
+	public IObservableCache<TagDto, string> Cache => SourceCache;
 
 	public async Task Load() {
 		List<TagDto> list = [new TagDto("Favourites", [])];
@@ -25,7 +25,7 @@ public class TagsRepo {
 			(await DB.I.GetTags())?
 				.Select(t => new TagDto(t.Name, JSON.Deserialize<Dictionary<string, List<string>>>(t.Items) ?? [])) ?? []
 		);
-		cache.Edit(updater => {
+		SourceCache.Edit(updater => {
 			updater.Clear();
 			updater.AddOrUpdate(list);
 		});
@@ -35,26 +35,24 @@ public class TagsRepo {
 		return (await DB.I.GetItemTagsForItem(tagItemType, tagItemId))?.Select(it => it.TagName) ?? [];
 	}
 
-	public async Task<IEnumerable<string>> SaveTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {
-		var existingTags = cache.Items.Where(x => !x.Items.Values.Any(t => t.Any(item => tags.Contains(item))));
-
-		// Remove the item from the tags that are no longer associated with it
-		foreach (var tag in existingTags) {
+	public async Task CleanStaleTags(IEnumerable<int> profileIds, IEnumerable<int> folderIds) {
+		foreach (var tag in SourceCache.Items) {
 			if (
-				Auther.AuthSession?.CreatorUserId == null &&
-				!UserProfilesRepo.Instance.ObservableCache.Keys.Any(i => tag.Items.Values.Any(values => values.Contains(i.ToString()))) &&
-				!UserProfilesFolderRepo.Instance.ObservableCache.Keys.Any(i => tag.Items.Values.Any(values => values.Contains(i.ToString()))) &&
+				!profileIds.Any(i => tag.Items.Values.Any(values => values.Contains(i.ToString()))) &&
+				!folderIds.Any(i => tag.Items.Values.Any(values => values.Contains(i.ToString()))) &&
 				await DB.I.GetTagBy(tag.Name) is { } entity
 			) {
-				// If the tag has no items left, delete it from the database and cache
 				await DB.I.DeleteTag(entity.Id);
+				SourceCache.Edit(updater => updater.RemoveKey(tag.Name));
 			}
 		}
+	}
 
+	public async Task<IEnumerable<string>> SaveTagsAsync(string tagItemType, string id, IEnumerable<string> tags) {
 		// Ensure the tag is removed from the database
 		var currentTags = await GetTagsAsync(tagItemType, id);
 		foreach (var tagName in currentTags.Except(tags)) {
-			if(
+			if (
 				await DB.I.GetTagBy(tagName) is { } entity &&
 				JSON.Deserialize<Dictionary<string, List<string>>>(entity.Items) is { } items &&
 				items.TryGetValue(tagItemType, out var itemIds) &&
@@ -67,7 +65,7 @@ public class TagsRepo {
 			// If the tag does not exist, create it // UpdateAsync
 			var existing = await DB.I.GetTagBy(tagName);
 			var tag = existing == null
-				? new TagDto(tagName, []) 
+				? new TagDto(tagName, [])
 				: new TagDto(existing.Name, JSON.Deserialize<Dictionary<string, List<string>>>(existing.Items) ?? []);
 			if (!tag.Items.TryGetValue(tagItemType, out var value)) tag.Items[tagItemType] = [id];
 			else if (!value.Contains(id)) value.Add(id);
@@ -80,15 +78,14 @@ public class TagsRepo {
 			_ = await DB.I.GetItemTagBy(tagItemType, id, tagName) is null
 				? await DB.I.CreateItemTag(tagItemType, id, tagName)
 				: await DB.I.UpdateItemTagBy(tagItemType, id, tagName);
+			SourceCache.Edit(updater => updater.AddOrUpdate(tag));
 		}
-
-		await Load(); // Reload the cache to reflect changes
 		return tags;
 	}
 
-	public static TagsRepo Instance { get; } = new();
+	public static TagsRepo I { get; } = new();
 	public static IObservable<IChangeSet<TagDto, string>> Connect(
 		Func<TagDto, bool>? predicate = null,
 		bool suppressEmptyChangeSets = true
-	) => Instance.Cache.Connect(predicate, suppressEmptyChangeSets);
+	) => I.Cache.Connect(predicate, suppressEmptyChangeSets);
 }
