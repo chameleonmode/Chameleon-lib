@@ -2,18 +2,20 @@
 
 using System.Text;
 using System.Web;
+using Chameleon.lib.Browzio.Services.Browzas;
 using Chameleon.lib.Util;
 
 namespace Chameleon.lib.Auth.Oidc;
+
 public class Browser(Client oidcClient) {
-	public Func<string, Task> Open { get; set; } = async url => {
-			var browser = await EX.Catch(
-				async () => await Browzio.Browzio.I.Browzas.Open(Browzio.Browzio.Factory.Chrome(new(url))),
-				ex => { if (!Browzio.Browzio.Utilities.IsInstalled(Browzio.BrowserType.Chrome)) Processez.OpenBrowser(url); }
-			);
-			Session.I.Auth0Client.OidcBrowser.TaskCompletion?.Task.ContinueWith(_ => browser?.Closee());
-		};
-	public TaskCompletionSource? TaskCompletion { get; private set; }
+	public Func<string, Task<IBrowserInstance?>> Open { get; set; } = async url => {
+		var browser = await EX.Catch(
+			async () => await Browzio.Browzio.I.Browzas.Open(Browzio.Browzio.Factory.Chrome(new(url))),
+			ex => { if (!Browzio.Browzio.Utilities.IsInstalled(Browzio.BrowserType.Chrome)) Processez.OpenBrowser(url); }
+		);
+		/// Session.I.Auth0Client.OidcBrowser.TaskCompletion?.Task.ContinueWith(_ => browser?.Closee());
+		return browser;
+	};
 	const string authResponseHtml = @"
 		<!DOCTYPE html>
 		<html>
@@ -122,33 +124,30 @@ public class Browser(Client oidcClient) {
             </script>
         </body>
         </html>";
-	
+
 	public Task<string> GetCode() => HandleCallback(oidcClient.AuthUrl, authResponseHtml, "code");
 	public Task Logout() => HandleCallback(oidcClient.LogoutUrl, logoutResponseHtml);
 
-	private async Task<string> HandleCallback(string url, string htmlResponse, string? expectedParam = null) {
-		TaskCompletion = new TaskCompletionSource();
+	private async Task<string> HandleCallback(string url, string htmlResponse, string? expect = null) {
+		var buffer = Encoding.UTF8.GetBytes(htmlResponse);
 		using var listener = new HttpListener();
 		listener.Prefixes.Add(oidcClient.RedirectUri + "/");
 		listener.Start();
 
-		//
-		await Open(url);
-
+		var browser = await Open(url);
 		var context = await listener.GetContextAsync();
+		var request = context.Request;
 
-		// Send response after extracting the code
 		using var response = context.Response;
-		var buffer = Encoding.UTF8.GetBytes(htmlResponse);
 		response.ContentLength64 = buffer.Length;
 		response.ContentType = "text/html";
 		await response.OutputStream.WriteAsync(buffer);
 
-		_ = TaskCompletion.TrySetResult();
+		if (browser != null) await browser.Closee();
 
-		return context.Request.Url?.Query is { } query && HttpUtility.ParseQueryString(query)[expectedParam] is { } value
-			? value
-			: throw new Exception($"{expectedParam} not found in response");
+		return expect == null
+			? ""
+			: HttpUtility.ParseQueryString(request.Url?.Query!)[expect] ?? throw new Exception($"{expect} not found in response");
 	}
 }
 

@@ -5,21 +5,25 @@ using Microsoft.Extensions.Configuration;
 namespace Tests;
 
 public abstract class TestSetup : IAsyncLifetime {
-	public readonly TaskCompletionSource<bool> _tcs = new();
-	public TestSetup(int dictionary = 0) {
-		IoC.I.Configure((c) => {
+	public readonly TaskCompletionSource<bool> tcs = new();
+	public int Env { get; }
+	public TestSetup(int env = 0) {
+		Env = env;
+		IoC.I.Configure(
+			(c) => {
 			_ = c.SetBasePath(Directory.GetCurrentDirectory());
-		}, (services) => {
-			_ = services;
+			},
+			(services) => {
+				_ = services;
 		});
-			IoC.SetJsonValue(nameof(LoginSettings), new LoginSettings(
-				Environment.Directory[dictionary].email,
-				Environment.Directory[dictionary].license
-				));
-			_tcs.SetResult(true);
-
+		tcs.SetResult(true);
 	}
-
 	public Task DisposeAsync() => Task.CompletedTask;
-	public virtual async Task InitializeAsync() => await _tcs.Task;
+	public virtual async Task InitializeAsync() {
+		await tcs.Task;
+		IoC.SetJsonValue(nameof(LoginSettings), new LoginSettings(
+			Environment.Directory[Env].email,
+			Environment.Directory[Env].license
+		));
+	}
 }

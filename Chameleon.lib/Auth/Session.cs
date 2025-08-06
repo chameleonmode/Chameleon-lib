@@ -7,7 +7,6 @@ namespace Chameleon.lib.Auth;
 public class Session {
 	public Client Auth0Client { get; } = new Client();
 	public LoginSettings Settings { get; set; } = IoC.GetJsonValue<LoginSettings>(nameof(LoginSettings)) ?? new("", "", false);
-
 	Session() { }
 
 	public void Save(LoginSettings settings) {

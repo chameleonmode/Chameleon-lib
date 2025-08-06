@@ -91,7 +91,8 @@ public class IoC {
 	public static T? GetJsonValue<T>(string key) => JSON.Deserialize<T>(GetValue(key) ?? "");
 	public static void SetJsonValue<T>(string key, T value, string? message = null) {
 		if (
-			JSON.Stringify(value) is not { } nv ||
+			value is null ||
+			JSON.Serialize(value) is not { } nv ||
 			string.Equals(nv, I.Config?.GetValue<string>(key), StringComparison.Ordinal)
 		) return;
 		I.Config?.SetValue(key, nv, message);

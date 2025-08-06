@@ -123,7 +123,7 @@ public class SMSPoolAPI : PVAInstance {
 			});
 			var responseContent = await response.Content.ReadAsStringAsync();
 			var jsonResponse = JSON.Deserialize<OrderBase>(responseContent);
-			var formattedJson = JSON.Stringify(jsonResponse);
+			var formattedJson = jsonResponse is null ? null : JSON.Serialize(jsonResponse);
 			return new Tuple<string, string>(formattedJson ?? string.Empty, (jsonResponse?.success > 0).ToString());
 		} else {
 			return new Tuple<string, string>("", "Failed to deserialize orderid");

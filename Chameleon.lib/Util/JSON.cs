@@ -34,8 +34,8 @@ public static class JSON {
 
 	public static string Serialize(object o, JsonSerializerOptions? options = null) =>
 	 JsonSerializer.Serialize(o, options ?? InsensitiveCamelCaseOptions);
-	public static string? Stringify(object? o, JsonSerializerOptions? options = null) {
-		return o is null ? null : Serialize(o, options);
+	public static string Stringer(object? o, JsonSerializerOptions? options = null) {
+		return o is null ? "" : Serialize(o, options);
 	}
 
 	public class DynamicJsonConverter<T1, T2> : JsonConverter<T2> where T1 : T2 {

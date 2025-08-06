@@ -5,7 +5,7 @@ using Chameleon.lib.Util;
 namespace Chameleon.lib.Abs.Platformatic;
 
 public record User(object? Id, string UserId, string Email, string? LicenseKey, string TenantId, string Provider, string? ProviderId, DateTime CreatedAt, DateTime UpdatedAt);
-public record DataInteraction(object? Id, string InteractionId, string TenantId, string SenderId, string ReceiverId, string DataType, string DataPayload, DateTime CreatedAt);
+public record DataInteraction(int? Id, string InteractionId, string TenantId, string SenderId, string ReceiverId, string DataType, string DataPayload, DateTime CreatedAt);
 public class DB : Web {
 	public Routes.License License { get; } = new();
 	public Routes.Uzer Userz { get; } = new();
