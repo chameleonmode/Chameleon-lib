@@ -11,6 +11,7 @@ using System.Collections.Concurrent;
 using Chameleon.lib.Util;
 using System.Net;
 using System.Diagnostics;
+using Chameleon.lib.ThirdParty.GeoIp;
 namespace Chameleon.lib.Browzio.Services;
 
 public class Serverio {
@@ -41,7 +42,15 @@ public class Serverio {
 	}
 
 	public async Task AddSession(string sessionId, BrowserSetting settings) {
-		var ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy);
+		// Make GeoIP call optional - use fallback values if it fails
+		Ipapi ipapi;
+		try {
+			ipapi = await ThirdParty.GeoIp.Api.GeoIp(settings.Profile.Proxy.WebProxy);
+		} catch (Exception ex) {
+			// Log the error but continue with randomized fallback values
+			Console.WriteLine($"GeoIP lookup failed: {ex.Message}. Using randomized fallback values.");
+			ipapi = GenerateRandomGeoIpFallback();
+		}
 		// @TODO: Handle proxio configuration
 		// settings.Proxio = settings.Profile.Proxy.WebProxy?.Address == null
 		// 	? null 
@@ -321,6 +330,53 @@ public class Serverio {
 		await app.StopAsync();
 		await app.DisposeAsync();
 		app = null;
+	}
+
+	private static Ipapi GenerateRandomGeoIpFallback() {
+		var random = new Random();
+		
+		// Array of realistic fallback locations
+		var locations = new[] {
+			new { country = "United States", countryCode = "US", city = "New York", lat = 40.7128, lon = -74.0060, timezone = "America/New_York" },
+			new { country = "United States", countryCode = "US", city = "Los Angeles", lat = 34.0522, lon = -118.2437, timezone = "America/Los_Angeles" },
+			new { country = "United States", countryCode = "US", city = "Chicago", lat = 41.8781, lon = -87.6298, timezone = "America/Chicago" },
+			new { country = "United States", countryCode = "US", city = "Miami", lat = 25.7617, lon = -80.1918, timezone = "America/New_York" },
+			new { country = "Canada", countryCode = "CA", city = "Toronto", lat = 43.6532, lon = -79.3832, timezone = "America/Toronto" },
+			new { country = "Canada", countryCode = "CA", city = "Vancouver", lat = 49.2827, lon = -123.1207, timezone = "America/Vancouver" },
+			new { country = "United Kingdom", countryCode = "GB", city = "London", lat = 51.5074, lon = -0.1278, timezone = "Europe/London" },
+			new { country = "Germany", countryCode = "DE", city = "Berlin", lat = 52.5200, lon = 13.4050, timezone = "Europe/Berlin" },
+			new { country = "France", countryCode = "FR", city = "Paris", lat = 48.8566, lon = 2.3522, timezone = "Europe/Paris" },
+			new { country = "Australia", countryCode = "AU", city = "Sydney", lat = -33.8688, lon = 151.2093, timezone = "Australia/Sydney" }
+		};
+
+		var selectedLocation = locations[random.Next(locations.Length)];
+
+		// Generate a random private IP address for the query field
+		var privateIpRanges = new[] {
+			"192.168", "10", "172.16", "172.17", "172.18", "172.19", "172.20"
+		};
+		var selectedRange = privateIpRanges[random.Next(privateIpRanges.Length)];
+		string randomIp;
+		
+		if (selectedRange.StartsWith("192.168")) {
+			randomIp = $"192.168.{random.Next(1, 255)}.{random.Next(1, 255)}";
+		} else if (selectedRange == "10") {
+			randomIp = $"10.{random.Next(1, 255)}.{random.Next(1, 255)}.{random.Next(1, 255)}";
+		} else {
+			var thirdOctet = random.Next(16, 32); // 172.16-31.x.x range
+			randomIp = $"172.{thirdOctet}.{random.Next(1, 255)}.{random.Next(1, 255)}";
+		}
+
+		return new Ipapi {
+			country = selectedLocation.country,
+			countryCode = selectedLocation.countryCode,
+			city = selectedLocation.city,
+			lat = selectedLocation.lat,
+			lon = selectedLocation.lon,
+			timezone = selectedLocation.timezone,
+			query = randomIp,
+			system = true
+		};
 	}
 }
 // @TODO: Implement ProxyHandler

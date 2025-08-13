@@ -137,7 +137,10 @@ public static partial class Resources {
 		string? settings = null,
 		string? version = null
 	) {
-		  Directory.Delete(destinationPath, true);
+		// Fix: Only delete if directory exists to avoid DirectoryNotFoundException
+		if (Directory.Exists(destinationPath)) {
+			Directory.Delete(destinationPath, true);
+		}
 		var assembly = Assembly.GetExecutingAssembly();
 		var prefix = assembly.GetName().Name + ".";
 		try {

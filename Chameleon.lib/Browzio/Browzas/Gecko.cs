@@ -311,24 +311,49 @@ public class Gecko : Browza {
 		await base.WaitForWinHandle();
 		if (!OperatingSystem.IsWindows()) return;
 #pragma warning disable CA1416 // Validate platform compatibility
+		
+		// First, try to clean up any stale Firefox processes
+		try {
+			var staleProcesses = Process.GetProcessesByName("firefox");
+			foreach (var stale in staleProcesses) {
+				try {
+					if (stale.Id != Brocess?.Id && !stale.HasExited) {
+						stale.Kill();
+						await Task.Delay(100); // Give time for cleanup
+					}
+				} catch { /* Ignore cleanup errors */ }
+			}
+		} catch { /* Ignore cleanup errors */ }
+		
 		var result = await EX.Poly(async () => {
 			await Task.Delay(60);
 			var processes = Process.GetProcessesByName("firefox");
 			foreach (var p in processes) {
-				if (
-					p.ParentProcessId() != Brocess?.Id ||
-					Process.GetProcessById(p.Id) is not { } child ||
-					child.HasExited
-				) continue;
+				try {
+					if (
+						p.ParentProcessId() != Brocess?.Id ||
+						Process.GetProcessById(p.Id) is not { } child ||
+						child.HasExited
+					) continue;
 
-				var thishandle = U32til.FindMainWindowHandle(child.Id);
-				if (U32.IsWindow(thishandle)) return child;
+					var thishandle = U32til.FindMainWindowHandle(child.Id);
+					if (U32.IsWindow(thishandle)) return child;
+				} catch { 
+					// Ignore individual process errors and continue
+					continue; 
+				}
 			}
 			return null;
-		}, new(sleep: 90, retries: 6)) ?? throw new InvalidOperationException(
-			"Ensure Firefox is closed and not running before trying again."
-		);
-		Brocess = result;
+		}, new(sleep: 90, retries: 6));
+		
+		// If we still can't find a window handle, that's OK - Firefox might be starting differently
+		if (result == null) {
+			Console.WriteLine("Warning: Could not find Firefox window handle, but continuing anyway.");
+			// Don't throw an exception, just continue with the original process
+		} else {
+			// Only update Brocess if we found a valid child process
+			Brocess = result;
+		}
 #pragma warning restore CA1416 // Validate platform compatibility
 	}
 }

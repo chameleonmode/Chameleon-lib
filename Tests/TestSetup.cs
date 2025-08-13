@@ -22,8 +22,8 @@ public abstract class TestSetup : IAsyncLifetime {
 	public virtual async Task InitializeAsync() {
 		await tcs.Task;
 		IoC.SetJsonValue(nameof(LoginSettings), new LoginSettings(
-			Environment.Directory[Env].email,
-			Environment.Directory[Env].license
+			TestEnvironment.Directory[Env].email,
+			TestEnvironment.Directory[Env].license
 		));
 	}
 }
