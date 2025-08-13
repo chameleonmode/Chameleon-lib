@@ -137,7 +137,7 @@ public static partial class Resources {
 		string? settings = null,
 		string? version = null
 	) {
-		// Fix: Only delete if directory exists to avoid DirectoryNotFoundException
+
 		if (Directory.Exists(destinationPath)) {
 			Directory.Delete(destinationPath, true);
 		}
